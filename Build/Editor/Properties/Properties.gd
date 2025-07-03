@@ -1,2 +1,2 @@
-@tool class_name Properties extends EditorRect
+class_name Properties extends EditorRect
 

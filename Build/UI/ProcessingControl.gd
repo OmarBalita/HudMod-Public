@@ -1,4 +1,3 @@
-@tool
 class_name ProcessingControl extends ColorRect
 
 @export var forward_color:= Color("73c4ff99")

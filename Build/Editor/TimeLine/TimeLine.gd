@@ -1,4 +1,4 @@
-@tool class_name TimeLine extends EditorRect
+class_name TimeLine extends EditorRect
 
 
 signal curr_frame_changed(new_val: int)

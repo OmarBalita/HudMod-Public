@@ -1,4 +1,4 @@
-@tool class_name Player extends EditorRect
+class_name Player extends EditorRect
 
 
 # ---------------------------------------------------
