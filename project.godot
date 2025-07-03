@@ -1,0 +1,50 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Edit App"
+run/main_scene="uid://c5j8uwlpcdbkb"
+config/features=PackedStringArray("4.4", "Forward Plus")
+config/icon="res://icon.svg"
+
+[autoload]
+
+InterfaceServer="*res://Autoload/InterfaceServer.gd"
+ObjectServer="*res://Autoload/ObjectServer.gd"
+EditorServer="*res://Autoload/EditorServer.gd"
+TimeServer="*res://Autoload/TimeServer.gd"
+ProjectServer="*res://Autoload/ProjectServer.gd"
+WindowManager="*res://Autoload/WindowManager.gd"
+MediaServer="*res://Autoload/MediaServer.gd"
+
+[display]
+
+window/size/viewport_width=1400
+window/size/viewport_height=800
+window/subwindows/embed_subwindows=false
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg", "res://addons/gkanban/plugin.cfg")
+
+[global_group]
+
+media_explorer=""
+time_line=""
+player=""
+properties=""
+guide_label=""
+notification_label=""
+clip_nodes_explorer=""
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

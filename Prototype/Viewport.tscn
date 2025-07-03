@@ -1,0 +1,68 @@
+[gd_scene load_steps=2 format=3 uid="uid://brb1cvj5iyas0"]
+
+[ext_resource type="Script" uid="uid://bggbap3dafch0" path="res://Build/UI/FlexViewContainer.gd" id="1_dwubg"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.158472, 0.158472, 0.158472, 1)
+
+[node name="SplitContainer" type="SplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="SplitContainer" type="SplitContainer" parent="SplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical = true
+
+[node name="Control" type="Control" parent="SplitContainer/SplitContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FlexViewContainer" type="SubViewportContainer" parent="SplitContainer/SplitContainer/Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+script = ExtResource("1_dwubg")
+
+[node name="SubViewport" type="SubViewport" parent="SplitContainer/SplitContainer/Control/FlexViewContainer"]
+handle_input_locally = false
+size = Vector2i(694, 394)
+render_target_update_mode = 4
+
+[node name="Camera2D" type="Camera2D" parent="SplitContainer/SplitContainer/Control/FlexViewContainer/SubViewport"]
+
+[node name="Panel" type="Panel" parent="SplitContainer/SplitContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Panel" type="Panel" parent="SplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

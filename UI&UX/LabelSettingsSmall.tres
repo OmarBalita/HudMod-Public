@@ -1,0 +1,9 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://buujtyh7edm1y"]
+
+[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Cascadia.ttf" id="1_jokjj"]
+
+[resource]
+font = ExtResource("1_jokjj")
+font_size = 14
+font_color = Color(1, 1, 1, 0.8)
+outline_size = 1

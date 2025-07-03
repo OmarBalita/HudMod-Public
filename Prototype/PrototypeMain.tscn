@@ -1,0 +1,174 @@
+[gd_scene load_steps=20 format=3 uid="uid://c5j8uwlpcdbkb"]
+
+[ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Build/Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
+[ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
+[ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Build/Editor/Player/Player.gd" id="2_7i47x"]
+[ext_resource type="Script" uid="uid://r643re6ydjnt" path="res://Build/Editor/Properties/Properties.gd" id="3_7i47x"]
+[ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Build/Editor/MediaExplorer/MediaCard.tscn" id="3_dpj1x"]
+[ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/Resource/MenuOption.gd" id="3_pyfir"]
+[ext_resource type="Texture2D" uid="uid://bfd4pbwwemafk" path="res://Asset/Icons/gallery.png" id="4_plela"]
+[ext_resource type="StyleBox" uid="uid://b17xrxixwo66k" path="res://UI&UX/StylePanel.tres" id="5_eei6f"]
+[ext_resource type="Texture2D" uid="uid://cb6pjddrrsxkn" path="res://Asset/Icons/text.png" id="5_fucdc"]
+[ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="6_30pfl"]
+[ext_resource type="LabelSettings" uid="uid://wv4o1kifc17q" path="res://UI&UX/LabelSettingsMain.tres" id="6_rceaj"]
+[ext_resource type="StyleBox" uid="uid://b334pukgkfrk8" path="res://UI&UX/StyleAccent.tres" id="7_jkecq"]
+[ext_resource type="LabelSettings" uid="uid://btchr08otjlgb" path="res://UI&UX/LabelSettingsHeader.tres" id="7_o3877"]
+[ext_resource type="Script" uid="uid://bci4vqikuv2cq" path="res://Build/UI/NotificationLabel.gd" id="7_pln24"]
+[ext_resource type="PackedScene" uid="uid://ilpv866vtt" path="res://Build/Editor/MediaExplorer/FolderCard.tscn" id="8_fucdc"]
+[ext_resource type="Script" uid="uid://bcd2jbumhww6p" path="res://Build/Editor/ClipNodesExplorer/ClipNodesExplorer.gd" id="11_30pfl"]
+
+[sub_resource type="Resource" id="Resource_xapm0"]
+script = ExtResource("3_pyfir")
+is_separation_line = false
+text = "Files"
+icon = ExtResource("4_plela")
+metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
+
+[sub_resource type="Resource" id="Resource_0uheb"]
+script = ExtResource("3_pyfir")
+is_separation_line = false
+text = "Text"
+icon = ExtResource("5_fucdc")
+metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
+
+[sub_resource type="Resource" id="Resource_plela"]
+script = ExtResource("3_pyfir")
+is_separation_line = false
+text = "Shapes"
+icon = ExtResource("6_30pfl")
+metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
+
+[node name="PrototypeMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BG" type="ColorRect" parent="."]
+z_index = -2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0584, 0.062, 0.08, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Box" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="PanelContainer" parent="Margin/Box"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("5_eei6f")
+
+[node name="Split" type="VSplitContainer" parent="Margin/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Split" type="HSplitContainer" parent="Margin/Box/Split"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split" groups=["media_explorer"]]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.55
+script = ExtResource("1_7i47x")
+header_options = Array[ExtResource("3_pyfir")]([SubResource("Resource_xapm0"), SubResource("Resource_0uheb"), SubResource("Resource_plela")])
+media_card_scene = ExtResource("3_dpj1x")
+folder_card_scene = ExtResource("8_fucdc")
+
+[node name="Split" type="HSplitContainer" parent="Margin/Box/Split/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Player" type="Control" parent="Margin/Box/Split/Split/Split" groups=["player"]]
+clip_contents = true
+custom_minimum_size = Vector2(500, 200)
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("2_7i47x")
+
+[node name="Properties" type="Control" parent="Margin/Box/Split/Split/Split" groups=["properties"]]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3_7i47x")
+
+[node name="Split2" type="HSplitContainer" parent="Margin/Box/Split"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+split_offset = 300
+
+[node name="ClipNodesExplorer" type="Control" parent="Margin/Box/Split/Split2" groups=["clip_nodes_explorer"]]
+layout_mode = 2
+script = ExtResource("11_30pfl")
+
+[node name="TimeLine" parent="Margin/Box/Split/Split2" groups=["time_line"] instance=ExtResource("1_n2wvd")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Bottom" type="PanelContainer" parent="Margin/Box"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("5_eei6f")
+
+[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom"]
+layout_mode = 2
+
+[node name="GuideLabel" type="Label" parent="Margin/Box/Bottom/Box" groups=["guide_label"]]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+text = "Guide"
+label_settings = ExtResource("6_rceaj")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="Margin/Box/Bottom/Box"]
+visible = false
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_styles/fill = ExtResource("7_jkecq")
+value = 100.0
+show_percentage = false
+
+[node name="NotificationLabel" type="Label" parent="Margin/Box/Bottom/Box/ProgressBar" node_paths=PackedStringArray("progress_bar") groups=["notification_label"]]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Notification"
+label_settings = ExtResource("7_o3877")
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("7_pln24")
+progress_bar = NodePath("..")
+metadata/_custom_type_script = "uid://bci4vqikuv2cq"
