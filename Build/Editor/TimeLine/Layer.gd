@@ -80,8 +80,6 @@ func _draw() -> void:
 
 
 func update() -> void:
-	for i in media_clips_root.get_children(): i.queue_free()
-	displayed_media_clips.clear()
 	
 	var timeline = EditorServer.time_line
 	var difference_pos = global_position.x - timeline.global_position.x
@@ -89,20 +87,27 @@ func update() -> void:
 	var layer = ProjectServer.make_layer_absolute(index)
 	for frame_in in layer.media_clips.keys():
 		
+		var clip_res = layer.media_clips[frame_in]
+		
 		var clip: MediaClip
 		if displayed_media_clips.has(frame_in):
 			clip = displayed_media_clips[frame_in]
 		else:
 			clip = MediaClip.new()
+			
+			var media_type = MediaServer.get_media_type_from_path(clip_res.media_resource_path)
+			var media_clip_info = MediaServer.media_clip_info[media_type]
+			clip.color = media_clip_info.bg_color
+			clip.add_child(media_clip_info.control.call(clip_res))
+			media_clips_root.add_child(clip)
+			
+			displayed_media_clips[frame_in] = clip
 		
-		var clip_res = layer.media_clips[frame_in]
 		var length = clip_res.length
 		var display_begin_pos = timeline.get_display_pos_from_frame(frame_in) - difference_pos
 		var display_end_pos = timeline.get_display_pos_from_frame(frame_in + length) - difference_pos
 		clip.position.x = display_begin_pos
-		clip.custom_minimum_size = Vector2(display_end_pos - display_begin_pos, size.y)
-		media_clips_root.add_child(clip)
-		displayed_media_clips[frame_in] = clip
+		clip.size = Vector2(display_end_pos - display_begin_pos, size.y)
 
 
 # Connections Functions

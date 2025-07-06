@@ -7,7 +7,6 @@
 [ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Build/Editor/MediaExplorer/MediaCard.tscn" id="3_dpj1x"]
 [ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/Resource/MenuOption.gd" id="3_pyfir"]
 [ext_resource type="Texture2D" uid="uid://bfd4pbwwemafk" path="res://Asset/Icons/gallery.png" id="4_plela"]
-[ext_resource type="StyleBox" uid="uid://b17xrxixwo66k" path="res://UI&UX/StylePanel.tres" id="5_eei6f"]
 [ext_resource type="Texture2D" uid="uid://cb6pjddrrsxkn" path="res://Asset/Icons/text.png" id="5_fucdc"]
 [ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="6_30pfl"]
 [ext_resource type="LabelSettings" uid="uid://wv4o1kifc17q" path="res://UI&UX/LabelSettingsMain.tres" id="6_rceaj"]
@@ -16,6 +15,13 @@
 [ext_resource type="Script" uid="uid://bci4vqikuv2cq" path="res://Build/UI/NotificationLabel.gd" id="7_pln24"]
 [ext_resource type="PackedScene" uid="uid://ilpv866vtt" path="res://Build/Editor/MediaExplorer/FolderCard.tscn" id="8_fucdc"]
 [ext_resource type="Script" uid="uid://bcd2jbumhww6p" path="res://Build/Editor/ClipNodesExplorer/ClipNodesExplorer.gd" id="11_30pfl"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fucdc"]
+bg_color = Color(0.1008, 0.104, 0.12, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="Resource" id="Resource_xapm0"]
 script = ExtResource("3_pyfir")
@@ -54,7 +60,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0584, 0.062, 0.08, 1)
+color = Color(0.0588235, 0.0627451, 0.0784314, 1)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -74,9 +80,9 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="Header" type="PanelContainer" parent="Margin/Box"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
-theme_override_styles/panel = ExtResource("5_eei6f")
+theme_override_styles/panel = SubResource("StyleBoxFlat_fucdc")
 
 [node name="Split" type="VSplitContainer" parent="Margin/Box"]
 layout_mode = 2
@@ -106,7 +112,7 @@ theme_override_constants/separation = 0
 
 [node name="Player" type="Control" parent="Margin/Box/Split/Split/Split" groups=["player"]]
 clip_contents = true
-custom_minimum_size = Vector2(500, 200)
+custom_minimum_size = Vector2(540, 200)
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_7i47x")
@@ -133,9 +139,9 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Bottom" type="PanelContainer" parent="Margin/Box"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
-theme_override_styles/panel = ExtResource("5_eei6f")
+theme_override_styles/panel = SubResource("StyleBoxFlat_fucdc")
 
 [node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom"]
 layout_mode = 2

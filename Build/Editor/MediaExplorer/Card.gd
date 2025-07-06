@@ -34,14 +34,14 @@ func _ready() -> void:
 
 func display_at(delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
-	var extension = resource_path.get_file().get_extension()
+	var media_type = MediaServer.get_media_type_from_path(resource_path)
 	var texture: ImageTexture
-	if extension in MediaServer.IMAGE_EXTENSIONS:
-		texture = MediaServer.get_image_texture_from_path(resource_path)
-	elif extension in MediaServer.VIDEO_EXTENSIONS:
-		texture = MediaServer.get_video_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
-	elif extension in MediaServer.AUDIO_EXTENSIONS:
-		texture = MediaServer.get_audio_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
+	
+	match media_type:
+		0: texture = MediaServer.get_image_texture_from_path(resource_path)
+		1: texture = MediaServer.get_video_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
+		2: texture = MediaServer.get_audio_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
+	
 	display_texture_rect.texture = texture
 
 
@@ -51,12 +51,13 @@ func display_at(delay: float) -> void:
 
 
 
-
 func on_mouse_entered() -> void:
+	if is_folder: return
 	add_button.show()
 	tweener.play(add_button, "modulate:a", [1.0], [.2])
 
 func on_mouse_exited() -> void:
+	if is_folder: return
 	tweener.play(add_button, "modulate:a", [.0], [.2])
 	var tween = tweener.tween
 	await tweener.finished
@@ -64,7 +65,9 @@ func on_mouse_exited() -> void:
 	add_button.hide()
 
 func on_add_button_pressed() -> void:
-	pass
+	if not is_folder:
+		ProjectServer.add_media_clip(resource_path, -1, EditorServer.time_line.curr_frame)
+
 
 
 

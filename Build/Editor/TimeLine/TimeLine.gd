@@ -2,6 +2,15 @@ class_name TimeLine extends EditorRect
 
 
 signal curr_frame_changed(new_val: int)
+signal curr_frame_changed_automatically(new_val: int)
+signal curr_frame_changed_manually(new_val: int)
+
+signal curr_frame_played_manually()
+signal curr_frame_stopped_manually()
+
+signal timeline_played()
+signal timeline_stoped()
+
 signal timeline_view_changed()
 
 
@@ -64,7 +73,9 @@ signal timeline_view_changed()
 var is_playing: bool:
 	set(val):
 		is_playing = val
-		if is_playing: step_frame()
+		if is_playing:
+			step_frame()
+
 
 var start_time = 0.0
 
@@ -100,6 +111,7 @@ var layers_container: BoxContainer
 func set_curr_frame_manually(frame: int) -> void:
 	stop()
 	curr_frame = frame
+	curr_frame_changed_manually.emit(curr_frame)
 
 
 # Background Called Functions
@@ -113,6 +125,8 @@ func _init() -> void:
 		KEY_LEFT: func(): set_curr_frame_manually(curr_frame - 1),
 		KEY_RIGHT: func(): set_curr_frame_manually(curr_frame + 1),
 	}
+	l_button_downed.connect(func(): curr_frame_played_manually.emit())
+	l_button_upped.connect(func(): curr_frame_stopped_manually.emit())
 	
 	editor_guides = [
 		{"Move Cursor": "[Mouse-Left]"},
@@ -309,11 +323,15 @@ func play() -> void:
 	var curr_time = Time.get_ticks_msec() / 1_000.0
 	start_time = curr_time - curr_frame * ProjectServer.delta
 	is_playing = true
+	timeline_played.emit()
 
 func stop() -> void:
 	is_playing = false
+	timeline_stoped.emit()
 
 func step_frame() -> void:
+	
+	curr_frame_changed_automatically.emit(curr_frame)
 	
 	var target_time = start_time + curr_frame * ProjectServer.delta
 	var curr_time = Time.get_ticks_msec() / 1_000.0

@@ -19,17 +19,15 @@ func on_resized() -> void:
 	
 	var viewport_size = viewport.size
 	
-	# احسب نسبة التحجيم المطلوبة (تصغير أو تكبير حسب الحاجة)
 	var scale_ratio = min(
 		size.x / viewport_size.x,
 		size.y / viewport_size.y
 	)
 	
-	# طبق التحجيم
 	viewport_container.scale = Vector2.ONE * scale_ratio
 	
-	var scaled_size = size * scale
-	viewport_container.position = scaled_size
+	var scaled_size = Vector2(viewport_size) * viewport_container.scale
+	viewport_container.position = (size - scaled_size) / 2.0
 
 
 

@@ -1,16 +1,16 @@
 extends Node
 
 signal media_clip_added(layer_index: int, frame_in: int)
-signal curr_clips_changed(removed_clips: Dictionary[int, int], added_clips: Dictionary[int, int])
 
 
 const EXAMPLE_PATH: String = "res://ExampleProject/"
 
 var project_path: String = EXAMPLE_PATH
 var thumbnails_path: String = project_path + "media/thumbnails"
+var fortimeline_path: String = project_path + "media/fortimeline"
 
 var aspect_ratio: Vector2
-var resolution: Vector2
+var resolution: Vector2i = Vector2i(1280, 720)
 var fps: int = 30:
 	set(val):
 		fps = val
@@ -22,7 +22,7 @@ var video_length: int
 var layers: Dictionary[int, Dictionary]
 #layers = {
 	#layer_index: {
-		#media_clips: [time_x: MediaClipRes.new(), time_y: MediaClipRes.new()],
+		#media_clips: {time_x: MediaClipRes.new(), time_y: MediaClipRes.new()},
 		#loked: bool(),
 		#hided: bool(),
 		#muted: bool()
@@ -44,11 +44,8 @@ var project_res: ProjectRes = ProjectRes.new()
 
 func _ready() -> void:
 	DirAccess.make_dir_absolute(thumbnails_path)
+	DirAccess.make_dir_absolute(fortimeline_path)
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey:
-		if event.keycode == KEY_ENTER and event.is_pressed():
-			add_media_clip(-1, EditorServer.time_line.curr_frame)
 
 
 
@@ -57,14 +54,22 @@ func _input(event: InputEvent) -> void:
 
 
 
-func add_media_clip(layer_index: int = -1, frame_in: int = 0) -> void:
+func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0) -> void:
 	var new_media = MediaClipRes.new()
+	var clip_id = generate_clip_id(get_used_clip_id())
 	var media_length = EditorServer.editor_default_settings.media_length * fps
+	
+	if MediaServer.get_media_type_from_path(media_path) in [1, 2]:
+		media_length = int(MediaServer.get_audio_duration_with_ffprobe(media_path) * fps)
+	new_media.id = clip_id
+	new_media.media_resource_path = media_path
 	new_media.length = media_length
+	
 	if layer_index < 0 or not is_layer_unoccupied(layer_index, frame_in, media_length):
 		layer_index = get_best_unoccupied_layer(frame_in, media_length)
 	layers[layer_index].media_clips[frame_in] = new_media
 	media_clip_added.emit(layer_index, frame_in)
+	
 	update_curr_clips()
 
 
@@ -138,7 +143,6 @@ func update_curr_clips(curr_frame: int = -1) -> Dictionary[int, int]:
 		added_clips[index] = new_clip_id
 		instance_layer_clip(index, new_clip_id)
 	
-	curr_clips_changed.emit(removed_clips, added_clips)
 	curr_clips = new_clips
 	
 	return curr_clips
@@ -147,14 +151,47 @@ func update_curr_clips(curr_frame: int = -1) -> Dictionary[int, int]:
 
 func remove_layer_clip(layer: int, clip_id: int) -> void:
 	var clip_res = layers[layer].media_clips[clip_id]
-	var clip_nodes_explorer = EditorServer.clip_nodes_explorer
-	clip_nodes_explorer.remove_layer_node(layer, clip_res)
+	Scene.remove_node(layer)
 
 
 func instance_layer_clip(layer: int, clip_id: int) -> void:
 	var clip_res = layers[layer].media_clips[clip_id]
-	var clip_nodes_explorer = EditorServer.clip_nodes_explorer
-	clip_nodes_explorer.create_layer_node(layer, clip_res)
+	var media_res_path = clip_res.media_resource_path
+	var media_type = MediaServer.get_media_type_from_path(media_res_path)
+	if media_type == -1:
+		printerr("Project Server: Invalid Instance Layer Clip (Media type could not be recognized).")
+		return
+	match media_type:
+		0: Scene.create_sprite(layer, clip_res, clip_id)
+		1: Scene.create_video(layer, clip_res, clip_id)
+		2: Scene.create_audio(layer, clip_res, clip_id)
+
+
+
+
+
+func generate_clip_id(used_id: Array[String], id_length: int = 6) -> String:
+	var id_keys = "abcdefghijklmnopqrstuvwxyz"
+	var keys_length = id_keys.length() - 1
+	
+	var result_id: String
+	
+	while not result_id or result_id in used_id:
+		result_id = ""
+		for time in id_length:
+			result_id += id_keys[randi_range(0, keys_length)]
+	
+	return result_id
+
+
+func get_used_clip_id() -> Array[String]:
+	var used_clip_id: Array[String]
+	for layer_index in layers:
+		var clips = layers[layer_index].media_clips
+		for time_begin in clips:
+			used_clip_id.append(clips[time_begin].id)
+	return used_clip_id
+
 
 
 

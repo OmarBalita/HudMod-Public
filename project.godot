@@ -17,19 +17,21 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-InterfaceServer="*res://Autoload/InterfaceServer.gd"
 ObjectServer="*res://Autoload/ObjectServer.gd"
-EditorServer="*res://Autoload/EditorServer.gd"
 TimeServer="*res://Autoload/TimeServer.gd"
-ProjectServer="*res://Autoload/ProjectServer.gd"
+InterfaceServer="*res://Autoload/InterfaceServer.gd"
 WindowManager="*res://Autoload/WindowManager.gd"
 MediaServer="*res://Autoload/MediaServer.gd"
+EditorServer="*res://Autoload/EditorServer.gd"
+ProjectServer="*res://Autoload/ProjectServer.gd"
+Scene="*res://Autoload/Scene.gd"
 
 [display]
 
 window/size/viewport_width=1400
 window/size/viewport_height=800
 window/subwindows/embed_subwindows=false
+window/stretch/scale=0.9
 
 [editor_plugins]
 

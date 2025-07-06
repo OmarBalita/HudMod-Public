@@ -21,20 +21,17 @@ var editor_default_settings:= EditorDefaultSettings.new()
 
 
 func _ready() -> void:
+	
 	player = get_tree().get_first_node_in_group("player")
 	time_line = get_tree().get_first_node_in_group("time_line")
 	media_explorer = get_tree().get_first_node_in_group("media_explorer")
 	clip_nodes_explorer = get_tree().get_first_node_in_group("clip_nodes_explorer")
 	properties = get_tree().get_first_node_in_group("properties")
 	
-	#time_line.curr_frame_changed.connect(on_time_line_curr_frame_changed)
-	
 	push_guides()
 
 
 
-func on_time_line_curr_frame_changed(val: int) -> void:
-	player.curr_frame = val
 
 
 

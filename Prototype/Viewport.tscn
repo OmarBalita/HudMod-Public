@@ -62,8 +62,3 @@ size_flags_vertical = 3
 [node name="Panel" type="Panel" parent="SplitContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="TextureRect" type="TextureRect" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0

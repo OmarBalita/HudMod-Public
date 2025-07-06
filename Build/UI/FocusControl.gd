@@ -26,7 +26,7 @@ func _ready() -> void:
 
 func _draw() -> void:
 	draw_rect(
-		Rect2(Vector2.ZERO, size - Vector2.DOWN),
+		Rect2(Vector2.ZERO + Vector2.ONE, size - Vector2(2, 2)),
 		Color(InterfaceServer.STYLE_ACCENT.bg_color, focus_alpha),
 		false, 2.0
 	)

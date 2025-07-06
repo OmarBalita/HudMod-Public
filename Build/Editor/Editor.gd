@@ -1,15 +1,15 @@
 @tool class_name EditorRect extends FocusControl
 
 
-signal l_button_downed(pos: Vector2)
-signal l_button_upped(pos: Vector2)
-signal r_button_downed(pos: Vector2)
-signal r_button_upped(pos: Vector2)
-signal m_button_downed(pos: Vector2)
-signal m_button_upped(pos: Vector2)
+signal l_button_downed()
+signal l_button_upped()
+signal r_button_downed()
+signal r_button_upped()
+signal m_button_downed()
+signal m_button_upped()
 
-signal wheel_downed(pos: Vector2)
-signal wheel_upped(pos: Vector2)
+signal wheel_downed()
+signal wheel_upped()
 
 
 
@@ -38,7 +38,6 @@ var r_button_down: bool
 var container: SplitContainer
 var header: MarginContainer
 var body: MarginContainer
-
 
 
 
@@ -75,17 +74,17 @@ func _input(event: InputEvent) -> void:
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
 				l_button_down = is_pressed
-				if is_pressed: l_button_downed.emit(mouse_pos)
-				else: l_button_upped.emit(mouse_pos)
+				if is_pressed: l_button_downed.emit()
+				else: l_button_upped.emit()
 			MOUSE_BUTTON_RIGHT:
 				r_button_down = is_pressed
-				if is_pressed: r_button_downed.emit(mouse_pos)
-				else: r_button_upped.emit(mouse_pos)
+				if is_pressed: r_button_downed.emit()
+				else: r_button_upped.emit()
 			MOUSE_BUTTON_MIDDLE:
-				if is_pressed: m_button_downed.emit(mouse_pos)
-				else: m_button_upped.emit(mouse_pos)
-			MOUSE_BUTTON_WHEEL_DOWN: if is_pressed: wheel_downed.emit(mouse_pos)
-			MOUSE_BUTTON_WHEEL_UP: if is_pressed: wheel_upped.emit(mouse_pos)
+				if is_pressed: m_button_downed.emit()
+				else: m_button_upped.emit()
+			MOUSE_BUTTON_WHEEL_DOWN: if is_pressed: wheel_downed.emit()
+			MOUSE_BUTTON_WHEEL_UP: if is_pressed: wheel_upped.emit()
 	
 	elif event is InputEventKey:
 		if event.is_pressed():
@@ -109,10 +108,11 @@ func match_key_code(event: InputEventKey, callables: Dictionary) -> void:
 
 func _draw() -> void:
 	draw_rect(
-		Rect2(body.global_position - global_position, size - Vector2.DOWN * header_size),
+		Rect2(body.global_position - global_position + Vector2.ONE, size - Vector2.DOWN * header_size - Vector2(2, 2)),
 		Color(InterfaceServer.STYLE_ACCENT.bg_color, focus_alpha),
 		false, 2.0
 	)
+
 
 
 

@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://brrsly566hb1d"]
+
+[ext_resource type="Script" uid="uid://d28x1g7u1an65" path="res://Build/VideoRenderer.gd" id="1_ifmsa"]
+
+[node name="MediaPlayer" type="Node2D"]
+
+[node name="VideoPlayer" type="Sprite2D" parent="."]
+script = ExtResource("1_ifmsa")
+path = "C:/Users/User/Documents/Godot Projects/edit-app/كيف تلعب online في لعبة التحديات القاضية!.mp4"
+
+[node name="Camera2D" type="Camera2D" parent="."]

@@ -70,9 +70,9 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	file_dialog.close_requested.connect(close_func)
 	file_dialog.canceled.connect(close_func)
 	file_dialog.confirmed.connect(close_func)
-	file_dialog.dir_selected.connect(close_func)
-	file_dialog.file_selected.connect(close_func)
-	file_dialog.files_selected.connect(close_func)
+	file_dialog.dir_selected.connect(func(selected): close_func.call())
+	file_dialog.file_selected.connect(func(selected): close_func.call())
+	file_dialog.files_selected.connect(func(selected): close_func.call())
 	
 	processing_node.add_child(processing_rect)
 	add_child(file_dialog)

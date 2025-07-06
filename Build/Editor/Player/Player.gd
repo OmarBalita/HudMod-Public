@@ -21,9 +21,6 @@ var curr_frame: int:
 
 # RealTime Nodes
 
-var display_root: Node2D
-var display_camera: Camera2D
-
 var viewport: SubViewport
 
 var play_button: TextureButton
@@ -42,6 +39,10 @@ func _start() -> void:
 	
 	# Describe Player
 	var split_container = InterfaceServer.create_split_container(1, true)
+	var flex_view_control = FlexViewportControl.new()
+	ObjectServer.describe(flex_view_control, {
+		size_flags_vertical = Control.SIZE_EXPAND_FILL
+	})
 	var view_container = InterfaceServer.create_viewport_container({size_flags_vertical = Control.SIZE_EXPAND_FILL})
 	var options_container = InterfaceServer.create_box_container(10, false,
 	{"custom_minimum_size": Vector2(.0, 50.0), "alignment": BoxContainer.ALIGNMENT_CENTER})
@@ -50,6 +51,9 @@ func _start() -> void:
 	
 	viewport = SubViewport.new()
 	view_container.add_child(viewport)
+	flex_view_control.add_child(view_container)
+	viewport.size = ProjectServer.resolution
+	flex_view_control.viewport_container = view_container
 	
 	play_button = InterfaceServer.create_texture_button(texture_play)
 	time_code_label = InterfaceServer.create_label(TimeServer.frame_to_timecode(curr_frame), InterfaceServer.LABEL_SETTINGS_BOLD)
@@ -75,23 +79,17 @@ func _start() -> void:
 	options_container.add_child(InterfaceServer.create_empty_control())
 	
 	
-	split_container.add_child(view_container)
+	split_container.add_child(flex_view_control)
 	split_container.add_child(options_container)
 	body.add_child(split_container)
 	
-	# Display Root and Camera by default
-	await get_tree().process_frame
-	setup_display()
+	EditorServer.time_line.curr_frame_changed.connect(on_time_line_curr_frame_changed)
 
 
 
 
-
-func setup_display() -> void:
-	display_root = Node2D.new()
-	display_camera = Camera2D.new()
-	display_root.add_child(display_camera)
-	viewport.add_child(display_root)
+func on_time_line_curr_frame_changed(val: int) -> void:
+	curr_frame = val
 
 
 

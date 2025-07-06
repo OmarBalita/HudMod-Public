@@ -24,7 +24,7 @@ const PLAYBACK_SPEED_MIN: float = 0.25
 const PLAYBACK_SPEED_MAX: float = 4
 
 
-@export_file var path: String = "": set = set_video_path ## Full path to video file. Do not use [code]res://[/code] paths, only provide [b]full[/b] paths. Solutions for setting the path in both editor and exported projects can be found in the readme info or on top.
+@export_global_file() var path: String = "": set = set_video_path ## Full path to video file. Do not use [code]res://[/code] paths, only provide [b]full[/b] paths. Solutions for setting the path in both editor and exported projects can be found in the readme info or on top.
 @export var hardware_decoding: bool = false ## Enable GPU decoding when available, this isn't useful for most cases due to some codecs being slower with GPU decoding.
 @export var enable_audio: bool = true ## Enable/Disable audio playback. When setting this on false before loading the audio, the audio playback won't be loaded meaning that the video will load faster. If you want audio but only disable it at certain moments, switch this value to false *after* the video is loaded.
 @export var enable_auto_play: bool = false ## Enable/disable auto video playback.
@@ -150,9 +150,9 @@ func _update_video(new_video: Video) -> void:
 	if !is_open():
 		printerr("Video isn't open!")
 		return
-
+	
 	var image: Image
-
+	
 	_padding = video.get_padding()
 	_rotation = video.get_rotation()
 	_frame_rate = video.get_framerate()
@@ -232,7 +232,7 @@ func next_frame(skip: bool = false) -> void:
 	elif !skip:
 		print("Something went wrong getting next frame!")
 
-	
+
 func close() -> void:
 	if video != null:
 		if is_playing:
@@ -252,32 +252,32 @@ func _process(delta: float) -> void:
 			if WorkerThreadPool.is_task_completed(i):
 				WorkerThreadPool.wait_for_task_completion(i)
 				_threads.remove_at(_threads.find(i))
-
+			
 			if _threads.is_empty():
 				_update_video(video)
-
+			
 				if enable_auto_play:
 					play()
 		return
-
+		
 	if is_playing:
 		_time_elapsed += delta
-
+		
 		if _time_elapsed < _frame_time:
 			return
-
+		
 		_skips = 0
 		while _time_elapsed >= _frame_time:
 			_time_elapsed -= _frame_time
 			current_frame += 1
 			_skips += 1
-
+		
 		if current_frame >= _frame_count:
 			is_playing = !is_playing
-
+			
 			if enable_audio:
 				audio_player.set_stream_paused(true)
-
+			
 			video_ended.emit()
 			if loop:
 				seek_frame(0)
@@ -299,7 +299,7 @@ func play() -> void:
 		audio_player.set_stream_paused(false)
 		audio_player.play((current_frame + 1) / _frame_rate)
 		audio_player.set_stream_paused(!is_playing)
-
+	
 	playback_started.emit()
 
 
@@ -311,7 +311,7 @@ func pause() -> void:
 	
 	if enable_audio:
 		audio_player.set_stream_paused(true)
-
+	
 	playback_paused.emit()
 
 
@@ -351,7 +351,7 @@ func _set_current_frame(new_current_frame: int) -> void:
 func _set_frame_image() -> void:
 	y_texture.update(video.get_y_data())
 	u_texture.update(video.get_u_data())
-
+	
 	if video.get_pixel_format().begins_with("yuv"):
 		v_texture.update(video.get_v_data())
 
@@ -359,11 +359,11 @@ func _set_frame_image() -> void:
 func set_playback_speed(new_playback_value: float) -> void:
 	playback_speed = clampf(new_playback_value, 0.5, 2)
 	_frame_time = (1.0 / _frame_rate) / playback_speed
-
+	
 	if enable_audio and audio_player.stream != null:
 		audio_player.pitch_scale = playback_speed
 		_set_pitch_adjust()
-
+		
 		if is_playing:
 			audio_player.play(current_frame * (1.0 / _frame_rate))
 

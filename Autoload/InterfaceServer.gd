@@ -61,6 +61,12 @@ func create_empty_control(x_min_size: float = 10.0, y_min_size: int = 10.0, more
 
 
 
+func create_texture_rect(texture: Texture2D, more: Dictionary = {expand_mode = TextureRect.EXPAND_IGNORE_SIZE, stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED}) -> TextureRect:
+	var texture_rect = TextureRect.new()
+	set_base_settings(texture_rect)
+	texture_rect.texture = texture
+	ObjectServer.describe(texture_rect, more)
+	return texture_rect
 
 
 
@@ -121,7 +127,6 @@ func create_scroll_container(h_scroll_mode: int = 1, v_scroll_mode: int = 1, mor
 func create_viewport_container(more: Dictionary = {}) -> SubViewportContainer:
 	var viewport_container = SubViewportContainer.new()
 	set_base_container_settings(viewport_container)
-	viewport_container.stretch = true
 	ObjectServer.describe(viewport_container, more)
 	return viewport_container
 
@@ -161,7 +166,6 @@ func create_texture_button(normal: Texture2D, hover: Texture2D = null, pressed: 
 
 
 
-
 func create_line_edit(placeholder: String = "", text: String = "", right_icon: Texture2D = null, more: Dictionary = {size_flags_horizontal = Control.SIZE_EXPAND_FILL}) -> LineEdit:
 	var line_edit = LineEdit.new()
 	set_base_settings(line_edit)
@@ -173,10 +177,6 @@ func create_line_edit(placeholder: String = "", text: String = "", right_icon: T
 	line_edit.right_icon = right_icon
 	ObjectServer.describe(line_edit, more)
 	return line_edit
-
-
-
-
 
 
 
@@ -205,8 +205,6 @@ func create_h_line_panel(min_size: float = 1, color: Color = Color(0,0,0, .25), 
 
 
 
-
-
 func create_label(text: String, label_settings: LabelSettings = LABEL_SETTINGS_MAIN, more: Dictionary = {horizontal_alignment = 1, vertical_alignment = 1}) -> Label:
 	# Create New One
 	var label = Label.new()
@@ -219,16 +217,11 @@ func create_label(text: String, label_settings: LabelSettings = LABEL_SETTINGS_M
 	return label
 
 
-
-
-
-
 func create_menu(options: Array[MenuOption], more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
 	menu.options = options
 	ObjectServer.describe(menu, more)
 	return menu
-
 
 
 
@@ -244,6 +237,70 @@ func create_layer(id: int, min_size: Vector2, color: Color, more: Dictionary = {
 	# Return Interface Node
 	return layer
 
+
+
+
+
+
+
+
+
+
+func create_clip_image_control(clip_res: MediaClipRes, texture: Texture2D = null) -> Control:
+	var image_path = clip_res.media_resource_path
+	
+	var margin_container = create_margin_container(4,4,4,4)
+	var control = create_empty_control(10, 10, {clip_contents = true})
+	var box_container = create_box_container(10, false, {})
+	var image_texture_rect = create_texture_rect(texture if texture else MediaServer.get_image_texture_from_path(image_path))
+	
+	margin_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	image_texture_rect.custom_minimum_size = Vector2(100, 0)
+	
+	box_container.add_child(image_texture_rect)
+	box_container.add_child(create_name_label(image_path.get_file()))
+	control.add_child(box_container)
+	margin_container.add_child(control)
+	
+	return margin_container
+
+
+func create_clip_video_control(clip_res: MediaClipRes) -> Control:
+	var video_path = clip_res.media_resource_path
+	
+	var box_container = create_box_container(10, true)
+	var image_control = create_clip_image_control(clip_res, MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.thumbnails_path))
+	box_container.add_child(image_control)
+	
+	if await MediaServer.is_stream_has_audio(video_path):
+		var audio_control = create_clip_audio_control(clip_res, false)
+		box_container.add_child(audio_control)
+	
+	return box_container
+
+
+func create_clip_audio_control(clip_res: MediaClipRes, create_name_label: bool = true) -> Control:
+	var audio_path = clip_res.media_resource_path
+	var waves_texture = MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.fortimeline_path, false)
+	
+	var wave_texture_rect = create_texture_rect(waves_texture, {})
+	
+	wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wave_texture_rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	wave_texture_rect.expand_mode = 1
+	wave_texture_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	
+	if create_name_label:
+		wave_texture_rect.add_child(create_name_label(audio_path.get_file()))
+	
+	return wave_texture_rect
+
+
+func create_name_label(name: String) -> Label:
+	var label = create_label(name, LABEL_SETTINGS_BOLD)
+	label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	label.custom_minimum_size.y = 30
+	return label
 
 
 

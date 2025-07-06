@@ -5,7 +5,10 @@ enum MediaTypes {
 	VIDEO,
 	AUDIO,
 	TEXT,
-	SHAPE
+	SHAPE,
+	ADJUSTMENT,
+	CODE,
+	PARTICLES
 }
 
 const IMAGE_EXTENSIONS: PackedStringArray = [
@@ -26,6 +29,32 @@ const AUDIO_EXTENSIONS: PackedStringArray = [
 
 const MEDIA_EXTENSIONS = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS + AUDIO_EXTENSIONS
 
+const ARR_MEDIA_EXTENSIONS = [
+	IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS
+]
+
+
+var media_clip_info: Dictionary[int, Dictionary] = {
+	0: {bg_color = Color("#A6893A"), control = InterfaceServer.create_clip_image_control}, # Image
+	1: {bg_color = Color("#398044"), control = InterfaceServer.create_clip_video_control}, # Video
+	2: {bg_color = Color("#365F80"), control = InterfaceServer.create_clip_audio_control}, # Audio
+	3: {bg_color = Color("#956321"), control = null}, # Text
+	4: {bg_color = Color("#832125"), control = null}, # Shape
+	5: {bg_color = Color("#5A3A76"), control = null}, # Effect
+	6: {bg_color = Color("#555555"), control = null} # CODE (procedural)
+}
+
+
+
+
+var media_preloaded: Dictionary[String, Variant] = {}
+
+var audio_durations: Dictionary[String, float] # as Seconds
+
+
+
+
+
 
 
 
@@ -41,9 +70,13 @@ func _ready() -> void:
 # Image Services
 
 func get_image_texture_from_path(path: String) -> ImageTexture:
+	if media_preloaded.has(path):
+		return media_preloaded[path]
 	var image = Image.new()
 	image.load(path)
-	return ImageTexture.create_from_image(image)
+	var image_texture = ImageTexture.create_from_image(image)
+	media_preloaded[path] = image_texture
+	return image_texture
 
 
 # Video Services
@@ -74,28 +107,48 @@ func extract_video_thumbnail(video_path: String, output_path: String) -> void:
 		printerr("Failed to start ffmpeg:", err)
 
 
+func is_stream_has_audio(file_path: String) -> bool:
+	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
+	var abs_path = ProjectSettings.globalize_path(file_path)
+
+	var args = [
+		"-i", abs_path
+	]
+
+	var output = []
+	var code = OS.execute(ffmpeg_path, args, output, true)
+	
+	for line in output:
+		if "Stream #" in line and "Audio" in line:
+			return true
+	return false
+
 
 # Audio Services
 
 
-func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String) -> ImageTexture:
+func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
 	var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".png"]
 	if not FileAccess.file_exists(output_path):
-		generate_audio_thumbnail(path, output_path)
+		generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), fixed_size, size)
 	return get_image_texture_from_path(output_path)
 
-func generate_audio_thumbnail(audio_path: String, output_path: String) -> void:
-	generate_waveform_dynamic(audio_path, output_path, get_audio_duration_with_ffprobe(audio_path), true, Vector2i(320, 180))
 
 
 func get_audio_duration_with_ffprobe(audio_path: String) -> float:
+	
+	if audio_durations.has(audio_path):
+		return audio_durations[audio_path]
+	
 	var ffprobe_path = ProjectSettings.globalize_path("res://FFmpeg/ffprobe.exe")
 	var abs_audio_path = ProjectSettings.globalize_path(audio_path)
 	var args = ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", abs_audio_path]
 	var output = []
 	var err = OS.execute(ffprobe_path, args, output)
 	if err == OK:
-		return output[0].to_float()
+		var result_dur = output[0].to_float()
+		audio_durations[audio_path] = result_dur
+		return result_dur
 	else:
 		printerr("Failed to get duration")
 		return 0.0
@@ -106,7 +159,7 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 	var abs_audio_path = ProjectSettings.globalize_path(audio_path)
 	var abs_output_path = ProjectSettings.globalize_path(output_path)
 	
-	var pixels_per_second = 20.0
+	var pixels_per_second = 30
 	var width = int(duration_seconds * pixels_per_second)
 	var height = 120
 	if fixed_size:
@@ -114,10 +167,11 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 		height = size.y
 	
 	var resolution = str(width, "x", height)
+	var filter = "aformat=channel_layouts=mono,volume=6,showwavespic=s=" + resolution + ":colors=e6e6e6"
 	
 	var args = [
 		"-i", abs_audio_path,
-		"-filter_complex", "aformat=channel_layouts=mono,showwavespic=s=" + resolution + ":colors=white",
+		"-filter_complex", filter,
 		"-frames:v", "1",
 		abs_output_path
 	]
@@ -125,6 +179,45 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 	var err = OS.execute(ffmpeg_path, args)
 	if err != OK:
 		printerr("Failed to generate waveform image:", err)
+
+
+
+
+
+
+
+
+# Get Media Type
+
+
+func get_media_type_from_path(path: String) -> MediaTypes:
+	var extension = path.get_file().get_extension()
+	var media_type: int = -1
+	for i in ARR_MEDIA_EXTENSIONS:
+		media_type += 1
+		if extension in i:
+			return media_type
+	return -1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

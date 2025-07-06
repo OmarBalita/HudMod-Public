@@ -238,7 +238,7 @@ class MediaBox extends Container:
 		update()
 	
 	func on_file_clicked(file_path: String) -> void:
-		print(file_path)
+		ProjectServer.add_media_clip(file_path, -1, EditorServer.time_line.curr_frame)
 
 
 
