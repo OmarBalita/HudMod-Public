@@ -46,7 +46,6 @@ var media_clip_info: Dictionary[int, Dictionary] = {
 
 
 
-
 var media_preloaded: Dictionary[String, Variant] = {}
 
 var audio_durations: Dictionary[String, float] # as Seconds
@@ -110,11 +109,7 @@ func extract_video_thumbnail(video_path: String, output_path: String) -> void:
 func is_stream_has_audio(file_path: String) -> bool:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
 	var abs_path = ProjectSettings.globalize_path(file_path)
-
-	var args = [
-		"-i", abs_path
-	]
-
+	var args = ["-i", abs_path]
 	var output = []
 	var code = OS.execute(ffmpeg_path, args, output, true)
 	
@@ -127,10 +122,10 @@ func is_stream_has_audio(file_path: String) -> bool:
 # Audio Services
 
 
-func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
+func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, color_key: String = "bfbfbf", fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
 	var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".png"]
 	if not FileAccess.file_exists(output_path):
-		generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), fixed_size, size)
+		generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), color_key, fixed_size, size)
 	return get_image_texture_from_path(output_path)
 
 
@@ -154,7 +149,7 @@ func get_audio_duration_with_ffprobe(audio_path: String) -> float:
 		return 0.0
 
 
-func generate_waveform_dynamic(audio_path: String, output_path: String, duration_seconds: float, fixed_size:= false, size:= Vector2i.ONE) -> void:
+func generate_waveform_dynamic(audio_path: String, output_path: String, duration_seconds: float, color_key: String, fixed_size:= false, size:= Vector2i.ONE) -> void:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
 	var abs_audio_path = ProjectSettings.globalize_path(audio_path)
 	var abs_output_path = ProjectSettings.globalize_path(output_path)
@@ -167,7 +162,7 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 		height = size.y
 	
 	var resolution = str(width, "x", height)
-	var filter = "aformat=channel_layouts=mono,volume=6,showwavespic=s=" + resolution + ":colors=e6e6e6"
+	var filter = "aformat=channel_layouts=mono,volume=6,showwavespic=s=" + resolution + ":colors=%s" % color_key
 	
 	var args = [
 		"-i", abs_audio_path,

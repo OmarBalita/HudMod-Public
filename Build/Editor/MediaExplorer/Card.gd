@@ -12,7 +12,6 @@ extends DoubleClickControl
 
 @export var is_folder: bool
 @export var resource_path: String
-@export var preset: PresetResource
 
 var display_name: String
 
@@ -40,7 +39,7 @@ func display_at(delay: float) -> void:
 	match media_type:
 		0: texture = MediaServer.get_image_texture_from_path(resource_path)
 		1: texture = MediaServer.get_video_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
-		2: texture = MediaServer.get_audio_display_texture_from_path(resource_path, ProjectServer.thumbnails_path)
+		2: texture = MediaServer.get_audio_display_texture_from_path(resource_path, ProjectServer.thumbnails_path, "e6e6e6")
 	
 	display_texture_rect.texture = texture
 

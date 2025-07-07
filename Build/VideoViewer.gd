@@ -1,39 +1,34 @@
-class_name VideoRenderer extends Sprite2D
+class_name VideoViewer extends Sprite2D
 
 
 signal video_updated()
 
 
 @export_global_file() var path: String
-@export var hardware_decoding: bool = false
 
 var updated: bool
 var is_playing: bool
 var curr_frame: int
 
-var audio_player:= AudioStreamPlayer.new()
-
 var video: Video
 var shader_material:= ShaderMaterial.new()
 
-var audio: Video
+var audio_player:= AudioStreamPlayer.new()
 var stream:= AudioStreamWAV.new()
 
-var _rotation: int = 0
-var _padding: int = 0
-var _frame_rate: float = 0.
-var _frame_count: int = 0
-
-var _resolution: Vector2i = Vector2i.ZERO
-var _uv_resolution: Vector2i = Vector2i.ZERO
-
-var threads: PackedInt64Array
+var padding: int = 0
+var video_rotation: int = 0
+var frame_rate: float = 0.
+var frame_count: int = 0
+var resolution: Vector2i = Vector2i.ZERO
+var uv_resolution: Vector2i = Vector2i.ZERO
 
 var y_texture: ImageTexture
 var u_texture: ImageTexture
 var v_texture: ImageTexture
 
-var preloaded_media_path: String
+var video_preload_path: String
+var audio_preload_path: String
 
 
 
@@ -47,19 +42,6 @@ func _ready() -> void:
 	start()
 
 
-func _process(delta: float) -> void:
-	if !threads.is_empty():
-		
-		for i: int in threads:
-			if WorkerThreadPool.is_task_completed(i):
-				WorkerThreadPool.wait_for_task_completion(i)
-				threads.remove_at(threads.find(i))
-			if threads.is_empty():
-				_update_video(video)
-		
-		return
-
-
 
 
 
@@ -67,21 +49,19 @@ func _process(delta: float) -> void:
 
 func start() -> void:
 	
-	preloaded_media_path = "%s%s%s" % [path, "-", get_meta("clip_res")]
+	video_preload_path = "%s%s%s" % [path, "_video_", get_meta("layer")]
+	audio_preload_path = "%s%s" % [path, "_audio"]
 	
 	stream.mix_rate = 44100
 	stream.stereo = true
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	audio_player.stream = stream
+	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(get_meta("layer"))
 	
-	if MediaServer.media_preloaded.has(preloaded_media_path):
-		video = MediaServer.media_preloaded[preloaded_media_path]
-		_update_video(video)
-	else:
-		video = Video.new()
-		video.set_hw_decoding(hardware_decoding if OS.get_name() != "Windows" else false)
-		threads.append(WorkerThreadPool.add_task(_open_video))
-		threads.append(WorkerThreadPool.add_task(_open_audio))
+	_open_video()
+	_open_audio()
+	
+	_update_video(video)
 
 
 
@@ -89,47 +69,54 @@ func start() -> void:
 
 
 
-
-func play(frame_from: int = 0) -> void:
+func play(timeline_frame: int = 0) -> void:
 	is_playing = true
-	seek_frame(frame_from)
+	seek_frame(timeline_frame)
 	step_frame()
+	audio_player.set_stream_paused(false)
+	audio_player.play(TimeServer.frame_to_seconds(TimeServer.localize_frame(timeline_frame, get_meta("clip_pos"))))
+	audio_player.set_stream_paused(!is_playing)
 
 func stop() -> void:
 	is_playing = false
+	audio_player.stop()
 
 func step_frame() -> void:
-	video.next_frame(false)
-	_set_frame_image()
+	var timeline_frame = EditorServer.time_line.curr_frame
+	var absolute_frame = get_absolute_frame(timeline_frame)
+	if curr_frame < absolute_frame:
+		var update_image = timeline_frame % 2 == 0
+		video.next_frame(not update_image)
+		if update_image:
+			_set_frame_image()
+		curr_frame += 1
 	await EditorServer.time_line.curr_frame_changed_automatically
 	if is_playing:
 		step_frame()
 
-func seek_frame(frame: int) -> void:
-	if not is_open():
+func seek_frame(timeline_frame: int) -> void:
+	var absolute_frame = get_absolute_frame(timeline_frame)
+	if not is_open() or absolute_frame == curr_frame:
 		return
 	
-	curr_frame = clamp(frame, 0, _frame_count)
+	curr_frame = absolute_frame
+	#curr_frame = clamp(absolute_frame, 0, frame_count)
 	if video.seek_frame(curr_frame):
 		printerr("Couldn't seek frame!")
 	else:
 		_set_frame_image()
-	
-	#audio_player.set_stream_paused(false)
-	#audio_player.play(curr_frame / _frame_rate)
-	#audio_player.set_stream_paused(!is_playing)
 
-func next_frame(skip: bool = false) -> void:
-	if video.next_frame(skip) and not skip:
-		_set_frame_image()
-	elif not skip:
-		print("Something went wrong getting next frame!")
 
 func is_open() -> bool:
 	return video != null and video.is_open()
 
 func is_updated() -> bool:
 	return updated
+
+
+func get_absolute_frame(curr_frame: int) -> int:
+	curr_frame = TimeServer.localize_frame(curr_frame, get_meta("clip_pos"))
+	return TimeServer.map_frames_between_fps(curr_frame, 0, frame_rate)
 
 
 
@@ -139,13 +126,21 @@ func is_updated() -> bool:
 
 
 func _open_video() -> void:
-	print(preloaded_media_path)
-	if video.open(path):
-		printerr("Error opening video!")
-	MediaServer.media_preloaded[preloaded_media_path] = video
+	
+	if MediaServer.media_preloaded.has(video_preload_path):
+		video = MediaServer.media_preloaded[video_preload_path]
+	else:
+		video = Video.new()
+		video.open(path)
+		#video.set_hw_decoding(hardware_decoding if OS.get_name() != "Windows" else false)
+		MediaServer.media_preloaded[video_preload_path] = video
 
 func _open_audio() -> void:
-	audio_player.stream.data = Audio.get_audio_data(path)
+	
+	if not MediaServer.media_preloaded.has(audio_preload_path):
+		MediaServer.media_preloaded[audio_preload_path] = Audio.get_audio_data(path)
+	stream.data = MediaServer.media_preloaded[audio_preload_path]
+
 
 
 func _update_video(new_video: Video) -> void:
@@ -156,13 +151,13 @@ func _update_video(new_video: Video) -> void:
 	
 	var image: Image
 	
-	_padding = video.get_padding()
-	_rotation = video.get_rotation()
-	_frame_rate = video.get_framerate()
-	_resolution = video.get_resolution()
-	_frame_count = video.get_frame_count()
-	_uv_resolution = Vector2i(int((_resolution.x + _padding) / 2.), int(_resolution.y / 2.))
-	image = Image.create_empty(_resolution.x, _resolution.y, false, Image.FORMAT_R8)
+	padding = video.get_padding()
+	video_rotation = video.get_rotation()
+	frame_rate = video.get_framerate()
+	frame_count = video.get_frame_count()
+	resolution = video.get_resolution()
+	uv_resolution = Vector2i(int((resolution.x + padding) / 2.), int(resolution.y / 2.))
+	image = Image.create_empty(resolution.x, resolution.y, false, Image.FORMAT_R8)
 	
 	texture.set_image(image)
 	
@@ -179,7 +174,7 @@ func _update_video(new_video: Video) -> void:
 		_: # bt709 and unknown
 			shader_material.set_shader_parameter("color_profile", Vector4(1.5748, 0.1873, 0.4681, 1.8556))
 	
-	shader_material.set_shader_parameter("resolution", _resolution)
+	shader_material.set_shader_parameter("resolution", resolution)
 	
 	if not y_texture:
 		y_texture = ImageTexture.create_from_image(video.get_y_data())

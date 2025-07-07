@@ -125,8 +125,6 @@ func _init() -> void:
 		KEY_LEFT: func(): set_curr_frame_manually(curr_frame - 1),
 		KEY_RIGHT: func(): set_curr_frame_manually(curr_frame + 1),
 	}
-	l_button_downed.connect(func(): curr_frame_played_manually.emit())
-	l_button_upped.connect(func(): curr_frame_stopped_manually.emit())
 	
 	editor_guides = [
 		{"Move Cursor": "[Mouse-Left]"},
@@ -139,6 +137,7 @@ func _start() -> void:
 	super()
 	# Start Connections
 	l_button_downed.connect(on_l_button_downed)
+	l_button_upped.connect(on_l_button_upped)
 	wheel_downed.connect(on_wheel_downed)
 	wheel_upped.connect(on_wheel_upped)
 	# Start Layers
@@ -294,6 +293,10 @@ func spawn_layer(index: int) -> Layer:
 
 func on_l_button_downed(pos: Vector2) -> void:
 	set_curr_frame_manually(get_frame_from_display_pos(pos.x))
+	curr_frame_played_manually.emit()
+
+func on_l_button_upped(pos: Vector2) -> void:
+	curr_frame_stopped_manually.emit()
 
 func on_wheel_downed(pos: Vector2) -> void:
 	zoom -= zoom_step * zoom

@@ -273,15 +273,15 @@ func create_clip_video_control(clip_res: MediaClipRes) -> Control:
 	box_container.add_child(image_control)
 	
 	if await MediaServer.is_stream_has_audio(video_path):
-		var audio_control = create_clip_audio_control(clip_res, false)
+		var audio_control = create_clip_audio_control(clip_res, false, "224d29")
 		box_container.add_child(audio_control)
 	
 	return box_container
 
 
-func create_clip_audio_control(clip_res: MediaClipRes, create_name_label: bool = true) -> Control:
+func create_clip_audio_control(clip_res: MediaClipRes, create_name_label: bool = true, color_key: String = "20394d") -> Control:
 	var audio_path = clip_res.media_resource_path
-	var waves_texture = MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.fortimeline_path, false)
+	var waves_texture = MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.fortimeline_path, color_key, false)
 	
 	var wave_texture_rect = create_texture_rect(waves_texture, {})
 	

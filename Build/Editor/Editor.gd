@@ -1,15 +1,15 @@
 @tool class_name EditorRect extends FocusControl
 
 
-signal l_button_downed()
-signal l_button_upped()
-signal r_button_downed()
-signal r_button_upped()
-signal m_button_downed()
-signal m_button_upped()
+signal l_button_downed(pos: Vector2)
+signal l_button_upped(pos: Vector2)
+signal r_button_downed(pos: Vector2)
+signal r_button_upped(pos: Vector2)
+signal m_button_downed(pos: Vector2)
+signal m_button_upped(pos: Vector2)
 
-signal wheel_downed()
-signal wheel_upped()
+signal wheel_downed(pos: Vector2)
+signal wheel_upped(pos: Vector2)
 
 
 
@@ -74,17 +74,17 @@ func _input(event: InputEvent) -> void:
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
 				l_button_down = is_pressed
-				if is_pressed: l_button_downed.emit()
-				else: l_button_upped.emit()
+				if is_pressed: l_button_downed.emit(mouse_pos)
+				else: l_button_upped.emit(mouse_pos)
 			MOUSE_BUTTON_RIGHT:
 				r_button_down = is_pressed
-				if is_pressed: r_button_downed.emit()
-				else: r_button_upped.emit()
+				if is_pressed: r_button_downed.emit(mouse_pos)
+				else: r_button_upped.emit(mouse_pos)
 			MOUSE_BUTTON_MIDDLE:
-				if is_pressed: m_button_downed.emit()
-				else: m_button_upped.emit()
-			MOUSE_BUTTON_WHEEL_DOWN: if is_pressed: wheel_downed.emit()
-			MOUSE_BUTTON_WHEEL_UP: if is_pressed: wheel_upped.emit()
+				if is_pressed: m_button_downed.emit(mouse_pos)
+				else: m_button_upped.emit(mouse_pos)
+			MOUSE_BUTTON_WHEEL_DOWN: if is_pressed: wheel_downed.emit(mouse_pos)
+			MOUSE_BUTTON_WHEEL_UP: if is_pressed: wheel_upped.emit(mouse_pos)
 	
 	elif event is InputEventKey:
 		if event.is_pressed():

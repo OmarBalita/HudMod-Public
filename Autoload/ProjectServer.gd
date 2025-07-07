@@ -105,7 +105,24 @@ func make_layer_absolute(layer_index: int) -> Dictionary:
 			hided = false,
 			muted = false
 		}
+	make_audio_bus_absolute(layer_index)
 	return layers[layer_index]
+
+
+func make_audio_bus_absolute(layer_index: int) -> void:
+	var bus_name = get_bus_name_from_layer_index(layer_index)
+	var bus_count = AudioServer.bus_count
+	for i in bus_count:
+		if AudioServer.get_bus_name(i) == bus_name:
+			return
+	AudioServer.add_bus(bus_count)
+	AudioServer.set_bus_name(bus_count, bus_name)
+
+
+func get_bus_name_from_layer_index(layer_index: int) -> String:
+	return "layer_%s" % layer_index
+
+
 
 
 
