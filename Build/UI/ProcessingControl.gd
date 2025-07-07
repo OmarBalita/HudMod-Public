@@ -17,4 +17,3 @@ func _draw() -> void:
 	var tail = 3.15 + time
 	draw_arc(pos, radius, time - back_offset, tail - back_offset, subdivision, back_color, width)
 	draw_arc(pos, radius, time, tail, subdivision, forward_color, width)
-

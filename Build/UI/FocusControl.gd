@@ -30,18 +30,3 @@ func _draw() -> void:
 		Color(InterfaceServer.STYLE_ACCENT.bg_color, focus_alpha),
 		false, 2.0
 	)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

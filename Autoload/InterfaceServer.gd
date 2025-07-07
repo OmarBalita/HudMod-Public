@@ -301,15 +301,3 @@ func create_name_label(name: String) -> Label:
 	label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	label.custom_minimum_size.y = 30
 	return label
-
-
-
-
-
-
-
-
-
-
-
-

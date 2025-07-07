@@ -26,24 +26,3 @@ class_name MediaClipRes extends Resource
 
 
 @export var properties: Dictionary[String, Dictionary]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

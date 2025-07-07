@@ -60,8 +60,10 @@ func _ready() -> void:
 	media_clips_root = InterfaceServer.create_empty_control()
 	add_child(media_clips_root)
 	#
-	## Connections
-	ProjectServer.media_clip_added.connect(on_media_clip_added)
+	# Connections
+	ProjectServer.media_clip_added.connect(on_media_clip_changed)
+	ProjectServer.media_clip_copied.connect(on_media_clip_changed)
+	ProjectServer.media_clip_moved.connect(on_media_clip_changed)
 	EditorServer.time_line.timeline_view_changed.connect(update)
 	
 	# Update
@@ -113,31 +115,6 @@ func update() -> void:
 # Connections Functions
 # ---------------------------------------------------
 
-func on_media_clip_added(layer_index: int, frame_in: int) -> void:
+func on_media_clip_changed(layer_index: int, frame_in: int) -> void:
 	if layer_index == index:
 		update()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

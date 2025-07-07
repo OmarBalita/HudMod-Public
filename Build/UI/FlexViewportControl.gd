@@ -28,10 +28,3 @@ func on_resized() -> void:
 	
 	var scaled_size = Vector2(viewport_size) * viewport_container.scale
 	viewport_container.position = (size - scaled_size) / 2.0
-
-
-
-
-
-
-

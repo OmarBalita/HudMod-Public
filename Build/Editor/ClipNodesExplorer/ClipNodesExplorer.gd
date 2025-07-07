@@ -24,19 +24,3 @@ func create_layer_node(layer: int, clip_res: MediaClipRes) -> TreeItem:
 	var node = nodes_tree.create_item(root)
 	node.set_text(0, str(layer, " : ", "clip"))
 	return node
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

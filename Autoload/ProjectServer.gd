@@ -1,7 +1,8 @@
 extends Node
 
 signal media_clip_added(layer_index: int, frame_in: int)
-
+signal media_clip_copied(from_layer_index: int, from_frame_in: int, target_layer_index: int, target_frame_in: int)
+signal media_clip_moved(from_layer_index: int, from_frame_in: int, target_layer_index: int, target_frame_in: int)
 
 const EXAMPLE_PATH: String = "res://ExampleProject/"
 
@@ -52,8 +53,6 @@ func _ready() -> void:
 # Project Layers and Media Clips
 # ---------------------------------------------------
 
-
-
 func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0) -> void:
 	var new_media = MediaClipRes.new()
 	var clip_id = generate_clip_id(get_used_clip_id())
@@ -72,6 +71,16 @@ func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0
 	
 	update_curr_clips()
 
+func copy_media_clip(layer_index: int, frame_in: int, target_layer_index: int, target_frame_in: int, cut: bool = true) -> void:
+	var target_layer = make_layer_absolute(target_layer_index)
+	var media_clips = layers[layer_index].media_clips
+	var target_media_clips = target_layer.media_clips
+	var media_res = media_clips[frame_in].duplicate(true)
+	
+	target_media_clips[target_frame_in] = media_res
+	media_clip_copied.emit(layer_index, frame_in, target_layer_index, target_frame_in)
+	
+	update_curr_clips()
 
 func get_best_unoccupied_layer(frame_in: int, media_length: int) -> int:
 	var layer_index = 0
@@ -224,11 +233,3 @@ func get_res_file(path: String, as_file: Resource) -> Resource:
 	if not FileAccess.file_exists(full_path):
 		ResourceSaver.save(as_file, full_path)
 	return ResourceLoader.load(full_path)
-
-
-
-
-
-
-
-

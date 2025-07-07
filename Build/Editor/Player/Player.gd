@@ -90,13 +90,3 @@ func _start() -> void:
 
 func on_time_line_curr_frame_changed(val: int) -> void:
 	curr_frame = val
-
-
-
-
-
-
-
-
-
-

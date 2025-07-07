@@ -345,14 +345,3 @@ func step_frame() -> void:
 	
 	curr_frame += 1
 	if is_playing: step_frame()
-
-
-
-
-
-
-
-
-
-
-

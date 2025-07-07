@@ -111,5 +111,3 @@ func emit_close_window(window: Window) -> void:
 func on_window_close_request(window: Window, processing_rect: Node) -> void:
 	window.queue_free()
 	processing_rect.queue_free()
-
-

@@ -248,8 +248,3 @@ class MediaBox extends Container:
 
 func on_header_menu_button_pressed(index: int) -> void:
 	curr_media_box_index = index
-
-
-
-
-

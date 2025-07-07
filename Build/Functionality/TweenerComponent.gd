@@ -55,10 +55,3 @@ func interpolate(newValue: Variant, object: Variant, property: String, index: in
 
 func kill_tween() -> void:
 	if tween: tween.kill()
-
-
-
-
-
-
-

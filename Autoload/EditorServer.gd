@@ -75,11 +75,3 @@ func set_labels_text(labels: Array, text: String, color_index: int, while_loop =
 		label.add_theme_color_override("font_color", ERR_STRENGTH_COLORS[color_index])
 		if while_loop:
 			while_loop.call(label)
-
-
-
-
-
-
-
-

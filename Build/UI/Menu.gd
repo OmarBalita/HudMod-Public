@@ -68,15 +68,3 @@ func on_option_button_pressed(button: Button, index: int) -> void:
 	
 	tweener.play(focus_panel, "position", [focus_button.position], [.2], false, Tween.TRANS_QUART, Tween.EASE_OUT)
 	tweener.play(focus_panel, "size", [focus_button.size], [.2])
-
-
-
-
-
-
-
-
-
-
-
-

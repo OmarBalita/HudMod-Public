@@ -34,12 +34,3 @@ func get_dir(display_path: Array) -> Dictionary:
 			break
 		curr_dir = curr_dir.get(next_dir).forward
 	return curr_dir
-
-
-
-
-
-
-
-
-

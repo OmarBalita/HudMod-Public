@@ -193,31 +193,3 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 		if extension in i:
 			return media_type
 	return -1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
