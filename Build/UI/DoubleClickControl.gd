@@ -11,6 +11,8 @@ enum ButtonIndeces {MOUSE_BUTTON_LEFT = 1, MOUSE_BUTTON_RIGHT = 2, MOUSE_BUTTON_
 var last_click_time: float = 0.0
 
 func _input(event) -> void:
+	super(event)
+	
 	if is_focus and event is InputEventMouseButton:
 		if event.button_index == button_index and event.pressed:
 			var current_time = Time.get_ticks_msec() / 1000.0

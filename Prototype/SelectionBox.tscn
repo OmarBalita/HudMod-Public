@@ -1,0 +1,144 @@
+[gd_scene load_steps=3 format=3 uid="uid://bjv2x7bxjnvvh"]
+
+[ext_resource type="Script" uid="uid://dsh8whpyou8dg" path="res://Build/UI/SelectionBox.gd" id="1_gpxot"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gpxot"]
+bg_color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="SelectionBoxTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SelectFrom" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.146429
+anchor_top = 0.18625
+anchor_right = 0.241429
+anchor_bottom = 0.32875
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel10" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.0221429
+anchor_top = 0.07875
+anchor_right = 0.117143
+anchor_bottom = 0.22125
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel11" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.862143
+anchor_top = 0.35875
+anchor_right = 0.957143
+anchor_bottom = 0.50125
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel2" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.372857
+anchor_top = 0.10125
+anchor_right = 0.508571
+anchor_bottom = 0.36625
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel3" type="Panel" parent="SelectFrom"]
+layout_mode = 0
+anchor_left = 0.215
+anchor_top = 0.62
+anchor_right = 0.326429
+anchor_bottom = 0.795
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel4" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.542857
+anchor_top = 0.47
+anchor_right = 0.78
+anchor_bottom = 0.645
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel5" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.729286
+anchor_top = 0.08
+anchor_right = 0.797143
+anchor_bottom = 0.39375
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel9" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.365
+anchor_top = 0.58125
+anchor_right = 0.432857
+anchor_bottom = 0.895
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel6" type="Panel" parent="SelectFrom"]
+layout_mode = 0
+anchor_left = 0.459286
+anchor_top = 0.7625
+anchor_right = 0.570714
+anchor_bottom = 0.9375
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel8" type="Panel" parent="SelectFrom"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.0407143
+anchor_top = 0.52875
+anchor_right = 0.152143
+anchor_bottom = 0.70375
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel7" type="Panel" parent="SelectFrom"]
+layout_mode = 0
+anchor_left = 0.776429
+anchor_top = 0.72375
+anchor_right = 0.887857
+anchor_bottom = 0.89875
+theme_override_styles/panel = SubResource("StyleBoxFlat_gpxot")
+metadata/_edit_use_anchors_ = true
+
+[node name="SelectionBox" type="Control" parent="." node_paths=PackedStringArray("select_from")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 107.0
+offset_top = 56.0
+offset_right = 107.0
+offset_bottom = 56.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_gpxot")
+select_from = [NodePath("../SelectFrom")]
+metadata/_custom_type_script = "uid://dsh8whpyou8dg"

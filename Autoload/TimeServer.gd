@@ -15,7 +15,7 @@ func map_frames_between_fps(frame: int, from_fps: int = 0, to_fps: int = 0) -> i
 func localize_frame(curr_frame: int, clip_pos: int) -> int:
 	return curr_frame - clip_pos
 
-func globalize_position(local_frame: int, clip_pos: int) -> int:
+func globalize_frame(local_frame: int, clip_pos: int) -> int:
 	return local_frame + clip_pos
 
 func frame_to_timecode(frame: int, fps: int = 0) -> String:

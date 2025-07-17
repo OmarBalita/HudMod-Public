@@ -33,7 +33,7 @@ func update() -> void:
 	
 	tweener = TweenerComponent.new()
 	buttons_container = InterfaceServer.create_box_container(20, is_vertical)
-	focus_panel = InterfaceServer.create_panel()
+	focus_panel = InterfaceServer.create_panel(InterfaceServer.STYLE_ACCENT)
 	
 	add_child(focus_panel)
 	add_child(buttons_container)
@@ -43,7 +43,7 @@ func update() -> void:
 	 
 	for index in options.size():
 		var option = options[index]
-		var option_button = InterfaceServer.create_button(option.text, option.icon, {flat = true})
+		var option_button = InterfaceServer.create_button(option.text, option.icon, true, false, {flat = true})
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.pressed.connect(on_option_button_pressed.bind(option_button, index))
 		buttons_container.add_child(option_button)

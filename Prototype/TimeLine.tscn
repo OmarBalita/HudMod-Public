@@ -14,7 +14,7 @@ grow_vertical = 2
 script = ExtResource("1_3l2iu")
 timemarks_bg_size = 45.0
 color_timemarks_bg = Color(0, 0, 0, 1)
-color_layer = Color(0.08, 0.0833333, 0.1, 1)
+color_layer = Color(0.13, 0.13, 0.13, 1)
 font_main = ExtResource("2_wilel")
 editor_guides = Array[Dictionary]([{
 "Move Cursor": "[Mouse-Left]"

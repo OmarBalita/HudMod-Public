@@ -10,14 +10,14 @@ func create_folder(display_path: Array, folder_name: String) -> void:
 	curr_dir[folder_name] = {
 		type = "folder",
 		forward = {},
-		date = Time.get_datetime_dict_from_system()
+		date = Time.get_unix_time_from_system()
 	}
 
 func create_file(display_path: Array, file_path: String) -> void:
 	var curr_dir: Dictionary = get_dir(display_path)
 	curr_dir[file_path] = {
 		type = "file",
-		date = Time.get_datetime_dict_from_system()
+		date = Time.get_unix_time_from_system()
 	}
 
 func get_files_and_folders_at(display_path: Array) -> Dictionary:

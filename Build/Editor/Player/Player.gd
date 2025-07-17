@@ -63,7 +63,7 @@ func _start() -> void:
 	more_button = InterfaceServer.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
-	time_container.add_child(InterfaceServer.create_h_line_panel(15, Color(1,1,1, .5)))
+	time_container.add_child(InterfaceServer.create_h_line_panel(15))
 	time_container.add_child(max_time_label)
 	time_panel.add_child(time_container)
 	

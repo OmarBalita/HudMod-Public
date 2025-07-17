@@ -1,0 +1,43 @@
+
+# Messions for 0.1 Version
+# ---------------------------
+# - Fix Selection Box
+# - Activate Layer Edit +
+# - Expand Media Clips +
+# - Cut Media Clips +
+# - Optimize Timeline Drag +
+# - ToolBar
+# - File Explorer (Filter + Sort) +
+# - Drag and Drop Media +
+# - New Popuped Menu Node +
+# - Asset, Global, and Project Media Support
+# - Text and Shape Media
+# - Smart Retargetting Media Clips when Moving
+# - Snap on Media Clips, Cursor, and TimeMarks +
+# - Fix ZoomIn and ZoomOut
+# - add Scroll Bar for Timeline
+# - Time Markers
+# - New Flexible Editor Save System +
+# - Drag and Drop Media Files into Project - TimeLine, and File Explorer +
+
+# Messions for 0.2 Version
+# ---------------------------
+# Layer: Move UP and Move DOWN and Duplicate
+# Layer: Customization
+# Group and UnGroup Media Clips
+# Nested Sequeces for Editor EchoSystem
+# Parent and Reparent and Clear Parents for Media Clips
+# Replace Media
+# Create New Graph Editor for Keyframes and Curves
+# Save Preset as Global or Project
+# Apply Media Clip Popup Menu
+
+# Messions for 0.3 Version
+# ---------------------------
+
+
+
+
+
+
+

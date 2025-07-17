@@ -1,11 +1,11 @@
-[gd_scene load_steps=20 format=3 uid="uid://c5j8uwlpcdbkb"]
+[gd_scene load_steps=31 format=3 uid="uid://c5j8uwlpcdbkb"]
 
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Build/Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
 [ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Build/Editor/Player/Player.gd" id="2_7i47x"]
 [ext_resource type="Script" uid="uid://r643re6ydjnt" path="res://Build/Editor/Properties/Properties.gd" id="3_7i47x"]
 [ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Build/Editor/MediaExplorer/MediaCard.tscn" id="3_dpj1x"]
-[ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/Resource/MenuOption.gd" id="3_pyfir"]
+[ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/Resource/Save/MenuOption.gd" id="3_pyfir"]
 [ext_resource type="Texture2D" uid="uid://bfd4pbwwemafk" path="res://Asset/Icons/gallery.png" id="4_plela"]
 [ext_resource type="Texture2D" uid="uid://cb6pjddrrsxkn" path="res://Asset/Icons/text.png" id="5_fucdc"]
 [ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="6_30pfl"]
@@ -15,6 +15,17 @@
 [ext_resource type="Script" uid="uid://bci4vqikuv2cq" path="res://Build/UI/NotificationLabel.gd" id="7_pln24"]
 [ext_resource type="PackedScene" uid="uid://ilpv866vtt" path="res://Build/Editor/MediaExplorer/FolderCard.tscn" id="8_fucdc"]
 [ext_resource type="Script" uid="uid://bcd2jbumhww6p" path="res://Build/Editor/ClipNodesExplorer/ClipNodesExplorer.gd" id="11_30pfl"]
+[ext_resource type="Texture2D" uid="uid://6jj5fxul1n5v" path="res://Asset/Icons/cursor.png" id="12_13ga7"]
+[ext_resource type="Texture2D" uid="uid://dkjcas8n8sra0" path="res://Asset/Icons/split-clip.png" id="13_kg1lx"]
+[ext_resource type="Texture2D" uid="uid://cq7tqrosc2nx3" path="res://Asset/Icons/right-split-clip.png" id="14_2kogo"]
+[ext_resource type="Texture2D" uid="uid://blfyk8dqdjqa0" path="res://Asset/Icons/location-marker.png" id="14_k2li5"]
+[ext_resource type="Texture2D" uid="uid://ba4hea5saqvlq" path="res://Asset/Icons/snap (1).png" id="15_ig1nw"]
+[ext_resource type="Texture2D" uid="uid://b8rxo816n0cnf" path="res://Asset/Icons/left-split-clip.png" id="15_pu2bm"]
+[ext_resource type="Texture2D" uid="uid://du588acsbuu58" path="res://Asset/Icons/snap (2).png" id="16_2kogo"]
+[ext_resource type="Texture2D" uid="uid://i6e0sd1tev1o" path="res://Asset/Icons/snap.png" id="17_pu2bm"]
+[ext_resource type="Texture2D" uid="uid://n88yf18v4s47" path="res://Asset/Icons/paperclip.png" id="18_52oax"]
+[ext_resource type="Texture2D" uid="uid://wdwchq2hkx31" path="res://Asset/Icons/zoom-in.png" id="19_k2li5"]
+[ext_resource type="Texture2D" uid="uid://df12acsow1u4v" path="res://Asset/Icons/zoom-out.png" id="20_ig1nw"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fucdc"]
 bg_color = Color(0.1008, 0.104, 0.12, 1)
@@ -28,6 +39,9 @@ script = ExtResource("3_pyfir")
 is_separation_line = false
 text = "Files"
 icon = ExtResource("4_plela")
+forward = Array[ExtResource("3_pyfir")]([])
+checkable = false
+checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
 
 [sub_resource type="Resource" id="Resource_0uheb"]
@@ -35,6 +49,9 @@ script = ExtResource("3_pyfir")
 is_separation_line = false
 text = "Text"
 icon = ExtResource("5_fucdc")
+forward = Array[ExtResource("3_pyfir")]([])
+checkable = false
+checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
 
 [sub_resource type="Resource" id="Resource_plela"]
@@ -42,6 +59,9 @@ script = ExtResource("3_pyfir")
 is_separation_line = false
 text = "Shapes"
 icon = ExtResource("6_30pfl")
+forward = Array[ExtResource("3_pyfir")]([])
+checkable = false
+checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
 
 [node name="PrototypeMain" type="Control"]
@@ -60,7 +80,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.056, 0.0608, 0.08, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -92,6 +112,7 @@ theme_override_constants/separation = 0
 [node name="Split" type="HSplitContainer" parent="Margin/Box/Split"]
 layout_mode = 2
 size_flags_vertical = 3
+size_flags_stretch_ratio = 1.1
 theme_override_constants/separation = 0
 
 [node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split" groups=["media_explorer"]]
@@ -137,6 +158,17 @@ script = ExtResource("11_30pfl")
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+texture_selection = ExtResource("12_13ga7")
+texture_split = ExtResource("13_kg1lx")
+texture_split_right = ExtResource("14_2kogo")
+texture_split_left = ExtResource("15_pu2bm")
+texture_marker = ExtResource("14_k2li5")
+texture_snap_cursor = ExtResource("15_ig1nw")
+texture_snap_markers = ExtResource("16_2kogo")
+texture_magnet_clips = ExtResource("17_pu2bm")
+texture_link = ExtResource("18_52oax")
+texture_zoom_in = ExtResource("19_k2li5")
+texture_zoom_out = ExtResource("20_ig1nw")
 
 [node name="Bottom" type="PanelContainer" parent="Margin/Box"]
 custom_minimum_size = Vector2(0, 50)

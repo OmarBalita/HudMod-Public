@@ -22,11 +22,11 @@ func _ready() -> void:
 	start_scene()
 	# Connections
 	var timeline = EditorServer.time_line
+	ProjectServer.layer_changed.connect(on_layer_changed)
 	timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
 	timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
 	timeline.timeline_played.connect(try_play)
 	timeline.timeline_stoped.connect(stop)
-
 
 
 func start_scene() -> void:
@@ -40,14 +40,14 @@ func start_scene() -> void:
 func create_sprite(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Sprite2D:
 	var sprite = Sprite2D.new()
 	sprite.texture = MediaServer.get_image_texture_from_path(clip_res.media_resource_path)
-	sprite.z_index = layer
+	create_node2d(layer, sprite)
 	instance_node(layer, sprite, clip_res, frame_begin)
 	return sprite
 
 func create_video(layer: int, clip_res: MediaClipRes, frame_begin: int) -> VideoViewer:
 	var video_renderer = VideoViewer.new()
 	video_renderer.path = clip_res.media_resource_path
-	video_renderer.z_index = layer
+	create_node2d(layer, video_renderer)
 	instance_node(layer, video_renderer, clip_res, frame_begin)
 	try_play()
 	return video_renderer
@@ -59,6 +59,12 @@ func create_audio(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Audio
 	instance_node(layer, audio_player, clip_res, frame_begin)
 	try_play()
 	return audio_player
+
+
+func create_node2d(layer: int, node: Node2D) -> void:
+	node.z_index = layer
+	node.visible = not ProjectServer.get_layer_hide(layer)
+
 
 func remove_node(layer: int) -> void:
 	if curr_nodes.has(layer):
@@ -92,12 +98,13 @@ func try_play(curr_frame = null) -> void:
 	await loop_nodes(
 		func(layer: int, node: Node):
 			var clip_pos = node.get_meta("clip_pos")
+			var from = node.get_meta("clip_res").from
 			var local_frame = TimeServer.localize_frame(curr_frame, clip_pos)
 			
 			if node is AudioStreamPlayer:
 				if node.playing:
 					return
-				node.play(TimeServer.frame_to_seconds(local_frame))
+				node.play(TimeServer.frame_to_seconds(local_frame + from))
 			
 			elif node is VideoViewer:
 				if node.is_playing:
@@ -117,6 +124,19 @@ func stop() -> void:
 				node.stop()
 			elif node is VideoViewer:
 				node.stop()
+	)
+
+
+func update_visibilities(visibility = null) -> void:
+	loop_nodes(
+		func(layer: int, node: Node):
+			if node is Node2D:
+				var node_visib: bool
+				if visibility == null:
+					node_visib = not ProjectServer.get_layer_hide(layer)
+				else:
+					node_visib = visibility
+				node.visible = node_visib
 	)
 
 
@@ -145,7 +165,8 @@ func seek_video_viewers_frame(curr_frame = null) -> void:
 
 
 
-
+func on_layer_changed() -> void:
+	update_visibilities()
 
 func on_timeline_curr_frame_played_manually() -> void:
 	if update_video_viewers_on_drag:

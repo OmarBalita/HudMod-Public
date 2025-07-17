@@ -33,10 +33,6 @@ var audio_preload_path: String
 
 
 
-func _enter_tree() -> void:
-	add_child(audio_player)
-	material = shader_material
-	texture = ImageTexture.new()
 
 func _ready() -> void:
 	start()
@@ -48,6 +44,10 @@ func _ready() -> void:
 
 
 func start() -> void:
+	
+	material = shader_material
+	texture = ImageTexture.new()
+	add_child(audio_player)
 	
 	video_preload_path = "%s%s%s" % [path, "_video_", get_meta("layer")]
 	audio_preload_path = "%s%s" % [path, "_audio"]
@@ -74,7 +74,7 @@ func play(timeline_frame: int = 0) -> void:
 	seek_frame(timeline_frame)
 	step_frame()
 	audio_player.set_stream_paused(false)
-	audio_player.play(TimeServer.frame_to_seconds(TimeServer.localize_frame(timeline_frame, get_meta("clip_pos"))))
+	audio_player.play(TimeServer.frame_to_seconds(TimeServer.localize_frame(timeline_frame + get_meta("clip_res").from, get_meta("clip_pos"))))
 	audio_player.set_stream_paused(!is_playing)
 
 func stop() -> void:
@@ -115,7 +115,7 @@ func is_updated() -> bool:
 
 
 func get_absolute_frame(curr_frame: int) -> int:
-	curr_frame = TimeServer.localize_frame(curr_frame, get_meta("clip_pos"))
+	curr_frame = TimeServer.localize_frame(curr_frame + get_meta("clip_res").from, get_meta("clip_pos"))
 	return TimeServer.map_frames_between_fps(curr_frame, 0, frame_rate)
 
 

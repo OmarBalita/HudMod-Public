@@ -12,6 +12,10 @@ signal wheel_downed(pos: Vector2)
 signal wheel_upped(pos: Vector2)
 
 
+const NONE_MASK: int = 0
+const CTRL_MASK: int = 268435456
+const SHIFT_MASK: int = 33554432
+const ALT_MASK: int = 67108864
 
 @export_group("Theme")
 @export_subgroup("Constant")
@@ -28,17 +32,16 @@ var release_functions: Dictionary
 
 # RealTime Variables
 
-
 var pressed_keys: Array
 var key_just_pressed: bool
 var l_button_down: bool
 var r_button_down: bool
 
 # RealTime Nodes
+var shortcut_node: ShortcutNode
 var container: SplitContainer
 var header: MarginContainer
 var body: MarginContainer
-
 
 
 
@@ -47,6 +50,16 @@ func _ready() -> void:
 	_start()
 
 func _start() -> void:
+	
+	# Start Connections
+	shortcut_node = ShortcutNode.new()
+	shortcut_node.focus_control = self
+	add_child(shortcut_node)
+	
+	shortcut_node.shortcut_key_pressed.connect(on_shortcut_key_pressed)
+	shortcut_node.shortcut_key_released.connect(on_shortcut_key_released)
+	shortcut_node.shortcut_button_pressed.connect(on_shortcut_button_pressed)
+	shortcut_node.shortcut_button_released.connect(on_shortcut_button_released)
 	
 	container = InterfaceServer.create_split_container(1, true)
 	header = InterfaceServer.create_margin_container(4,4,4,4)
@@ -61,8 +74,7 @@ func _start() -> void:
 	
 	body_panel.mouse_entered.connect(set_is_focus.bind(true))
 	body_panel.mouse_exited.connect(set_is_focus.bind(false))
-	
-	header_size += 10
+
 
 func _input(event: InputEvent) -> void:
 	
@@ -106,9 +118,27 @@ func match_key_code(event: InputEventKey, callables: Dictionary) -> void:
 			var is_key_declared = key in pressed_keys
 
 
-func _draw() -> void:
-	draw_rect(
-		Rect2(body.global_position - global_position + Vector2.ONE, size - Vector2.DOWN * header_size - Vector2(2, 2)),
-		Color(InterfaceServer.STYLE_ACCENT.bg_color, focus_alpha),
-		false, 2.0
-	)
+
+
+
+
+
+func on_shortcut_key_pressed(key: Array) -> void:
+	pass
+
+func on_shortcut_key_released(key: Array) -> void:
+	pass
+
+func on_shortcut_button_pressed(key: Array) -> void:
+	pass
+
+func on_shortcut_button_released(key: Array) -> void:
+	pass
+
+
+
+
+
+
+
+

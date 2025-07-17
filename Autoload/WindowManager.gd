@@ -38,8 +38,8 @@ func popup_accept_window(processing_node: Control, window_size:= Vector2(400, 20
 	
 	var box = InterfaceServer.create_box_container(10, true)
 	var accept_box = InterfaceServer.create_box_container()
-	var accept_button = InterfaceServer.create_button("Accept", null, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var cancel_button = InterfaceServer.create_button("Cancel", null, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var accept_button = InterfaceServer.create_button("Accept", null, true, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var cancel_button = InterfaceServer.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	if accept_pressed != null: accept_button.pressed.connect(accept_pressed)
 	if cancel_pressed != null: cancel_button.pressed.connect(cancel_pressed)
 	accept_button.pressed.connect(emit_close_window.bind(window_container.get_window()))
