@@ -1,6 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://clqh4uu3cbsck"]
+[gd_scene load_steps=7 format=3 uid="uid://clqh4uu3cbsck"]
 
 [ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
+[ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
+[ext_resource type="Script" uid="uid://drihlu2bp73ud" path="res://Build/UI/Control/FloatController.gd" id="3_3rv65"]
+[ext_resource type="Texture2D" uid="uid://chf0k2wvk1evm" path="res://Asset/Icons/toggle-button.png" id="4_bscte"]
+[ext_resource type="Texture2D" uid="uid://dmyeub87vo8t3" path="res://Asset/Icons/toggle-button2.png" id="5_kahc7"]
+[ext_resource type="Script" uid="uid://cc8tadpdnjr3" path="res://Build/UI/Control/CurveController.gd" id="6_kahc7"]
 
 [node name="PrototypeControlUI" type="Control"]
 layout_mode = 3
@@ -11,13 +16,14 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ColorRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.201313, 0.192092, 0.273438, 1)
+color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -32,3 +38,56 @@ visible = false
 layout_mode = 2
 mouse_filter = 0
 script = ExtResource("1_l3tcm")
+
+[node name="ColorController" type="PanelContainer" parent="CenterContainer"]
+visible = false
+layout_mode = 2
+script = ExtResource("2_7snrv")
+
+[node name="FloatController" type="Button" parent="CenterContainer"]
+visible = false
+custom_minimum_size = Vector2(170, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 10
+script = ExtResource("3_3rv65")
+
+[node name="CheckButton" type="CheckButton" parent="CenterContainer"]
+visible = false
+layout_mode = 2
+theme_override_icons/checked = ExtResource("4_bscte")
+theme_override_icons/unchecked = ExtResource("5_kahc7")
+
+[node name="ColorRect2" type="ColorRect" parent="."]
+visible = false
+custom_minimum_size = Vector2(600, 450)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="CurveController" type="Control" parent="ColorRect2"]
+custom_minimum_size = Vector2(450, 350)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -175.0
+offset_right = 225.0
+offset_bottom = 175.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_kahc7")
+x_timemarks_dist = 90
+y_timemarks_dist = 70

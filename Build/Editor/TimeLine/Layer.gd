@@ -17,7 +17,7 @@ var index = 0
 var displayed_media_clips: Dictionary
 var force_existing: int
 
-var clips_control: Control
+var clips_control: Control = InterfaceServer.create_empty_control()
 
 var side_rect: ColorRect
 var lock_button: TextureButton
@@ -43,7 +43,6 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# Start Clips Container
-	clips_control = InterfaceServer.create_empty_control()
 	add_child(clips_control)
 	
 	# Start Side Layer Edit

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CheckGroup" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Build/Res/Save/CheckGroup.gd" id="1_njg8n"]
+
+[resource]
+script = ExtResource("1_njg8n")
+checked_index = 1
+save_path = "res://options.tres"

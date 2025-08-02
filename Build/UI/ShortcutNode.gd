@@ -5,6 +5,7 @@ signal shortcut_key_released(key: Array)
 signal shortcut_button_pressed(key: Array)
 signal shortcut_button_released(key: Array)
 
+
 @export var enabled:= true
 
 func set_enabled(val: bool) -> void:
@@ -13,8 +14,6 @@ func get_enabled() -> bool:
 	return enabled
 
 @export var focus_control: FocusControl
-
-
 
 
 var key_shortcuts: Dictionary[Array, Callable]
@@ -28,6 +27,7 @@ var events_pressed: Array
 
 
 func _input(event: InputEvent) -> void:
+	
 	if not enabled or not focus_control.is_focus:
 		return
 	

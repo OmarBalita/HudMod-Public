@@ -16,10 +16,31 @@ const COLOR_TEXT_DISABLED = Color(0.4, 0.4, 0.4, 1.0)     # #666666
 const COLOR_BORDER = Color(0.2, 0.2, 0.22, 1.0)           # #333338
 const COLOR_SELECTION = Color(0.2, 0.6, 1.0, 0.3)         # #3399ff with alpha
 
+
+const RAINBOW_COLORS: Array[Color] = [
+	Color("999999"), # Gray
+	Color("#B266FF"), # Violet
+	Color("#6699FF"), # Blue
+	Color("#66CCFF"), # Cyan
+	Color("#66FFB2"), # Green
+	Color("#FFFF99"), # Yellow
+	Color("#FFCC66"), # Orange
+	Color("#FF9999")  # Red
+]
+
+
+
+
 # Load resources
 const LABEL_SETTINGS_HEADER = preload("res://UI&UX/LabelSettingsHeader.tres")
 const LABEL_SETTINGS_BOLD = preload("res://UI&UX/LabelSettingsBold.tres")
 const LABEL_SETTINGS_MAIN = preload("res://UI&UX/LabelSettingsMain.tres")
+
+const TEXTURE_RIGHT = preload("res://Asset/Icons/right.png")
+const TEXTURE_DOWN = preload("res://Asset/Icons/down.png")
+
+const TEXTURE_TOGGLE_BUTTON_CHECKED = preload("res://Asset/Icons/toggle-button.png")
+const TEXTURE_TOGGLE_BUTTON_UNCHECKED = preload("res://Asset/Icons/toggle-button2.png")
 
 # Create modern styles programmatically
 var STYLE_BOX_EMPTY: StyleBoxEmpty
@@ -174,6 +195,13 @@ func _create_modern_styles():
 	STYLE_CLIP_CONTAINER.corner_radius_bottom_right = 6
 
 # Base settings functions
+
+func expand(control: Control, h: bool = true, v: bool = false) -> void:
+	if h:
+		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if v:
+		control.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 func set_base_settings(control: Control) -> void:
 	control.mouse_filter = Control.MOUSE_FILTER_PASS
 	control.add_theme_stylebox_override("focus", STYLE_BOX_EMPTY)
@@ -314,9 +342,12 @@ func create_button(text: String, icon: Texture2D = null, accent: bool = false, f
 
 class CustomTextureButton extends TextureButton:
 	
+	var normal_color: Color = COLOR_NORMAL
+	var accent_color: Color = COLOR_ACCENT_BLUE
+	
 	func _ready() -> void:
 		# Connections
-		button_down.connect(set_self_modulate.bind(COLOR_ACCENT_BLUE))
+		button_down.connect(set_self_modulate.bind(accent_color))
 		button_up.connect(update_button)
 		update_button()
 	
@@ -325,10 +356,8 @@ class CustomTextureButton extends TextureButton:
 		update_button()
 	
 	func update_button() -> void:
-		var toggle_color = COLOR_ACCENT_BLUE if button_pressed else COLOR_NORMAL
-		set_self_modulate(toggle_color if toggle_mode else COLOR_NORMAL)
-
-
+		var toggle_color = accent_color if button_pressed else normal_color
+		set_self_modulate(toggle_color if toggle_mode else normal_color)
 
 func create_texture_button(normal: Texture2D, hover: Texture2D = null, pressed: Texture2D = null, toggle_mode: bool = false, more: Dictionary = {}) -> CustomTextureButton:
 	var texture_button = CustomTextureButton.new()
@@ -347,20 +376,6 @@ func create_texture_button(normal: Texture2D, hover: Texture2D = null, pressed: 
 	ObjectServer.describe(texture_button, more)
 	return texture_button
 
-func create_line_edit(placeholder: String = "", text: String = "", right_icon: Texture2D = null, more: Dictionary = {size_flags_horizontal = Control.SIZE_EXPAND_FILL}) -> LineEdit:
-	var line_edit = LineEdit.new()
-	set_base_settings(line_edit)
-	line_edit.add_theme_color_override("selection_color", COLOR_SELECTION)
-	line_edit.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	line_edit.add_theme_color_override("font_placeholder_color", COLOR_TEXT_SECONDARY)
-	line_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
-	line_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
-	line_edit.caret_blink = true
-	line_edit.placeholder_text = placeholder
-	line_edit.text = text
-	line_edit.right_icon = right_icon
-	ObjectServer.describe(line_edit, more)
-	return line_edit
 
 func create_panel(style: StyleBox = STYLE_PANEL, more: Dictionary = {}) -> Panel:
 	var panel = Panel.new()
@@ -382,12 +397,11 @@ func create_h_line_panel(min_size: float = 1, color: Color = Color(1,1,1, .3), m
 	ObjectServer.describe(panel, more)
 	return panel
 
-func create_selection_box(select_from: Array[Control] = [], working_cancelers: Array[Callable] = [], more: Dictionary = {}) -> SelectionBox:
+func create_selection_box(select_from: Array[Control] = [], more: Dictionary = {}) -> SelectionBox:
 	var selection_box = SelectionBox.new()
 	set_base_container_settings(selection_box)
 	selection_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	selection_box.select_from = select_from
-	selection_box.working_cancelers = working_cancelers
 	ObjectServer.describe(selection_box, more)
 	return selection_box
 
@@ -398,27 +412,136 @@ func create_label(text: String, label_settings: LabelSettings = LABEL_SETTINGS_M
 	ObjectServer.describe(label, more)
 	return label
 
+
+func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: float, more:= {}) -> ProgressBar:
+	var bar = ProgressBar.new()
+	set_base_settings(bar)
+	bar.min_value = min_val
+	bar.max_value = max_val
+	bar.step = step
+	bar.value = curr_val
+	ObjectServer.describe(bar, more)
+	return bar
+
+
+
+
+
+
+
+
+
+
 func create_menu(options: Array[MenuOption], more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
 	menu.options = options
 	ObjectServer.describe(menu, more)
 	return menu
 
+func create_popuped_text(text: String = "", more: Dictionary = {}) -> PopupedText:
+	var pop_text = PopupedText.new()
+	set_base_panel_settings(pop_text, InterfaceServer.STYLE_BODY)
+	pop_text.text = text
+	ObjectServer.describe(pop_text, more)
+	return pop_text
+
 func create_popuped_menu(options: Array, more: Dictionary = {}) -> PopupedMenu:
-	var menu = PopupedMenu.new()
-	InterfaceServer.set_base_panel_settings(menu, InterfaceServer.STYLE_BODY)
-	menu.options = options
-	ObjectServer.describe(menu, more)
-	return menu
+	var pop_menu = PopupedMenu.new()
+	set_base_panel_settings(pop_menu, InterfaceServer.STYLE_BODY)
+	pop_menu.options = options
+	ObjectServer.describe(pop_menu, more)
+	return pop_menu
 
-func create_layer(id: int, min_size: Vector2, color: Color, more: Dictionary = {}) -> Layer:
-	var layer = Layer.new(id)
-	layer.custom_minimum_size = min_size
-	layer.color = color
-	ObjectServer.describe(layer, more)
-	return layer
+func create_popuped_color_controller(main_color: Color, more: Dictionary = {}) -> PopupedColorController:
+	var pop_color_controller = PopupedColorController.new()
+	set_base_panel_settings(pop_color_controller, InterfaceServer.STYLE_BODY)
+	pop_color_controller.curr_color = main_color
+	ObjectServer.describe(pop_color_controller, more)
+	return pop_color_controller
 
-func create_slider_control(curr_val: float, min_val: float, max_val: float, step: float, left_texture: Texture2D, right_texture: Texture2D, more: Dictionary = {}) -> SliderControl:
+func create_popuped_box(elements: Array[Control], more: Dictionary = {}) -> PopupedBox:
+	var pop_box = PopupedBox.new()
+	set_base_panel_settings(pop_box, InterfaceServer.STYLE_BODY)
+	pop_box.elements = elements
+	ObjectServer.describe(pop_box, more)
+	return pop_box
+
+func popup(popuped: PopupedControl, pop_from = null, pop_in = null) -> void:
+	var pop_pos
+	if pop_from:
+		pop_pos = pop_from.global_position + Vector2(0, pop_from.size.y)
+	if not pop_in:
+		pop_in = get_tree().get_current_scene()
+	pop_in.add_child(popuped)
+	popuped.popup(pop_pos)
+
+func popup_menu(options: Array, pop_from = null, pop_in = null) -> PopupedMenu:
+	var pop_menu = create_popuped_menu(options)
+	popup(pop_menu, pop_from, pop_in)
+	return pop_menu
+
+func popup_color_controller(main_color: Color, pop_from = null, pop_in = null) -> PopupedColorController:
+	var pop_color_controller = create_popuped_color_controller(main_color)
+	popup(pop_color_controller, pop_from, pop_in)
+	return pop_color_controller
+
+func popup_box(elements: Array[Control], pop_from = null, pop_in = null) -> PopupedBox:
+	var pop_box = create_popuped_box(elements)
+	popup(pop_box, pop_from, pop_in)
+	return pop_box
+
+
+
+# Values Controllers for Modern Video Editor
+
+func create_option_controller(options_info: Array[Dictionary], save_path: String, default_id: int = 0, more: Dictionary = {}) -> OptionController:
+	var option_controller = OptionController.new()
+	set_button_style(option_controller, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
+	option_controller.icon = TEXTURE_DOWN
+	option_controller.options_info = options_info
+	option_controller.save_path = save_path
+	option_controller.default_index = default_id
+	ObjectServer.describe(option_controller, more)
+	return option_controller
+
+func create_check_button(is_checked: bool = false, more: Dictionary = {}) -> CheckButton:
+	var check_button = CheckButton.new()
+	set_base_settings(check_button)
+	set_button_style(check_button, STYLE_BOX_EMPTY)
+	check_button.add_theme_icon_override("checked", TEXTURE_TOGGLE_BUTTON_CHECKED)
+	check_button.add_theme_icon_override("unchecked", TEXTURE_TOGGLE_BUTTON_UNCHECKED)
+	check_button.button_pressed = is_checked
+	ObjectServer.describe(check_button, more)
+	return check_button
+
+func create_line_edit(placeholder: String = "", text: String = "", right_icon: Texture2D = null, more: Dictionary = {size_flags_horizontal = Control.SIZE_EXPAND_FILL}) -> LineEdit:
+	var line_edit = LineEdit.new()
+	set_base_settings(line_edit)
+	line_edit.add_theme_color_override("selection_color", COLOR_SELECTION)
+	line_edit.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	line_edit.add_theme_color_override("font_placeholder_color", COLOR_TEXT_SECONDARY)
+	line_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
+	line_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
+	line_edit.caret_blink = true
+	line_edit.placeholder_text = placeholder
+	line_edit.text = text
+	line_edit.right_icon = right_icon
+	ObjectServer.describe(line_edit, more)
+	return line_edit
+
+func create_text_edit(placeholder: String = "", text: String = "", more: Dictionary = {}) -> TextEdit:
+	var text_edit = TextEdit.new()
+	set_base_settings(text_edit)
+	text_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
+	text_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
+	text_edit.caret_blink = true
+	text_edit.placeholder_text = placeholder
+	text_edit.text = text
+	expand(text_edit)
+	ObjectServer.describe(text_edit, more)
+	return text_edit
+
+func create_slider_control(curr_val: float, min_val: float, max_val: float, step: float, left_texture: Texture2D = null, right_texture: Texture2D = null, more: Dictionary = {}) -> SliderControl:
 	var slider_control = SliderControl.new()
 	var slider_controller = slider_control.slider_controller
 	set_base_settings(slider_control)
@@ -432,10 +555,93 @@ func create_slider_control(curr_val: float, min_val: float, max_val: float, step
 	ObjectServer.describe(slider_control, more)
 	return slider_control
 
+func create_float_control(curr_val: float, min_val: float, max_val: float, step: float, more: Dictionary = {}) -> FloatController:
+	var float_controller = FloatController.new()
+	set_base_settings(float_controller)
+	InterfaceServer.set_button_style(float_controller, InterfaceServer.STYLE_BUTTON)
+	float_controller.texture_right = TEXTURE_RIGHT
+	float_controller.min_val = min_val
+	float_controller.max_val = max_val
+	float_controller.step = step
+	float_controller.curr_val = curr_val
+	ObjectServer.describe(float_controller, more)
+	return float_controller
+
+func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
+	var color_button = ColorButton.new()
+	set_base_settings(color_button)
+	set_button_style(color_button, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
+	color_button.curr_color = color
+	ObjectServer.describe(color_button, more)
+	return color_button
+
+func create_edit_box(name: String, vertical: bool = false, name_label_alignment: int = 1) -> BoxContainer:
+	var box = create_box_container(16, vertical)
+	var name_label = create_label(name)
+	name_label.horizontal_alignment = name_label_alignment
+	expand(name_label)
+	box.add_child(name_label)
+	return box
+
+func create_option_edit(name: String, options_info: Array[Dictionary], save_path: String, default_id: int = 0) -> BoxContainer:
+	var box = create_edit_box(name)
+	var option_controller = create_option_controller(options_info, save_path, default_id)
+	expand(option_controller)
+	box.add_child(option_controller)
+	return box
+
+func create_bool_edit(name: String, is_checked: bool) -> BoxContainer:
+	var box = create_edit_box(name)
+	var check_button = create_check_button(is_checked)
+	expand(check_button)
+	box.add_child(check_button)
+	return box
+
+func create_float_edit(name: String, use_slider: bool, use_spinbox: bool, curr_val: float, min_val: float, max_val: float, step: float, left_texture: Texture2D = null, right_texture: Texture2D = null) -> BoxContainer:
+	var box = create_edit_box(name)
+	if use_slider:
+		var slider_control = create_slider_control(curr_val, min_val, max_val, step, left_texture, right_texture)
+		expand(slider_control)
+		box.add_child(slider_control)
+	if use_spinbox:
+		var float_control = create_float_control(curr_val, min_val, max_val, step)
+		expand(float_control)
+		box.add_child(float_control)
+	return box
+
+func create_color_edit(name: String, color: Color = Color.BLACK) -> BoxContainer:
+	var box = create_edit_box(name)
+	var color_button = create_color_button(color)
+	expand(color_button)
+	box.add_child(color_button)
+	return box
+
+func create_line_edit_edit(name: String, text: String = "") -> BoxContainer:
+	var box = create_edit_box(name)
+	var line_edit = create_line_edit("", text)
+	expand(line_edit)
+	box.add_child(line_edit)
+	return box
+
+func create_text_edit_edit(name: String, text: String = "") -> BoxContainer:
+	var box = create_edit_box(name, true, 0)
+	var text_edit = create_text_edit("", text)
+	expand(text_edit, false, true)
+	box.add_child(text_edit)
+	return box
 
 
 
-# Enhanced media clip controls for modern video editor
+
+
+# Enhanced media clip controls for Modern Video Editor
+
+func create_layer(id: int, min_size: Vector2, color: Color, more: Dictionary = {}) -> Layer:
+	var layer = Layer.new(id)
+	layer.custom_minimum_size = min_size
+	layer.color = color
+	ObjectServer.describe(layer, more)
+	return layer
 
 func create_clip_image_control(clip_res: MediaClipRes, texture: Texture2D = null) -> Control:
 	var image_path = clip_res.media_resource_path
@@ -494,7 +700,10 @@ func create_name_label(name: String) -> Label:
 
 
 
+
+
 # Additional helper functions for video editor
+
 func create_timeline_panel(more: Dictionary = {}) -> PanelContainer:
 	var panel = create_panel_container(Vector2.ZERO, STYLE_TIMELINE, more)
 	return panel

@@ -6,11 +6,13 @@ signal selection_ended(grouping: bool)
 
 @export var id_key_function_name: String
 
+@export var enabled: bool = true
 @export var select_from: Array[Control]
+
+@export_group("Theme")
 @export var color: Color = Color.WHITE
 @export var transparancy: float = .3
 
-var working_cancelers: Array[Callable]
 
 var selected_nodes: Dictionary[String, Control]
 
@@ -27,14 +29,15 @@ var fill_color: Color = Color(color, transparancy)
 
 func _init() -> void:
 	mouse_entering_calculation = false
-	rect_calculation = false
+	rect_calculation = true
 
 
 func _input(event: InputEvent) -> void:
 	
 	super(event)
 	
-	if not is_focus: return
+	if not enabled or not is_focus:
+		return
 	
 	if event is InputEventMouseButton:
 		var pressed = event.is_pressed()
@@ -45,12 +48,9 @@ func _input(event: InputEvent) -> void:
 			group = event.ctrl_pressed
 			remove = event.alt_pressed
 			
-			for canceler in working_cancelers:
-				#if pressed:
-					#await get_tree().process_frame
-				if canceler.call(): return
-			
 			if pressed:
+				if EditorServer.media_clips_focused.size():
+					return
 				canceled = false
 				selection_started.emit()
 			
@@ -75,8 +75,9 @@ func update_selection() -> void:
 	select_rect = Rect2(start_pos, end_pos - start_pos).abs()
 	
 	for folder in select_from:
+		if not is_instance_valid(folder):
+			continue
 		for node in folder.get_children():
-			
 			if node is FocusControl:
 				if select_rect.intersects(node.get_global_rect()):
 					intersected_nodes[node.call(id_key_function_name)] = node

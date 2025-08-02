@@ -2,6 +2,7 @@ class_name FocusControl extends Control
 
 signal focus_changed(val: bool)
 
+signal selected_without_drag()
 signal selected()
 signal deselected()
 
@@ -9,15 +10,24 @@ signal drag_started()
 signal dragging()
 signal drag_finished()
 
+const NONE_MASK: int = 0
+const CTRL_MASK: int = 268435456
+const SHIFT_MASK: int = 33554432
+const ALT_MASK: int = 67108864
 
+@export_group("Custom Properties")
 @export var mouse_entering_calculation: bool = true
 @export var rect_calculation: bool
-@export var selectable: bool
-@export var draggable: bool
 
+@export_subgroup("Selection")
+@export var selectable: bool
 @export var selection_group: SelectionGroupRes
 @export var metadata_keys: Array[String]
+@export var multiselect: bool = true
+@export var once_selection: bool
 
+@export_subgroup("Dragging")
+@export var draggable: bool
 @export var min_drag_distance: float = 5.0
 
 @export_group("Theme")
@@ -93,6 +103,7 @@ func _input(event: InputEvent) -> void:
 		
 		var mouse_pos = event.position
 		var dist = press_pos.distance_to(event.position)
+		var grouping = multiselect and event.ctrl_pressed
 		
 		if event is InputEventMouseButton and selectable:
 			
@@ -112,13 +123,13 @@ func _input(event: InputEvent) -> void:
 							if event.alt_pressed:
 								deselect()
 					elif is_focus:
-						select(event.ctrl_pressed)
+						select(grouping)
 					can_drag = false
 		
 		elif event is InputEventMouseMotion:
 			
 			if can_drag and dist > min_drag_distance:
-				start_drag()
+				start_drag(grouping)
 			
 			if dragged_rect:
 				dragged_rect.global_position = mouse_pos - start_drag_dist
@@ -140,17 +151,21 @@ func _draw() -> void:
 # ---------------------------------------------------
 
 
-func select(grouping: bool) -> void:
+func select(grouping: bool, is_drag_selection: bool = false) -> void:
 	var metadata: Dictionary = get_metadata()
 	selection_group.add_object(get_id_key(), self, metadata, grouping, true)
+	if not is_drag_selection:
+		selected_without_drag.emit()
+	if once_selection:
+		deselect()
 
 func deselect() -> void:
 	selection_group.remove_object(get_id_key(), true)
 
-func start_drag() -> void:
+func start_drag(grouping: bool) -> void:
 	if not dragged_rect:
 		
-		select(true)
+		select(grouping, true)
 		create_dragged_rect()
 		hide()
 		drag_started.emit()
@@ -166,7 +181,7 @@ func start_drag() -> void:
 			if selected_clip == self: continue
 			selected_clip.start_drag_dist = press_pos - selected_clip.global_position
 			selected_clip.following_drag = self
-			selected_clip.start_drag()
+			selected_clip.start_drag(grouping)
 
 func end_drag() -> void:
 	dragged_rect.queue_free()

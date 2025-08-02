@@ -1,13 +1,11 @@
 shader_type canvas_item;
 
-
 uniform sampler2D y_data;
 uniform sampler2D u_data;
 uniform sampler2D v_data;
 
 uniform vec2 resolution;
 uniform vec4 color_profile;
-
 
 
 void fragment() {
@@ -29,3 +27,5 @@ void fragment() {
 
     COLOR = vec4(R, G, B, 1.0);
 }
+
+

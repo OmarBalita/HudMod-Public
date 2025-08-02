@@ -23,7 +23,7 @@ func _ready() -> void:
 	
 	custom_minimum_size.x = 200.0
 	
-	# Base Settings
+	# Base Settings(
 	add_theme_constant_override("separation", 16)
 	
 	# Ready Nodes
@@ -50,8 +50,6 @@ class SliderController extends Control:
 	var curr_val: float = .0:
 		set(val):
 			curr_val = clamp(val, min_val, max_val)
-			grabber_display_pos = ((curr_val - min_val) / (max_val - min_val)) * size.x
-			val_changed.emit(curr_val)
 			queue_redraw()
 	
 	var bg_color: Color
@@ -68,11 +66,6 @@ class SliderController extends Control:
 			tweener.play(self, "grabber_display_radius", [grabber_drag_radius if is_grab else grabber_main_radius], [.2])
 			queue_redraw()
 	
-	var grabber_display_pos: float:
-		set(val):
-			grabber_display_pos = val
-			queue_redraw()
-	
 	var grabber_display_color: Color = grabber_main_color
 	
 	var grabber_display_radius: float = grabber_main_radius:
@@ -83,6 +76,7 @@ class SliderController extends Control:
 	var tweener:= TweenerComponent.new()
 	
 	func _init(_size: Vector2, _bg_color: Color, _fill_color: Color, _grabber_main_color: Color) -> void:
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		custom_minimum_size = _size
 		bg_color = _bg_color
@@ -95,7 +89,7 @@ class SliderController extends Control:
 		tweener.transType = Tween.TRANS_SPRING
 		add_child(tweener)
 	
-	func _input(event: InputEvent) -> void:
+	func _gui_input(event: InputEvent) -> void:
 		
 		if event is InputEventMouseButton:
 			if event.is_pressed():
@@ -113,6 +107,8 @@ class SliderController extends Control:
 	
 	func _draw() -> void:
 		var half_y_size = size.y / 2.0
+		var grabber_display_pos = ((curr_val - min_val) / (max_val - min_val)) * size.x
+		var grabber_pos = Vector2(grabber_display_pos, half_y_size)
 		
 		# Draw BG
 		draw_rect(Rect2(Vector2.ZERO, size), bg_color)
@@ -121,15 +117,21 @@ class SliderController extends Control:
 		draw_circle(Vector2(.0, half_y_size), half_y_size, fill_color)
 		
 		# Draw Grabber
-		var grabber_pos = Vector2(grabber_display_pos, half_y_size)
 		draw_circle(grabber_pos, grabber_display_radius, grabber_display_color, true, -1, true)
 		if is_grab:
 			draw_circle(grabber_pos, grabber_display_radius, grabber_main_color, false, 4, true)
 	
+	func set_curr_val(new_val: float) -> void:
+		curr_val = new_val
+		val_changed.emit(curr_val)
+	
+	func set_curr_val_manually(new_val: float) -> void:
+		curr_val = new_val
+	
 	func update_curr_val() -> void:
 		var mouse_pos = get_local_mouse_position()
 		var ratio = clamp(mouse_pos.x / size.x, 0.0, 1.0)
-		curr_val = ratio * (max_val - min_val) + min_val
+		set_curr_val(ratio * (max_val - min_val) + min_val)
 
 
 

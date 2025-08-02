@@ -32,7 +32,7 @@ func update() -> void:
 	for i in get_children(): i.queue_free()
 	
 	tweener = TweenerComponent.new()
-	buttons_container = InterfaceServer.create_box_container(20, is_vertical)
+	buttons_container = InterfaceServer.create_box_container(12, is_vertical)
 	focus_panel = InterfaceServer.create_panel(InterfaceServer.STYLE_ACCENT)
 	
 	add_child(focus_panel)
@@ -46,8 +46,11 @@ func update() -> void:
 		var option_button = InterfaceServer.create_button(option.text, option.icon, true, false, {flat = true})
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.pressed.connect(on_option_button_pressed.bind(option_button, index))
+		for key in option.get_meta_list():
+			var val = option.get_meta(key)
+			option_button.set(key, val)
 		buttons_container.add_child(option_button)
-		if index == 0: focused_option_button = option_button
+		if index == focus_index: focused_option_button = option_button
 	
 	await get_tree().process_frame
 	on_option_button_pressed(focused_option_button, 0)
@@ -68,3 +71,10 @@ func on_option_button_pressed(button: Button, index: int) -> void:
 	
 	tweener.play(focus_panel, "position", [focus_button.position], [.2], false, Tween.TRANS_QUART, Tween.EASE_OUT)
 	tweener.play(focus_panel, "size", [focus_button.size], [.2])
+
+
+
+
+
+
+

@@ -78,7 +78,6 @@ func _start() -> void:
 	options_container.add_child(more_button)
 	options_container.add_child(InterfaceServer.create_empty_control())
 	
-	
 	split_container.add_child(flex_view_control)
 	split_container.add_child(options_container)
 	body.add_child(split_container)

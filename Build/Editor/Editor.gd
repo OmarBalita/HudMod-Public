@@ -12,10 +12,6 @@ signal wheel_downed(pos: Vector2)
 signal wheel_upped(pos: Vector2)
 
 
-const NONE_MASK: int = 0
-const CTRL_MASK: int = 268435456
-const SHIFT_MASK: int = 33554432
-const ALT_MASK: int = 67108864
 
 @export_group("Theme")
 @export_subgroup("Constant")

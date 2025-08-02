@@ -10,6 +10,8 @@ signal media_clips_changed()
 
 signal layer_changed()
 
+signal time_markers_changed()
+
 
 const EXAMPLE_PATH: String = "res://ExampleProject/"
 
@@ -38,6 +40,8 @@ var layers: Dictionary[int, Dictionary]
 	#}
 #}
 
+var time_markers: Dictionary[int, TimeMarkerRes]
+
 var copied_media_clips: Array[Dictionary]
 
 var curr_clips: Dictionary[int, int] # key is layer, val is (clip_id or time_begin)
@@ -49,7 +53,6 @@ var curr_clips: Dictionary[int, int] # key is layer, val is (clip_id or time_beg
 
 # Background Called Functions
 # ---------------------------------------------------
-
 
 
 
@@ -152,12 +155,12 @@ func edit_media_clip(layer_index: int, frame_in: int, edit_info: Dictionary[Stri
 		media_clips_changed.emit()
 	return {"layer_index": layer_index, "clip_pos": target_frame_in, "clip_res": media_res}
 
-func split_media_clip(clip_info: Dictionary, curr_frame: int, right_side: bool, left_side: bool, emit_changes: bool = true) -> void:
+func split_media_clip(clip_info: Dictionary, split_in: int, right_side: bool, left_side: bool, emit_changes: bool = true) -> void:
 	var layer_index = clip_info.layer_index
 	var clip_pos = clip_info.clip_pos
 	var clip_res = clip_info.clip_res
 	
-	var local_frame = TimeServer.localize_frame(curr_frame, clip_pos)
+	var local_frame = TimeServer.localize_frame(split_in, clip_pos)
 	var full_length = clip_res.length
 	
 	if local_frame < 0 or local_frame >= full_length:
@@ -172,10 +175,10 @@ func split_media_clip(clip_info: Dictionary, curr_frame: int, right_side: bool, 
 	
 	# Right Cut
 	if right_side:
-		var duplicated_layers = duplicate_media_clips([{"layer_index": layer_index, "clip_pos": clip_pos, "clip_res": clip_res}], curr_frame, true)
+		var duplicated_layers = duplicate_media_clips([{"layer_index": layer_index, "clip_pos": clip_pos, "clip_res": clip_res}], split_in, true)
 		var absolute_layer = duplicated_layers.keys()[0]
-		edit_media_clip(absolute_layer, curr_frame, {
-			"frame_in": curr_frame,
+		edit_media_clip(absolute_layer, split_in, {
+			"frame_in": split_in,
 			"from": local_frame + clip_res.from,
 			"length": full_length - local_frame
 		})
@@ -310,6 +313,30 @@ func get_bus_name_from_layer_index(layer_index: int) -> StringName:
 	return StringName("Layer%s" % layer_index)
 
 
+# Time Markers
+# ---------------------------------------------------
+
+func add_time_marker(frame_in: int = 0, custom_name: String = "Marker", custom_color: Color = InterfaceServer.RAINBOW_COLORS[2], custom_description: String = "Just a Marker :)") -> void:
+	var time_marker = TimeMarkerRes.new()
+	time_marker.custom_name = custom_name
+	time_marker.custom_color = custom_color
+	time_marker.custom_description = custom_description
+	time_markers[frame_in] = time_marker
+	time_markers_changed.emit()
+
+func move_time_marker(from_frame_in: int, target_frame_in: int) -> void:
+	if time_markers.keys().has(target_frame_in):
+		return
+	var time_marker_res = time_markers[from_frame_in].duplicate(true)
+	time_markers.erase(from_frame_in)
+	time_markers[target_frame_in] = time_marker_res
+	time_markers_changed.emit()
+
+func remove_time_marker(frame_in: int) -> void:
+	time_markers.erase(frame_in)
+	time_markers_changed.emit()
+
+
 # Scene Management
 # ---------------------------------------------------
 
@@ -416,11 +443,8 @@ func generate_new_id(used_id: Array[String], id_length: int = 12) -> String:
 		for time in id_length:
 			result_id += id_keys[randi_range(0, keys_length)]
 	
+	
 	return result_id
-
-
-
-
 
 
 

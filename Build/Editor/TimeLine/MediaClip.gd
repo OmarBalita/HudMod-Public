@@ -36,7 +36,9 @@ func _init() -> void:
 	draw_select = true
 	
 	selectable = true
-	select_cancelers.append(EditorServer.time_line.is_timeline_state_equal_to.bind(2))
+	draggable = true
+	
+	#select_cancelers.append(EditorServer.time_line.is_timeline_state_equal_to.bind(2))
 	metadata_keys = ["layer_index", "clip_pos", "clip_res"]
 
 func _ready() -> void:
@@ -59,7 +61,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	l_expand_button = Button.new()
 	l_expand_button.custom_minimum_size = Vector2(10, size.y)
-	l_expand_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	l_expand_button.mouse_filter = Control.MOUSE_FILTER_PASS
 	InterfaceServer.set_button_style(l_expand_button)
 	r_expand_button = l_expand_button.duplicate()
 	add_child(l_expand_button)
@@ -76,7 +78,7 @@ func _ready() -> void:
 	dragging.connect(on_dragging)
 	drag_finished.connect(on_drag_finished)
 	
-	r_expand_button.button_down.connect(set_r_button_dragged.bind(true))
+	r_expand_button.button_down.connect(on_r_expand_button_downed)
 	r_expand_button.button_up.connect(set_r_button_dragged.bind(false))
 	l_expand_button.button_down.connect(set_l_button_dragged.bind(true))
 	l_expand_button.button_up.connect(set_l_button_dragged.bind(false))
@@ -86,7 +88,11 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not ProjectServer.get_layer_lock(layer_index):
+	if not ProjectServer.get_layer_lock(layer_index) and EditorServer.time_line.timeline_selection_mode == 0:
+		
+		if r_button_dragged or l_button_dragged:
+			return
+		
 		super(event)
 		
 		if is_focus:
@@ -156,10 +162,10 @@ func drag_right_button() -> void:
 	edit_frame_in = clip_pos
 	edit_from = clip_res.from
 	var length = TimeServer.seconds_to_frame(MediaServer.get_audio_duration_with_ffprobe(clip_res.media_resource_path))
-	edit_length = clamp(get_frame_from_mouse_pos() - clip_pos, 1, length - clip_res.from if type else +INF)
+	edit_length = clamp(EditorServer.time_line.get_frame_from_mouse_pos([clip_res]) - clip_pos, 1, length - clip_res.from if type else +INF)
 
 func drag_left_button() -> void:
-	var display_frame = get_frame_from_mouse_pos()
+	var display_frame = EditorServer.time_line.get_frame_from_mouse_pos([clip_res])
 	var expand_dist = display_frame - clip_pos
 	var end_pos = clip_res.length + clip_pos
 	var frame_in_max = end_pos - 1
@@ -167,8 +173,10 @@ func drag_left_button() -> void:
 	edit_from = clamp(expand_dist + clip_res.from, 0, frame_in_max)
 	edit_length = end_pos - edit_frame_in
 
-func split(split_right: bool, split_left: bool) -> void:
-	ProjectServer.split_media_clip(get_metadata(), EditorServer.time_line.curr_frame, split_right, split_left)
+func split(split_right: bool, split_left: bool, split_in = null) -> void:
+	if split_in == null:
+		split_in = EditorServer.time_line.curr_frame
+	ProjectServer.split_media_clip(get_metadata(), split_in, split_right, split_left)
 
 
 func edit(emit_changes: bool = true) -> void:
@@ -177,9 +185,6 @@ func edit(emit_changes: bool = true) -> void:
 		"from": edit_from,
 		"length": edit_length
 	}, emit_changes)
-
-func get_frame_from_mouse_pos() -> int:
-	return EditorServer.time_line.get_frame_from_display_pos(get_global_mouse_position().x, [clip_res]).keys()[0]
 
 func popup_context_menu() -> void:
 	
@@ -302,8 +307,17 @@ func on_drag_finished() -> void:
 	timeline.clear_layers_drawed_entities()
 
 
+func on_r_expand_button_downed() -> void:
+	set_r_button_dragged(true)
 
+func on_r_expand_button_upped() -> void:
+	set_r_button_dragged(false)
+	
+func on_l_expand_button_downed() -> void:
+	set_l_button_dragged(true)
 
+func on_l_expand_button_upped() -> void:
+	set_l_button_dragged(false)
 
 
 

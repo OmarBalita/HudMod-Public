@@ -32,7 +32,7 @@ func popup_borderless_window(processing_node: Control, window_size:= Vector2(400
 	return window
 
 
-func popup_accept_window(processing_node: Control, window_size:= Vector2(400, 200), window_title:= "Window", accept_pressed = null, cancel_pressed = null) -> BoxContainer:
+func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window", accept_pressed = null, cancel_pressed = null) -> BoxContainer:
 	
 	var window_container = WindowManager.popup_window(processing_node, window_size, window_title)
 	
@@ -44,6 +44,13 @@ func popup_accept_window(processing_node: Control, window_size:= Vector2(400, 20
 	if cancel_pressed != null: cancel_button.pressed.connect(cancel_pressed)
 	accept_button.pressed.connect(emit_close_window.bind(window_container.get_window()))
 	cancel_button.pressed.connect(emit_close_window.bind(window_container.get_window()))
+	
+	var on_child_changed = func(node: Node):
+		#await get_tree().process_frame
+		box.move_child.call_deferred(accept_box, box.get_child_count())
+	
+	box.child_entered_tree.connect(on_child_changed)
+	box.child_exiting_tree.connect(on_child_changed)
 	
 	accept_box.add_child(accept_button)
 	accept_box.add_child(cancel_button)

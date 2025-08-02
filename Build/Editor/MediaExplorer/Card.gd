@@ -16,9 +16,10 @@ var display_name: String
 
 
 func _init() -> void:
+	draw_select = true
+	
 	selectable = true
 	draggable = true
-	draw_select = true
 
 func _ready() -> void:
 	super()
@@ -33,6 +34,18 @@ func _ready() -> void:
 	add_button.pressed.connect(on_add_button_pressed)
 	drag_finished.connect(on_drag_finished)
 
+func _input(event: InputEvent) -> void:
+	super(event)
+	
+	if is_focus:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				if event.is_pressed(): press_pos = event.position
+				elif press_pos.distance_to(event.position) <= min_drag_distance:
+					popup_menu()
+
+
+
 
 func display_at(delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
@@ -46,6 +59,14 @@ func display_at(delay: float) -> void:
 	
 	display_texture_rect.texture = texture
 
+func popup_menu() -> void:
+	var menu = InterfaceServer.create_popuped_menu([MenuOption.new("Delete")])
+	menu.menu_button_pressed.connect(on_menu_button_pressed)
+	get_tree().get_current_scene().add_child(menu)
+	menu.popup()
+
+func get_path_or_name() -> String:
+	return display_name if is_folder else resource_path
 
 
 
@@ -82,3 +103,27 @@ func on_drag_finished() -> void:
 			var media_card = selected_cards[key].object
 			var resource_path = media_card.resource_path
 			ProjectServer.add_media_clip(resource_path, layer.index, target_frame)
+
+
+func on_menu_button_pressed(index: int) -> void:
+	match index:
+		0:
+			var pathes_or_names: Array
+			var selected_objects = EditorServer.media_cards_selection_group.selected_objects
+			for key in selected_objects.keys():
+				var card = selected_objects.get(key).object
+				if not is_instance_valid(card):
+					continue
+				pathes_or_names.append(card.get_path_or_name())
+			EditorServer.media_explorer.delete_files_or_folders(pathes_or_names if pathes_or_names.size() else [get_path_or_name()])
+
+
+
+
+
+
+
+
+
+
+

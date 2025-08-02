@@ -1,8 +1,8 @@
 class_name MediaExplorer extends EditorRect
 
 
-
-@export var header_options: Array[MenuOption]
+@export_group("")
+@export var media_options: Array[MenuOption]
 @export var media_card_scene: PackedScene
 @export var folder_card_scene: PackedScene
 
@@ -59,14 +59,11 @@ var media_info = {
 
 
 
-
-
-
 func _start() -> void:
 	super()
 	
 	# Start Header
-	var header_menu = InterfaceServer.create_menu(header_options)
+	var header_menu = InterfaceServer.create_menu(media_options)
 	header_menu.button_pressed.connect(on_header_menu_button_pressed)
 	header.add_child(header_menu)
 	
@@ -76,14 +73,26 @@ func _start() -> void:
 		media_box.create(media)
 		body.add_child(media_box)
 
-
-
-func import_media(file_path: String) -> void:
-	var import_media_box = body.get_child(0)
+func import_media(file_path: String, update: bool = true) -> void:
+	var import_media_box = get_media_box(0)
 	import_media_box.create_file(import_media_box.curr_display_path, file_path)
-	import_media_box.update()
+	if update:
+		import_media_box.update()
+
+func delete_file_or_folder(path_or_name: String, update: bool = true) -> void:
+	var import_media_box = get_media_box(0)
+	import_media_box.delete_file_or_folder(import_media_box.curr_display_path, path_or_name)
+	if update:
+		import_media_box.update()
+
+func delete_files_or_folders(pathes_or_names: Array) -> void:
+	for path_or_name in pathes_or_names:
+		delete_file_or_folder(path_or_name, false)
+	get_media_box(0).update()
 
 
+func get_media_box(index: int) -> MediaBox:
+	return body.get_child(index)
 
 
 
@@ -137,7 +146,7 @@ class MediaBox extends Container:
 		
 		var options_container = InterfaceServer.create_box_container()
 		search_line = InterfaceServer.create_line_edit("Search for Media", "", media_explorer.texture_search)
-		folder_button = InterfaceServer.create_button("Create Folder", media_explorer.texture_folder)
+		folder_button = InterfaceServer.create_button("", media_explorer.texture_folder)
 		search_line.text_changed.connect(func(new_text: String): filter_and_sort())
 		folder_button.pressed.connect(on_folder_button_pressed)
 		
@@ -154,7 +163,7 @@ class MediaBox extends Container:
 		options_container.add_child(search_line)
 		
 		if media_box_info.import_media:
-			import_button = InterfaceServer.create_button("Import", media_explorer.texture_file, true)
+			import_button = InterfaceServer.create_button("", media_explorer.texture_file, true)
 			import_button.pressed.connect(on_import_button_pressed)
 			options_container.add_child(import_button)
 		options_container.add_child(folder_button)
@@ -189,6 +198,9 @@ class MediaBox extends Container:
 	func create_file(display_path: Array, file_path: String) -> void:
 		media_box_info.file_system_res.create_file(display_path, file_path)
 	
+	func delete_file_or_folder(display_path: Array, path_or_name: String) -> void:
+		media_box_info.file_system_res.delete(display_path, path_or_name)
+	
 	func undo(times: int) -> void:
 		for time in times:
 			curr_display_path.pop_back()
@@ -215,7 +227,11 @@ class MediaBox extends Container:
 			path_container.add_child(button)
 			path_container.add_child(InterfaceServer.create_label("/"))
 		
-		var files_and_folders = media_box_info.file_system_res.get_files_and_folders_at(curr_display_path)
+		var file_system_res = media_box_info.file_system_res
+		if file_system_res == null:
+			return
+		var files_and_folders = file_system_res.get_files_and_folders_at(curr_display_path)
+		
 		for index in files_and_folders.keys().size():
 			
 			var i = files_and_folders.keys()[index]
@@ -277,17 +293,16 @@ class MediaBox extends Container:
 	
 	
 	
-	
 	func on_filter_button_pressed() -> void:
 		var filter_menu = InterfaceServer.create_popuped_menu(media_box_info.filter)
 		filter_menu.menu_button_pressed.connect(on_filter_menu_button_pressed)
-		add_child(filter_menu)
+		get_tree().get_current_scene().add_child(filter_menu)
 		filter_menu.popup()
 	
 	func on_sort_button_pressed() -> void:
 		var sort_menu = InterfaceServer.create_popuped_menu(media_box_info.sort)
 		sort_menu.menu_button_pressed.connect(on_sort_menu_button_pressed)
-		add_child(sort_menu)
+		get_tree().get_current_scene().add_child(sort_menu)
 		sort_menu.popup()
 	
 	func on_folder_button_pressed() -> void:

@@ -1,10 +1,8 @@
-class_name PopupedMenu extends PanelContainer
+class_name PopupedMenu extends PopupedControl
 
 signal menu_button_pressed(index: int)
 signal global_menu_button_pressed(id: Array)
 
-signal popuped()
-signal popdowned()
 
 @export var options: Array
 
@@ -20,7 +18,6 @@ var curr_pos: int:
 		update_cursor()
 
 
-var tweener:= TweenerComponent.new()
 var options_box:= InterfaceServer.create_box_container(0, true)
 var cursor_rect: Panel
 
@@ -28,10 +25,8 @@ var forwarded: PopupedMenu
 
 
 
-
-
 func _ready() -> void:
-	hide()
+	super()
 	_setup()
 
 func _input(event: InputEvent) -> void:
@@ -57,21 +52,14 @@ func _input(event: InputEvent) -> void:
 		var mouse_pos = get_global_mouse_position()
 		for index in options_box.get_child_count():
 			var option = options_box.get_child(index)
-			if option is BaseButton:
+			if option is BoxContainer:
 				if option.get_global_rect().has_point(mouse_pos):
 					curr_pos = index
 					break
-	
-	elif event is InputEventMouseButton:
-		if not get_global_rect().has_point(get_global_mouse_position()):
-			popdown()
-
+	else:
+		super(event)
 
 func _setup() -> void:
-	
-	# Setup TweenerComponent
-	tweener.easeType = Tween.EASE_OUT
-	add_child(tweener)
 	
 	# Spawn Options
 	var margin_container = InterfaceServer.create_margin_container()
@@ -86,73 +74,46 @@ func _setup() -> void:
 			var separation_line = InterfaceServer.create_h_line_panel(1)
 			options_box.add_child(separation_line)
 		else:
+			
 			var check_group = option.check_group
+			var option_box = InterfaceServer.create_box_container()
 			var button = InterfaceServer.create_button(option.text, option.icon)
-			button.custom_minimum_size.y = 30.0
-			button.flat = true
-			options_box.add_child(button)
-			button.pressed.connect(on_button_pressed.bind(index))
 			
 			if check_group and check_group.checked_index == index:
 				var color_rect = InterfaceServer.create_color_rect(Color.RED)
-				color_rect.custom_minimum_size = Vector2(30, 30)
-				button.add_child(color_rect)
+				color_rect.custom_minimum_size.x = 10.0
+				option_box.add_child(color_rect)
+			
+			button.flat = true
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			button.pressed.connect(on_button_pressed.bind(index))
+			option_box.add_child(button)
+			
+			options_box.add_child(option_box)
 	
 	cursor_rect = InterfaceServer.create_panel()
 	add_child(cursor_rect)
 	
 	margin_container.add_child(options_box)
 	add_child(margin_container)
-	
-	await get_tree().process_frame
-	custom_minimum_size.x = size.x + 50
-	custom_minimum_size.y = size.y
 
 
 func popup(pos = null) -> void:
-	
-	await get_tree().process_frame
-	if pos == null:
-		pos = get_global_mouse_position()
-	
-	var window_size = Vector2(get_window().size)
-	var dist = pos + custom_minimum_size - window_size
-	if dist.x > 0:
-		pos.x -= dist.x
-	if dist.y > 0:
-		pos.y -= dist.y
-	
-	show()
-	global_position = pos
-	pivot_offset = size / 2
-	tweener.play(self, "scale", [Vector2(.9, .9), Vector2.ONE], [.0, .05])
+	await super(pos)
 	await get_tree().process_frame
 	curr_pos = 0
 	update_cursor()
-	popuped.emit()
-
-
-func popdown() -> void:
-	set_meta("ended", true)
-	
-	tweener.play(self, "scale", [Vector2(.9, .9)], [.05])
-	await tweener.finished
-	hide()
-	
-	queue_free()
-	popdowned.emit()
 
 
 func update_cursor() -> void:
 	var curr_button = options_box.get_child(curr_pos)
+	cursor_rect.show()
 	cursor_rect.global_position = curr_button.global_position
 	cursor_rect.size = curr_button.size
 
 
 
-
 func on_button_pressed(index: int) -> void:
-	
 	if has_meta("ended"):
 		return
 	

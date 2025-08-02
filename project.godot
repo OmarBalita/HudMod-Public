@@ -28,13 +28,15 @@ Scene="*res://Autoload/Scene.gd"
 
 [display]
 
-window/size/viewport_width=1400
-window/size/viewport_height=800
 window/subwindows/embed_subwindows=false
+
+[dotnet]
+
+project/assembly_name="Edit App"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg", "res://addons/gkanban/plugin.cfg")
+enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg")
 
 [global_group]
 
@@ -56,4 +58,6 @@ test={
 
 [rendering]
 
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

@@ -3,14 +3,14 @@ class_name SaveComponent extends Node
 @export var save_path: String
 @export var properties: Array[StringName]
 
+
 func save_data() -> void:
-	
 	if not save_path.is_absolute_path():
 		return
 	
 	var parent_node = get_parent()
 	
-	var res := EditorRes.new()
+	var res:= EditorRes.new()
 	res.data = {}
 	
 	for prop in properties:

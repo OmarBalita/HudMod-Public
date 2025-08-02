@@ -20,6 +20,7 @@ var editor_path = app_data_dir + "/editor/"
 
 var media_cards_selection_group:= SelectionGroupRes.new()
 var media_clips_selection_group:= SelectionGroupRes.new()
+var time_markers_selection_group:= SelectionGroupRes.new()
 var media_clips_focused: Array[MediaClip]
 
 var message_history: Array[Dictionary]
