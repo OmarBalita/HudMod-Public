@@ -41,13 +41,13 @@ enum TimelineStates {
 				splited_media_clip = null
 			1:
 				mouse_default_cursor_shape = Control.CURSOR_IBEAM
-		update_selection_box_enabling()
+		#update_selection_box_enabling()
 
 @export var timeline_state: TimelineStates = 0:
 	set(val):
 		timeline_state = val
 		shortcut_node.enabled = val == 0
-		update_selection_box_enabling()
+
 
 @export var is_snap_to_timemarks: bool = true
 @export var is_snap_to_timemarkers_and_cursor: bool = true
@@ -154,6 +154,10 @@ var display_snap_step: int
 var display_frame_size: float
 var display_cursor_pos: int
 
+var timemarks_bg_mouse_entered: bool#:
+	#set(val):
+		#timemarks_bg_mouse_entered = val
+		#update_selection_box_enabling()
 
 # RealTime Nodes
 
@@ -257,6 +261,9 @@ func _physics_process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	super(event)
 	
+	if not is_focus:
+		return
+	
 	if timeline_state == 1:
 		return
 	
@@ -273,6 +280,7 @@ func _input(event: InputEvent) -> void:
 			else:
 				splited_media_clip = null
 			queue_redraw()
+		timemarks_bg_mouse_entered = get_local_mouse_position().y < header_size + timemarks_bg_size
 	
 	elif event is InputEventMouseButton:
 		if event.is_released():
@@ -353,15 +361,7 @@ func _draw() -> void:
 	# Draw Snap Line
 	if snap_pos != null:
 		var display_snap_pos = get_display_pos_from_frame(snap_pos)
-		var dist_between = 10
-		for time in range(body.size.y / dist_between):
-			var y_pos = time * dist_between
-			draw_line(
-				Vector2(display_snap_pos, y_pos),
-				Vector2(display_snap_pos, y_pos + 5),
-				Color.YELLOW_GREEN,
-				2.0
-			)
+		draw_dashed_line(Vector2(display_snap_pos, header_size), Vector2(display_snap_pos, body.size.y), Color.GREEN_YELLOW, 1.0, 10)
 	
 	# Draw Split Line on Top of Layer
 	if splited_media_clip != null:
@@ -443,18 +443,20 @@ func start_toolbar() -> void:
 	zoom_slider.slider_controller.val_changed.connect(on_zoom_slider_val_changed)
 	
 	update_timeline_selection_mode()
-	update_selection_box_enabling()
+	#update_selection_box_enabling()
 
 
 func start_selection_box() -> void:
-	clips_selection_box = InterfaceServer.create_selection_box([])
+	clips_selection_box = InterfaceServer.create_selection_box([], func() -> bool:
+		return timeline_selection_mode == 0 and not timemarks_bg_mouse_entered and EditorServer.media_clips_focused.size() == 0
+	)
 	clips_selection_box.id_key_function_name = "get_id_key"
 	body.add_child(clips_selection_box)
 	clips_selection_box.selection_ended.connect(on_clips_selection_box_selection_ended)
 
-func update_selection_box_enabling() -> void:
-	if clips_selection_box:
-		clips_selection_box.enabled = timeline_selection_mode == 0 and timeline_state == 0
+#func update_selection_box_enabling() -> void:
+	#if clips_selection_box:
+		#clips_selection_box.enabled = timeline_selection_mode == 0 and not timemarks_bg_mouse_entered
 
 func start_layers() -> void:
 	layers_container = InterfaceServer.create_box_container(2, true, {"clip_contents": true})
@@ -587,6 +589,10 @@ func update_timemarkers() -> void:
 
 
 
+func get_timemarks_bg_mouse_entered() -> bool:
+	return timemarks_bg_mouse_entered
+
+
 
 # Connections Functions
 # ---------------------------------------------------
@@ -595,7 +601,7 @@ func on_project_server_timemarkers_changed() -> void:
 	update_timemarkers()
 
 func on_l_button_downed(pos: Vector2) -> void:
-	if pos.y < global_position.y + header_size + timemarks_bg_size:
+	if timemarks_bg_mouse_entered:
 		set_curr_frame_manually(get_frame_from_display_pos(pos.x, [], false).keys()[0])
 		timeline_state = 2
 		curr_frame_played_manually.emit()
@@ -627,6 +633,7 @@ func on_clips_selection_box_selection_ended(grouping: bool, remove: bool) -> voi
 	
 	elif not grouping:
 		selection_group_res.clear_objects()
+	
 	selection_group_res.add_objects(selected_nodes, ["layer_index", "clip_pos", "clip_res"])
 
 func on_selection_mode_button_pressed(selection_mode_button: BaseButton) -> void:

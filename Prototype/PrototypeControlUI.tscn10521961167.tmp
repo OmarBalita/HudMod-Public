@@ -1,0 +1,207 @@
+[gd_scene load_steps=8 format=3 uid="uid://clqh4uu3cbsck"]
+
+[ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
+[ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
+[ext_resource type="Script" uid="uid://drihlu2bp73ud" path="res://Build/UI/Control/FloatController.gd" id="3_3rv65"]
+[ext_resource type="Texture2D" uid="uid://chf0k2wvk1evm" path="res://Asset/Icons/toggle-button.png" id="4_bscte"]
+[ext_resource type="Texture2D" uid="uid://dmyeub87vo8t3" path="res://Asset/Icons/toggle-button2.png" id="5_kahc7"]
+[ext_resource type="Script" uid="uid://m3nuhukc6hqg" path="res://Build/UI/Control/ColorRangeControl.gd" id="6_kahc7"]
+
+[sub_resource type="GDScript" id="GDScript_kahc7"]
+script/source = "extends Control
+
+class CurvePoint:
+	var position: Vector2
+	var left_handle: Vector2
+	var right_handle: Vector2
+	
+	func _init(pos: Vector2, left: Vector2 = Vector2.ZERO, right: Vector2 = Vector2.ZERO):
+		position = pos
+		left_handle = left
+		right_handle = right
+
+# كلاس مخصص للـ Curve2D
+class CustomCurve2D:
+	var points: Array[CurvePoint] = []
+	
+	func add_point(pos: Vector2, left_handle: Vector2 = Vector2.ZERO, right_handle: Vector2 = Vector2.ZERO):
+		var point = CurvePoint.new(pos, left_handle, right_handle)
+		points.append(point)
+	
+	func get_point_count() -> int:
+		return points.size()
+	
+	func get_point_position(index: int) -> Vector2:
+		if index >= 0 and index < points.size():
+			return points[index].position
+		return Vector2.ZERO
+	
+	func get_point_left_handle(index: int) -> Vector2:
+		if index >= 0 and index < points.size():
+			return points[index].left_handle
+		return Vector2.ZERO
+	
+	func get_point_right_handle(index: int) -> Vector2:
+		if index >= 0 and index < points.size():
+			return points[index].right_handle
+		return Vector2.ZERO
+	
+	# حساب نقطة على الـ curve باستخدام Cubic Bezier
+	func sample_curve(t: float) -> Vector2:
+		if points.size() < 2:
+			return Vector2.ZERO
+		
+		# تحديد أي segment نحن فيه
+		var segment_count = points.size() - 1
+		var segment_t = t * segment_count
+		var segment_index = int(segment_t)
+		var local_t = segment_t - segment_index
+		
+		# التأكد من البقاء في النطاق الصحيح
+		if segment_index >= segment_count:
+			segment_index = segment_count - 1
+			local_t = 1.0
+		
+		return bezier_cubic(
+			points[segment_index].position,
+			points[segment_index].position + points[segment_index].right_handle,
+			points[segment_index + 1].position + points[segment_index + 1].left_handle,
+			points[segment_index + 1].position,
+			local_t
+		)
+	
+	# حساب Cubic Bezier curve
+	func bezier_cubic(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float) -> Vector2:
+		var u = 1.0 - t
+		var tt = t * t
+		var uu = u * u
+		var uuu = uu * u
+		var ttt = tt * t
+		
+		return uuu * p0 + 3 * uu * t * p1 + 3 * u * tt * p2 + ttt * p3
+
+
+var curve: CustomCurve2D
+
+func _ready():
+	# إنشاء الـ Curve
+	curve = CustomCurve2D.new()
+	
+	# إضافة النقاط مع handles
+	# النقطة الأولى
+	curve.add_point(Vector2(100, 300), Vector2(-50, 0), Vector2(50, 0))
+	
+	# النقطة الثانية
+	curve.add_point(Vector2(300, 200), Vector2(-30, -20), Vector2(30, 20))
+	
+	# النقطة الثالثة
+	curve.add_point(Vector2(500, 350), Vector2(-40, 10), Vector2(40, -10))
+	
+	# النقطة الرابعة
+	curve.add_point(Vector2(700, 250), Vector2(-50, 0), Vector2(50, 0))
+
+func _draw():
+	if curve == null:
+		return
+	
+	# رسم الـ Curve
+	draw_curve()
+	
+	# رسم النقاط والـ handles
+	draw_points_and_handles()
+
+func draw_curve():
+	var points = []
+	var segments = 100
+	
+	# حساب نقاط الـ curve
+	for i in range(segments + 1):
+		var t = float(i) / segments
+		var point = curve.sample_baked(t * curve.get_baked_length())
+		points.append(point)
+	
+	# رسم خطوط الـ curve
+	for i in range(points.size() - 1):
+		draw_line(points[i], points[i + 1], Color.WHITE, 3.0)
+
+func draw_points_and_handles():
+	for i in range(curve.point_count):
+		var point_pos = curve.get_point_position(i)
+		var in_handle = curve.get_point_in(i)
+		var out_handle = curve.get_point_out(i)
+		
+		# رسم النقطة الرئيسية
+		draw_circle(point_pos, 8, Color.RED)
+		
+		# رسم خطوط الـ handles
+		if in_handle != Vector2.ZERO:
+			var in_pos = point_pos + in_handle
+			draw_line(point_pos, in_pos, Color.YELLOW, 2.0)
+			draw_circle(in_pos, 5, Color.YELLOW)
+		
+		if out_handle != Vector2.ZERO:
+			var out_pos = point_pos + out_handle
+			draw_line(point_pos, out_pos, Color.GREEN, 2.0)
+			draw_circle(out_pos, 5, Color.GREEN)
+"
+
+[node name="PrototypeControlUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SliderControl" type="HBoxContainer" parent="CenterContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+script = ExtResource("1_l3tcm")
+
+[node name="ColorController" type="PanelContainer" parent="CenterContainer"]
+visible = false
+layout_mode = 2
+script = ExtResource("2_7snrv")
+
+[node name="FloatController" type="Button" parent="CenterContainer"]
+visible = false
+custom_minimum_size = Vector2(170, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 10
+script = ExtResource("3_3rv65")
+
+[node name="CheckButton" type="CheckButton" parent="CenterContainer"]
+visible = false
+layout_mode = 2
+theme_override_icons/checked = ExtResource("4_bscte")
+theme_override_icons/unchecked = ExtResource("5_kahc7")
+
+[node name="TestCurveController" type="Panel" parent="CenterContainer"]
+visible = false
+custom_minimum_size = Vector2(400, 350)
+layout_mode = 2
+script = SubResource("GDScript_kahc7")
+
+[node name="ColorRangeControl" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+script = ExtResource("6_kahc7")

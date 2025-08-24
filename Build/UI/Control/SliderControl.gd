@@ -121,6 +121,9 @@ class SliderController extends Control:
 		if is_grab:
 			draw_circle(grabber_pos, grabber_display_radius, grabber_main_color, false, 4, true)
 	
+	func get_curr_val() -> float:
+		return curr_val
+	
 	func set_curr_val(new_val: float) -> void:
 		curr_val = new_val
 		val_changed.emit(curr_val)

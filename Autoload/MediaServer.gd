@@ -35,13 +35,13 @@ const ARR_MEDIA_EXTENSIONS = [
 
 
 var media_clip_info: Dictionary[int, Dictionary] = {
-	0: {bg_color = Color("#A6893A"), control = InterfaceServer.create_clip_image_control}, # Image
-	1: {bg_color = Color("#398044"), control = InterfaceServer.create_clip_video_control}, # Video
-	2: {bg_color = Color("#365F80"), control = InterfaceServer.create_clip_audio_control}, # Audio
-	3: {bg_color = Color("#956321"), control = null}, # Text
-	4: {bg_color = Color("#832125"), control = null}, # Shape
-	5: {bg_color = Color("#5A3A76"), control = null}, # Effect
-	6: {bg_color = Color("#555555"), control = null} # CODE (procedural)
+	0: {style = preload("uid://d0sgurvxit0n2"), control = InterfaceServer.create_clip_image_control}, # Image
+	1: {style = preload("uid://bnc4n8cvuae5s"), control = InterfaceServer.create_clip_video_control}, # Video
+	2: {style = preload("uid://djbj0r563olrv"), control = InterfaceServer.create_clip_audio_control}, # Audio
+	3: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Text
+	4: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Shape
+	5: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Effect
+	6: {style = preload("uid://d0sgurvxit0n2"), control = null} # CODE (procedural)
 }
 
 

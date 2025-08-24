@@ -143,8 +143,7 @@ func update() -> void:
 			clip.clip_pos = frame_in
 			clip.clip_res = clip_res
 			# Interface Setup
-			clip.color = media_clip_info.bg_color
-			clip.add_child(media_clip_info.control.call(clip_res))
+			clip.add_child(media_clip_info.control.call(clip_res, media_clip_info.style))
 			# Connections
 			clip.selected.connect(on_clip_selected)
 			clip.deselected.connect(on_clip_deselected)

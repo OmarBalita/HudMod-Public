@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Build/Editor/Player/Player.gd" id="2_7i47x"]
 [ext_resource type="Script" uid="uid://r643re6ydjnt" path="res://Build/Editor/Properties/Properties.gd" id="3_7i47x"]
 [ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Build/Editor/MediaExplorer/MediaCard.tscn" id="3_dpj1x"]
-[ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/Res/Save/MenuOption.gd" id="3_pyfir"]
+[ext_resource type="Script" uid="uid://dc1q6d6nyn4sh" path="res://Build/UI/MenuOption.gd" id="3_pyfir"]
 [ext_resource type="Texture2D" uid="uid://bfd4pbwwemafk" path="res://Asset/Icons/gallery.png" id="4_plela"]
 [ext_resource type="Texture2D" uid="uid://cb6pjddrrsxkn" path="res://Asset/Icons/text.png" id="5_fucdc"]
 [ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="6_30pfl"]
@@ -41,6 +41,7 @@ is_separation_line = false
 text = "Files"
 icon = ExtResource("4_plela")
 forward = Array[ExtResource("3_pyfir")]([])
+function = Callable()
 checkable = false
 checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
@@ -51,6 +52,7 @@ is_separation_line = false
 text = "Text"
 icon = ExtResource("5_fucdc")
 forward = Array[ExtResource("3_pyfir")]([])
+function = Callable()
 checkable = false
 checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"
@@ -61,6 +63,7 @@ is_separation_line = false
 text = "Shapes"
 icon = ExtResource("6_30pfl")
 forward = Array[ExtResource("3_pyfir")]([])
+function = Callable()
 checkable = false
 checked = false
 metadata/_custom_type_script = "uid://dc1q6d6nyn4sh"

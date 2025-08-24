@@ -1,20 +1,18 @@
 class_name GDDraw extends Node2D
 
+
 @export var drawings_ress: Array[GDDrawingRes]
 var curr_drawing_res: GDDrawingRes
 
-var draw_fill_points: Array
-var draw_polygon_points: Array
-var draw_grid_size: int
 
+func get_drawings_ress() -> Array[GDDrawingRes]:
+	return drawings_ress
 
-
-
+func set_drawings_ress(new_drawings_ress: Array[GDDrawingRes]) -> void:
+	drawings_ress = new_drawings_ress
 
 func start_new_drawing(default_drawing_res: GDDrawingRes, start_point: Vector2) -> GDDrawingRes:
-	
-	var drawing_res = default_drawing_res.duplicate(true)
-	setup_drawing_res(drawing_res)
+	var drawing_res = setup_drawing_res(default_drawing_res)
 	drawing_res.add_point(start_point)
 	
 	drawings_ress.append(drawing_res)
@@ -24,34 +22,54 @@ func start_new_drawing(default_drawing_res: GDDrawingRes, start_point: Vector2) 
 	
 	return drawing_res
 
-func create_new_drawing(default_drawing_res: GDDrawingRes, points: Array[Vector2]) -> GDDrawingRes:
+func create_new_drawing(default_drawing_res: GDDrawingRes, points: PackedVector2Array, index: int = -1, entity_line: bool = false, update_points: bool = true, emit_changes: bool = true) -> GDDrawingRes:
+	var drawing_res = setup_drawing_res(default_drawing_res, entity_line)
 	
-	var drawing_res = default_drawing_res.duplicate(true)
-	setup_drawing_res(drawing_res)
-	drawing_res.points = points
+	if update_points:
+		drawing_res.set_points(points)
 	
-	drawings_ress.append(drawing_res)
+	if index == -1:
+		index = drawings_ress.size()
+	drawings_ress.insert(index, drawing_res)
 	
-	update_drawings()
+	if emit_changes:
+		update_drawings()
 	
 	return drawing_res
 
-func setup_drawing_res(drawing_res: GDDrawingRes) -> void:
-	drawing_res.entity_line()
+func setup_drawing_res(drawing_res: GDDrawingRes, entity_line: bool = false) -> GDDrawingRes:
+	drawing_res = drawing_res.duplicate(true)
+	drawing_res.set_is_brush(false)
+	
+	var drawn_entities: Array[DrawnEntityRes]
+	for drawn_entity: DrawnEntityRes in drawing_res.get_drawn_entities():
+		drawn_entities.append(drawn_entity.duplicate(true))
+	drawing_res.set_drawn_entities(drawn_entities)
+	
+	if entity_line: drawing_res.entity()
+	
 	drawing_res.sliced.connect(
-		func(right_slice_points: Array[Vector2]):
+		func(right_slice_points: PackedVector2Array):
 			create_new_drawing(drawing_res, right_slice_points)
 	)
+	return drawing_res
+
+func remove_drawing(drawing_res: GDDrawingRes, emit_changes: bool = true) -> int:
+	var index = drawings_ress.find(drawing_res)
+	drawings_ress.erase(drawing_res)
+	if emit_changes:
+		update_drawings()
+	return index
 
 func add_point_to_current_drawing(new_point: Vector2) -> void:
 	curr_drawing_res.add_point(new_point)
 
-func set_points_to_current_drawing(new_points: Array[Vector2]) -> void:
+func set_points_to_current_drawing(new_points: PackedVector2Array) -> void:
 	curr_drawing_res.set_points(new_points)
 
-func erase_drawing_nodes(pos: Vector2, eraser_scale: float) -> void:
+func erase_drawing_nodes(cond_func: Callable) -> void:
 	for drawing_res in drawings_ress:
-		drawing_res.erase(pos, eraser_scale)
+		drawing_res.erase(cond_func)
 
 
 
@@ -64,14 +82,13 @@ func fill_drawing_nodes(default_drawing_res: GDDrawingRes, pos: Vector2i, grid_s
 	
 	var fill_points = get_fill_from_pos_bfs(grid_size, get_window().get_size(), pos)
 	var coordinate_polygon_points = trace_polygon(fill_points)
-	var result_polygon_points: Array[Vector2]
+	var result_polygon_points: PackedVector2Array
 	for point in coordinate_polygon_points:
 		result_polygon_points.append(Vector2(point * grid_size) + Vector2(grid_size, grid_size) / 2.0)
 	
-	var fill_drawing = create_new_drawing(default_drawing_res, result_polygon_points)
+	var fill_drawing = create_new_drawing(default_drawing_res, result_polygon_points, 0)
 	fill_drawing.draw_line = false
 	fill_drawing.draw_fill = true
-	fill_drawing.layer = 0
 	
 	update_drawings()
 
@@ -86,7 +103,7 @@ func bake_drawing_subdv_points(grid_size: int) -> void:
 		
 		var points = drawing_res.points
 		
-		for index: int in points.size():
+		for index: int in range(points.size()):
 			
 			var p1 = points[index]
 			
@@ -105,12 +122,13 @@ func bake_drawing_subdv_points(grid_size: int) -> void:
 						add_point_to_drawing_subdv_points(point, grid_size_v2)
 
 
+
+
 func add_point_to_drawing_subdv_points(point: Vector2, grid_size: Vector2) -> void:
 	var group = snapped(point, grid_size)
 	if not drawings_subdv_points.has(group):
 		drawings_subdv_points[group] = []
 	drawings_subdv_points[group].append(point)
-
 
 
 
@@ -135,7 +153,7 @@ func get_fill_from_pos_bfs(grid_size: int, grid_rect_size: Vector2i, start_pos: 
 	start_pos /= grid_size
 	
 	# تحديد حدود الشبكة
-	var grid_bounds:= Rect2i(-grid_rect_size / 2, grid_rect_size)
+	var grid_bounds:= Rect2i(Vector2.ZERO, grid_rect_size / ProjectSettings.get_setting("display/window/stretch/scale"))
 	
 	# مصفوفة لتتبع الخلايا المزارة
 	var visited:= {}
@@ -184,10 +202,10 @@ func is_rect_has_any_point(rect: Rect2) -> bool:
 
 # ChatGPT Trace Function
 func trace_polygon(points: Array) -> Array:
-	var pixel_set:=pixels_to_set(points)
+	var pixel_set:= pixels_to_set(points)
 	var polygon:= []
-	var start:= find_top_left_pixel(pixel_set)
-	var current:= start
+	var start = find_top_left_pixel(pixel_set)
+	var current: Vector2 = start
 	var prev_dir:= Vector2(-1, 0) # نبدأ من اليسار
 	
 	while true:
@@ -254,11 +272,6 @@ func trace_polygon_from_points(points: Array) -> Array:
 
 func update_drawings() -> void:
 	
-	drawings_ress.sort_custom(
-		func(a: GDDrawingRes, b: GDDrawingRes):
-			return a.layer < b.layer
-	)
-	
 	for child: Node in get_children():
 		if child is GDDrawingNode:
 			var drawing_res = child.drawing_res
@@ -281,7 +294,7 @@ func loop_drawings_ress(custom_info: Dictionary, function: Callable) -> Dictiona
 		function.call(drawing_res, custom_info)
 	return custom_info
 
-func loop_all_points(custom_info: Dictionary, function: Callable) -> Dictionary: # the Function has Two Arguments (drawing_res: GDDrawingRes, point_index: int, point: Vector2)
+func loop_all_points(custom_info: Dictionary, function: Callable, drawings_ress: Array = drawings_ress) -> Dictionary: # the Function has Two Arguments (drawing_res: GDDrawingRes, point_index: int, point: Vector2)
 	custom_info.merge({"break": false})
 	for drawing_res: GDDrawingRes in drawings_ress:
 		var points = drawing_res.points

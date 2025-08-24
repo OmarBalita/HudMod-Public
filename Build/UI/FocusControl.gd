@@ -10,6 +10,9 @@ signal drag_started()
 signal dragging()
 signal drag_finished()
 
+signal dragged_rect_created(dragged_rect: Control)
+
+
 const NONE_MASK: int = 0
 const CTRL_MASK: int = 268435456
 const SHIFT_MASK: int = 33554432
@@ -113,7 +116,7 @@ func _input(event: InputEvent) -> void:
 					if is_focus:
 						press_pos = mouse_pos
 						start_drag_dist = mouse_pos - global_position
-						can_drag = true
+						can_drag = request_drag()
 				
 				else:
 					if dragged_rect:
@@ -162,6 +165,9 @@ func select(grouping: bool, is_drag_selection: bool = false) -> void:
 func deselect() -> void:
 	selection_group.remove_object(get_id_key(), true)
 
+func request_drag() -> bool:
+	return true
+
 func start_drag(grouping: bool) -> void:
 	if not dragged_rect:
 		
@@ -195,11 +201,13 @@ func end_drag() -> void:
 
 func create_dragged_rect() -> void:
 	
-	dragged_rect = ColorRect.new()
-	dragged_rect.color = Color(1,1,1, .2)
-	dragged_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dragged_rect.custom_minimum_size = size
+	dragged_rect = duplicate()
+	dragged_rect.set_script(null)
+	ObjectServer.describe_node_deep(dragged_rect, {"mouse_filter" = Control.MOUSE_FILTER_IGNORE})
+	
 	get_tree().current_scene.add_child(dragged_rect)
+	dragged_rect_created.emit(dragged_rect)
+
 
 
 func get_id_key() -> String:

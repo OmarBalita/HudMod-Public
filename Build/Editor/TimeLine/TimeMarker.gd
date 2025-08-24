@@ -75,8 +75,8 @@ func on_selected() -> void:
 	var custom_color_index = colors.find(time_marker_res.custom_color)
 	
 	var name_line = InterfaceServer.create_line_edit("Custom Name", time_marker_res.custom_name, null, {max_length = 24})
-	var color_menu = InterfaceServer.create_menu(color_options, {custom_minimum_size = Vector2(0, 40)})
-	var description_edit = InterfaceServer.create_text_edit_edit("Custom Description", time_marker_res.custom_description)
+	var color_menu = InterfaceServer.create_menu(color_options, false, {custom_minimum_size = Vector2(0, 40)})
+	var description_edit = InterfaceServer.create_text_edit_edit("Custom Description", time_marker_res.custom_description)[0]
 	
 	color_menu.focus_index = custom_color_index
 	InterfaceServer.expand(description_edit, true, true)
@@ -86,15 +86,15 @@ func on_selected() -> void:
 		Vector2(550, 400),
 		"Create Time Marker",
 		func() -> void:
-			time_marker_res.custom_name = name_line.text
-			time_marker_res.custom_color = colors[color_menu.focus_index]
-			time_marker_res.custom_description = description_edit.get_child(1).text
+			time_marker_res.custom_name = name_line.get_text()
+			time_marker_res.custom_color = colors[color_menu.get_focus_index()]
+			time_marker_res.custom_description = description_edit.get_text()
 			queue_redraw()
 	)
 	
 	marker_window.add_child(name_line)
 	marker_window.add_child(color_menu)
-	marker_window.add_child(description_edit)
+	marker_window.add_child(description_edit.get_parent())
 	
 	name_line.select()
 	name_line.grab_focus()

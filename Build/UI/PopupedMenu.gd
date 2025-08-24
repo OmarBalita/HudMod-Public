@@ -117,16 +117,19 @@ func on_button_pressed(index: int) -> void:
 	if has_meta("ended"):
 		return
 	
-	menu_button_pressed.emit(index)
-	
-	var option = options[index]
-	var forward = option.forward
-	var group = option.check_group
+	var option: MenuOption = options[index]
+	var function: Callable = option.function
+	var forward: Array[MenuOption] = option.forward
+	var group: CheckGroup = option.check_group
 	var button = options_box.get_child(index)
+	
+	if not function.is_null():
+		function.call()
 	
 	if group:
 		group.checked_index = index
-		ResourceSaver.save(group, group.save_path)
+		if not group.save_path.is_empty():
+			ResourceSaver.save(group, group.save_path)
 	
 	if forward.size():
 		
@@ -146,6 +149,7 @@ func on_button_pressed(index: int) -> void:
 	else:
 		popdown()
 	
+	menu_button_pressed.emit(index)
 	global_menu_button_pressed.emit([index])
 
 

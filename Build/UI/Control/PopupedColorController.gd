@@ -64,13 +64,13 @@ var before_color_rect: ColorRect
 var after_color_rect: ColorRect
 var color_picker_button: InterfaceServer.CustomTextureButton
 
-var red_controller: BoxContainer
-var green_controller: BoxContainer
-var blue_controller: BoxContainer
-var hue_controller: BoxContainer
-var sat_controller: BoxContainer
-var val_controller: BoxContainer
-var alpha_controller: BoxContainer
+var red_controller: SliderControl
+var green_controller: SliderControl
+var blue_controller: SliderControl
+var hue_controller: SliderControl
+var sat_controller: SliderControl
+var val_controller: SliderControl
+var alpha_controller: SliderControl
 
 var hex_line: LineEdit
 
@@ -120,21 +120,21 @@ func _ready() -> void:
 	after_color_rect = InterfaceServer.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
 	color_picker_button = InterfaceServer.create_texture_button(texture_color_picker, null, null, true)
 	
-	red_controller = InterfaceServer.create_float_edit("R", true, false, curr_color.r, .0, 1.0, rgb_step)
-	green_controller = InterfaceServer.create_float_edit("G", true, false, curr_color.g, .0, 1.0, rgb_step)
-	blue_controller = InterfaceServer.create_float_edit("B", true, false, curr_color.b, .0, 1.0, rgb_step)
+	red_controller = InterfaceServer.create_float_edit("R", true, false, curr_color.r, .0, 1.0, rgb_step)[0]
+	green_controller = InterfaceServer.create_float_edit("G", true, false, curr_color.g, .0, 1.0, rgb_step)[0]
+	blue_controller = InterfaceServer.create_float_edit("B", true, false, curr_color.b, .0, 1.0, rgb_step)[0]
 	
-	hue_controller = InterfaceServer.create_float_edit("H", true, false, curr_color.h, .0, 1.0, 1.0 / 360)
-	sat_controller = InterfaceServer.create_float_edit("S", true, false, curr_color.s, .0, 1.0, .01)
-	val_controller = InterfaceServer.create_float_edit("V", true, false, curr_color.v, .0, 1.0, .01)
-	alpha_controller = InterfaceServer.create_float_edit("A", true, false, curr_color.a, .0, 1.0, .01)
+	hue_controller = InterfaceServer.create_float_edit("H", true, false, curr_color.h, .0, 1.0, 1.0 / 360)[0]
+	sat_controller = InterfaceServer.create_float_edit("S", true, false, curr_color.s, .0, 1.0, .01)[0]
+	val_controller = InterfaceServer.create_float_edit("V", true, false, curr_color.v, .0, 1.0, .01)[0]
+	alpha_controller = InterfaceServer.create_float_edit("A", true, false, curr_color.a, .0, 1.0, .01)[0]
 	
 	hex_line = InterfaceServer.create_line_edit("Hex", curr_color.to_html())
 	
 	type_menu = InterfaceServer.create_menu([
 		MenuOption.new("RGB"),
 		MenuOption.new("HSV")
-	], {custom_minimum_size = Vector2(0, 40)})
+	], false, {custom_minimum_size = Vector2(0, 40)})
 	
 	# Spawn UI Nodes
 	color_control_box.add_child(color_shape)
@@ -144,18 +144,18 @@ func _ready() -> void:
 	color_display_box.add_child(after_color_rect)
 	color_display_box.add_child(color_picker_button)
 	
-	rgb_box.add_child(red_controller)
-	rgb_box.add_child(green_controller)
-	rgb_box.add_child(blue_controller)
-	hsv_box.add_child(hue_controller)
-	hsv_box.add_child(sat_controller)
-	hsv_box.add_child(val_controller)
+	rgb_box.add_child(red_controller.get_parent())
+	rgb_box.add_child(green_controller.get_parent())
+	rgb_box.add_child(blue_controller.get_parent())
+	hsv_box.add_child(hue_controller.get_parent())
+	hsv_box.add_child(sat_controller.get_parent())
+	hsv_box.add_child(val_controller.get_parent())
 	
 	controller_box.add_child(color_control_box)
 	controller_box.add_child(color_display_box)
 	controller_box.add_child(rgb_box)
 	controller_box.add_child(hsv_box)
-	controller_box.add_child(alpha_controller)
+	controller_box.add_child(alpha_controller.get_parent())
 	controller_box.add_child(hex_line)
 	controller_box.add_child(type_menu)
 	
@@ -176,14 +176,14 @@ func _ready() -> void:
 	color_shape.val_changed.connect(on_color_shape_val_changed)
 	color_val_line.val_changed.connect(on_color_val_line_val_changed)
 	color_picker_button.pressed.connect(on_color_picker_button_pressed)
-	red_controller.get_child(1).slider_controller.val_changed.connect(on_red_slider_val_changed)
-	green_controller.get_child(1).slider_controller.val_changed.connect(on_green_slider_val_changed)
-	blue_controller.get_child(1).slider_controller.val_changed.connect(on_blue_slider_val_changed)
-	hue_controller.get_child(1).slider_controller.val_changed.connect(on_hue_slider_val_changed)
-	sat_controller.get_child(1).slider_controller.val_changed.connect(on_sat_slider_val_changed)
-	val_controller.get_child(1).slider_controller.val_changed.connect(on_val_slider_val_changed)
-	alpha_controller.get_child(1).slider_controller.val_changed.connect(on_alpha_slider_val_changed)
-	type_menu.button_pressed.connect(on_type_menu_button_pressed)
+	red_controller.slider_controller.val_changed.connect(on_red_slider_val_changed)
+	green_controller.slider_controller.val_changed.connect(on_green_slider_val_changed)
+	blue_controller.slider_controller.val_changed.connect(on_blue_slider_val_changed)
+	hue_controller.slider_controller.val_changed.connect(on_hue_slider_val_changed)
+	sat_controller.slider_controller.val_changed.connect(on_sat_slider_val_changed)
+	val_controller.slider_controller.val_changed.connect(on_val_slider_val_changed)
+	alpha_controller.slider_controller.val_changed.connect(on_alpha_slider_val_changed)
+	type_menu.focus_index_changed.connect(on_type_menu_focus_index_changed)
 	hex_line.text_submitted.connect(on_hex_line_text_changed)
 	
 	add_palette_button.pressed.connect(on_add_palette_button_pressed)
@@ -194,7 +194,7 @@ func _ready() -> void:
 	# Update/Spawn Palettes Boxes
 	spawn_built_in_palettes()
 	update_custom_palettes()
-
+	
 
 func _input(event: InputEvent) -> void:
 	
@@ -221,12 +221,12 @@ func get_picked_color() -> Color:
 	return image.get_pixelv(pick_pos)
 
 func update() -> void:
-	red_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.r)
-	green_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.g)
-	blue_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.b)
-	hue_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.h)
-	sat_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.s)
-	val_controller.get_child(1).slider_controller.set_curr_val_manually(curr_color.v)
+	red_controller.slider_controller.set_curr_val_manually(curr_color.r)
+	green_controller.slider_controller.set_curr_val_manually(curr_color.g)
+	blue_controller.slider_controller.set_curr_val_manually(curr_color.b)
+	hue_controller.slider_controller.set_curr_val_manually(curr_color.h)
+	sat_controller.slider_controller.set_curr_val_manually(curr_color.s)
+	val_controller.slider_controller.set_curr_val_manually(curr_color.v)
 	
 	color_shape.update(curr_color.h, curr_color.s, curr_color.v)
 	color_val_line.update(curr_color.v)
@@ -305,7 +305,7 @@ func on_val_slider_val_changed(new_val: float) -> void:
 func on_alpha_slider_val_changed(new_val: float) -> void:
 	curr_color.a = new_val
 
-func on_type_menu_button_pressed(index: int) -> void:
+func on_type_menu_focus_index_changed(index: int) -> void:
 	rgb_box.visible = not index
 	hsv_box.visible = index
 
@@ -353,11 +353,12 @@ class VHSCircleShape extends Control:
 	func _input(event: InputEvent) -> void:
 		
 		if event is InputEventMouseButton:
-			var dist_to_center = (get_local_mouse_position() - size / 2.0).length()
-			if dist_to_center <= radius:
-				dragged = event.is_pressed()
-				update_from_display_point()
-			else: dragged = false
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var dist_to_center = (get_local_mouse_position() - size / 2.0).length()
+				if dist_to_center <= radius:
+					dragged = event.is_pressed()
+					update_from_display_point()
+				else: dragged = false
 		
 		elif event is InputEventMouseMotion:
 			if dragged:
@@ -436,10 +437,11 @@ class ValLine extends Control:
 	
 	func _input(event: InputEvent) -> void:
 		if event is InputEventMouseButton:
-			if get_global_rect().has_point(get_global_mouse_position()):
-				dragged = event.is_pressed()
-				update_from_display_point()
-			else: dragged = false
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				if get_global_rect().has_point(get_global_mouse_position()):
+					dragged = event.is_pressed()
+					update_from_display_point()
+				else: dragged = false
 		
 		elif event is InputEventMouseMotion:
 			if dragged:
@@ -523,6 +525,8 @@ class PaletteBox extends PanelContainer:
 		split_container.add_child(colors_grid_container)
 		margin_container.add_child(split_container)
 		add_child(margin_container)
+		
+		InterfaceServer.expand(name_label)
 		
 		# Spawn Color Buttons
 		update_colors()

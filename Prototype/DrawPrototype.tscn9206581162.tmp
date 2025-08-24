@@ -1,0 +1,512 @@
+[gd_scene load_steps=17 format=3 uid="uid://oridk17j24yo"]
+
+[ext_resource type="Script" uid="uid://c2ejkss1jnbne" path="res://Build/Object/Draw.gd" id="1_es7rl"]
+[ext_resource type="Script" uid="uid://0ls4kucvr2wj" path="res://Build/Editor/Player/DrawEditor.gd" id="2_es7rl"]
+[ext_resource type="Script" uid="uid://cv1f6q4sf0u7v" path="res://Build/Res/UsableRes/DrawingRes.gd" id="3_wsek5"]
+[ext_resource type="Texture2D" uid="uid://hf05cj45xyng" path="res://Asset/Icons/world-origin.png" id="4_8jr6f"]
+[ext_resource type="Texture2D" uid="uid://cls358lwokmri" path="res://Asset/Icons/center-origin.png" id="5_7xka8"]
+[ext_resource type="Texture2D" uid="uid://dd32v4thogmvk" path="res://Asset/Icons/individual-origin.png" id="6_ll0kd"]
+[ext_resource type="Texture2D" uid="uid://dsa3sadeylxbf" path="res://Asset/Icons/points.png" id="7_ll0kd"]
+[ext_resource type="Texture2D" uid="uid://cw2jwk6ioenbt" path="res://Asset/Icons/matic.png" id="8_qldm4"]
+[ext_resource type="Texture2D" uid="uid://bmnnrdgm6smq6" path="res://Asset/Icons/pen.png" id="9_odr4c"]
+[ext_resource type="Texture2D" uid="uid://bcw0cx44gmfdv" path="res://Asset/Icons/zigzag-moustache.png" id="10_5vqld"]
+[ext_resource type="Texture2D" uid="uid://dwyb43y5kxqiv" path="res://Asset/Icons/eraser.png" id="11_7sxuu"]
+[ext_resource type="Texture2D" uid="uid://bu1leud5bdrlb" path="res://Asset/Icons/fill.png" id="12_v40kd"]
+[ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="13_lotjy"]
+
+[sub_resource type="Curve" id="Curve_wrwa3"]
+_data = [Vector2(0, 0), 0.0, 2.13539, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_wrwa3"]
+script = ExtResource("3_wsek5")
+points = Array[Vector2]([])
+drawn_entities = Array[Dictionary]([])
+draw_line = true
+draw_fill = false
+antialised = true
+color_line = Color(1, 1, 1, 1)
+color_fill = Color(0.745098, 0.745098, 0.745098, 1)
+use_color_range = false
+main_width = 5.0
+width_curve_range_type = 0
+width_begin_curve = SubResource("Curve_wrwa3")
+width_end_curve = SubResource("Curve_wrwa3")
+baked_width = Array[float]([])
+is_width_free = false
+width_begin_dist = 60.0
+width_end_dist = 60.0
+cap_begin_type = 0
+cap_end_type = 0
+cap_begin_scale = 1.0
+cap_end_scale = 1.0
+metadata/_custom_type_script = "uid://cv1f6q4sf0u7v"
+
+[sub_resource type="GDScript" id="GDScript_wsek5"]
+script/source = "extends FocusControl
+
+@export var draw_edit: DrawEdit
+
+@export_group(\"Theme\")
+@export_subgroup(\"Texture\")
+@export var texture_world_origin: Texture2D
+@export var texture_median_point: Texture2D
+@export var texture_individual_origins: Texture2D
+@export var texture_point: Texture2D
+@export var texture_line: Texture2D
+@export var texture_edit_options: Texture2D
+@export var texture_select_options: Texture2D
+@export var texture_point_options: Texture2D
+@export var texture_drawing_settings: Texture2D
+@export var texture_pen: Texture2D
+@export var texture_pointing: Texture2D
+@export var texture_erase: Texture2D
+@export var texture_fill: Texture2D
+@export var texture_shaping: Texture2D
+
+var ui_profile: UIProfile = UIProfile.new()
+
+# RealTime Nodes
+var draw_shortcut_node:= ShortcutNode.new()
+var edit_shortcut_node:= ShortcutNode.new()
+
+@onready var top_bar_panel = InterfaceServer.create_panel_container(Vector2.ZERO, InterfaceServer.STYLE_BODY)
+@onready var draw_left_side_panel = InterfaceServer.create_panel_container()
+
+var top_bar_margin = InterfaceServer.create_margin_container(4,4,4,4)
+var top_bar = InterfaceServer.create_box_container(10, false, {})
+
+var draw_ui_box = InterfaceServer.create_box_container(8)
+var edit_ui_box = InterfaceServer.create_box_container(8)
+
+var editor_mode_button: OptionController
+
+var drawing_settings_options_button: Button
+var custom_properties_check_button: CheckButton
+var custom_color_button: ColorButton
+var custom_radius_controller: FloatController
+var custom_strength_controller: FloatController
+var pen_stabilize_check_button: CheckButton
+var stiffness_controller: FloatController
+var eraser_scale_controller: FloatController
+var draw_shape_mode_button: OptionController
+var draw_shape_is_centered_button: CheckButton
+var drawings_button: Button
+
+var select_mode_1_button: TextureButton
+var select_mode_2_button: TextureButton
+var center_point_button: Button
+var basic_options_button: Button
+var select_options_button: Button
+var point_options_button: Button
+var drawing_settings_button: Button
+
+
+
+
+func _ready() -> void:
+	super()
+	
+	_ready_shortcut_nodes()
+	_ready_ui()
+	
+	var get_editor_mode = func() -> Variant: return draw_edit.editor_mode
+	var get_draw_mode = func() -> Variant: return draw_edit.draw_mode
+	var is_custom_properties = func() -> bool: return custom_properties_check_button.button_pressed
+	
+	ui_profile.set_ui_conditions({
+		[get_editor_mode, [1]]: [edit_ui_box, edit_shortcut_node],
+		[get_editor_mode, [0]]: [draw_ui_box, draw_left_side_panel, draw_shortcut_node],
+		[get_draw_mode, [0, 1, 3]]: [drawing_settings_options_button, pen_stabilize_check_button.get_parent(), stiffness_controller.get_parent()],
+		[is_custom_properties, [true]]: [custom_color_button.get_parent(), custom_radius_controller.get_parent(), custom_strength_controller.get_parent()],
+		[get_draw_mode, [2]]: [eraser_scale_controller.get_parent()],
+		[get_draw_mode, [4]]: [draw_shape_mode_button, draw_shape_is_centered_button.get_parent()],
+	})
+	ui_profile.update()
+	
+	# Connections
+	focus_changed.connect(on_focus_changed)
+	draw_edit.editor_mode_changed.connect(on_editor_mode_changed)
+
+
+func _ready_shortcut_nodes() -> void:
+	_ready_draw_shortcut_node()
+	_ready_edit_shortcut_node()
+
+func _ready_draw_shortcut_node() -> void:
+	pass
+
+func _ready_edit_shortcut_node() -> void:
+	# Basics
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_X, cut_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_C, copy_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_V, past_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_D, duplicate_selected)
+	#edit_shortcut_node.create_key_shortcut(0, KEY_DELETE, delete_selected)
+	edit_shortcut_node.create_key_shortcut(0, KEY_X, draw_edit.set_axis_editing.bind(true, false))
+	edit_shortcut_node.create_key_shortcut(0, KEY_Y, draw_edit.set_axis_editing.bind(false, true))
+	
+	# Select
+	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_A, draw_edit.select_all.bind(true))
+	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_A, draw_edit.select_all.bind(false))
+	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_I, draw_edit.select_invert)
+	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_L, draw_edit.select_linked)
+	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_N, draw_edit.select_intermittent.bind(2))
+	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_R, draw_edit.select_random)
+	
+	# Points
+	edit_shortcut_node.create_key_shortcut(0, KEY_G, draw_edit.set_is_editing.bind(1))
+	edit_shortcut_node.create_key_shortcut(0, KEY_R, draw_edit.set_is_editing.bind(2))
+	edit_shortcut_node.create_key_shortcut(0, KEY_S, draw_edit.set_is_editing.bind(3))
+	edit_shortcut_node.create_key_shortcut(0, KEY_K, draw_edit.set_is_editing.bind(4))
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_J, link_points)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_F, close)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_T, trim)
+	#edit_shortcut_node.create_key_shortcut(0, KEY_V, separate)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_S, subdivide)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_O, normalize)
+	
+	# Drawing Settings
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_M, open_drawing_settings)
+	
+	edit_shortcut_node.focus_control = self
+	edit_shortcut_node.enabled = false
+	
+	add_child(edit_shortcut_node)
+
+
+func _ready_ui() -> void:
+	editor_mode_button = InterfaceServer.create_option_controller([
+		{text = \"Draw\"},
+		{text = \"Edit\"}
+	], \"\", 0, true)
+	top_bar.add_child(editor_mode_button)
+	top_bar_margin.add_child(top_bar)
+	top_bar_panel.add_child(top_bar_margin)
+	add_child(top_bar_panel)
+	
+	_ready_draw_ui()
+	_ready_edit_ui()
+	
+	top_bar_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top_bar_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	editor_mode_button.selected_option_changed.connect(on_editor_mode_button_selected_option_changed)
+
+
+func _ready_draw_ui() -> void:
+	
+	var min_size = Vector2(250, 0)
+	
+	drawing_settings_options_button = InterfaceServer.create_button(\"\", null, false, false, {custom_minimum_size = min_size})
+	custom_properties_check_button = InterfaceServer.create_bool_edit(\"Custom Properites\", false)[0]
+	custom_color_button = InterfaceServer.create_color_edit(\"Color\", Color.WHITE, min_size)[0]
+	custom_radius_controller = InterfaceServer.create_float_edit(\"Radius\", false, true, 20.0, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size)[1]
+	custom_strength_controller = InterfaceServer.create_float_edit(\"Strength\", false, true, 1.0, .0, 1.0, .001, .01, 10.0, false, null, null, min_size)[1]
+	pen_stabilize_check_button = InterfaceServer.create_bool_edit(\"Stabilize\", true)[0]
+	stiffness_controller = InterfaceServer.create_float_edit(\"Stiffness\", false, true, 4.0, .01, 100.0, .01, .01, 10.0, false, null, null, min_size)[1]
+	eraser_scale_controller = InterfaceServer.create_float_edit(\"Eraser Scale\", false, true, 20.0, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size)[1]
+	draw_shape_mode_button = InterfaceServer.create_option_controller([{text = \"Line\"}, {text = \"Rectangle\"}, {text = \"Circle\"}])
+	draw_shape_is_centered_button = InterfaceServer.create_bool_edit(\"Shape is Centered\", true)[0]
+	drawings_button = InterfaceServer.create_button(\"Drawings\")
+	
+	InterfaceServer.add_childs(draw_ui_box, [
+		drawing_settings_options_button,
+		custom_properties_check_button.get_parent(),
+		custom_color_button.get_parent(),
+		custom_radius_controller.get_parent(),
+		custom_strength_controller.get_parent(),
+		pen_stabilize_check_button.get_parent(),
+		stiffness_controller.get_parent(),
+		eraser_scale_controller.get_parent(),
+		draw_shape_mode_button,
+		draw_shape_is_centered_button.get_parent(),
+		drawings_button
+	])
+	top_bar.add_child(draw_ui_box)
+	
+	drawing_settings_options_button.pressed.connect(on_settings_options_button_pressed)
+	custom_properties_check_button.pressed.connect(on_custom_properties_check_button_pressed)
+	custom_color_button.color_changed.connect(on_color_button_color_changed)
+	custom_radius_controller.val_changed.connect(on_custom_radius_controller_val_changed)
+	custom_strength_controller.val_changed.connect(on_custom_stength_controller_val_changed)
+	pen_stabilize_check_button.pressed.connect(on_pen_stabilize_check_button_pressed)
+	stiffness_controller.val_changed.connect(on_stiffness_controller_val_changed)
+	eraser_scale_controller.val_changed.connect(on_eraser_scale_controller_val_changed)
+	draw_shape_mode_button.selected_option_changed.connect(on_draw_shape_mode_button_selected_option_changed)
+	draw_shape_is_centered_button.pressed.connect(on_draw_shape_is_centered_button_pressed)
+	drawings_button.pressed.connect(on_drawings_button_pressed)
+	
+	var left_side_margin = InterfaceServer.create_margin_container(4,4,4,4)
+	var draw_mode_menu = InterfaceServer.create_menu([
+		MenuOption.new(\"\", texture_pen),
+		MenuOption.new(\"\", texture_pointing),
+		MenuOption.new(\"\", texture_erase),
+		MenuOption.new(\"\", texture_fill),
+		MenuOption.new(\"\", texture_shaping)
+	], true)
+	
+	left_side_margin.add_child(draw_mode_menu)
+	draw_left_side_panel.add_child(left_side_margin)
+	add_child(draw_left_side_panel)
+	
+	draw_mode_menu.button_pressed.connect(on_draw_mode_menu_button_pressed)
+	
+	await draw_mode_menu.updated
+	draw_left_side_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	draw_left_side_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _ready_edit_ui() -> void:
+	
+	select_mode_1_button = InterfaceServer.create_texture_button(texture_point)
+	select_mode_2_button = InterfaceServer.create_texture_button(texture_line)
+	center_point_button = InterfaceServer.create_button(\"Center Point\", texture_median_point)
+	basic_options_button = InterfaceServer.create_button(\"Edit\", texture_edit_options)
+	select_options_button = InterfaceServer.create_button(\"Select\", texture_select_options)
+	point_options_button = InterfaceServer.create_button(\"Points\", texture_point_options)
+	drawing_settings_button = InterfaceServer.create_button(\"Drawing Settings\", texture_drawing_settings)
+	
+	InterfaceServer.add_childs(edit_ui_box, [
+		select_mode_1_button,
+		select_mode_2_button,
+		center_point_button,
+		basic_options_button,
+		select_options_button,
+		point_options_button,
+		drawing_settings_button
+	])
+	top_bar.add_child(edit_ui_box)
+	
+	center_point_button.pressed.connect(on_center_point_button_pressed)
+	basic_options_button.pressed.connect(on_basic_options_button_pressed)
+	select_options_button.pressed.connect(on_select_options_button_pressed)
+	point_options_button.pressed.connect(on_point_options_button_pressed)
+	drawing_settings_button.pressed.connect(on_drawing_settings_button_pressed)
+
+
+
+
+
+
+
+
+
+
+
+func update_draw_edit_enabling() -> void:
+	draw_edit.enabled = is_focus
+
+
+
+
+
+
+
+func on_focus_changed(new_val: bool) -> void:
+	update_draw_edit_enabling()
+
+func on_editor_mode_changed(new_val: int) -> void:
+	ui_profile.update()
+
+func on_is_editing_changed(new_val: int) -> void:
+	ui_profile.update()
+
+
+
+
+
+
+func on_editor_mode_button_selected_option_changed(id: int, option: MenuOption) -> void:
+	draw_edit.editor_mode = id
+	ui_profile.update()
+
+
+
+
+
+
+
+func on_settings_options_button_pressed() -> void:
+	pass
+
+func on_custom_properties_check_button_pressed() -> void:
+	ui_profile.update()
+
+func on_color_button_color_changed(new_color: Color) -> void:
+	pass
+
+func on_custom_radius_controller_val_changed(new_val: float) -> void:
+	pass
+
+func on_custom_stength_controller_val_changed(new_val: float) -> void:
+	pass
+
+func on_pen_stabilize_check_button_pressed() -> void:
+	draw_edit.pen_is_stabilize = pen_stabilize_check_button.button_pressed
+
+func on_stiffness_controller_val_changed(new_val: float) -> void:
+	draw_edit.stiffness = new_val
+
+func on_eraser_scale_controller_val_changed(new_val: float) -> void:
+	draw_edit.eraser_scale = new_val
+
+func on_draw_shape_mode_button_selected_option_changed(index: int, option: MenuOption) -> void:
+	draw_edit.draw_shape_mode = index
+
+func on_draw_shape_is_centered_button_pressed() -> void:
+	draw_edit.draw_shape_is_centered = draw_shape_is_centered_button.button_pressed
+
+func on_drawings_button_pressed() -> void:
+	var elements: Array = draw_edit.draw_node.drawings_ress
+	var drawings_list_controller = InterfaceServer.create_list_controller(elements, TypeServer.get_type_from_name(\"GDDrawingRes\"), false)
+	drawings_list_controller.list_changed.connect(draw_edit.draw_node.update_drawings)
+	drawings_list_controller.list_button_pressed.connect(on_drawings_list_controller_button_pressed)
+	
+	InterfaceServer.expand(drawings_list_controller, true, true)
+	var popuped_box = InterfaceServer.popup_box([drawings_list_controller], drawings_button, null, Vector2(400, 600))
+	popuped_box.popdowned.connect(func() -> void: draw_edit.force_points_multimesh_visiblity = false)
+
+func on_draw_mode_menu_button_pressed(index: int) -> void:
+	draw_edit.draw_mode = index
+	ui_profile.update()
+
+
+
+
+
+
+
+
+func on_center_point_button_pressed() -> void:
+	InterfaceServer.popup_menu([
+		MenuOption.new(\"World Origin\", texture_world_origin),
+		MenuOption.new(\"Median Point\", texture_median_point),
+		MenuOption.new(\"Individual Origins\", texture_individual_origins)
+	], center_point_button)
+
+func on_basic_options_button_pressed() -> void:
+	InterfaceServer.popup_menu([
+		MenuOption.new(\"Cut\"),
+		MenuOption.new(\"Copy\"),
+		MenuOption.new(\"Past\"),
+		MenuOption.new(\"Duplicate\"),
+		MenuOption.new(\"Delete\"),
+	], basic_options_button)
+
+func on_select_options_button_pressed() -> void:
+	InterfaceServer.popup_menu([
+		MenuOption.new(\"Select All\"),
+		MenuOption.new(\"Deselect All\"),
+		MenuOption.new(\"Select Invert\"),
+		MenuOption.new(\"Select Linked\"),
+		MenuOption.new(\"Select Intermittent\"),
+		MenuOption.new(\"Select Random\"),
+	], select_options_button)
+
+func on_point_options_button_pressed() -> void:
+	InterfaceServer.popup_menu([
+		MenuOption.new(\"Move\"),
+		MenuOption.new(\"Rotate\"),
+		MenuOption.new(\"Scale\"),
+		MenuOption.new(\"Point/s Radius\"),
+		MenuOption.new_line(),
+		MenuOption.new(\"Link\"),
+		MenuOption.new(\"Close\"),
+		MenuOption.new(\"Trim\"),
+		MenuOption.new(\"Separate\"),
+		MenuOption.new(\"Subdivide\"),
+		MenuOption.new(\"Normalize\"),
+	], point_options_button)
+
+func on_drawing_settings_button_pressed() -> void:
+	var settings_elements: Array = [
+		InterfaceServer.create_bool_edit(\"Draw Line\", true),
+		InterfaceServer.create_bool_edit(\"Draw Fill\", false),
+		InterfaceServer.create_bool_edit(\"Antialized\", true),
+		InterfaceServer.create_h_line_panel(),
+		InterfaceServer.create_color_edit(\"Line Color\", Color.WHITE),
+		InterfaceServer.create_color_edit(\"Fill Color\", Color.GRAY),
+		InterfaceServer.create_color_range_edit(\"Color Range\", null),
+		InterfaceServer.create_h_line_panel(),
+		InterfaceServer.create_float_edit(\"Main Width\", false, true, 10.0, .1, 100.0, .1),
+		InterfaceServer.create_option_edit(\"Width Range Type\", [{\"text\": \"Dist\"}, {\"text\": \"Ratio\"}], \"\"),
+		InterfaceServer.create_float_edit(\"Width Curve Range\", false, true, 50.0, .1, 1000.0, .1),
+		InterfaceServer.create_float_edit(\"Width Begin Dist\", false, true, 50.0, .1, 1000.0, .1),
+		InterfaceServer.create_float_edit(\"Width End Dist\", false, true, 50.0, .1, 1000.0, .1),
+		InterfaceServer.create_h_line_panel(),
+		InterfaceServer.create_option_edit(\"Cap Begin Type\", [{\"text\": \"None\"}, {\"text\": \"Rounded\"}], \"\"),
+		InterfaceServer.create_option_edit(\"Cap End Type\", [{\"text\": \"None\"}, {\"text\": \"Rounded\"}], \"\"),
+		InterfaceServer.create_float_edit(\"Cap Begin Scale\", false, true, 1.0, .1, 1000.0, .1),
+		InterfaceServer.create_float_edit(\"Cap End Scale\", false, true, 1.0, .1, 1000.0, .1),
+	]
+	
+	var box = InterfaceServer.popup_box(settings_elements, drawing_settings_button)
+	box.custom_minimum_size = Vector2(400, 600)
+
+
+
+
+
+
+
+
+
+
+
+func on_drawings_list_controller_button_pressed(index: int) -> void:
+	var curr_drawing_res = draw_edit.draw_node.drawings_ress[index]
+	draw_edit.update_points_multimesh_instance(Callable(), [curr_drawing_res])
+	draw_edit.force_points_multimesh_visiblity = true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"
+
+[node name="DrawPrototype" type="Node"]
+
+[node name="GDDraw" type="Node2D" parent="."]
+script = ExtResource("1_es7rl")
+metadata/_custom_type_script = "uid://c2ejkss1jnbne"
+
+[node name="DrawEdit" type="Node2D" parent="." node_paths=PackedStringArray("draw_node")]
+script = ExtResource("2_es7rl")
+draw_node = NodePath("../GDDraw")
+default_drawing_res = SubResource("Resource_wrwa3")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+anchor_mode = 0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Control" type="Control" parent="." node_paths=PackedStringArray("draw_edit")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_wsek5")
+draw_edit = NodePath("../DrawEdit")
+texture_world_origin = ExtResource("4_8jr6f")
+texture_median_point = ExtResource("5_7xka8")
+texture_individual_origins = ExtResource("6_ll0kd")
+texture_point = ExtResource("7_ll0kd")
+texture_line = ExtResource("8_qldm4")
+texture_pen = ExtResource("9_odr4c")
+texture_pointing = ExtResource("10_5vqld")
+texture_erase = ExtResource("11_7sxuu")
+texture_fill = ExtResource("12_v40kd")
+texture_shaping = ExtResource("13_lotjy")

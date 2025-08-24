@@ -9,8 +9,16 @@ signal selected_option_changed(id: int, option: MenuOption)
 
 var options: Array
 
+var selected_id: int:
+	set(val):
+		selected_id = val
+		selected_option = options[val]
+		selected_option_changed.emit(val, selected_option)
+		update_display_option(val)
+
 var selected_option: MenuOption
-var selected_id: int
+
+
 
 func _ready() -> void:
 	pressed.connect(on_pressed)
@@ -23,13 +31,19 @@ func update(id = null) -> void:
 			id = ResourceLoader.load(save_path).checked_index
 		else:
 			id = default_index
-	selected_option = options[id]
 	selected_id = id
-	update_display_option(id)
-	selected_option_changed.emit(selected_id, selected_option)
+
 
 func update_display_option(id: int) -> void:
 	text = selected_option.text
+
+
+func get_selected_id() -> int:
+	return selected_id
+
+func set_selected_id(new_selected_id: int) -> void:
+	selected_id = new_selected_id
+
 
 func on_pressed() -> void:
 	var menu = InterfaceServer.popup_menu(options, self)

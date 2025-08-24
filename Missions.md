@@ -13,7 +13,7 @@
 - Drag and Drop Media [+]
 - New Popuped Menu Node [+]
 - Asset, Global, and Project Media Support
-- Text, Draw, and Particles Media
+- EmptyObject, Camera, Text, Draw, and Particles Media
 - Smart Retargetting Media Clips when Moving
 - Snap on Media Clips, Cursor, and TimeMarks [+]
 - Time Markers [+]
@@ -36,15 +36,17 @@
 - Player Panning and Zoom
 - Player Play/Pause, FullScreen
 
-- Vector Draw: Pen + Bezier Tool
+- Vector Draw: Pen, Pointing, Erase, Fill, Remove
 - Line and Shape Modes
 - MultiSelect and Edit Drawing with
-- Change Pivot Point
-- Sculpt Drawing
-- Fill Tool
 - Join
+- Sculpt Drawing
 - Boolean Operations (Union, Subtract, Intersect)
+- Custom Flex Drawing Editor + Quick Right Side Panel
 - Inverse Kinematics
+- Draw be Animatable
+- Fix DrawnEntities connections and how effect to DrawingNode
+- Add more and more Draw Modes
 
 - Full Properties System for each Media Type
 - Keyframing Properties from Graph Editor and support Curves
@@ -53,7 +55,7 @@
 - Add Layer Properties
 - Support Commonly AI Tools
 - Pivot-Point or Cursor Base Scale and Rotation
-- Play and Test Video Wherever the Mouse is Present
+- Play and Stop Timeline Wherever the Mouse is Present
 
 - Export Project as Image or Video with custom Quality, Resolution, Aspect-Ratio, and FPS
 - Save Preset in Project or as Global Preset 
@@ -63,15 +65,28 @@
 - App Header ToolBar
 
 - Add more and more Components of all kinds to all Media
-- Add Images and Videos of Commonly used Memes
+- Add Images and Videos or Stickers of Commonly used Memes
 
 - Create App Launcher
 - App Installer
 - Project List User can Enter, Create, and Import Project from it
 - Help Box User can Report from it
 
+- Rebuild many Parts of UI Structure for the Next Generations of Program
+- Rebuild the Shortcut System to be Powerfull and Intergrated with UI System.
 
 
+# Higlight
+# ---------------------------
+
+- Nested Sequences
+- Properties
+- Keyframing and Curves
+- More Effects for each Media Type
+- Render/Export Videos and Images
+- Undo-Redo
+- Effects / Shader Node Graph
+- Compositor Node Graph
 
 
 

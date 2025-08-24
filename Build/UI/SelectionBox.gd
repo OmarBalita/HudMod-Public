@@ -12,7 +12,10 @@ signal selection_ended(grouping: bool)
 @export_group("Theme")
 @export var color: Color = Color.WHITE
 @export var transparancy: float = .3
+var fill_color: Color = Color(color, transparancy)
 
+
+var request_selection_func: Callable
 
 var selected_nodes: Dictionary[String, Control]
 
@@ -24,7 +27,7 @@ var group: bool
 var remove: bool
 var canceled: bool
 
-var fill_color: Color = Color(color, transparancy)
+
 
 
 func _init() -> void:
@@ -49,15 +52,15 @@ func _input(event: InputEvent) -> void:
 			remove = event.alt_pressed
 			
 			if pressed:
-				if EditorServer.media_clips_focused.size():
-					return
-				canceled = false
-				selection_started.emit()
+				if request_selection_func.is_null() or request_selection_func.call():
+					print("active")
+					canceled = false
+					selection_started.emit()
+					dragged = true
 			
 			elif not canceled:
 				selection_ended.emit(group, remove)
-			
-			dragged = pressed
+				dragged = false
 		
 		else:
 			canceled = true
@@ -67,6 +70,33 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and dragged:
 		end_pos = event.position
 		update_selection()
+
+
+func _draw() -> void:
+	if dragged:
+		draw_selecting_rect(select_rect)
+		for key in selected_nodes:
+			var node = selected_nodes[key]
+			if not is_instance_valid(node): continue
+			draw_selecting_rect(node.get_global_rect())
+
+
+func draw_selecting_rect(rect: Rect2, color: Color = InterfaceServer.COLOR_ACCENT_BLUE) -> void:
+	rect = Rect2(rect.position - global_position, rect.size)
+	var start_pos = rect.position
+	var end_pos = start_pos + rect.size
+	var to_x_pos = Vector2(end_pos.x, start_pos.y)
+	var to_y_pos = Vector2(start_pos.x, end_pos.y)
+	
+	draw_rect(rect, Color(color, .5))
+	draw_dashed_line(start_pos, to_x_pos, color, 2.0, 10.0)
+	draw_dashed_line(to_x_pos, end_pos, color, 2.0, 10.0)
+	draw_dashed_line(end_pos, to_y_pos, color, 2.0, 10.0)
+	draw_dashed_line(to_y_pos, start_pos, color, 2.0, 10.0)
+
+
+
+
 
 
 func update_selection() -> void:
@@ -86,26 +116,6 @@ func update_selection() -> void:
 	selection_changed.emit()
 	
 	queue_redraw()
-
-
-func _draw() -> void:
-	if dragged:
-		draw_selecting_rect(select_rect)
-		for key in selected_nodes:
-			var node = selected_nodes[key]
-			if not is_instance_valid(node): continue
-			draw_selecting_rect(node.get_global_rect())
-
-
-func draw_selecting_rect(rect: Rect2) -> void:
-	var absolute_rect = Rect2(rect.position - global_position, rect.size)
-	draw_rect(absolute_rect, fill_color)
-	draw_rect(absolute_rect, color, false, 2.0)
-
-
-
-
-
 
 
 

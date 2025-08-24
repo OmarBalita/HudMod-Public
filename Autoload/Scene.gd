@@ -18,15 +18,15 @@ var update_video_viewers_rate: float = .5
 
 
 func _ready() -> void:
-	## Start Scene
-	#start_scene()
-	## Connections
-	#var timeline = EditorServer.time_line
-	#ProjectServer.layer_changed.connect(on_layer_changed)
-	#timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
-	#timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
-	#timeline.timeline_played.connect(try_play)
-	#timeline.timeline_stoped.connect(stop)
+	# Start Scene
+	start_scene()
+	# Connections
+	var timeline = EditorServer.time_line
+	ProjectServer.layer_changed.connect(on_layer_changed)
+	timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
+	timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
+	timeline.timeline_played.connect(try_play)
+	timeline.timeline_stoped.connect(stop)
 	pass
  
 func start_scene() -> void:

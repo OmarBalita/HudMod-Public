@@ -1,15 +1,16 @@
 class_name MediaClip extends FocusControl
 
+var focus_style = preload("uid://bdikx7yabbrki")
+var expand_button_style = preload("uid://bb4m7kvycelsj")
 
-
-var color: Color
-
-var is_editing: bool
-
+# Main Variables
 var type: int
 var layer_index: int
 var clip_pos: int
 var clip_res: MediaClipRes
+
+# RealTime Variables
+var is_editing: bool
 
 var target_layer_index: int
 var target_frame: int
@@ -21,8 +22,10 @@ var edit_length: int
 var r_button_dragged: bool
 var l_button_dragged: bool
 
-
+# RealTime Nodes
 var layer: Layer
+
+var focus_panel: PanelContainer
 var r_expand_button: Button
 var l_expand_button: Button
 
@@ -30,10 +33,9 @@ var l_expand_button: Button
 
 
 
-
 func _init() -> void:
 	
-	draw_select = true
+	draw_focus = false
 	
 	selectable = true
 	draggable = true
@@ -56,13 +58,18 @@ func _ready() -> void:
 	if selection_group.selected_objects.has(id_key):
 		selection_group.add_object(id_key, self, get_metadata())
 	
+	# Focus Panel
+	focus_panel = InterfaceServer.create_panel_container(Vector2.ZERO, focus_style, {visible = false})
+	focus_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(focus_panel)
+	
 	# Expand Control
 	await get_tree().process_frame
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	l_expand_button = Button.new()
 	l_expand_button.custom_minimum_size = Vector2(10, size.y)
 	l_expand_button.mouse_filter = Control.MOUSE_FILTER_PASS
-	InterfaceServer.set_button_style(l_expand_button)
+	InterfaceServer.set_button_style(l_expand_button, expand_button_style)
 	r_expand_button = l_expand_button.duplicate()
 	add_child(l_expand_button)
 	add_child(r_expand_button)
@@ -77,6 +84,7 @@ func _ready() -> void:
 	drag_started.connect(on_drag_started)
 	dragging.connect(on_dragging)
 	drag_finished.connect(on_drag_finished)
+	dragged_rect_created.connect(on_dragged_rect_created)
 	
 	r_expand_button.button_down.connect(on_r_expand_button_downed)
 	r_expand_button.button_up.connect(set_r_button_dragged.bind(false))
@@ -113,9 +121,11 @@ func _physics_process(delta: float) -> void:
 		layer.update()
 
 
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), color)
-	super()
+#func _draw() -> void:
+	#var rect = Rect2(Vector2.ZERO, size)
+	#draw_rect(rect, color)
+	#draw_rect(rect, Color(.0,.0,.0, .8), false, 5.0)
+	#super()
 
 func get_id_key() -> String:
 	return clip_res.id
@@ -152,6 +162,7 @@ func update_lock() -> void:
 		modulate.a = 1.0
 
 func update_expand_buttons() -> void:
+	focus_panel.visible = is_selected
 	if l_expand_button:
 		l_expand_button.visible = is_selected
 	if r_expand_button:
@@ -189,35 +200,26 @@ func edit(emit_changes: bool = true) -> void:
 func popup_context_menu() -> void:
 	
 	var menu = InterfaceServer.create_popuped_menu([
-		MenuOption.new("Cut"),
-		MenuOption.new("Copy"),
-		MenuOption.new("Duplicate"),
-		MenuOption.new("Remove"),
-		MenuOption.new_line(),
-		MenuOption.new("Group"),
-		MenuOption.new("UnGroup"),
-		MenuOption.new_line(),
-		MenuOption.new("Reparent"),
-		MenuOption.new("Parent Up"),
-		MenuOption.new("Clear Parents"),
-		MenuOption.new_line(),
-		MenuOption.new("Replace Media"),
-		MenuOption.new("Reverse Clip"),
-		MenuOption.new("Extract Audio"),
-		MenuOption.new_line(),
-		MenuOption.new("Go Inside"),
-		MenuOption.new("Open Graph Editor"),
-		MenuOption.new_line(),
-		MenuOption.new("Render Clip/s"),
-		MenuOption.new("Save Clip/s as"),
-		MenuOption.new("Save as Global Preset"),
-		MenuOption.new("Save as Project Preset")
+		MenuOption.new("Cut"), MenuOption.new("Copy"), MenuOption.new("Duplicate"), MenuOption.new("Remove"), MenuOption.new_line(),
+		
+		MenuOption.new("Group"), MenuOption.new("UnGroup"), MenuOption.new_line(),
+		
+		MenuOption.new("Reparent"), MenuOption.new("Parent Up"), MenuOption.new("Clear Parents"), MenuOption.new_line(),
+		
+		MenuOption.new("Replace Media"), MenuOption.new("Reverse Clip"), MenuOption.new("Extract Audio"), MenuOption.new_line(),
+		
+		MenuOption.new("Go Inside"), MenuOption.new("Open Graph Editor"), MenuOption.new_line(),
+		
+		MenuOption.new("Render Clip/s"), MenuOption.new("Save Clip/s as"), MenuOption.new("Save as Global Preset"), MenuOption.new("Save as Project Preset")
 	])
 	get_tree().get_current_scene().add_child(menu)
 	menu.popup()
 
 
 
+
+func request_drag() -> bool:
+	return not EditorServer.time_line.get_timemarks_bg_mouse_entered()
 
 
 
@@ -227,7 +229,6 @@ func on_focus_changed(new_val: bool) -> void:
 	else: EditorServer.media_clips_focused.erase(self)
 
 func on_drag_started() -> void:
-	
 	var timeline = EditorServer.time_line
 	timeline.set_timeline_state(1)
 
@@ -260,6 +261,7 @@ func on_dragging() -> void:
 					var begin_frame = frame_begin_result.keys()[0]
 					target_frame = begin_frame
 					timeline.set_snap_pos(begin_frame if begin_snap_dist != null else null)
+				
 				elif end_snap_dist or begin_snap_dist == null:
 					var end_frame = frame_end_result.keys()[0]
 					target_frame = end_frame - clip_res.length
@@ -291,12 +293,11 @@ func on_dragging() -> void:
 
 func on_drag_finished() -> void:
 	
-	var timeline = EditorServer.time_line
-	timeline.set_timeline_state(0)
-	
 	if target_layer_index == -1:
 		ProjectServer.media_clips_changed.emit()
 		return
+	
+	print(selection_group.selected_objects)
 	
 	ProjectServer.move_media_clips(
 		selection_group.get_selected_meta(),
@@ -304,7 +305,14 @@ func on_drag_finished() -> void:
 		selection_group.get_selected_objects_property("target_frame")
 	)
 	
+	var timeline = EditorServer.time_line
+	timeline.set_timeline_state(0)
 	timeline.clear_layers_drawed_entities()
+
+
+func on_dragged_rect_created(dragged_rect: Control) -> void:
+	dragged_rect.get_child(0).size = size
+	dragged_rect.get_child(1).size = size
 
 
 func on_r_expand_button_downed() -> void:

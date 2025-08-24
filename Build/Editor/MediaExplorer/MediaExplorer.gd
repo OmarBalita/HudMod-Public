@@ -64,7 +64,7 @@ func _start() -> void:
 	
 	# Start Header
 	var header_menu = InterfaceServer.create_menu(media_options)
-	header_menu.button_pressed.connect(on_header_menu_button_pressed)
+	header_menu.focus_index_changed.connect(on_header_menu_focus_index_changed)
 	header.add_child(header_menu)
 	
 	# Start Body
@@ -346,7 +346,7 @@ class MediaBox extends Container:
 
 
 
-func on_header_menu_button_pressed(index: int) -> void:
+func on_header_menu_focus_index_changed(index: int) -> void:
 	curr_media_box_index = index
 
 

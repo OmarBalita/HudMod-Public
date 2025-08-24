@@ -1,19 +1,35 @@
 class_name PopupedBox extends PopupedControl
 
 var box: BoxContainer
-var elements: Array[Control]
+var elements: Array
 
 func _ready() -> void:
 	super()
 	var margin_container = InterfaceServer.create_margin_container()
 	var scroll_container = InterfaceServer.create_scroll_container()
-	var scroll_margin_container = InterfaceServer.create_margin_container(0, 12, 0, 0)
+	var margin2_container = InterfaceServer.create_margin_container(0, 12, 0, 0)
 	box = InterfaceServer.create_box_container(12, true)
-	for element in elements:
-		box.add_child(element)
-	scroll_margin_container.add_child(box)
-	scroll_container.add_child(scroll_margin_container)
+	
+	for index: int in elements.size():
+		var element = elements[index]
+		if element is Array:
+			for control in element:
+				if control == null:
+					continue
+				box.add_child(control.get_parent())
+		else: box.add_child(element)
+	
+	margin2_container.add_child(box)
+	scroll_container.add_child(margin2_container)
 	margin_container.add_child(scroll_container)
 	add_child(margin_container)
 	
-	InterfaceServer.expand(scroll_margin_container)
+	InterfaceServer.expand(margin2_container, true, true)
+
+
+
+
+
+
+
+

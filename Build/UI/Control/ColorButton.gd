@@ -2,11 +2,7 @@ class_name ColorButton extends Button
 
 signal color_changed(color: Color)
 
-var curr_color: Color:
-	set(val):
-		curr_color = val
-		queue_redraw()
-		color_changed.emit()
+var curr_color: Color
 
 func _ready() -> void:
 	pressed.connect(on_pressed)
@@ -17,8 +13,11 @@ func _draw() -> void:
 func get_curr_color() -> Color:
 	return curr_color
 
-func set_curr_color(new_color: Color) -> void:
+func set_curr_color(new_color: Color, emit_change: bool = true) -> void:
 	curr_color = new_color
+	if emit_change:
+		color_changed.emit(curr_color)
+	queue_redraw()
 
 func on_pressed() -> void:
 	var color_controller = InterfaceServer.popup_color_controller(curr_color, self)

@@ -2,7 +2,7 @@ class_name FloatController extends Button
 
 signal grab_started()
 signal grab_finished()
-signal val_changed(new_val: float)
+signal val_changed(new_val: Variant)
 
 
 enum States {
@@ -19,19 +19,13 @@ enum States {
 @export var min_val: float = .0
 @export var max_val: float = 100.0
 @export var step: float = .5
-@export var curr_val: float = 100.0:
-	set(val):
-		curr_val = clamp(val, min_val, max_val)
-		curr_val = snapped(curr_val, magnet_scale if is_magnet else step)
-		if progress_bar != null and progress_bar.is_node_ready():
-			progress_bar.value = curr_val
-		if curr_val_label != null and curr_val_label.is_node_ready():
-			curr_val_label.text = str(curr_val)
-		queue_redraw()
+@export var curr_val: Variant = 100.0
+@export var is_int: bool = false
 
 @export_group("Theme")
 @export_subgroup("Constant")
-@export_range(1.0, 100.0) var magnet_scale: float = 10.0
+@export_range(.001, 100.0) var spin_scale: float = 1.0
+@export_range(1.0, 100.0) var spin_magnet_step: float = 10.0
 @export_subgroup("Color")
 @export var fill_color: Color
 @export var grabber_main_color: Color
@@ -58,7 +52,7 @@ var is_grab: bool:
 var control_val: float:
 	set(val):
 		control_val = val
-		curr_val = val
+		set_curr_val(control_val)
 
 var is_magnet: bool
 
@@ -78,6 +72,7 @@ func _ready() -> void:
 	typing_line = InterfaceServer.create_line_edit(); typing_line.z_index = 1
 	progress_bar = InterfaceServer.create_progress_bar(curr_val, min_val, max_val, step, {show_percentage = false})
 	curr_val_label = InterfaceServer.create_label(str(curr_val))
+	curr_val_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	var button_args = [texture_right, null, null, false, {mouse_filter = Control.MOUSE_FILTER_STOP}]
 	left_button = InterfaceServer.create_texture_button.callv(button_args)
@@ -110,7 +105,7 @@ func _input(event: InputEvent) -> void:
 	
 	if event is InputEventMouseMotion:
 		if is_grab:
-			control_val += event.relative.x
+			control_val += float(event.relative.x) * spin_scale
 			is_magnet = event.ctrl_pressed
 		elif start_pos != null:
 			if request_grab():
@@ -149,14 +144,31 @@ func on_typing_line_text_submitted(new_text: String) -> void:
 	if expression.has_execute_failed():
 		return
 	
-	curr_val = result
+	set_curr_val(result)
 
 func on_left_button_pressed() -> void:
-	curr_val -= step
+	set_curr_val(curr_val - step)
 
 func on_right_button_pressed() -> void:
-	curr_val += step
+	set_curr_val(curr_val + step)
 
+
+
+func get_curr_val() -> float:
+	return curr_val
+
+func set_curr_val(new_val: float, emit_change: bool = true) -> void:
+	curr_val = clamp(new_val, min_val, max_val)
+	curr_val = snapped(curr_val, spin_magnet_step if is_magnet else step)
+	if is_int:
+		curr_val = int(curr_val)
+	if progress_bar != null and progress_bar.is_node_ready():
+		progress_bar.value = curr_val
+	if curr_val_label != null and curr_val_label.is_node_ready():
+		curr_val_label.text = str(curr_val)
+	if emit_change:
+		val_changed.emit(curr_val)
+	queue_redraw()
 
 
 func set_is_grab(new_val: bool) -> void:
