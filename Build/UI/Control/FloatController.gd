@@ -66,17 +66,17 @@ var left_button: TextureButton
 
 
 func _ready() -> void:
-	var box = InterfaceServer.create_box_container(4)
+	var box = IS.create_box_container(4)
 	
-	var margin_container = InterfaceServer.create_margin_container(6,6,6,6)
-	typing_line = InterfaceServer.create_line_edit(); typing_line.z_index = 1
-	progress_bar = InterfaceServer.create_progress_bar(curr_val, min_val, max_val, step, {show_percentage = false})
-	curr_val_label = InterfaceServer.create_label(str(curr_val))
+	var margin_container = IS.create_margin_container(6,6,6,6)
+	typing_line = IS.create_line_edit(); typing_line.z_index = 1
+	progress_bar = IS.create_progress_bar(curr_val, min_val, max_val, step, {show_percentage = false})
+	curr_val_label = IS.create_label(str(curr_val))
 	curr_val_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	var button_args = [texture_right, null, null, false, {mouse_filter = Control.MOUSE_FILTER_STOP}]
-	left_button = InterfaceServer.create_texture_button.callv(button_args)
-	right_button = InterfaceServer.create_texture_button.callv(button_args)
+	left_button = IS.create_texture_button.callv(button_args)
+	right_button = IS.create_texture_button.callv(button_args)
 	left_button.flip_h = true
 	
 	margin_container.add_child(typing_line)
@@ -95,8 +95,8 @@ func _ready() -> void:
 	left_button.pressed.connect(on_left_button_pressed)
 	right_button.pressed.connect(on_right_button_pressed)
 	
-	InterfaceServer.expand(margin_container, true, true)
-	InterfaceServer.expand(progress_bar, true, true)
+	IS.expand(margin_container, true, true)
+	IS.expand(progress_bar, true, true)
 	
 	update_ui()
 

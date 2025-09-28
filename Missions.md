@@ -36,17 +36,19 @@
 - Player Panning and Zoom
 - Player Play/Pause, FullScreen
 
-- Vector Draw: Pen, Pointing, Erase, Fill, Remove
-- Line and Shape Modes
-- MultiSelect and Edit Drawing with
-- Join
+- Vector Draw: Pen, Pointing, Erase, Fill, Remove [+]
+- Line and Fill Modes [+]
+- MultiSelect and Edit Drawing with [+]
+- Join [+]
 - Sculpt Drawing
 - Boolean Operations (Union, Subtract, Intersect)
-- Custom Flex Drawing Editor + Quick Right Side Panel
+- Custom Flex Drawing Editor [+]
+- Quick Right Side Panel
 - Inverse Kinematics
 - Draw be Animatable
 - Fix DrawnEntities connections and how effect to DrawingNode
 - Add more and more Draw Modes
+- Add Curve Handles Edit
 
 - Full Properties System for each Media Type
 - Keyframing Properties from Graph Editor and support Curves
@@ -76,7 +78,7 @@
 - Rebuild the Shortcut System to be Powerfull and Intergrated with UI System.
 
 
-# Higlight
+# Highlight
 # ---------------------------
 
 - Nested Sequences

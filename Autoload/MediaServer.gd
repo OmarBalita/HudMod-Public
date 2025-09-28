@@ -4,11 +4,12 @@ enum MediaTypes {
 	IMAGE,
 	VIDEO,
 	AUDIO,
+	EMPTY_OBJECT_2D,
 	TEXT,
-	SHAPE,
-	ADJUSTMENT,
-	CODE,
-	PARTICLES
+	DRAW,
+	PARTICLES,
+	CAMERA_2D,
+	AUDIO_2D
 }
 
 const IMAGE_EXTENSIONS: PackedStringArray = [
@@ -34,16 +35,29 @@ const ARR_MEDIA_EXTENSIONS = [
 ]
 
 
-var media_clip_info: Dictionary[int, Dictionary] = {
-	0: {style = preload("uid://d0sgurvxit0n2"), control = InterfaceServer.create_clip_image_control}, # Image
-	1: {style = preload("uid://bnc4n8cvuae5s"), control = InterfaceServer.create_clip_video_control}, # Video
-	2: {style = preload("uid://djbj0r563olrv"), control = InterfaceServer.create_clip_audio_control}, # Audio
-	3: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Text
-	4: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Shape
-	5: {style = preload("uid://d0sgurvxit0n2"), control = null}, # Effect
-	6: {style = preload("uid://d0sgurvxit0n2"), control = null} # CODE (procedural)
+var media_properties_sections: Dictionary[int, Array] = {
+	0: ["Display2D", "Image", "Color", "Transition"],
+	1: ["Display2D", "Image", "Color", "Transition", "Sound"],
+	2: ["Sound"],
+	3: ["Display2D"],
+	4: ["Display2D", "Transition", "Text"],
+	5: ["Display2D", "Color", "Draw"],
+	6: ["Display2D", "Particles"],
+	7: ["Display2D", "Camera"],
+	8: ["Display2D", "Sound"],
 }
 
+var media_clip_info: Dictionary[int, Dictionary] = {
+	0: {default_name = "Image", style = preload("uid://d0sgurvxit0n2"), control = IS.create_clip_image_control}, # Image
+	1: {default_name = "Video", style = preload("uid://bnc4n8cvuae5s"), control = IS.create_clip_video_control}, # Video
+	2: {default_name = "Audio", style = preload("uid://djbj0r563olrv"), control = IS.create_clip_audio_control}, # Audio
+	3: {default_name = "Empty Object 2D", style = preload("uid://djp5a3r486n1c")}, # Empty Object 2D
+	4: {default_name = "Text", style = preload("uid://d0sgurvxit0n2")}, # Text
+	5: {default_name = "Draw", style = preload("uid://bdh5bw2do3yxc")}, # Draw
+	6: {default_name = "Particles", style = preload("uid://d0sgurvxit0n2")}, # Particles
+	7: {default_name = "Camera 2D", style = preload("uid://d0sgurvxit0n2")}, # Camera 2D
+	8: {default_name = "Audio 2D", style = preload("uid://d0sgurvxit0n2")} # Audio 2D
+}
 
 
 var media_preloaded: Dictionary[String, Variant] = {}
@@ -122,12 +136,19 @@ func is_stream_has_audio(file_path: String) -> bool:
 # Audio Services
 
 
+func get_audio_stream_from_path(audio_path: String) -> AudioStreamWAV:
+	var preload_key = audio_path + "_audio"
+	if not media_preloaded.has(preload_key):
+		media_preloaded[preload_key] = AudioStreamHelper.create_stream_from_path(audio_path)
+	return media_preloaded[preload_key]
+
+
+
 func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, color_key: String = "bfbfbf", fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
 	var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".png"]
 	if not FileAccess.file_exists(output_path):
 		generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), color_key, fixed_size, size)
 	return get_image_texture_from_path(output_path)
-
 
 
 func get_audio_duration_with_ffprobe(audio_path: String) -> float:
@@ -180,10 +201,7 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 
 
 
-
-
 # Get Media Type
-
 
 func get_media_type_from_path(path: String) -> MediaTypes:
 	var extension = path.get_file().get_extension()
@@ -192,4 +210,32 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 		media_type += 1
 		if extension in i:
 			return media_type
-	return -1
+	
+	return ResourceLoader.load(path).object_media_type
+
+
+func get_types_intersection_properties_sections(types: Array[int]) -> Array:
+	var types_sections: Array[Array]
+	
+	for type: int in types:
+		var type_sections: Array = media_properties_sections.get(type)
+		types_sections.append(type_sections)
+	
+	if types_sections.is_empty():
+		return []
+	
+	var result: Array = types_sections[0]
+	for index: int in range(0, types_sections.size()):
+		result = result.filter(func(element: String) -> bool: return element in types_sections[index])
+	
+	return result
+
+
+
+
+
+
+
+
+
+

@@ -9,7 +9,7 @@ class_name SliderControl extends HBoxContainer
 @export_subgroup("Color")
 @export var bg_color: Color = Color.WEB_GRAY
 @export var grabber_color: Color = Color.GRAY
-@export var highlight_color: Color = InterfaceServer.COLOR_ACCENT_BLUE
+@export var highlight_color: Color = IS.COLOR_ACCENT_BLUE
 
 # Nodes
 
@@ -27,8 +27,8 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 	
 	# Ready Nodes
-	left_button = InterfaceServer.create_texture_button(texture_left)
-	right_button = InterfaceServer.create_texture_button(texture_right)
+	left_button = IS.create_texture_button(texture_left)
+	right_button = IS.create_texture_button(texture_right)
 	add_child(left_button)
 	add_child(slider_controller)
 	add_child(right_button)
@@ -40,9 +40,10 @@ func _ready() -> void:
 
 class SliderController extends Control:
 	
+	signal val_changed(new_val: float)
+	
 	signal grab_started()
 	signal grab_finished()
-	signal val_changed(new_val: float)
 	
 	var min_val: float = .0
 	var max_val: float = 100.0
@@ -52,9 +53,13 @@ class SliderController extends Control:
 			curr_val = clamp(val, min_val, max_val)
 			queue_redraw()
 	
+	var rounded_corners: bool
 	var bg_color: Color
 	var fill_color: Color
-	var grabber_main_color: Color
+	var grabber_main_color: Color:
+		set(val):
+			grabber_main_color = val
+			grabber_display_color = val
 	var grabber_main_radius: float = 10.0
 	var grabber_drag_radius: float = 13.0
 	
@@ -112,9 +117,10 @@ class SliderController extends Control:
 		
 		# Draw BG
 		draw_rect(Rect2(Vector2.ZERO, size), bg_color)
-		draw_circle(Vector2(size.x, half_y_size), half_y_size, bg_color)
 		draw_rect(Rect2(Vector2.ZERO, Vector2(grabber_display_pos, size.y)), fill_color)
-		draw_circle(Vector2(.0, half_y_size), half_y_size, fill_color)
+		if rounded_corners:
+			draw_circle(Vector2(size.x, half_y_size), half_y_size, bg_color)
+			draw_circle(Vector2(.0, half_y_size), half_y_size, fill_color)
 		
 		# Draw Grabber
 		draw_circle(grabber_pos, grabber_display_radius, grabber_display_color, true, -1, true)

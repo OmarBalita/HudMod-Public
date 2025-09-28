@@ -70,19 +70,16 @@ func _init(init_points: PackedVector2Array = [], init_drawn_entities: Array[Draw
 	points_changed.connect(on_points_changed)
 
 
-func _get_exported_parameters() -> Dictionary[String, Dictionary]:
+
+func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
 	var line_cond = [get_draw_line, [true]]
-	
 	var display_container = _get_drawing_res_display_viewport_container()
-	
-	var is_brush_exported_parameters: Dictionary[String, Dictionary]
-	
+	var is_brush_exported_parameters: Dictionary[StringName, Dictionary]
 	if is_brush:
 		is_brush_exported_parameters = {
 			"display": {'val': display_container, 'update_func': display_container.get_meta('update_func'), 'ui_cond': []},
 			"brush_name": CtrlrHelper.get_string_controller_args([], brush_name),
 		}
-	
 	return is_brush_exported_parameters.merged({
 		"drawn_entities": CtrlrHelper.get_list_controller_args([], drawn_entities, ["DrawnEntityRes"]),
 		
@@ -110,7 +107,7 @@ func _get_exported_parameters() -> Dictionary[String, Dictionary]:
 
 
 func _get_drawing_res_display_viewport_container() -> SubViewportContainer:
-	var viewport_container = InterfaceServer.create_viewport_container({stretch = true, custom_minimum_size = Vector2(0, 80.0)})
+	var viewport_container = IS.create_viewport_container({stretch = true, custom_minimum_size = Vector2(0, 80.0)})
 	var viewport = SubViewport.new()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	
@@ -376,9 +373,7 @@ func on_points_changed() -> void:
 
 
 func get_brush_thumbnail_path() -> String:
-	var dir_path = ProjectServer.project_path + "draw/brushes/"
-	DirAccess.make_dir_recursive_absolute(dir_path)
-	return dir_path + brush_name + ".jpeg"
+	return ProjectServer.brush_thumbnails_path + "/" + brush_name + ".jpeg"
 
 
 

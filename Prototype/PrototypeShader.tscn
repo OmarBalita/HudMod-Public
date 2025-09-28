@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://3ovsm84qqal0"]
+
+[ext_resource type="Script" uid="uid://d0s5h88ja382s" path="res://Prototype/PrototypeShader.gd" id="1_sv8pf"]
+
+[node name="PrototypeShader" type="Node"]
+script = ExtResource("1_sv8pf")

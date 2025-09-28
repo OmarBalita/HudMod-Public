@@ -11,3 +11,9 @@ func _ready() -> void:
 func _draw() -> void:
 	var h_count = int(size.x / (control_size.x + get_theme_constant("h_separation")))
 	columns = h_count
+
+func get_control_size() -> Vector2:
+	return control_size
+
+func set_control_size(new_control_size: Vector2) -> void:
+	control_size = new_control_size

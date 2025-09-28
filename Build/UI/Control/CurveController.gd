@@ -124,7 +124,7 @@ func _draw() -> void:
 
 func draw_grid() -> void:
 	
-	var font = InterfaceServer.LABEL_SETTINGS_MAIN.font
+	var font = IS.LABEL_SETTINGS_MAIN.font
 	var x_timemark_length = Vector2(0, 10)
 	var y_timemark_length = Vector2(10, 0)
 	

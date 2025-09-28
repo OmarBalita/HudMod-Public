@@ -42,6 +42,9 @@ const TEXTURE_DOWN = preload("res://Asset/Icons/down.png")
 const TEXTURE_TOGGLE_BUTTON_CHECKED = preload("res://Asset/Icons/toggle-button.png")
 const TEXTURE_TOGGLE_BUTTON_UNCHECKED = preload("res://Asset/Icons/toggle-button2.png")
 
+var STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
+var STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
+
 # Create modern styles programmatically
 var STYLE_BOX_EMPTY: StyleBoxEmpty
 var STYLE_PANEL: StyleBoxFlat
@@ -59,6 +62,7 @@ var STYLE_V_LINE: StyleBoxLine
 var STYLE_TIMELINE: StyleBoxFlat
 var STYLE_CLIP_CONTAINER: StyleBoxFlat
 var STYLE_WHITE = load("res://UI&UX/StyleWhite.tres")
+
 
 
 
@@ -464,6 +468,18 @@ func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: 
 	return bar
 
 
+func create_category(has_header: bool, category_name: StringName, custom_color: Color = Color.BLACK, content_size: Vector2 = Vector2(32, 32), more: Dictionary = {}) -> Category:
+	var category = Category.new()
+	set_base_settings(category)
+	category.add_theme_stylebox_override("bg", STYLE_BODY)
+	category.collapsed = true
+	category.vertical = true
+	category.has_header = has_header
+	category.category_name = category_name
+	category.category_custom_color = custom_color
+	category.content_control_size = content_size
+	ObjectServer.describe(category, more)
+	return category
 
 
 
@@ -471,8 +487,7 @@ func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: 
 
 
 
-
-func create_menu(options: Array[MenuOption], is_vertical: bool = false, more: Dictionary = {}) -> Menu:
+func create_menu(options: Array, is_vertical: bool = false, more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
 	menu.options = options
 	menu.is_vertical = is_vertical
@@ -481,28 +496,28 @@ func create_menu(options: Array[MenuOption], is_vertical: bool = false, more: Di
 
 func create_popuped_text(text: String = "", more: Dictionary = {}) -> PopupedText:
 	var pop_text = PopupedText.new()
-	set_base_panel_settings(pop_text, InterfaceServer.STYLE_BODY)
+	set_base_panel_settings(pop_text, IS.STYLE_BODY)
 	pop_text.text = text
 	ObjectServer.describe(pop_text, more)
 	return pop_text
 
 func create_popuped_menu(options: Array, more: Dictionary = {}) -> PopupedMenu:
 	var pop_menu = PopupedMenu.new()
-	set_base_panel_settings(pop_menu, InterfaceServer.STYLE_BODY)
+	set_base_panel_settings(pop_menu, IS.STYLE_BODY)
 	pop_menu.options = options
 	ObjectServer.describe(pop_menu, more)
 	return pop_menu
 
 func create_popuped_color_controller(main_color: Color, more: Dictionary = {}) -> PopupedColorController:
 	var pop_color_controller = PopupedColorController.new()
-	set_base_panel_settings(pop_color_controller, InterfaceServer.STYLE_BODY)
+	set_base_panel_settings(pop_color_controller, IS.STYLE_BODY)
 	pop_color_controller.curr_color = main_color
 	ObjectServer.describe(pop_color_controller, more)
 	return pop_color_controller
 
 func create_popuped_box(elements: Array, more: Dictionary = {}) -> PopupedBox:
 	var pop_box = PopupedBox.new()
-	set_base_panel_settings(pop_box, InterfaceServer.STYLE_BODY)
+	set_base_panel_settings(pop_box, IS.STYLE_BODY)
 	pop_box.elements = elements
 	ObjectServer.describe(pop_box, more)
 	return pop_box
@@ -537,7 +552,7 @@ func popup_box(elements: Array, pop_from = null, pop_in = null, min_size: Vector
 # Values Controllers for Modern Video Editor
 
 func create_option_controller(options_info: Array[Dictionary], save_path: String = "", default_id: int = 0, accent: bool = false, more: Dictionary = {}) -> OptionController:
-	var option_controller = OptionController.new()
+	var option_controller:= OptionController.new()
 	set_base_settings(option_controller)
 	
 	if accent: set_button_style(option_controller, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT)
@@ -552,7 +567,7 @@ func create_option_controller(options_info: Array[Dictionary], save_path: String
 	return option_controller
 
 func create_check_button(is_checked: bool = false, more: Dictionary = {}) -> CheckButton:
-	var check_button = CheckButton.new()
+	var check_button:= CheckButton.new()
 	set_base_settings(check_button)
 	set_button_style(check_button, STYLE_BOX_EMPTY)
 	check_button.add_theme_icon_override("checked", TEXTURE_TOGGLE_BUTTON_CHECKED)
@@ -562,7 +577,7 @@ func create_check_button(is_checked: bool = false, more: Dictionary = {}) -> Che
 	return check_button
 
 func create_line_edit(placeholder: String = "", text: String = "", right_icon: Texture2D = null, more: Dictionary = {size_flags_horizontal = Control.SIZE_EXPAND_FILL}) -> LineEdit:
-	var line_edit = LineEdit.new()
+	var line_edit:= LineEdit.new()
 	set_base_settings(line_edit)
 	line_edit.add_theme_color_override("selection_color", COLOR_SELECTION)
 	line_edit.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
@@ -577,7 +592,7 @@ func create_line_edit(placeholder: String = "", text: String = "", right_icon: T
 	return line_edit
 
 func create_text_edit(placeholder: String = "", text: String = "", more: Dictionary = {}) -> TextEdit:
-	var text_edit = TextEdit.new()
+	var text_edit:= TextEdit.new()
 	set_base_settings(text_edit)
 	text_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
 	text_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
@@ -589,7 +604,7 @@ func create_text_edit(placeholder: String = "", text: String = "", more: Diction
 	return text_edit
 
 func create_slider_control(curr_val: float, min_val: float, max_val: float, step: float, left_texture: Texture2D = null, right_texture: Texture2D = null, more: Dictionary = {}) -> SliderControl:
-	var slider_control = SliderControl.new()
+	var slider_control:= SliderControl.new()
 	var slider_controller = slider_control.slider_controller
 	set_base_settings(slider_control)
 	slider_control.custom_minimum_size.x = 200.0
@@ -603,9 +618,9 @@ func create_slider_control(curr_val: float, min_val: float, max_val: float, step
 	return slider_control
 
 func create_float_controller(curr_val: float, min_val: float, max_val: float, step: float, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, more: Dictionary = {}) -> FloatController:
-	var float_controller = FloatController.new()
+	var float_controller:= FloatController.new()
 	set_base_settings(float_controller)
-	InterfaceServer.set_button_style(float_controller, STYLE_BUTTON)
+	IS.set_button_style(float_controller, STYLE_BUTTON)
 	float_controller.texture_right = TEXTURE_RIGHT
 	float_controller.min_val = min_val
 	float_controller.max_val = max_val
@@ -617,8 +632,14 @@ func create_float_controller(curr_val: float, min_val: float, max_val: float, st
 	ObjectServer.describe(float_controller, more)
 	return float_controller
 
+func create_vec2_controller(curr_val: Vector2, more: Dictionary = {}) -> Vector2Controller:
+	var vec2_controller:= Vector2Controller.new()
+	vec2_controller.curr_val = curr_val
+	ObjectServer.describe(vec2_controller, more)
+	return vec2_controller
+
 func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
-	var color_button = ColorButton.new()
+	var color_button:= ColorButton.new()
 	set_base_settings(color_button)
 	set_button_style(color_button, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
 	color_button.curr_color = color
@@ -727,6 +748,14 @@ func create_float_edit(name: String, use_slider: bool, use_spinbox: bool, curr_v
 	
 	return [slider_control, float_control]
 
+func create_vec2_edit(name: String, curr_val: Vector2, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
+	var box:= create_edit_box(name, min_size, false, name_alignment)
+	var vec2_controller:= create_vec2_controller(curr_val)
+	expand(vec2_controller)
+	box.add_child(vec2_controller)
+	connect_controller_to_edit_box(box, vec2_controller, func() -> void: vec2_controller.val_changed.connect(box.set_curr_val), "set_curr_val")
+	return [vec2_controller]
+
 func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box = create_edit_box(name, min_size, false, name_alignment)
 	var color_button = create_color_button(color)
@@ -791,15 +820,21 @@ func create_layer(id: int, min_size: Vector2, color: Color, more: Dictionary = {
 	return layer
 
 
-func create_clip_base_control(style: StyleBox, child_control: Control) -> Control:
+func create_clip_base_control(style: StyleBox, child_control: Control = null) -> Control:
 	var bg_panel = create_panel_container(Vector2.ZERO, style)
 	var margin_container = create_margin_container(4,4,4,4)
 	var control = create_empty_control(.0, .0, {clip_contents = true})
-	control.add_child(child_control)
+	if child_control:
+		control.add_child(child_control)
 	margin_container.add_child(control)
 	bg_panel.add_child(margin_container)
 	bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return bg_panel
+
+func create_clip_basic_control(name: String, style: StyleBox) -> Control:
+	var name_label = create_name_label(name)
+	name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return create_clip_base_control(style, name_label)
 
 
 func create_clip_image_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
@@ -824,14 +859,14 @@ func create_clip_video_control(clip_res: MediaClipRes, style: StyleBox) -> Contr
 	var hbox_container = create_box_container(5, false, {})
 	
 	var name_label = create_name_label(video_path.get_file())
-	var video_texture_rect = create_texture_rect(MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.thumbnails_path))
+	var video_texture_rect = create_texture_rect(MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.explorer_thumbnails_path))
 	
 	hbox_container.add_child(video_texture_rect)
 	hbox_container.add_child(name_label)
 	vsplit_container.add_child(hbox_container)
 	
 	if await MediaServer.is_stream_has_audio(video_path):
-		var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(video_path, ProjectServer.fortimeline_path, "224d29", false), {})
+		var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(video_path, ProjectServer.timeline_thumbnails_path, "224d29", false), {})
 		
 		wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
@@ -847,7 +882,7 @@ func create_clip_audio_control(clip_res: MediaClipRes, style: StyleBox) -> Contr
 	var audio_path = clip_res.media_resource_path
 	
 	var name_label = create_name_label(audio_path.get_file())
-	var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.fortimeline_path, "20394d", false), {})
+	var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.timeline_thumbnails_path, "20394d", false), {})
 	
 	expand(name_label, true)
 	wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -898,14 +933,13 @@ func create_status_label(text: String, status_type: String = "normal") -> Label:
 
 
 
-
-
-
 func add_childs(parent: Node, childs: Array[Node]) -> void:
 	for node: Node in childs:
 		parent.add_child(node)
 
-
+func clear_children(parent: Node) -> void:
+	for child in parent.get_children():
+		child.queue_free()
 
 
 

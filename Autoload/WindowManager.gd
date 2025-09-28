@@ -4,9 +4,9 @@ extends Node
 func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), window_title:= "Window") -> MarginContainer:
 	
 	var window = Window.new()
-	var margin = InterfaceServer.create_margin_container()
-	var panel = InterfaceServer.create_panel_container(Vector2.ZERO, InterfaceServer.STYLE_BODY)
-	var margin2 = InterfaceServer.create_margin_container()
+	var margin = IS.create_margin_container()
+	var panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY)
+	var margin2 = IS.create_margin_container()
 	
 	var processing_rect = create_processing_rect()
 	
@@ -36,10 +36,10 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	
 	var window_container = WindowManager.popup_window(processing_node, window_size, window_title)
 	
-	var box = InterfaceServer.create_box_container(10, true)
-	var accept_box = InterfaceServer.create_box_container()
-	var accept_button = InterfaceServer.create_button("Accept", null, true, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var cancel_button = InterfaceServer.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var box = IS.create_box_container(10, true)
+	var accept_box = IS.create_box_container()
+	var accept_button = IS.create_button("Accept", null, true, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var cancel_button = IS.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	if accept_pressed != null: accept_button.pressed.connect(accept_pressed)
 	if cancel_pressed != null: cancel_button.pressed.connect(cancel_pressed)
 	accept_button.pressed.connect(emit_close_window.bind(window_container.get_window()))

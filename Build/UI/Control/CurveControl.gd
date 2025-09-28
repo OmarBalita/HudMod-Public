@@ -2,10 +2,10 @@ class_name CurveControl extends PanelContainer
 
 
 func _ready() -> void:
-	var margin = InterfaceServer.create_margin_container()
-	var box = InterfaceServer.create_box_container()
+	var margin = IS.create_margin_container()
+	var box = IS.create_box_container()
 	
-	var preset_options = InterfaceServer.create_option_controller([
+	var preset_options = IS.create_option_controller([
 		{text = "Linear"},
 		{text = "Constant"},
 		{text = "Ease In"},
@@ -13,7 +13,7 @@ func _ready() -> void:
 		{text = "Smoothstep"}
 	], "")
 	var curve_controller = CurveController.new()
-	InterfaceServer.expand(curve_controller)
+	IS.expand(curve_controller)
 	
 	box.add_child(curve_controller)
 	

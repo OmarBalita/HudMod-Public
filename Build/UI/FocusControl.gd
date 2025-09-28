@@ -93,7 +93,7 @@ func set_is_focus(focus: bool) -> void:
 # ---------------------------------------------------
 
 func _ready() -> void:
-	focus_color = InterfaceServer.STYLE_ACCENT.bg_color
+	focus_color = IS.STYLE_ACCENT.bg_color
 	
 	# Connections
 	if mouse_entering_calculation:

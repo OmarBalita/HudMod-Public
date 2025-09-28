@@ -9,13 +9,13 @@ var color_edit: ColorButton
 
 func _ready() -> void:
 	
-	var margin = InterfaceServer.create_margin_container()
-	var box = InterfaceServer.create_box_container(16, true)
+	var margin = IS.create_margin_container()
+	var box = IS.create_box_container(16, true)
 	
 	color_range_controller.custom_minimum_size.y = 20.0
 	
-	xpos_edit = InterfaceServer.create_float_edit("Key Position", false, true, .0, .0, 1.0, .001)[1]
-	color_edit = InterfaceServer.create_color_edit("Key Color", Color.BLACK)[0]
+	xpos_edit = IS.create_float_edit("Key Position", false, true, .0, .0, 1.0, .001)[1]
+	color_edit = IS.create_color_edit("Key Color", Color.BLACK)[0]
 	
 	color_range_controller.selected_key_changed.connect(on_selected_key_changed)
 	xpos_edit.val_changed.connect(on_xpos_edit_val_changed)

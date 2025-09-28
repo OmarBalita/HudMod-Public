@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://clqh4uu3cbsck"]
+[gd_scene load_steps=10 format=3 uid="uid://clqh4uu3cbsck"]
 
 [ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
 [ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://dmyeub87vo8t3" path="res://Asset/Icons/toggle-button2.png" id="5_kahc7"]
 [ext_resource type="Script" uid="uid://m3nuhukc6hqg" path="res://Build/UI/Control/ColorRangeControl.gd" id="6_kahc7"]
 [ext_resource type="Script" uid="uid://b35nbh45vdmu1" path="res://Build/UI/Control/ListController.gd" id="7_ltaws"]
+[ext_resource type="Script" uid="uid://dktjq6inks82g" path="res://Build/UI/Category.gd" id="8_uqked"]
 
 [sub_resource type="GDScript" id="GDScript_kahc7"]
 script/source = "extends Control
@@ -209,7 +210,16 @@ layout_mode = 2
 script = ExtResource("6_kahc7")
 
 [node name="ListController" type="PanelContainer" parent="CenterContainer"]
+visible = false
 custom_minimum_size = Vector2(450, 300)
 layout_mode = 2
 script = ExtResource("7_ltaws")
 metadata/_custom_type_script = "uid://b35nbh45vdmu1"
+
+[node name="Category" type="SplitContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+collapsed = true
+dragger_visibility = 2
+vertical = true
+script = ExtResource("8_uqked")

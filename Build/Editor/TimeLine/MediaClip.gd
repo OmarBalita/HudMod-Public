@@ -49,7 +49,7 @@ func _ready() -> void:
 	super()
 	
 	# Base
-	InterfaceServer.set_base_settings(self)
+	IS.set_base_settings(self)
 	clip_contents = true
 	
 	# Media Clip Setup
@@ -59,7 +59,7 @@ func _ready() -> void:
 		selection_group.add_object(id_key, self, get_metadata())
 	
 	# Focus Panel
-	focus_panel = InterfaceServer.create_panel_container(Vector2.ZERO, focus_style, {visible = false})
+	focus_panel = IS.create_panel_container(Vector2.ZERO, focus_style, {visible = false})
 	focus_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(focus_panel)
 	
@@ -69,7 +69,7 @@ func _ready() -> void:
 	l_expand_button = Button.new()
 	l_expand_button.custom_minimum_size = Vector2(10, size.y)
 	l_expand_button.mouse_filter = Control.MOUSE_FILTER_PASS
-	InterfaceServer.set_button_style(l_expand_button, expand_button_style)
+	IS.set_button_style(l_expand_button, expand_button_style)
 	r_expand_button = l_expand_button.duplicate()
 	add_child(l_expand_button)
 	add_child(r_expand_button)
@@ -199,17 +199,12 @@ func edit(emit_changes: bool = true) -> void:
 
 func popup_context_menu() -> void:
 	
-	var menu = InterfaceServer.create_popuped_menu([
+	var menu = IS.create_popuped_menu([
 		MenuOption.new("Cut"), MenuOption.new("Copy"), MenuOption.new("Duplicate"), MenuOption.new("Remove"), MenuOption.new_line(),
-		
 		MenuOption.new("Group"), MenuOption.new("UnGroup"), MenuOption.new_line(),
-		
 		MenuOption.new("Reparent"), MenuOption.new("Parent Up"), MenuOption.new("Clear Parents"), MenuOption.new_line(),
-		
 		MenuOption.new("Replace Media"), MenuOption.new("Reverse Clip"), MenuOption.new("Extract Audio"), MenuOption.new_line(),
-		
 		MenuOption.new("Go Inside"), MenuOption.new("Open Graph Editor"), MenuOption.new_line(),
-		
 		MenuOption.new("Render Clip/s"), MenuOption.new("Save Clip/s as"), MenuOption.new("Save as Global Preset"), MenuOption.new("Save as Project Preset")
 	])
 	get_tree().get_current_scene().add_child(menu)
@@ -296,8 +291,6 @@ func on_drag_finished() -> void:
 	if target_layer_index == -1:
 		ProjectServer.media_clips_changed.emit()
 		return
-	
-	print(selection_group.selected_objects)
 	
 	ProjectServer.move_media_clips(
 		selection_group.get_selected_meta(),

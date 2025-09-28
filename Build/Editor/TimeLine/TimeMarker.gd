@@ -24,7 +24,7 @@ func _init() -> void:
 func _ready() -> void:
 	super()
 	# Set Base Settings
-	InterfaceServer.set_base_settings(self)
+	IS.set_base_settings(self)
 	# Connections
 	#selected.connect(on_selected)
 	mouse_entered.connect(on_mouse_entered)
@@ -50,7 +50,7 @@ func on_mouse_entered() -> void:
 	await get_tree().create_timer(.5).timeout
 	if is_focus and not popuped_text:
 		var _text = "Custom Name: " + time_marker_res.custom_name + "\nCustom Description: " + time_marker_res.custom_description
-		popuped_text = InterfaceServer.create_popuped_text(_text)
+		popuped_text = IS.create_popuped_text(_text)
 		popuped_text.popdown_when_mouse_move = false
 		get_tree().get_current_scene().add_child(popuped_text)
 		popuped_text.popup(global_position + Vector2(0, size.y))
@@ -65,7 +65,7 @@ func on_mouse_exited() -> void:
 func on_selected() -> void:
 	var color_options: Array[MenuOption]
 	
-	var colors = InterfaceServer.RAINBOW_COLORS
+	var colors = IS.RAINBOW_COLORS
 	for color: Color in colors:
 		var option = MenuOption.new("", texture_marker)
 		option.set_meta("modulate", color)
@@ -74,12 +74,12 @@ func on_selected() -> void:
 	
 	var custom_color_index = colors.find(time_marker_res.custom_color)
 	
-	var name_line = InterfaceServer.create_line_edit("Custom Name", time_marker_res.custom_name, null, {max_length = 24})
-	var color_menu = InterfaceServer.create_menu(color_options, false, {custom_minimum_size = Vector2(0, 40)})
-	var description_edit = InterfaceServer.create_text_edit_edit("Custom Description", time_marker_res.custom_description)[0]
+	var name_line = IS.create_line_edit("Custom Name", time_marker_res.custom_name, null, {max_length = 24})
+	var color_menu = IS.create_menu(color_options, false, {custom_minimum_size = Vector2(0, 40)})
+	var description_edit = IS.create_text_edit_edit("Custom Description", time_marker_res.custom_description)[0]
 	
 	color_menu.focus_index = custom_color_index
-	InterfaceServer.expand(description_edit, true, true)
+	IS.expand(description_edit, true, true)
 	
 	var marker_window = WindowManager.popup_accept_window(
 		get_tree().get_current_scene(),

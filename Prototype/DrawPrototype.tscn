@@ -1,91 +1,34 @@
-[gd_scene load_steps=19 format=3 uid="uid://oridk17j24yo"]
+[gd_scene load_steps=4 format=3 uid="uid://oridk17j24yo"]
 
 [ext_resource type="Script" uid="uid://c2ejkss1jnbne" path="res://Build/Object/Draw.gd" id="1_es7rl"]
 [ext_resource type="Script" uid="uid://0ls4kucvr2wj" path="res://Build/Editor/Player/DrawEditor.gd" id="2_es7rl"]
-[ext_resource type="Script" uid="uid://cv1f6q4sf0u7v" path="res://Build/Res/UsableRes/DrawingRes.gd" id="3_wsek5"]
-[ext_resource type="Script" uid="uid://cjh0ymaritsa6" path="res://Build/Res/UsableRes/DrawnEntityRes.gd" id="4_5vqld"]
-[ext_resource type="Texture2D" uid="uid://hf05cj45xyng" path="res://Asset/Icons/world-origin.png" id="4_8jr6f"]
 [ext_resource type="Script" uid="uid://t8jg61bvq0k0" path="res://Build/Editor/Player/DrawEditorControl.gd" id="5_7sxuu"]
-[ext_resource type="Texture2D" uid="uid://cls358lwokmri" path="res://Asset/Icons/center-origin.png" id="5_7xka8"]
-[ext_resource type="Texture2D" uid="uid://dd32v4thogmvk" path="res://Asset/Icons/individual-origin.png" id="6_ll0kd"]
-[ext_resource type="Texture2D" uid="uid://dsa3sadeylxbf" path="res://Asset/Icons/points.png" id="7_ll0kd"]
-[ext_resource type="Texture2D" uid="uid://cw2jwk6ioenbt" path="res://Asset/Icons/matic.png" id="8_qldm4"]
-[ext_resource type="Texture2D" uid="uid://bmnnrdgm6smq6" path="res://Asset/Icons/pen.png" id="9_odr4c"]
-[ext_resource type="Texture2D" uid="uid://bcw0cx44gmfdv" path="res://Asset/Icons/zigzag-moustache.png" id="10_5vqld"]
-[ext_resource type="Texture2D" uid="uid://dwyb43y5kxqiv" path="res://Asset/Icons/eraser.png" id="11_7sxuu"]
-[ext_resource type="Texture2D" uid="uid://bu1leud5bdrlb" path="res://Asset/Icons/fill.png" id="12_v40kd"]
-[ext_resource type="Texture2D" uid="uid://cwr825mscur7c" path="res://Asset/Icons/tear.png" id="13_lotjy"]
-
-[sub_resource type="Resource" id="Resource_7sxuu"]
-script = ExtResource("4_5vqld")
-type = 0
-offset = Vector2(0, 0)
-distance_mode = 0
-distance = 1
-from = 0.0
-to = 1.0
-use_custom = false
-custom_width = 5.0
-custom_color = Color(1, 1, 1, 1)
-custom_antialized = true
-dash_scale = 2.0
-filled = true
-width_scale = 1.0
-rect_size = Vector2(1, 1)
-circle_radius = 3.0
-arc_start_angle = 0.0
-arc_end_angle = 6.28319
-arc_points_count = 8
-position = Vector2(0, 0)
-rotation = 0.0
-scale = Vector2(0, 0)
-skew = 0.0
-metadata/_custom_type_script = "uid://cjh0ymaritsa6"
-
-[sub_resource type="Curve" id="Curve_7sxuu"]
-_data = [Vector2(0, 0.146068), 0.0, 2.84719, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
-
-[sub_resource type="Resource" id="Resource_v40kd"]
-script = ExtResource("3_wsek5")
-points = PackedVector2Array()
-drawn_entities = Array[ExtResource("4_5vqld")]([SubResource("Resource_7sxuu")])
-draw_line = true
-draw_fill = false
-antialised = true
-color_line = Color(1, 1, 1, 1)
-color_fill = Color(0.745098, 0.745098, 0.745098, 1)
-use_color_range = false
-strength = 1.0
-main_width = 5.0
-width_curve_range_type = 0
-width_begin_curve = SubResource("Curve_7sxuu")
-width_end_curve = SubResource("Curve_7sxuu")
-baked_width = Array[float]([])
-is_width_free = false
-width_begin_dist = 60.0
-width_end_dist = 60.0
-cap_begin_type = 0
-cap_end_type = 0
-cap_begin_scale = 1.0
-cap_end_scale = 1.0
-is_brush = true
-brush_name = "Main Brush"
-metadata/_custom_type_script = "uid://cv1f6q4sf0u7v"
 
 [node name="DrawPrototype" type="Node"]
 
-[node name="GDDraw" type="Node2D" parent="."]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(1382, 778)
+render_target_update_mode = 4
+
+[node name="GDDraw" type="Node2D" parent="SubViewportContainer/SubViewport"]
 script = ExtResource("1_es7rl")
 metadata/_custom_type_script = "uid://c2ejkss1jnbne"
 
-[node name="DrawEdit" type="Node2D" parent="." node_paths=PackedStringArray("draw_node")]
+[node name="DrawEdit" type="Node2D" parent="SubViewportContainer/SubViewport" node_paths=PackedStringArray("draw_node")]
 rotation = 0.00124382
 script = ExtResource("2_es7rl")
 draw_node = NodePath("../GDDraw")
-brushes = Array[ExtResource("3_wsek5")]([SubResource("Resource_v40kd")])
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport"]
 anchor_mode = 0
 
 [node name="Control" type="Control" parent="." node_paths=PackedStringArray("draw_edit")]
@@ -96,14 +39,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_7sxuu")
-draw_edit = NodePath("../DrawEdit")
-texture_world_origin = ExtResource("4_8jr6f")
-texture_median_point = ExtResource("5_7xka8")
-texture_individual_origins = ExtResource("6_ll0kd")
-texture_point = ExtResource("7_ll0kd")
-texture_line = ExtResource("8_qldm4")
-texture_pen = ExtResource("9_odr4c")
-texture_pointing = ExtResource("10_5vqld")
-texture_erase = ExtResource("11_7sxuu")
-texture_fill = ExtResource("12_v40kd")
-texture_shaping = ExtResource("13_lotjy")
+enabled = true
+draw_edit = NodePath("../SubViewportContainer/SubViewport/DrawEdit")

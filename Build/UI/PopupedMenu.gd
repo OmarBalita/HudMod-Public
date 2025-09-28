@@ -18,7 +18,7 @@ var curr_pos: int:
 		update_cursor()
 
 
-var options_box:= InterfaceServer.create_box_container(0, true)
+var options_box:= IS.create_box_container(0, true)
 var cursor_rect: Panel
 
 var forwarded: PopupedMenu
@@ -62,7 +62,7 @@ func _input(event: InputEvent) -> void:
 func _setup() -> void:
 	
 	# Spawn Options
-	var margin_container = InterfaceServer.create_margin_container()
+	var margin_container = IS.create_margin_container()
 	
 	for index: int in options.size():
 		var option = options[index]
@@ -71,16 +71,16 @@ func _setup() -> void:
 			continue
 		
 		if option.is_separation_line:
-			var separation_line = InterfaceServer.create_h_line_panel(1)
+			var separation_line = IS.create_h_line_panel(1)
 			options_box.add_child(separation_line)
 		else:
 			
 			var check_group = option.check_group
-			var option_box = InterfaceServer.create_box_container()
-			var button = InterfaceServer.create_button(option.text, option.icon)
+			var option_box = IS.create_box_container()
+			var button = IS.create_button(option.text, option.icon)
 			
 			if check_group and check_group.checked_index == index:
-				var color_rect = InterfaceServer.create_color_rect(Color.RED)
+				var color_rect = IS.create_color_rect(Color.RED)
 				color_rect.custom_minimum_size.x = 10.0
 				option_box.add_child(color_rect)
 			
@@ -91,7 +91,7 @@ func _setup() -> void:
 			
 			options_box.add_child(option_box)
 	
-	cursor_rect = InterfaceServer.create_panel()
+	cursor_rect = IS.create_panel()
 	add_child(cursor_rect)
 	
 	margin_container.add_child(options_box)

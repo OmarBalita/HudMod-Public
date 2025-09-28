@@ -47,7 +47,7 @@ enum DrawModes {
 		draw_mode = clamp(val, 0, DrawModes.size())
 		queue_redraw()
 
-@export var brushes: Array[GDDrawingRes]
+@export var brushes: Array[GDDrawingRes] = [ResourceLoader.load("res://Resources/MainBrush.tres")]
 @export var curr_brush_index: int
 @export var pen_is_stabilize: bool = true
 @export_range(.0, 100.0) var stiffness: float = 4.0
@@ -132,19 +132,80 @@ var points_multimesh_instance:= MultiMeshInstance2D.new()
 
 
 
-
+func _init() -> void:
+	set_z_index(4096)
 
 func _ready() -> void:
 	# points_multimesh_instance Setup
 	add_child(points_multimesh_instance)
 
-func _input(event: InputEvent) -> void:
+
+
+func _draw() -> void:
+	
+	# Theme Colors
+	var color_normal = IS.COLOR_NORMAL
+	var color_accent = IS.COLOR_ACCENT_BLUE
+	
+	var mouse_pos = get_local_mouse_position()
+	var rect_size = Vector2(24, 24)
+	var rect = Rect2(mouse_pos, rect_size)
+	
+	if editor_mode == 0:
+		
+		if is_shape_started:
+			draw_a_to_b_line(shape_start_pos, mouse_pos, color_normal, color_accent)
+		
+		match draw_mode:
+			0:
+				rect.position.y -= rect_size.y
+				draw_texture_rect(texture_draw, rect, false, color_normal)
+			1, 4:
+				rect.position -= rect_size / 2.0
+				draw_texture_rect(texture_cursor, rect, false, color_normal)
+			2:
+				draw_circle(mouse_pos, eraser_scale, Color.INDIAN_RED, false, 1.0, true)
+			3:
+				rect.position -= rect_size
+				draw_texture_rect(texture_fill, rect, false, color_normal)
+	else:
+		
+		var center_point = Vector2.ZERO if center_type == 0 else selected_points_center
+		var viewport_size = get_viewport_rect().size
+		
+		if is_editing:
+			if get_x_editing(): draw_line(Vector2(0, center_point.y), Vector2(viewport_size.x, center_point.y), Color(Color.RED, .5), 3.0)
+			if get_y_editing(): draw_line(Vector2(center_point.x, 0), Vector2(center_point.x, viewport_size.y), Color(Color.GREEN, .5), 3.0)
+		
+		match is_editing:
+			0 when select_start_pos != null:
+					# Draw Custom SelectionBox
+					var to_x_pos = Vector2(mouse_pos.x, select_start_pos.y)
+					var to_y_pos = Vector2(select_start_pos.x, mouse_pos.y)
+					var selection_box_rect = Rect2(select_start_pos, mouse_pos - select_start_pos)
+					
+					draw_rect(selection_box_rect, Color(color_accent, .5))
+					draw_dashed_line(select_start_pos, to_x_pos, color_accent, 2.0, 10.0)
+					draw_dashed_line(to_x_pos, mouse_pos, color_accent, 2.0, 10.0)
+					draw_dashed_line(mouse_pos, to_y_pos, color_accent, 2.0, 10.0)
+					draw_dashed_line(to_y_pos, select_start_pos, color_accent, 2.0, 10.0)
+			3:
+				draw_a_to_b_line(center_point, mouse_pos, color_normal, color_accent)
+
+
+func draw_a_to_b_line(a: Vector2, b: Vector2, dashed_line_color: Color, circle_color: Color) -> void:
+	draw_dashed_line(a, b, dashed_line_color, 2.0, 10.0)
+	draw_circle(a, 5.0, circle_color, true, -1.0, true)
+	draw_circle(b, 5.0, circle_color, true, -1.0, true)
+
+
+func push_input(event: InputEvent) -> void:
 	
 	if not enabled: return
 	
 	if event is InputEventMouse:
 		
-		var mouse_pos = get_global_mouse_position()
+		var mouse_pos = get_local_mouse_position()
 		var mouse_pos_snapped = mouse_pos
 		if snap_grid: mouse_pos_snapped = snapped(mouse_pos, Vector2(grid_size, grid_size))
 		
@@ -211,65 +272,6 @@ func _input(event: InputEvent) -> void:
 		queue_redraw()
 
 
-
-
-func _draw() -> void:
-	
-	# Theme Colors
-	var color_normal = InterfaceServer.COLOR_NORMAL
-	var color_accent = InterfaceServer.COLOR_ACCENT_BLUE
-	
-	var mouse_pos = get_global_mouse_position()
-	var rect_size = Vector2(24, 24)
-	var rect = Rect2(mouse_pos, rect_size)
-	
-	if editor_mode == 0:
-		
-		if is_shape_started:
-			draw_a_to_b_line(shape_start_pos, mouse_pos, color_normal, color_accent)
-		
-		match draw_mode:
-			0:
-				rect.position.y -= rect_size.y
-				draw_texture_rect(texture_draw, rect, false, color_normal)
-			1, 4:
-				rect.position -= rect_size / 2.0
-				draw_texture_rect(texture_cursor, rect, false, color_normal)
-			2:
-				draw_circle(mouse_pos, eraser_scale, Color.INDIAN_RED, false, 1.0, true)
-			3:
-				rect.position -= rect_size
-				draw_texture_rect(texture_fill, rect, false, color_normal)
-	else:
-		
-		var center_point = Vector2.ZERO if center_type == 0 else selected_points_center
-		var viewport_size = get_viewport_rect().size
-		
-		if is_editing:
-			if get_x_editing(): draw_line(Vector2(0, center_point.y), Vector2(viewport_size.x, center_point.y), Color(Color.RED, .5), 3.0)
-			if get_y_editing(): draw_line(Vector2(center_point.x, 0), Vector2(center_point.x, viewport_size.y), Color(Color.GREEN, .5), 3.0)
-		
-		match is_editing:
-			0 when select_start_pos != null:
-					# Draw Custom SelectionBox
-					var to_x_pos = Vector2(mouse_pos.x, select_start_pos.y)
-					var to_y_pos = Vector2(select_start_pos.x, mouse_pos.y)
-					var selection_box_rect = Rect2(select_start_pos, mouse_pos - select_start_pos)
-					
-					draw_rect(selection_box_rect, Color(color_accent, .5))
-					draw_dashed_line(select_start_pos, to_x_pos, color_accent, 2.0, 10.0)
-					draw_dashed_line(to_x_pos, mouse_pos, color_accent, 2.0, 10.0)
-					draw_dashed_line(mouse_pos, to_y_pos, color_accent, 2.0, 10.0)
-					draw_dashed_line(to_y_pos, select_start_pos, color_accent, 2.0, 10.0)
-			3:
-				draw_a_to_b_line(center_point, mouse_pos, color_normal, color_accent)
-
-
-
-func draw_a_to_b_line(a: Vector2, b: Vector2, dashed_line_color: Color, circle_color: Color) -> void:
-	draw_dashed_line(a, b, dashed_line_color, 2.0, 10.0)
-	draw_circle(a, 5.0, circle_color, true, -1.0, true)
-	draw_circle(b, 5.0, circle_color, true, -1.0, true)
 
 
 
@@ -653,16 +655,15 @@ func discard_editing(reset_axis: bool = false, reset_edit_val: bool = true, emit
 		edit_finished.emit()
 
 func process_editing(pos: Vector2 = Vector2.ZERO) -> void:
-	var time = Time.get_ticks_msec()
 	
 	var center_func: Callable = get_center_func()
 	
-	var curr_offset = pos - select_start_pos
+	var curr_offset: Vector2 = pos - select_start_pos
 	
-	var curr_rot_angle = (pos - selected_points_center).angle()
-	var angle_delta = rad_to_deg(curr_rot_angle - latest_rot_angle)
+	var curr_rot_angle: float = (pos - selected_points_center).angle()
+	var angle_delta: float = rad_to_deg(curr_rot_angle - latest_rot_angle)
 	
-	var curr_scale_dist = pos.distance_to(selected_points_center)
+	var curr_scale_dist: float = pos.distance_to(selected_points_center)
 	var scale_ratio: float = 1.0
 	if latest_scale_dist != .0:
 		scale_ratio = curr_scale_dist / latest_scale_dist
@@ -672,8 +673,8 @@ func process_editing(pos: Vector2 = Vector2.ZERO) -> void:
 		angle_delta = edit_value
 		scale_ratio = edit_value
 	
-	var is_x_editing = get_x_editing()
-	var is_y_editing = get_y_editing()
+	var is_x_editing: bool = get_x_editing()
+	var is_y_editing: bool = get_y_editing()
 	
 	match is_editing:
 		1: move_selected_points(curr_offset, is_x_editing, is_y_editing)
@@ -689,31 +690,30 @@ func process_editing(pos: Vector2 = Vector2.ZERO) -> void:
 	# C# - 18009 points - (avg : 238) (min : 215) (max : 268)
 	# GDScript Time_1 - 18009 points - (avg : 169) (min : 152) (max : 297)
 	# GDScript Time_2 (Multithreading) - 18009+ - (avg : 119) (min : 109) (max : 139)
-	print(Time.get_ticks_msec() - time)
 
 
 
 
 func move_selected_points(offset: Vector2, x: bool, y: bool) -> void:
 	loop_selected_points({}, null, func(d: GDDrawingRes, i: int, p: Vector2, c: Dictionary) -> void:
-		d.move_point(i, p + offset, x, y), Callable(), false
+		d.move_point(i, p + offset, x, y), Callable(), true
 	)
 
 func rotate_selected_points(angle: float, center_func: Callable) -> void:
 	loop_selected_points({}, null, func(d: GDDrawingRes, i: int, p: Vector2, c: Dictionary) -> void:
 		var center = center_func.call(d, i, p)
-		d.rotate_point(i, angle, center), Callable(), false
+		d.rotate_point(i, angle, center), Callable(), true
 	)
 
 func scale_selected_points(scale_time: float, center_func: Callable, x: bool, y: bool) -> void:
 	loop_selected_points({}, null, func(d: GDDrawingRes, i: int, p: Vector2, c: Dictionary) -> void:
 		var center = center_func.call(d, i, p)
-		d.scale_point(i, scale_time, center, x, y), Callable(), false
+		d.scale_point(i, scale_time, center, x, y), Callable(), true
 	)
 
 func expand_selected_points_radius(expand_time: float) -> void:
 	loop_selected_points({}, null, func(d: GDDrawingRes, i: int, p: Vector2, c: Dictionary) -> void:
-		d.expand_point_radius(i, expand_time), Callable(), false
+		d.expand_point_radius(i, expand_time), Callable(), true
 	)
 
 
@@ -976,13 +976,4 @@ func _result_selected_points_from(new_selected_points: Dictionary[GDDrawingRes, 
 	else:
 		selected_points = new_selected_points
 		selected_points_size = new_selected_points_size
-
-
-
-
-
-
-
-
-
 

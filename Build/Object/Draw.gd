@@ -153,7 +153,7 @@ func get_fill_from_pos_bfs(grid_size: int, grid_rect_size: Vector2i, start_pos: 
 	start_pos /= grid_size
 	
 	# تحديد حدود الشبكة
-	var grid_bounds:= Rect2i(Vector2.ZERO, grid_rect_size / ProjectSettings.get_setting("display/window/stretch/scale"))
+	var grid_bounds:= Rect2i(Vector2.ZERO, grid_rect_size)
 	
 	# مصفوفة لتتبع الخلايا المزارة
 	var visited:= {}

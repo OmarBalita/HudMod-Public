@@ -14,7 +14,7 @@ var video: Video
 var shader_material:= ShaderMaterial.new()
 
 var audio_player:= AudioStreamPlayer.new()
-var stream:= AudioStreamWAV.new()
+var stream: AudioStreamWAV
 
 var padding: int = 0
 var video_rotation: int = 0
@@ -28,7 +28,6 @@ var u_texture: ImageTexture
 var v_texture: ImageTexture
 
 var video_preload_path: String
-var audio_preload_path: String
 
 
 
@@ -43,16 +42,19 @@ func start() -> void:
 	add_child(audio_player)
 	
 	video_preload_path = "%s%s%s" % [path, "_video_", get_meta("layer")]
-	audio_preload_path = "%s%s" % [path, "_audio"]
 	
-	stream.mix_rate = 44100
-	stream.stereo = true
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	audio_player.stream = stream
+	# Open Video
+	if MediaServer.media_preloaded.has(video_preload_path):
+		video = MediaServer.media_preloaded[video_preload_path]
+	else:
+		video = Video.new()
+		video.open(path)
+		#video.set_hw_decoding(hardware_decoding if OS.get_name() != "Windows" else false)
+		MediaServer.media_preloaded[video_preload_path] = video
+	
+	# Open Audio and Setup audio_player Audio
+	audio_player.stream = MediaServer.get_audio_stream_from_path(path)
 	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(get_meta("layer"))
-	
-	_open_video()
-	_open_audio()
 	
 	_update_video(video)
 
@@ -110,21 +112,6 @@ func get_absolute_frame(curr_frame: int) -> int:
 
 
 
-func _open_video() -> void:
-	
-	if MediaServer.media_preloaded.has(video_preload_path):
-		video = MediaServer.media_preloaded[video_preload_path]
-	else:
-		video = Video.new()
-		video.open(path)
-		#video.set_hw_decoding(hardware_decoding if OS.get_name() != "Windows" else false)
-		MediaServer.media_preloaded[video_preload_path] = video
-
-func _open_audio() -> void:
-	
-	if not MediaServer.media_preloaded.has(audio_preload_path):
-		MediaServer.media_preloaded[audio_preload_path] = Audio.get_audio_data(path)
-	stream.data = MediaServer.media_preloaded[audio_preload_path]
 
 
 

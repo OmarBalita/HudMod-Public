@@ -7,7 +7,7 @@ class_name PopupedText extends PopupedControl
 			await text_label.ready
 		text_label.text = text
 
-var text_label: Label = InterfaceServer.create_label(text)
+var text_label: Label = IS.create_label(text)
 
 func set_text(_text: String) -> void:
 	text = _text
@@ -20,7 +20,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	super()
-	InterfaceServer.expand(text_label)
+	IS.expand(text_label)
 	add_child(text_label)
 
 

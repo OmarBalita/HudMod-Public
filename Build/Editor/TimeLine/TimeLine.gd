@@ -122,6 +122,7 @@ enum TimelineStates {
 # RealTime Variables
 # ---------------------------------------------------
 
+
 var is_playing: bool:
 	set(val):
 		is_playing = val
@@ -130,12 +131,17 @@ var is_playing: bool:
 
 var start_time = 0.0
 
+var emit_frame_changed: bool = true
+
 var curr_frame: int:
 	set(val):
 		curr_frame = val
-		curr_frame_changed.emit(curr_frame)
+		EditorServer.set_frame(val)
 		ProjectServer.update_scene_nodes()
 		queue_redraw()
+		if emit_frame_changed:
+			curr_frame_changed.emit(val)
+
 
 var snap_pos:
 	set(val):
@@ -206,7 +212,7 @@ func _init() -> void:
 	]
 
 
-func _start() -> void:
+func _ready() -> void:
 	super()
 	
 	# Start ShortCuts
@@ -222,15 +228,13 @@ func _start() -> void:
 	
 	# Start Connections
 	ProjectServer.time_markers_changed.connect(on_project_server_timemarkers_changed)
+	EditorServer.player.curr_frame_changed.connect(on_player_curr_frame_changed)
 	
 	l_button_downed.connect(on_l_button_downed)
 	l_button_upped.connect(on_l_button_upped)
 	wheel_downed.connect(on_wheel_downed)
 	wheel_upped.connect(on_wheel_upped)
 	
-	just_press_functions = {
-		KEY_SPACE: func(): stop() if is_playing else play()
-	}
 	press_functions = {
 		KEY_LEFT: on_key_left_pressed,
 		KEY_RIGHT: on_key_right_pressed,
@@ -258,22 +262,21 @@ func _physics_process(delta: float) -> void:
 			drag(delta, true, false)
 
 
+var right_button_down: bool
+
 func _input(event: InputEvent) -> void:
 	super(event)
-	
-	if not is_focus:
-		return
 	
 	if timeline_state == 1:
 		return
 	
 	if event is InputEventMouseMotion:
-		if r_button_down:
+		if right_button_down:
 			displacement_pos -= Vector2(
 				event.relative.x / display_snap_dist,
 				event.relative.y * float(KEY_SHIFT in pressed_keys)
 			)
-		elif timeline_selection_mode == TimelineSelectionModes.SPLIT:
+		elif is_focus and timeline_selection_mode == TimelineSelectionModes.SPLIT:
 			var media_clips_focused = EditorServer.media_clips_focused
 			if media_clips_focused.size():
 				splited_media_clip = media_clips_focused[0]
@@ -283,11 +286,17 @@ func _input(event: InputEvent) -> void:
 		timemarks_bg_mouse_entered = get_local_mouse_position().y < header_size + timemarks_bg_size
 	
 	elif event is InputEventMouseButton:
-		if event.is_released():
-			if splited_media_clip:
-				splited_media_clip.split(true, true, get_frame_from_mouse_pos())
-			else:
-				snap_pos = null
+		match event.button_index:
+			MOUSE_BUTTON_LEFT when is_focus:
+				if event.is_released():
+					if splited_media_clip:
+						splited_media_clip.split(true, true, get_frame_from_mouse_pos())
+					else:
+						snap_pos = null
+			MOUSE_BUTTON_RIGHT:
+				if event.is_pressed(): right_button_down = is_focus
+				else: right_button_down = false
+
 
 
 func _draw() -> void:
@@ -386,28 +395,28 @@ func _draw() -> void:
 
 func start_toolbar() -> void:
 	
-	var split_container = InterfaceServer.create_split_container()
-	var toolbar_left_container = InterfaceServer.create_box_container(16, false, {alignment = BoxContainer.ALIGNMENT_BEGIN})
-	var toolbar_right_container = InterfaceServer.create_box_container(16, false, {alignment = BoxContainer.ALIGNMENT_END})
+	var split_container = IS.create_split_container()
+	var toolbar_left_container = IS.create_box_container(16, false, {alignment = BoxContainer.ALIGNMENT_BEGIN})
+	var toolbar_right_container = IS.create_box_container(16, false, {alignment = BoxContainer.ALIGNMENT_END})
 	
-	var splittool_panel = InterfaceServer.create_panel_container()
-	var splittool_container = InterfaceServer.create_box_container()
-	var splittool_margin = InterfaceServer.create_margin_container(4, 4, 4, 4)
+	var splittool_panel = IS.create_panel_container()
+	var splittool_container = IS.create_box_container()
+	var splittool_margin = IS.create_margin_container(4, 4, 4, 4)
 	
-	var snaptool_panel = InterfaceServer.create_panel_container()
-	var snaptool_container = InterfaceServer.create_box_container()
-	var snaptool_margin = InterfaceServer.create_margin_container(4, 4, 4, 4)
+	var snaptool_panel = IS.create_panel_container()
+	var snaptool_container = IS.create_box_container()
+	var snaptool_margin = IS.create_margin_container(4, 4, 4, 4)
 	
-	selection_mode_button = InterfaceServer.create_button("Select Mode", texture_select_mode)
-	var split_left_button = InterfaceServer.create_texture_button(texture_split_left)
-	var split_button = InterfaceServer.create_texture_button(texture_split)
-	var split_right_button = InterfaceServer.create_texture_button(texture_split_right)
-	var marker_button = InterfaceServer.create_texture_button(texture_marker)
+	selection_mode_button = IS.create_button("Select Mode", texture_select_mode)
+	var split_left_button = IS.create_texture_button(texture_split_left)
+	var split_button = IS.create_texture_button(texture_split)
+	var split_right_button = IS.create_texture_button(texture_split_right)
+	var marker_button = IS.create_texture_button(texture_marker)
 	
-	var snap_markers_button = InterfaceServer.create_texture_button(texture_snap_markers, null, null, true, {button_pressed = is_snap_to_timemarks})
-	var snap_cursor_button = InterfaceServer.create_texture_button(texture_snap_cursor, null, null, true, {button_pressed = is_snap_to_timemarkers_and_cursor})
-	var magnet_clips_button = InterfaceServer.create_texture_button(texture_magnet_clips, null, null, true, {button_pressed = is_magnet_to_media_clips})
-	var zoom_slider = InterfaceServer.create_slider_control(zoom, min_zoom, max_zoom, 500.0, texture_zoom_out, texture_zoom_in)
+	var snap_markers_button = IS.create_texture_button(texture_snap_markers, null, null, true, {button_pressed = is_snap_to_timemarks})
+	var snap_cursor_button = IS.create_texture_button(texture_snap_cursor, null, null, true, {button_pressed = is_snap_to_timemarkers_and_cursor})
+	var magnet_clips_button = IS.create_texture_button(texture_magnet_clips, null, null, true, {button_pressed = is_magnet_to_media_clips})
+	var zoom_slider = IS.create_slider_control(zoom, min_zoom, max_zoom, 500.0, texture_zoom_out, texture_zoom_in)
 	
 	splittool_panel.add_child(splittool_margin)
 	splittool_margin.add_child(splittool_container)
@@ -447,7 +456,7 @@ func start_toolbar() -> void:
 
 
 func start_selection_box() -> void:
-	clips_selection_box = InterfaceServer.create_selection_box([], func() -> bool:
+	clips_selection_box = IS.create_selection_box([], func() -> bool:
 		return timeline_selection_mode == 0 and not timemarks_bg_mouse_entered and EditorServer.media_clips_focused.size() == 0
 	)
 	clips_selection_box.id_key_function_name = "get_id_key"
@@ -459,7 +468,7 @@ func start_selection_box() -> void:
 		#clips_selection_box.enabled = timeline_selection_mode == 0 and not timemarks_bg_mouse_entered
 
 func start_layers() -> void:
-	layers_container = InterfaceServer.create_box_container(2, true, {"clip_contents": true})
+	layers_container = IS.create_box_container(2, true, {"clip_contents": true})
 	body.add_child(layers_container)
 
 func update_layers() -> void:
@@ -506,7 +515,7 @@ func update_layers() -> void:
 
 
 func spawn_layer(index: int) -> Layer:
-	var layer = InterfaceServer.create_layer(index, Vector2(.0, layer_display_size), color_layer)
+	var layer = IS.create_layer(index, Vector2(.0, layer_display_size), color_layer)
 	layers_container.add_child(layer)
 	clips_selection_box.select_from.append(layer.clips_control)
 	return layer
@@ -542,7 +551,7 @@ func clear_layers_drawed_entities(layers: Array = []) -> void:
 # ---------------------------------------------------
 
 func start_timemarkers() -> void:
-	timemarkers_parent = InterfaceServer.create_empty_control()
+	timemarkers_parent = IS.create_empty_control()
 	timemarkers_parent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(timemarkers_parent)
 
@@ -600,6 +609,11 @@ func get_timemarks_bg_mouse_entered() -> bool:
 func on_project_server_timemarkers_changed() -> void:
 	update_timemarkers()
 
+func on_player_curr_frame_changed(new_frame: int) -> void:
+	emit_frame_changed = false
+	set_curr_frame_manually(new_frame)
+	emit_frame_changed = true
+
 func on_l_button_downed(pos: Vector2) -> void:
 	if timemarks_bg_mouse_entered:
 		set_curr_frame_manually(get_frame_from_display_pos(pos.x, [], false).keys()[0])
@@ -637,7 +651,7 @@ func on_clips_selection_box_selection_ended(grouping: bool, remove: bool) -> voi
 	selection_group_res.add_objects(selected_nodes, ["layer_index", "clip_pos", "clip_res"])
 
 func on_selection_mode_button_pressed(selection_mode_button: BaseButton) -> void:
-	var selection_mode_menu = InterfaceServer.create_popuped_menu(get_selection_mode_menu_options())
+	var selection_mode_menu = IS.create_popuped_menu(get_selection_mode_menu_options())
 	
 	selection_mode_menu.menu_button_pressed.connect(update_timeline_selection_mode)
 	
@@ -784,10 +798,14 @@ func play() -> void:
 	start_time = curr_time - curr_frame * ProjectServer.delta
 	is_playing = true
 	timeline_played.emit()
+	
+	EditorServer.player.play_button.button_pressed = true
 
 func stop() -> void:
 	is_playing = false
 	timeline_stoped.emit()
+	
+	EditorServer.player.play_button.button_pressed = false
 
 func step_frame() -> void:
 	

@@ -20,5 +20,5 @@ func set_curr_color(new_color: Color, emit_change: bool = true) -> void:
 	queue_redraw()
 
 func on_pressed() -> void:
-	var color_controller = InterfaceServer.popup_color_controller(curr_color, self)
+	var color_controller = IS.popup_color_controller(curr_color, self)
 	color_controller.color_changed.connect(set_curr_color)

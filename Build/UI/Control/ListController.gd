@@ -66,37 +66,37 @@ func _ready() -> void:
 	list_changed.connect(on_list_changed)
 
 func _ready_ui() -> void:
-	InterfaceServer.set_base_panel_settings(self, InterfaceServer.STYLE_BODY)
+	IS.set_base_panel_settings(self, IS.STYLE_BODY)
 	
-	var margin_container = InterfaceServer.create_margin_container()
-	var vbox_container = InterfaceServer.create_box_container(12, true)
-	var hsplit_container = InterfaceServer.create_split_container()
-	controller_container = InterfaceServer.create_margin_container(0,0,0,0)
+	var margin_container = IS.create_margin_container()
+	var vbox_container = IS.create_box_container(12, true)
+	var hsplit_container = IS.create_split_container()
+	controller_container = IS.create_margin_container(0,0,0,0)
 	
-	var scroll_box_container = InterfaceServer.create_scroll_container(0)
-	list_box_container = InterfaceServer.create_box_container(4, true, {})
-	var margin2_container = InterfaceServer.create_margin_container(0,0,0,0)
-	var options_box_container = InterfaceServer.create_box_container(12, true, {})
+	var scroll_box_container = IS.create_scroll_container(0)
+	list_box_container = IS.create_box_container(4, true, {})
+	var margin2_container = IS.create_margin_container(0,0,0,0)
+	var options_box_container = IS.create_box_container(12, true, {})
 	
 	if can_add_element:
-		var append_button = InterfaceServer.create_texture_button(texture_add)
+		var append_button = IS.create_texture_button(texture_add)
 		append_button.pressed.connect(on_append_button_pressed)
 		options_box_container.add_child(append_button)
 	if can_remove_element:
-		var erase_button = InterfaceServer.create_texture_button(texture_sub)
+		var erase_button = IS.create_texture_button(texture_sub)
 		erase_button.pressed.connect(on_erase_button_pressed)
 		options_box_container.add_child(erase_button)
 	if can_duplicate_element:
-		var duplicate_button = InterfaceServer.create_texture_button(texture_duplicate)
+		var duplicate_button = IS.create_texture_button(texture_duplicate)
 		duplicate_button.pressed.connect(on_duplicate_button_pressed)
 		options_box_container.add_child(duplicate_button)
 	
 	if can_add_element or can_remove_element or can_duplicate_element:
-		options_box_container.add_child(InterfaceServer.create_h_line_panel())
+		options_box_container.add_child(IS.create_h_line_panel())
 	
 	if can_change_element_priority:
-		var move_up_button = InterfaceServer.create_texture_button(texture_up)
-		var move_dowm_button = InterfaceServer.create_texture_button(texture_down)
+		var move_up_button = IS.create_texture_button(texture_up)
+		var move_dowm_button = IS.create_texture_button(texture_down)
 		move_up_button.pressed.connect(on_move_up_button_pressed)
 		move_dowm_button.pressed.connect(on_move_down_button_pressed)
 		options_box_container.add_child(move_up_button)
@@ -109,15 +109,15 @@ func _ready_ui() -> void:
 	hsplit_container.add_child(options_box_container)
 	
 	vbox_container.add_child(hsplit_container)
-	vbox_container.add_child(InterfaceServer.create_h_line_panel())
+	vbox_container.add_child(IS.create_h_line_panel())
 	vbox_container.add_child(controller_container)
 	
 	margin_container.add_child(vbox_container)
 	add_child(margin_container)
 	
-	InterfaceServer.expand(hsplit_container, true, true)
-	InterfaceServer.expand(scroll_box_container, true, true)
-	InterfaceServer.expand(margin2_container)
+	IS.expand(hsplit_container, true, true)
+	IS.expand(scroll_box_container, true, true)
+	IS.expand(margin2_container)
 	
 	update_display_ui()
 
@@ -153,8 +153,8 @@ func update_display_ui() -> void:
 		var element = list[index]
 		var element_type_index = TypeServer.get_type_from_value(element)
 		
-		var split: SplitContainer = InterfaceServer.create_split_container()
-		var button: Button = InterfaceServer.create_button('', null, false, false, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
+		var split: SplitContainer = IS.create_split_container()
+		var button: Button = IS.create_button('', null, false, false, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
 		button.set_expand_icon(true)
 		
 		set_button_display(index, element, button, true)
@@ -167,7 +167,7 @@ func update_display_ui() -> void:
 		split.add_child(button)
 		list_box_container.add_child(split)
 		
-		InterfaceServer.expand(button)
+		IS.expand(button)
 		
 		if index == focus_index:
 			button.button_pressed = true
@@ -186,7 +186,7 @@ func update_type_edit(index: int) -> void:
 	var controllers = TypeServer.get_type_controllers_from_val("index %s" % index, curr_val)
 	
 	if controllers.size():
-		var edit_box = InterfaceServer.get_edit_box_from(controllers)
+		var edit_box = IS.get_edit_box_from(controllers)
 		edit_box.set_curr_val(curr_val, true)
 		edit_box.val_changed.connect(on_type_controller_val_changed)
 		controller_container.add_child(edit_box)
@@ -301,7 +301,7 @@ func on_list_button_pressed(index: int) -> void:
 	list_button_pressed.emit(index)
 
 func on_list_button_mouse_entered(index: int, button: Button) -> void:
-	var type_button = InterfaceServer.create_texture_button(texture_settings, null, null, false)
+	var type_button = IS.create_texture_button(texture_settings, null, null, false)
 	button.get_parent().add_child(type_button)
 	button.set_meta("type_button", type_button)
 	
@@ -314,7 +314,7 @@ func on_list_button_mouse_exited(index: int, button: Button) -> void:
 func on_type_button_pressed(index: int, type_button: TextureButton) -> void:
 	var types = TypeServer.get_types(types)
 	var main_type_index = TypeServer.get_type_from_name(TypeServer.get_name_from_val(list[index]), types)
-	var types_menu = InterfaceServer.popup_menu(MenuOption.new_options_with_check_group(types, "", main_type_index), type_button)
+	var types_menu = IS.popup_menu(MenuOption.new_options_with_check_group(types, "", main_type_index), type_button)
 	types_menu.menu_button_pressed.connect(
 		func(menu_index: int) -> void:
 			var type_name = types_menu.options[menu_index].text

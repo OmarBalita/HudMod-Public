@@ -5,24 +5,26 @@ signal res_changed()
 
 var res_id: StringName
 
-
 func get_res_id() -> StringName:
 	return res_id
 
 func set_res_id(new_res_id: StringName) -> void:
 	res_id = new_res_id
 
-func _get_exported_parameters() -> Dictionary[String, Dictionary]:
+
+func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
 	return {}
 
 
 
+static func _set_property(object: Object, property_key: StringName, property_val: Variant, custom_frame: int) -> void:
+	object.set(property_key, property_val)
 
-static func create_custom_edit(name: String, usable_res: UsableRes) -> Array[Control]:
+static func create_custom_edit(name: String, usable_res: UsableRes, custom_set_func: Callable = _set_property, custom_frame: int = -1) -> Array[Control]:
 	var exported_parameters = usable_res._get_exported_parameters()
 	
-	var edits_box_container = InterfaceServer.create_box_container(12, true)
-	var edit_box_container = InterfaceServer.create_custom_edit_box(name, edits_box_container)
+	var edits_box_container = IS.create_box_container(12, true)
+	var edit_box_container = IS.create_custom_edit_box(name, edits_box_container)
 	usable_res.res_changed.connect(edit_box_container.emit_signal.bind('val_changed', usable_res))
 	
 	var ui_profile = UIProfile.new()
@@ -44,10 +46,10 @@ static func create_custom_edit(name: String, usable_res: UsableRes) -> Array[Con
 		
 		var controllers = TypeServer.get_type_controllers_from_val(param_name, param_val, param_info)
 		if controllers.size():
-			var edit_box = InterfaceServer.get_edit_box_from(controllers)
+			var edit_box = IS.get_edit_box_from(controllers)
 			edit_box.val_changed.connect(
 				func(new_val: Variant) -> void:
-					usable_res.set(param_name, new_val)
+					custom_set_func.call(usable_res, param_name, new_val, custom_frame)
 					usable_res.res_changed.emit()
 					ui_profile.update()
 			)

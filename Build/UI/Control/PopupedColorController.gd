@@ -62,7 +62,7 @@ var color_shape: VHSCircleShape
 var color_val_line: ValLine
 var before_color_rect: ColorRect
 var after_color_rect: ColorRect
-var color_picker_button: InterfaceServer.CustomTextureButton
+var color_picker_button: IS.CustomTextureButton
 
 var red_controller: SliderControl
 var green_controller: SliderControl
@@ -97,41 +97,41 @@ func _ready() -> void:
 	# Start Color Controller Editor
 	var rgb_step = 1.0 / 255
 	
-	var margin_container = InterfaceServer.create_margin_container()
-	var split_container = InterfaceServer.create_split_container(10)
+	var margin_container = IS.create_margin_container()
+	var split_container = IS.create_split_container(10)
 	
-	var controller_box = InterfaceServer.create_box_container(10, true)
+	var controller_box = IS.create_box_container(10, true)
 	
-	var color_palettes_scroll_controller = InterfaceServer.create_scroll_container(1, 1, {custom_minimum_size = Vector2(310, 0)})
-	var color_palettes_margin_container = InterfaceServer.create_margin_container(12, 12, 12, 12, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var color_palette_split_container = InterfaceServer.create_split_container(2, true)
-	color_palettes_box = InterfaceServer.create_box_container(10, true)
-	add_palette_button = InterfaceServer.create_button("Add New Color Palette", texture_add_palette, true)
+	var color_palettes_scroll_controller = IS.create_scroll_container(1, 1, {custom_minimum_size = Vector2(310, 0)})
+	var color_palettes_margin_container = IS.create_margin_container(12, 12, 12, 12, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var color_palette_split_container = IS.create_split_container(2, true)
+	color_palettes_box = IS.create_box_container(10, true)
+	add_palette_button = IS.create_button("Add New Color Palette", texture_add_palette, true)
 	
-	var color_control_box = InterfaceServer.create_box_container()
-	var color_display_box = InterfaceServer.create_box_container()
-	rgb_box = InterfaceServer.create_box_container(10, true)
-	hsv_box = InterfaceServer.create_box_container(10, true)
+	var color_control_box = IS.create_box_container()
+	var color_display_box = IS.create_box_container()
+	rgb_box = IS.create_box_container(10, true)
+	hsv_box = IS.create_box_container(10, true)
 	
 	color_shape = VHSCircleShape.new(curr_color.h, curr_color.s, curr_color.v)
 	color_val_line = ValLine.new(curr_color.v)
 	
-	before_color_rect = InterfaceServer.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
-	after_color_rect = InterfaceServer.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
-	color_picker_button = InterfaceServer.create_texture_button(texture_color_picker, null, null, true)
+	before_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
+	after_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
+	color_picker_button = IS.create_texture_button(texture_color_picker, null, null, true)
 	
-	red_controller = InterfaceServer.create_float_edit("R", true, false, curr_color.r, .0, 1.0, rgb_step)[0]
-	green_controller = InterfaceServer.create_float_edit("G", true, false, curr_color.g, .0, 1.0, rgb_step)[0]
-	blue_controller = InterfaceServer.create_float_edit("B", true, false, curr_color.b, .0, 1.0, rgb_step)[0]
+	red_controller = IS.create_float_edit("R", true, false, curr_color.r, .0, 1.0, rgb_step)[0]
+	green_controller = IS.create_float_edit("G", true, false, curr_color.g, .0, 1.0, rgb_step)[0]
+	blue_controller = IS.create_float_edit("B", true, false, curr_color.b, .0, 1.0, rgb_step)[0]
 	
-	hue_controller = InterfaceServer.create_float_edit("H", true, false, curr_color.h, .0, 1.0, 1.0 / 360)[0]
-	sat_controller = InterfaceServer.create_float_edit("S", true, false, curr_color.s, .0, 1.0, .01)[0]
-	val_controller = InterfaceServer.create_float_edit("V", true, false, curr_color.v, .0, 1.0, .01)[0]
-	alpha_controller = InterfaceServer.create_float_edit("A", true, false, curr_color.a, .0, 1.0, .01)[0]
+	hue_controller = IS.create_float_edit("H", true, false, curr_color.h, .0, 1.0, 1.0 / 360)[0]
+	sat_controller = IS.create_float_edit("S", true, false, curr_color.s, .0, 1.0, .01)[0]
+	val_controller = IS.create_float_edit("V", true, false, curr_color.v, .0, 1.0, .01)[0]
+	alpha_controller = IS.create_float_edit("A", true, false, curr_color.a, .0, 1.0, .01)[0]
 	
-	hex_line = InterfaceServer.create_line_edit("Hex", curr_color.to_html())
+	hex_line = IS.create_line_edit("Hex", curr_color.to_html())
 	
-	type_menu = InterfaceServer.create_menu([
+	type_menu = IS.create_menu([
 		MenuOption.new("RGB"),
 		MenuOption.new("HSV")
 	], false, {custom_minimum_size = Vector2(0, 40)})
@@ -313,7 +313,7 @@ func on_hex_line_text_changed(new_val: String) -> void:
 	curr_color = Color.html(new_val)
 
 func on_add_palette_button_pressed() -> void:
-	var name_edit = InterfaceServer.create_line_edit("Type Palette Name", "New Palette")
+	var name_edit = IS.create_line_edit("Type Palette Name", "New Palette")
 	
 	var on_accept_button_pressed = func() -> void:
 		create_new_palette(name_edit.get_text(), false, [])
@@ -380,7 +380,7 @@ class VHSCircleShape extends Control:
 		var angle_rad = TAU * hue
 		var display_offset = Vector2(cos(angle_rad), sin(angle_rad)) * sat * radius
 		draw_circle(center + display_offset, 5.0, Color.BLACK)
-		draw_circle(center + display_offset, 6.0, InterfaceServer.COLOR_ACCENT_BLUE, false, 2.0, true)
+		draw_circle(center + display_offset, 6.0, IS.COLOR_ACCENT_BLUE, false, 2.0, true)
 	
 	func update_properties() -> void:
 		custom_minimum_size = Vector2.ONE * radius * 2.1
@@ -463,7 +463,7 @@ class ValLine extends Control:
 			draw_rect(Rect2(Vector2(.0, length - y_pos + y_displacement), Vector2(width, y_step)), Color.from_hsv(.0, .0, val), true, -1.0, true)
 		
 		var cursor_display_pos = length - length * val + y_displacement
-		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), InterfaceServer.COLOR_ACCENT_BLUE, 5.0, true)
+		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), IS.COLOR_ACCENT_BLUE, 5.0, true)
 	
 	func update(_val: float) -> void:
 		val = _val
@@ -502,19 +502,19 @@ class PaletteBox extends PanelContainer:
 	
 	func _ready() -> void:
 		# Set Base Settings
-		InterfaceServer.set_base_panel_settings(self, InterfaceServer.STYLE_BUTTON)
+		IS.set_base_panel_settings(self, IS.STYLE_BUTTON)
 		
 		# Start Controls
-		var margin_container = InterfaceServer.create_margin_container(4, 4, 4, 4)
-		var split_container = InterfaceServer.create_split_container(4, true)
-		var header_box = InterfaceServer.create_box_container()
+		var margin_container = IS.create_margin_container(4, 4, 4, 4)
+		var split_container = IS.create_split_container(4, true)
+		var header_box = IS.create_box_container()
 		
-		name_label = InterfaceServer.create_name_label(color_palette.palette_name)
-		colors_grid_container = InterfaceServer.create_grid_container(Vector2(32, 32))
+		name_label = IS.create_name_label(color_palette.palette_name)
+		colors_grid_container = IS.create_grid_container(Vector2(32, 32))
 		
 		if not color_palette.built_in:
-			add_color_button = InterfaceServer.create_texture_button(texture_add)
-			remove_palette_button = InterfaceServer.create_texture_button(texture_remove)
+			add_color_button = IS.create_texture_button(texture_add)
+			remove_palette_button = IS.create_texture_button(texture_remove)
 			header_box.add_child(add_color_button)
 			header_box.add_child(remove_palette_button)
 			add_color_button.pressed.connect(on_add_color_button_pressed)
@@ -526,7 +526,7 @@ class PaletteBox extends PanelContainer:
 		margin_container.add_child(split_container)
 		add_child(margin_container)
 		
-		InterfaceServer.expand(name_label)
+		IS.expand(name_label)
 		
 		# Spawn Color Buttons
 		update_colors()
@@ -586,7 +586,7 @@ class PaletteBox extends PanelContainer:
 		
 		func _ready() -> void:
 			# Set Base Settings
-			InterfaceServer.set_button_style(self)
+			IS.set_button_style(self)
 			custom_minimum_size = Vector2(32, 32)
 			flat = true
 			# Connections

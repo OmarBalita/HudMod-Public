@@ -53,10 +53,8 @@ enum DistMode {
 func _init() -> void:
 	set_res_id("DrawnEntityRes")
 
-func _get_exported_parameters() -> Dictionary[String, Dictionary]:
-	
+func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
 	var custom_cond = CtrlrHelper.get_ui_cond(get_use_custom, [true])
-	
 	return {
 		"type": CtrlrHelper.get_option_controller_args([], EntityTypes.keys(), type),
 		

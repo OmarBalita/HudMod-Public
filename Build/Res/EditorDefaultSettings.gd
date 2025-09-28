@@ -1,3 +1,3 @@
 class_name EditorDefaultSettings extends Node
 
-@export var media_length: int = 5 # as seconds
+@export var media_length: float = 5.0 # as seconds

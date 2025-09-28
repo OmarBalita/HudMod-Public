@@ -4,19 +4,28 @@ signal selected_objects_changed()
 
 
 var selected_objects: Dictionary[String, Dictionary]
+var focused: Dictionary
+
 
 func add_object(key: String, object: FocusControl, metadata: Dictionary, activate_grouping: bool = true, emit_changes: bool = false) -> void:
 	if not activate_grouping:
 		clear_objects()
 	object.is_selected = true
 	selected_objects[key] = {"object": object, "metadata": metadata}
+	focused = selected_objects[key]
 	if emit_changes:
 		selected_objects_changed.emit()
 
 func remove_object(key: String, emit_changes: bool = false) -> void:
 	if selected_objects.has(key):
-		selected_objects[key].object.is_selected = false
+		
+		var object = selected_objects[key].object
+		if object == focused.object:
+			focused.clear()
+		
+		object.is_selected = false
 		selected_objects.erase(key)
+	
 	if emit_changes:
 		selected_objects_changed.emit()
 
@@ -48,6 +57,7 @@ func clear_objects(filter_meta: Dictionary = {}) -> void:
 			object.is_selected = false
 	
 	selected_objects.clear()
+	focused.clear()
 	selected_objects_changed.emit()
 
 

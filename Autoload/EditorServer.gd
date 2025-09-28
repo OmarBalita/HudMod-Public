@@ -1,12 +1,18 @@
 extends Node
 
+# Signals
+# ---------------------------------------------------
+
+signal frame_changed(new_frame: int)
+
+# Constants
+# ---------------------------------------------------
 
 const ERR_STRENGTH_COLORS:= [
 	Color.WEB_GRAY,
 	Color.PALE_GOLDENROD,
 	Color.INDIAN_RED
 ]
-
 
 # Save Info
 # ---------------------------------------------------
@@ -17,6 +23,9 @@ var editor_path = app_data_dir + "/editor/"
 
 # RealTime Variables
 # ---------------------------------------------------
+
+var frame: int:
+	set(val): frame = val; frame_changed.emit(val)
 
 var media_cards_selection_group:= SelectionGroupRes.new()
 var media_clips_selection_group:= SelectionGroupRes.new()
@@ -53,10 +62,19 @@ func _ready() -> void:
 	clip_nodes_explorer = get_tree().get_first_node_in_group("clip_nodes_explorer")
 	properties = get_tree().get_first_node_in_group("properties")
 	
-	push_guides()
-	
-	get_tree().get_root()
 	get_tree().get_root().files_dropped.connect(on_files_dropped)
+	
+	push_guides()
+
+# Frame
+# ---------------------------------------------------
+
+func get_frame() -> int:
+	return frame
+
+func set_frame(new_frame: int) -> void:
+	frame = new_frame
+
 
 
 # Media Clips
@@ -68,7 +86,6 @@ func is_any_media_clip_focused() -> bool:
 
 # Guides Functions
 # ---------------------------------------------------
-
 
 func push_guides(guides: Array[Dictionary] = []) -> void:
 	if not guides:
@@ -108,7 +125,6 @@ func set_labels_text(labels: Array, text: String, color_index: int, while_loop =
 			while_loop.call(label)
 
 
-
 # Connections
 # ---------------------------------------------------
 
@@ -129,7 +145,6 @@ func on_files_dropped(files_pathes: Array[String]) -> void:
 			elif groups.has("time_line"):
 				import_func.call(true)
 			break
-
 
 
 

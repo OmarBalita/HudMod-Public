@@ -53,7 +53,6 @@ func _input(event: InputEvent) -> void:
 			
 			if pressed:
 				if request_selection_func.is_null() or request_selection_func.call():
-					print("active")
 					canceled = false
 					selection_started.emit()
 					dragged = true
@@ -81,7 +80,7 @@ func _draw() -> void:
 			draw_selecting_rect(node.get_global_rect())
 
 
-func draw_selecting_rect(rect: Rect2, color: Color = InterfaceServer.COLOR_ACCENT_BLUE) -> void:
+func draw_selecting_rect(rect: Rect2, color: Color = IS.COLOR_ACCENT_BLUE) -> void:
 	rect = Rect2(rect.position - global_position, rect.size)
 	var start_pos = rect.position
 	var end_pos = start_pos + rect.size

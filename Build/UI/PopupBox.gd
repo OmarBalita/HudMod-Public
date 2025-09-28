@@ -5,10 +5,10 @@ var elements: Array
 
 func _ready() -> void:
 	super()
-	var margin_container = InterfaceServer.create_margin_container()
-	var scroll_container = InterfaceServer.create_scroll_container()
-	var margin2_container = InterfaceServer.create_margin_container(0, 12, 0, 0)
-	box = InterfaceServer.create_box_container(12, true)
+	var margin_container = IS.create_margin_container()
+	var scroll_container = IS.create_scroll_container()
+	var margin2_container = IS.create_margin_container(0, 12, 0, 0)
+	box = IS.create_box_container(12, true)
 	
 	for index: int in elements.size():
 		var element = elements[index]
@@ -24,7 +24,7 @@ func _ready() -> void:
 	margin_container.add_child(scroll_container)
 	add_child(margin_container)
 	
-	InterfaceServer.expand(margin2_container, true, true)
+	IS.expand(margin2_container, true, true)
 
 
 

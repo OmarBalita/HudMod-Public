@@ -17,7 +17,7 @@ var index = 0
 var displayed_media_clips: Dictionary
 var force_existing: int
 
-var clips_control: Control = InterfaceServer.create_empty_control()
+var clips_control: Control = IS.create_empty_control()
 
 var side_rect: ColorRect
 var lock_button: TextureButton
@@ -46,22 +46,22 @@ func _ready() -> void:
 	add_child(clips_control)
 	
 	# Start Side Layer Edit
-	side_rect = InterfaceServer.create_color_rect(color.darkened(.3), {custom_minimum_size = Vector2(300.0, size.y)})
-	var container = InterfaceServer.create_box_container()
-	lock_button = InterfaceServer.create_texture_button(texture_unlock, null, null, true)
-	layer_label = InterfaceServer.create_label(str("Layer ", index)); layer_label.custom_minimum_size.x = 100.0
-	hide_button = InterfaceServer.create_texture_button(texture_show, null, null, true)
-	mute_button = InterfaceServer.create_texture_button(texture_unmute, null, null, true)
-	more_button = InterfaceServer.create_texture_button(texture_more)
+	side_rect = IS.create_color_rect(color.darkened(.3), {custom_minimum_size = Vector2(300.0, size.y)})
+	var container = IS.create_box_container()
+	lock_button = IS.create_texture_button(texture_unlock, null, null, true)
+	layer_label = IS.create_label(str("Layer ", index)); layer_label.custom_minimum_size.x = 100.0
+	hide_button = IS.create_texture_button(texture_show, null, null, true)
+	mute_button = IS.create_texture_button(texture_unmute, null, null, true)
+	more_button = IS.create_texture_button(texture_more)
 	
 	container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	container.add_child(InterfaceServer.create_empty_control())
+	container.add_child(IS.create_empty_control())
 	container.add_child(lock_button)
 	container.add_child(layer_label)
 	container.add_child(hide_button)
 	container.add_child(mute_button)
 	container.add_child(more_button)
-	container.add_child(InterfaceServer.create_empty_control())
+	container.add_child(IS.create_empty_control())
 	side_rect.add_child(container)
 	add_child(side_rect)
 	
@@ -91,7 +91,7 @@ func _gui_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			if event.is_pressed(): press_pos = event.position
 			elif press_pos.distance_to(event.position) <= 5.0:
-				var menu = InterfaceServer.create_popuped_menu([MenuOption.new("Past")])
+				var menu = IS.create_popuped_menu([MenuOption.new("Past")])
 				get_tree().get_current_scene().add_child(menu)
 				menu.popup()
 
@@ -143,7 +143,8 @@ func update() -> void:
 			clip.clip_pos = frame_in
 			clip.clip_res = clip_res
 			# Interface Setup
-			clip.add_child(media_clip_info.control.call(clip_res, media_clip_info.style))
+			if media_clip_info.has("control"): clip.add_child(media_clip_info.control.call(clip_res, media_clip_info.style))
+			else: clip.add_child(IS.create_clip_basic_control(media_clip_info.default_name, media_clip_info.style))
 			# Connections
 			clip.selected.connect(on_clip_selected)
 			clip.deselected.connect(on_clip_deselected)
@@ -208,7 +209,7 @@ func on_mute_button_pressed() -> void:
 	ProjectServer.set_layer_mute(index, mute_button.button_pressed)
 
 func on_more_button_pressed() -> void:
-	var menu = InterfaceServer.create_popuped_menu([
+	var menu = IS.create_popuped_menu([
 		MenuOption.new("Move Up"),
 		MenuOption.new("Move Down"),
 		MenuOption.new("Duplicate Layer"),

@@ -1,23 +1,24 @@
 class_name DrawEditControl extends FocusControl
 
+@export var enabled: bool
 @export var draw_edit: DrawEdit
 
 @export_group("Theme")
 @export_subgroup("Texture")
-@export var texture_world_origin: Texture2D
-@export var texture_median_point: Texture2D
-@export var texture_individual_origins: Texture2D
-@export var texture_point: Texture2D
-@export var texture_line: Texture2D
+@export var texture_world_origin: Texture2D = preload("res://Asset/Icons/world-origin.png")
+@export var texture_median_point: Texture2D = preload("res://Asset/Icons/center-origin.png")
+@export var texture_individual_origins: Texture2D = preload("res://Asset/Icons/individual-origin.png")
+@export var texture_point: Texture2D = preload("res://Asset/Icons/points.png")
+@export var texture_line: Texture2D = preload("res://Asset/Icons/matic.png")
 @export var texture_edit_options: Texture2D
 @export var texture_select_options: Texture2D
 @export var texture_point_options: Texture2D
 @export var texture_drawing_settings: Texture2D
-@export var texture_pen: Texture2D
-@export var texture_pointing: Texture2D
-@export var texture_erase: Texture2D
-@export var texture_fill: Texture2D
-@export var texture_shaping: Texture2D
+@export var texture_pen: Texture2D = preload("res://Asset/Icons/pen.png")
+@export var texture_pointing: Texture2D = preload("res://Asset/Icons/zigzag-moustache.png")
+@export var texture_erase: Texture2D = preload("res://Asset/Icons/eraser.png")
+@export var texture_fill: Texture2D = preload("res://Asset/Icons/fill.png")
+@export var texture_shaping: Texture2D = preload("res://Asset/Icons/tear.png")
 
 
 var edit_value_code: String:
@@ -37,18 +38,18 @@ var ui_profile: UIProfile = UIProfile.new()
 var draw_shortcut_node:= ShortcutNode.new()
 var edit_shortcut_node:= ShortcutNode.new()
 
-@onready var top_bar_panel = InterfaceServer.create_panel_container(Vector2.ZERO, InterfaceServer.STYLE_BODY)
-var top_bar_margin = InterfaceServer.create_margin_container(4,4,4,4)
-var top_bar = InterfaceServer.create_box_container(10, false, {})
+@onready var top_bar_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_CORNERLESS)
+var top_bar_margin = IS.create_margin_container(4,4,4,4)
+var top_bar = IS.create_box_container(10, false, {})
 
-@onready var bottom_bar_panel = InterfaceServer.create_panel_container(Vector2.ZERO, InterfaceServer.STYLE_BODY)
-var bottom_bar_margin = InterfaceServer.create_margin_container(4,4,4,4)
-var bottom_bar = InterfaceServer.create_box_container(10, false, {})
+@onready var bottom_bar_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_CORNERLESS)
+var bottom_bar_margin = IS.create_margin_container(4,4,4,4)
+var bottom_bar = IS.create_box_container(10, false, {})
 
-@onready var draw_left_side_panel = InterfaceServer.create_panel_container()
+@onready var draw_left_side_panel = IS.create_panel_container()
 
-var draw_ui_box = InterfaceServer.create_box_container(16)
-var edit_ui_box = InterfaceServer.create_box_container(16)
+var draw_ui_box = IS.create_box_container(16)
+var edit_ui_box = IS.create_box_container(16)
 
 var editor_mode_button: OptionController
 
@@ -84,13 +85,16 @@ var proportional_edit_scale_controller: FloatController
 var proportional_edit_connected_only_button: CheckButton
 
 
-
+func _init() -> void:
+	clip_contents = true
+	draw_focus = false
 
 func _ready() -> void:
 	super()
 	
 	_ready_shortcut_nodes()
 	_ready_ui()
+	
 	
 	var get_editor_mode = func() -> Variant: return draw_edit.editor_mode
 	var get_draw_mode = func() -> Variant: return draw_edit.draw_mode
@@ -170,7 +174,7 @@ func _ready_edit_shortcut_node() -> void:
 
 
 func _ready_ui() -> void:
-	editor_mode_button = InterfaceServer.create_option_controller([
+	editor_mode_button = IS.create_option_controller([
 		{text = "Draw"},
 		{text = "Edit"}
 	], "", 0, true)
@@ -179,19 +183,19 @@ func _ready_ui() -> void:
 	top_bar_panel.add_child(top_bar_margin)
 	add_child(top_bar_panel)
 	
-	mouse_pos_label = InterfaceServer.create_label('')
-	selected_count_label = InterfaceServer.create_label('')
-	edit_label = InterfaceServer.create_label('')
-	InterfaceServer.add_childs(bottom_bar, [
-		mouse_pos_label, InterfaceServer.create_v_line_panel(),
-		selected_count_label, InterfaceServer.create_v_line_panel(), edit_label
+	mouse_pos_label = IS.create_label('')
+	selected_count_label = IS.create_label('')
+	edit_label = IS.create_label('')
+	IS.add_childs(bottom_bar, [
+		mouse_pos_label, IS.create_v_line_panel(),
+		selected_count_label, IS.create_v_line_panel(), edit_label
 	])
 	bottom_bar.add_child(edit_label)
 	bottom_bar_margin.add_child(bottom_bar)
 	bottom_bar_panel.add_child(bottom_bar_margin)
 	add_child(bottom_bar_panel)
 	
-	var bottom_bar = InterfaceServer.create_panel()
+	var bottom_bar = IS.create_panel()
 	
 	_ready_draw_ui()
 	_ready_edit_ui()
@@ -201,30 +205,30 @@ func _ready_ui() -> void:
 	top_bar_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	bottom_bar_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	
-	
 	editor_mode_button.selected_option_changed.connect(on_editor_mode_button_selected_option_changed)
+
 
 
 func _ready_draw_ui() -> void:
 	
 	var min_size = Vector2(250, 0)
 	
-	brush_options_button = InterfaceServer.create_button("Brush", null, false, false, {custom_minimum_size = min_size, expand_icon = true})
-	custom_properties_check_button = InterfaceServer.create_bool_edit("Custom Properites", false, min_size, 1)[0]
-	custom_color_button = InterfaceServer.create_color_edit("Line Color", draw_edit.custom_line_color, min_size, 1)[0]
-	custom_fill_color_button = InterfaceServer.create_color_edit("Fill Color", draw_edit.custom_fill_color, min_size, 1)[0]
-	custom_width_controller = InterfaceServer.create_float_edit("Radius", false, true, draw_edit.custom_width, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
-	custom_strength_controller = InterfaceServer.create_float_edit("Strength", false, true, draw_edit.custom_strength, .0, 1.0, .001, .01, 10.0, false, null, null, min_size, 1)[1]
-	pen_stabilize_check_button = InterfaceServer.create_bool_edit("Stabilize", draw_edit.pen_is_stabilize, Vector2(150, 0), 1)[0]
-	stiffness_controller = InterfaceServer.create_float_edit("Stiffness", false, true, draw_edit.stiffness, .01, 100.0, .01, .01, 10.0, false, null, null, min_size, 1)[1]
-	eraser_scale_controller = InterfaceServer.create_float_edit("Eraser Scale", false, true, draw_edit.eraser_scale, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
-	draw_shape_mode_button = InterfaceServer.create_option_controller([{text = "Line"}, {text = "Rectangle"}, {text = "Circle"}], "", draw_edit.draw_shape_mode)
-	draw_shape_is_centered_button = InterfaceServer.create_bool_edit("Shape is Centered", true, Vector2(150, 0), draw_edit.draw_shape_is_centered)[0]
-	fill_grid_size_controller = InterfaceServer.create_float_edit("Fill Grid Size", false, true, draw_edit.fill_grid_size, 2, 10, 1, 1, 10, true, null, null, min_size, 1)[1]
-	circle_subdv_controller = InterfaceServer.create_float_edit("Circle Subdvision", false, true, draw_edit.circle_subdv, 3, 4096, 1, 1, 10, true, null, null, min_size, 1)[1]
-	drawings_button = InterfaceServer.create_button("Drawings", InterfaceServer.TEXTURE_DOWN)
+	brush_options_button = IS.create_button("Brush", null, false, false, {custom_minimum_size = min_size, expand_icon = true})
+	custom_properties_check_button = IS.create_bool_edit("Custom Properites", false, min_size, 1)[0]
+	custom_color_button = IS.create_color_edit("Line Color", draw_edit.custom_line_color, min_size, 1)[0]
+	custom_fill_color_button = IS.create_color_edit("Fill Color", draw_edit.custom_fill_color, min_size, 1)[0]
+	custom_width_controller = IS.create_float_edit("Radius", false, true, draw_edit.custom_width, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
+	custom_strength_controller = IS.create_float_edit("Strength", false, true, draw_edit.custom_strength, .0, 1.0, .001, .01, 10.0, false, null, null, min_size, 1)[1]
+	pen_stabilize_check_button = IS.create_bool_edit("Stabilize", draw_edit.pen_is_stabilize, Vector2(150, 0), 1)[0]
+	stiffness_controller = IS.create_float_edit("Stiffness", false, true, draw_edit.stiffness, .01, 100.0, .01, .01, 10.0, false, null, null, min_size, 1)[1]
+	eraser_scale_controller = IS.create_float_edit("Eraser Scale", false, true, draw_edit.eraser_scale, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
+	draw_shape_mode_button = IS.create_option_controller([{text = "Line"}, {text = "Rectangle"}, {text = "Circle"}], "", draw_edit.draw_shape_mode)
+	draw_shape_is_centered_button = IS.create_bool_edit("Shape is Centered", true, Vector2(150, 0), draw_edit.draw_shape_is_centered)[0]
+	fill_grid_size_controller = IS.create_float_edit("Fill Grid Size", false, true, draw_edit.fill_grid_size, 2, 10, 1, 1, 10, true, null, null, min_size, 1)[1]
+	circle_subdv_controller = IS.create_float_edit("Circle Subdvision", false, true, draw_edit.circle_subdv, 3, 4096, 1, 1, 10, true, null, null, min_size, 1)[1]
+	drawings_button = IS.create_button("Drawings", IS.TEXTURE_DOWN)
 	
-	InterfaceServer.add_childs(draw_ui_box, [
+	IS.add_childs(draw_ui_box, [
 		brush_options_button,
 		custom_properties_check_button.get_parent(),
 		custom_color_button.get_parent(),
@@ -257,8 +261,8 @@ func _ready_draw_ui() -> void:
 	circle_subdv_controller.val_changed.connect(on_circle_subdv_controller_val_changed)
 	drawings_button.pressed.connect(on_drawings_button_pressed)
 	
-	var left_side_margin = InterfaceServer.create_margin_container(4,4,4,4)
-	draw_mode_menu = InterfaceServer.create_menu([
+	var left_side_margin = IS.create_margin_container(4,4,4,4)
+	draw_mode_menu = IS.create_menu([
 		MenuOption.new("", texture_pen),
 		MenuOption.new("", texture_pointing),
 		MenuOption.new("", texture_erase),
@@ -279,23 +283,23 @@ func _ready_draw_ui() -> void:
 
 func _ready_edit_ui() -> void:
 	
-	center_point_button = InterfaceServer.create_option_controller([
+	center_point_button = IS.create_option_controller([
 		{text = "World Origin", icon = texture_world_origin},
 		{text = "Media Point", icon = texture_median_point},
 		{text = "Individual Origins", icon = texture_individual_origins}],
 	"", draw_edit.center_type)
 	
-	basic_options_button = InterfaceServer.create_button("Edit", texture_edit_options)
-	select_options_button = InterfaceServer.create_button("Select", texture_select_options)
-	point_options_button = InterfaceServer.create_button("Points", texture_point_options)
-	drawing_settings_button = InterfaceServer.create_button("Drawing Settings", texture_drawing_settings)
+	basic_options_button = IS.create_button("Edit", texture_edit_options)
+	select_options_button = IS.create_button("Select", texture_select_options)
+	point_options_button = IS.create_button("Points", texture_point_options)
+	drawing_settings_button = IS.create_button("Drawing Settings", texture_drawing_settings)
 	
-	proportional_edit_check_button = InterfaceServer.create_bool_edit("Proportional Edit", false, Vector2(250.0, .0), 1)[0]
-	proportional_edit_options_button = InterfaceServer.create_option_controller([{text = "Smooth"}, {text = "Sphere"}, {text = "Sharp"}, {text = "Liner"}, {text = "Constant"}], "", 0)
-	proportional_edit_scale_controller = InterfaceServer.create_float_controller(1.0, .01, 1000.0, .01, .01, 10.0, false, {custom_minimum_size = Vector2(120.0, .0)})
-	proportional_edit_connected_only_button = InterfaceServer.create_bool_edit("Connected Only", false, Vector2(200.0, .0), 1)[0]
+	proportional_edit_check_button = IS.create_bool_edit("Proportional Edit", false, Vector2(250.0, .0), 1)[0]
+	proportional_edit_options_button = IS.create_option_controller([{text = "Smooth"}, {text = "Sphere"}, {text = "Sharp"}, {text = "Liner"}, {text = "Constant"}], "", 0)
+	proportional_edit_scale_controller = IS.create_float_controller(1.0, .01, 1000.0, .01, .01, 10.0, false, {custom_minimum_size = Vector2(120.0, .0)})
+	proportional_edit_connected_only_button = IS.create_bool_edit("Connected Only", false, Vector2(200.0, .0), 1)[0]
 	
-	InterfaceServer.add_childs(edit_ui_box, [
+	IS.add_childs(edit_ui_box, [
 		center_point_button,
 		basic_options_button,
 		select_options_button,
@@ -348,17 +352,29 @@ func _input(event: InputEvent) -> void:
 	
 	elif event is InputEventMouseMotion:
 		mouse_pos_label.set_text(str("Position: ", get_local_mouse_position() as Vector2i))
+	
+	draw_edit.push_input(event)
+
+
+
+
+func set_enabling(it_is: bool) -> void:
+	enabled = it_is
+	visible = it_is
+	update_draw_edit_enabling()
 
 
 func update_draw_edit_enabling() -> void:
-	draw_edit.enabled = is_focus
+	var is_draw_enabled = enabled and is_focus
+	draw_edit.enabled = is_draw_enabled
+	draw_edit.visible = is_draw_enabled
 
 
 func popup_drawings_res_list(drawings: Array[GDDrawingRes], can_add_element: bool, pop_from: Control, popuped_controls: Array[Control] = []) -> ListController:
-	var drawings_list_controller = InterfaceServer.create_list_controller(drawings, ["GDDrawingRes"], [], can_add_element)
+	var drawings_list_controller = IS.create_list_controller(drawings, ["GDDrawingRes"], [], can_add_element)
 	
-	InterfaceServer.expand(drawings_list_controller, true, true)
-	var popuped_box = InterfaceServer.popup_box(popuped_controls + [drawings_list_controller], pop_from, null, Vector2(400, 800))
+	IS.expand(drawings_list_controller, true, true)
+	var popuped_box = IS.popup_box(popuped_controls + [drawings_list_controller], pop_from, null, Vector2(400, 800))
 	popuped_box.popdowned.connect(func() -> void:
 		draw_edit.force_points_multimesh_visiblity = false
 	)
@@ -370,13 +386,13 @@ func popup_drawings_list(pop_from: Control, apply_to_all: bool, apply_to_selecte
 	var controls: Array[Control]
 	
 	if apply_to_all:
-		var b = InterfaceServer.create_button("Apply to All Drawings", null, true); controls.append(b)
+		var b = IS.create_button("Apply to All Drawings", null, true); controls.append(b)
 		b.pressed.connect(draw_edit.apply_focused_drawing_properties)
 	if apply_to_selected_layers:
-		var b = InterfaceServer.create_button("Apply to Selected Layers"); controls.append(b)
+		var b = IS.create_button("Apply to Selected Layers"); controls.append(b)
 		b.pressed.connect(draw_edit.apply_focused_drawing_properties)
 	if apply_to_selected:
-		var b = InterfaceServer.create_button("Apply to Selected Drawings"); controls.append(b)
+		var b = IS.create_button("Apply to Selected Drawings"); controls.append(b)
 		b.pressed.connect(draw_edit.apply_focused_drawing_properties.bind(draw_edit.selected_points.keys()))
 	
 	var drawings_list = popup_drawings_res_list(draw_edit.draw_node.drawings_ress, false, pop_from, controls)
@@ -479,7 +495,7 @@ func on_center_point_button_pressed(id: int, option: MenuOption) -> void:
 	draw_edit.center_type = id
 
 func on_basic_options_button_pressed() -> void:
-	var menu = InterfaceServer.popup_menu([
+	var menu = IS.popup_menu([
 		MenuOption.new("Cut", null, draw_edit.cut_selected),
 		MenuOption.new("Copy", null, draw_edit.copy_selected),
 		MenuOption.new("Past", null, draw_edit.past_selected),
@@ -488,7 +504,7 @@ func on_basic_options_button_pressed() -> void:
 	], basic_options_button)
 
 func on_select_options_button_pressed() -> void:
-	var menu = InterfaceServer.popup_menu([
+	var menu = IS.popup_menu([
 		MenuOption.new("Select All", null, draw_edit.select_all.bind(true)),
 		MenuOption.new("Deselect All", null, draw_edit.select_all.bind(false)),
 		MenuOption.new("Select Invert", null, draw_edit.select_invert),
@@ -498,7 +514,7 @@ func on_select_options_button_pressed() -> void:
 	], select_options_button)
 
 func on_point_options_button_pressed() -> void:
-	var menu = InterfaceServer.popup_menu([
+	var menu = IS.popup_menu([
 		MenuOption.new("Move", null, draw_edit.set_is_editing.bind(1)),
 		MenuOption.new("Rotate", null, draw_edit.set_is_editing.bind(2)),
 		MenuOption.new("Scale", null, draw_edit.set_is_editing.bind(3)),

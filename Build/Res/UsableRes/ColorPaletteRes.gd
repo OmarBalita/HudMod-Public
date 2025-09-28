@@ -7,7 +7,7 @@ class_name ColorPaletteRes extends UsableRes
 func _init() -> void:
 	set_res_id("ColorPaletteRes")
 
-func _get_exported_parameters() -> Dictionary[String, Variant]:
+func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
 	return {
 		'palette_name': CtrlrHelper.get_string_controller_args([], palette_name),
 		'colors': CtrlrHelper.get_list_controller_args([], colors, ["Color"])

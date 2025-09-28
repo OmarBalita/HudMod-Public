@@ -43,9 +43,6 @@ enum MeshTypes {
 @export var ring_segments: int
 
 
-
-
-
 @export var _mesh: Mesh = _get_mesh_from_type(1):
 	set(val):
 		if val:

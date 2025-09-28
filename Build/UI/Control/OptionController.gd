@@ -46,7 +46,7 @@ func set_selected_id(new_selected_id: int) -> void:
 
 
 func on_pressed() -> void:
-	var menu = InterfaceServer.popup_menu(options, self)
+	var menu = IS.popup_menu(options, self)
 	menu.menu_button_pressed.connect(on_menu_button_pressed)
 
 func on_menu_button_pressed(id: int) -> void:

@@ -6,11 +6,11 @@ var root: TreeItem
 var curr_nodes: Dictionary
 
 
-func _start() -> void:
+func _ready() -> void:
 	super()
 	
 	nodes_tree = Tree.new()
-	InterfaceServer.set_base_container_settings(nodes_tree)
+	IS.set_base_container_settings(nodes_tree)
 	body.add_child(nodes_tree)
 	create_root()
 

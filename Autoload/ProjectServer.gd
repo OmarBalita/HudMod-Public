@@ -16,11 +16,14 @@ signal time_markers_changed()
 const EXAMPLE_PATH: String = "res://ExampleProject/"
 
 var project_path: String = EXAMPLE_PATH
-var thumbnails_path: String = project_path + "media/thumbnails"
-var fortimeline_path: String = project_path + "media/fortimeline"
+var objects_path: String = project_path + "objects"
+var explorer_thumbnails_path: String = project_path + "thumbnails/explorer"
+var timeline_thumbnails_path: String = project_path + "thumbnails/timeline"
+var brush_thumbnails_path: String = project_path + "thumbnails/brushes"
 
 var aspect_ratio: Vector2
 var resolution: Vector2i = Vector2i(1280, 720)
+var length: int = 900 # as Frames
 var fps: int = 30:
 	set(val):
 		fps = val
@@ -57,8 +60,10 @@ var curr_clips: Dictionary[int, int] # key is layer, val is (clip_id or time_beg
 
 
 func _ready() -> void:
-	DirAccess.make_dir_absolute(thumbnails_path)
-	DirAccess.make_dir_absolute(fortimeline_path)
+	DirAccess.make_dir_recursive_absolute(objects_path)
+	DirAccess.make_dir_recursive_absolute(explorer_thumbnails_path)
+	DirAccess.make_dir_recursive_absolute(timeline_thumbnails_path)
+	DirAccess.make_dir_recursive_absolute(brush_thumbnails_path)
 
 
 
@@ -66,13 +71,23 @@ func _ready() -> void:
 # Media Clips
 # ---------------------------------------------------
 
-func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0) -> void:
+func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0, object_res: UsableRes = null) -> void:
+	
+	if object_res != null:
+		if media_path.is_empty():
+			var object_id = generate_new_id(DirAccess.get_files_at(objects_path))
+			var object_name = "object_" + object_id + ".res"
+			media_path = "%s/%s" % [objects_path, object_name]
+		ResourceSaver.save(object_res, media_path, ResourceSaver.FLAG_COMPRESS)
+	
 	var media_res = MediaClipRes.new()
 	var clip_id = generate_clip_id()
-	var media_length = EditorServer.editor_default_settings.media_length * fps
+	var media_length = EditorServer.editor_default_settings.media_length
 	
 	if MediaServer.get_media_type_from_path(media_path) in [1, 2]:
-		media_length = int(MediaServer.get_audio_duration_with_ffprobe(media_path) * fps)
+		media_length = MediaServer.get_audio_duration_with_ffprobe(media_path)
+	media_length = int(media_length * fps)
+	
 	media_res.id = clip_id
 	media_res.media_resource_path = media_path
 	media_res.length = media_length
@@ -145,7 +160,7 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 
 func edit_media_clip(layer_index: int, frame_in: int, edit_info: Dictionary[String, Variant], emit_changes: bool = true) -> Dictionary:
 	var target_frame_in = edit_info.frame_in
-	var media_res = layers[layer_index].media_clips[frame_in].duplicate(true)
+	var media_res = layers[layer_index].media_clips[frame_in]
 	remove_media_clips([{"layer_index": layer_index, "clip_pos": frame_in}], true)
 	media_res.from = edit_info.from
 	media_res.length = edit_info.length
@@ -316,7 +331,7 @@ func get_bus_name_from_layer_index(layer_index: int) -> StringName:
 # Time Markers
 # ---------------------------------------------------
 
-func add_time_marker(frame_in: int = 0, custom_name: String = "Marker", custom_color: Color = InterfaceServer.RAINBOW_COLORS[2], custom_description: String = "Just a Marker :)") -> void:
+func add_time_marker(frame_in: int = 0, custom_name: String = "Marker", custom_color: Color = IS.RAINBOW_COLORS[2], custom_description: String = "Just a Marker :)") -> void:
 	var time_marker = TimeMarkerRes.new()
 	time_marker.custom_name = custom_name
 	time_marker.custom_color = custom_color
@@ -340,6 +355,10 @@ func remove_time_marker(frame_in: int) -> void:
 # Scene Management
 # ---------------------------------------------------
 
+func is_frame_on_media(curr_frame: int, time_begin: int, clip_length: int) -> bool:
+	var time_end = time_begin + clip_length
+	return curr_frame >= time_begin and curr_frame < time_end
+
 func update_scene_nodes(curr_frame: int = -1) -> Dictionary[int, int]:
 	
 	var new_clips: Dictionary[int, int]
@@ -350,10 +369,12 @@ func update_scene_nodes(curr_frame: int = -1) -> Dictionary[int, int]:
 	for layer_index in layers.keys():
 		var media_clips = layers[layer_index].media_clips
 		for time_begin: int in media_clips.keys():
-			var media = media_clips.get(time_begin)
-			var time_end = time_begin + media.length
-			if curr_frame >= time_begin and curr_frame < time_end:
+			var media_res: MediaClipRes = media_clips.get(time_begin)
+			if is_frame_on_media(curr_frame, time_begin, media_res.length):
 				new_clips[layer_index] = time_begin
+				var layer_node = Scene.get_scene_node(layer_index)
+				var local_frame = TimeServer.localize_frame(curr_frame, time_begin)
+				if layer_node: media_res.process(layer_node, local_frame)
 				break
 	
 	var removed_clips: Dictionary[int, int]
@@ -366,7 +387,7 @@ func update_scene_nodes(curr_frame: int = -1) -> Dictionary[int, int]:
 		removed_clips[index] = curr_clip_id
 		remove_node(index, curr_clip_id)
 	
-	for index in new_clips.keys():
+	for index: int in new_clips.keys():
 		var new_clip_id = new_clips[index]
 		if curr_clips.has(index) and new_clip_id == curr_clips[index]:
 			continue
@@ -380,28 +401,42 @@ func update_scene_nodes(curr_frame: int = -1) -> Dictionary[int, int]:
 
 
 func remove_node(layer: int, clip_id: int) -> void:
+	var node: Node = Scene.get_scene_node(layer)
+	node.get_meta("clip_res").exit(node)
 	Scene.remove_node(layer)
 
 
 func instance_node(layer: int, clip_id: int) -> void:
-	var clip_res = layers[layer].media_clips[clip_id]
-	var media_res_path = clip_res.media_resource_path
-	var media_type = MediaServer.get_media_type_from_path(media_res_path)
+	var clip_res: MediaClipRes = layers[layer].media_clips[clip_id]
+	var media_res_path: String = clip_res.media_resource_path
+	var media_type: int = MediaServer.get_media_type_from_path(media_res_path)
+	
 	if media_type == -1:
 		printerr("Project Server: Invalid Instance Layer Clip (Media type could not be recognized).")
 		return
+	
+	var node: Node
 	match media_type:
-		0: Scene.create_sprite(layer, clip_res, clip_id)
-		1: Scene.create_video(layer, clip_res, clip_id)
-		2: Scene.create_audio(layer, clip_res, clip_id)
+		0: node = Scene.create_sprite(layer, clip_res, clip_id)
+		1: node = Scene.create_video(layer, clip_res, clip_id)
+		2: node = Scene.create_audio(layer, clip_res, clip_id)
+		3: node = Scene.create_empty_object(layer, clip_res, clip_id)
+		4: node = Node.new() # Scene.create_text()
+		5: node = Scene.create_draw(layer, clip_res, clip_id)
+		6: node = Node.new() # Scene.create_particles()
+		7: node = Scene.create_camera_2d(layer, clip_res, clip_id)
+		8: node = Scene.create_audio_2d(layer, clip_res, clip_id)
+	
+	clip_res.enter(node)
+	clip_res.process(node, 0)
 
 
 func generate_clip_id(id_length: int = 12) -> String:
 	return generate_new_id(get_used_clip_id(), id_length)
 
 
-func get_used_clip_id() -> Array[String]:
-	var used_clip_id: Array[String]
+func get_used_clip_id() -> PackedStringArray:
+	var used_clip_id:= PackedStringArray()
 	for layer_index in layers:
 		var clips = layers[layer_index].media_clips
 		for time_begin in clips:
@@ -432,7 +467,7 @@ func get_res_file(path: String, as_file: Resource) -> Resource:
 # ---------------------------------------------------
 
 
-func generate_new_id(used_id: Array[String], id_length: int = 12) -> String:
+func generate_new_id(used_id: PackedStringArray, id_length: int = 12) -> String:
 	var id_keys = "abcdefghijklmnopqrstuvwxyz"
 	var keys_length = id_keys.length() - 1
 	

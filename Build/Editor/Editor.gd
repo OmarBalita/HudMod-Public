@@ -43,10 +43,6 @@ var body: MarginContainer
 
 
 func _ready() -> void:
-	_start()
-
-func _start() -> void:
-	
 	# Start Connections
 	shortcut_node = ShortcutNode.new()
 	shortcut_node.focus_control = self
@@ -57,11 +53,11 @@ func _start() -> void:
 	shortcut_node.shortcut_button_pressed.connect(on_shortcut_button_pressed)
 	shortcut_node.shortcut_button_released.connect(on_shortcut_button_released)
 	
-	container = InterfaceServer.create_split_container(1, true)
-	header = InterfaceServer.create_margin_container(4,4,4,4)
-	body = InterfaceServer.create_margin_container()
-	var header_panel = InterfaceServer.create_panel_container(Vector2(0, header_size), InterfaceServer.STYLE_HEADER)
-	var body_panel = InterfaceServer.create_panel_container(Vector2.ZERO, InterfaceServer.STYLE_BODY, {"z_index": -1, "clip_contents": true})
+	container = IS.create_split_container(1, true)
+	header = IS.create_margin_container(4,4,4,4)
+	body = IS.create_margin_container()
+	var header_panel = IS.create_panel_container(Vector2(0, header_size), IS.STYLE_HEADER)
+	var body_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY, {"z_index": -1, "clip_contents": true})
 	header_panel.add_child(header)
 	body_panel.add_child(body)
 	container.add_child(header_panel)

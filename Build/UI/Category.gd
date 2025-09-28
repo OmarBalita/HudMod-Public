@@ -1,0 +1,82 @@
+class_name Category extends SplitContainer
+
+@export var has_header: bool = true:
+	set(val):
+		has_header = val
+		is_expanded = not has_header
+		update_ui()
+@export var category_name: StringName = &"Category":
+	set(val): category_name = val; update_ui()
+@export var category_custom_color: Color:
+	set(val): category_custom_color = val; update_ui()
+@export var content_control_size: Vector2 = Vector2(32, 32):
+	set(val): content_control_size = val; update_ui()
+@export var has_custom_color: bool = true
+
+var is_expanded: bool:
+	set(val): is_expanded = val; update_ui()
+
+@onready var header_button: Button
+@onready var custom_color_rect: ColorRect
+@onready var content_margin_container: MarginContainer
+@onready var content_container: FlexGridContainer
+
+@export_group("Theme")
+@export_subgroup("Texture", "texture")
+@export var texture_expand: Texture2D = IS.TEXTURE_DOWN
+@export var texture_collapse: Texture2D = IS.TEXTURE_RIGHT
+
+
+
+func _ready() -> void:
+	header_button = IS.create_button("")
+	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10.0, .0)})
+	content_margin_container = IS.create_margin_container(6,0,0,0)
+	content_container = IS.create_grid_container(content_control_size, 12, 12)
+	
+	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
+	
+	if has_custom_color:
+		custom_color_rect.set_anchors_and_offsets_preset(PRESET_LEFT_WIDE)
+		header_button.add_child(custom_color_rect)
+	
+	content_margin_container.add_child(content_container)
+	add_child(header_button)
+	add_child(content_margin_container)
+	
+	header_button.pressed.connect(on_header_button_pressed)
+	
+	update_ui()
+
+
+func update_ui() -> void:
+	if not is_node_ready():
+		return
+	header_button.set_visible(has_header)
+	header_button.set_text(category_name)
+	header_button.icon = texture_expand if is_expanded else texture_collapse
+	custom_color_rect.set_color(category_custom_color)
+	content_container.set_control_size(content_control_size)
+	content_margin_container.set_visible(is_expanded)
+
+func get_contents() -> Array[Node]:
+	return content_container.get_children()
+
+func add_content(content: Control) -> void:
+	content_container.add_child(content)
+
+func move_content(content: Control, to_index: int) -> void:
+	content_container.move_child(content, to_index)
+
+func remove_all_contents() -> void:
+	for content: Control in content_container.get_children():
+		content.queue_free()
+
+
+
+func on_header_button_pressed() -> void:
+	is_expanded = not is_expanded
+
+
+
+

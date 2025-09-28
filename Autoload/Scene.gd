@@ -16,18 +16,23 @@ var update_video_viewers_rate: float = .5
 
 
 
+func get_curr_nodes() -> Dictionary:
+	return curr_nodes
+
+
+
 
 func _ready() -> void:
-	# Start Scene
-	start_scene()
-	# Connections
-	var timeline = EditorServer.time_line
-	ProjectServer.layer_changed.connect(on_layer_changed)
-	timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
-	timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
-	timeline.timeline_played.connect(try_play)
-	timeline.timeline_stoped.connect(stop)
-	pass
+	if get_tree().get_current_scene().scene_file_path == "res://Prototype/PrototypeMain.tscn":
+		# Start Scene
+		start_scene()
+		# Connections
+		var timeline = EditorServer.time_line
+		ProjectServer.layer_changed.connect(on_layer_changed)
+		timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
+		timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
+		timeline.timeline_played.connect(try_play)
+		timeline.timeline_stoped.connect(stop)
  
 func start_scene() -> void:
 	await EditorServer.player.ready
@@ -38,33 +43,65 @@ func start_scene() -> void:
 	viewport.add_child(root)
 
 func create_sprite(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Sprite2D:
-	var sprite = Sprite2D.new()
+	var sprite:= Sprite2D.new()
 	sprite.texture = MediaServer.get_image_texture_from_path(clip_res.media_resource_path)
-	create_node2d(layer, sprite)
-	instance_node(layer, sprite, clip_res, frame_begin)
+	instance_node_2d(layer, sprite, clip_res, frame_begin)
 	return sprite
 
 func create_video(layer: int, clip_res: MediaClipRes, frame_begin: int) -> VideoViewer:
-	var video_renderer = VideoViewer.new()
+	var video_renderer:= VideoViewer.new()
 	video_renderer.path = clip_res.media_resource_path
-	create_node2d(layer, video_renderer)
-	instance_node(layer, video_renderer, clip_res, frame_begin)
+	instance_node_2d(layer, video_renderer, clip_res, frame_begin)
 	try_play()
 	return video_renderer
 
 func create_audio(layer: int, clip_res: MediaClipRes, frame_begin: int) -> AudioStreamPlayer:
-	var audio_player = AudioStreamPlayer.new()
-	audio_player.stream = load(clip_res.media_resource_path)
+	var audio_player:= AudioStreamPlayer.new()
+	var stream:= MediaServer.get_audio_stream_from_path(clip_res.media_resource_path)
+	audio_player.stream = stream
 	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(layer)
 	instance_node(layer, audio_player, clip_res, frame_begin)
 	try_play()
 	return audio_player
 
+func create_empty_object(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Node2D:
+	var empty_object:= Node2D.new()
+	instance_node_2d(layer, empty_object, clip_res, frame_begin)
+	return empty_object
 
-func create_node2d(layer: int, node: Node2D) -> void:
+func create_text() -> void:
+	pass
+
+func create_draw(layer: int, clip_res: MediaClipRes, frame_begin: int) -> GDDraw:
+	var draw:= GDDraw.new()
+	var draw_res: DrawRes = ResourceLoader.load(clip_res.media_resource_path)
+	draw.drawings_ress = draw_res.drawings_ress
+	instance_node_2d(layer, draw, clip_res, frame_begin)
+	return draw
+
+func create_particles() -> void:
+	pass
+
+func create_camera_2d(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Camera2D:
+	var camera:= Camera2D.new()
+	instance_node_2d(layer, camera, clip_res, frame_begin)
+	camera.make_current()
+	return camera
+
+func create_audio_2d(layer: int, clip_res: MediaClipRes, frame_begin: int) -> AudioStreamPlayer2D:
+	var audio_2d:= AudioStreamPlayer2D.new()
+	instance_node_2d(layer, audio_2d, clip_res, frame_begin)
+	return audio_2d
+
+
+
+
+func setup_node2d(layer: int, node: Node2D) -> void:
 	node.z_index = layer
 	node.visible = not ProjectServer.get_layer_hide(layer)
 
+func get_scene_node(layer: int) -> Node:
+	return curr_nodes[layer].scene_node if curr_nodes.has(layer) else null
 
 func remove_node(layer: int) -> void:
 	if curr_nodes.has(layer):
@@ -84,6 +121,13 @@ func instance_node(layer: int, node: Node, clip_res: MediaClipRes, frame_begin: 
 		"tree_node" = tree_node,
 		"scene_node" = node
 	}
+
+func instance_node_2d(layer: int, node: Node, clip_res: MediaClipRes, frame_begin: int) -> void:
+	setup_node2d(layer, node)
+	instance_node(layer, node, clip_res, frame_begin)
+
+
+
 
 func try_play(curr_frame = null) -> void:
 	
@@ -116,6 +160,10 @@ func try_play(curr_frame = null) -> void:
 	)
 
 
+func loop_nodes(function: Callable) -> void:
+	for layer in curr_nodes.keys():
+		var node = curr_nodes[layer].scene_node
+		var frames_delay = await function.call(layer, node)
 
 func stop() -> void:
 	loop_nodes(
@@ -125,7 +173,6 @@ func stop() -> void:
 			elif node is VideoViewer:
 				node.stop()
 	)
-
 
 func update_visibilities(visibility = null) -> void:
 	loop_nodes(
@@ -138,8 +185,6 @@ func update_visibilities(visibility = null) -> void:
 					node_visib = visibility
 				node.visible = node_visib
 	)
-
-
 
 func seek_video_viewers_frame(curr_frame = null) -> void:
 	if curr_frame == null:
@@ -180,12 +225,6 @@ func on_timeline_curr_frame_stopped_manually() -> void:
 
 
 
-
-
-func loop_nodes(function: Callable) -> void:
-	for layer in curr_nodes.keys():
-		var node = curr_nodes[layer].scene_node
-		var frames_delay = await function.call(layer, node)
 
 
 
