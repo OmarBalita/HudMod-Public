@@ -11,7 +11,6 @@ func clear_drawed_entities() -> void:
 	drawed_entities.clear()
 	queue_redraw()
 
-
 func _draw() -> void:
 	for info in drawed_entities:
 		var type = info.keys()[0]

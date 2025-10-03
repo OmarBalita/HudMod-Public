@@ -4,8 +4,10 @@ signal focus_index_changed(index: int)
 signal updated()
 
 @export var options: Array
-
 @export var is_vertical: bool
+@export var focus_style: StyleBox = IS.STYLE_ACCENT
+
+
 
 var focus_index: int:
 	set(val):
@@ -56,7 +58,7 @@ func update() -> void:
 	
 	tweener = TweenerComponent.new()
 	buttons_container = IS.create_box_container(12, is_vertical)
-	focus_panel = IS.create_panel(IS.STYLE_ACCENT)
+	focus_panel = IS.create_panel(focus_style)
 	
 	add_child(focus_panel)
 	add_child(buttons_container)
@@ -64,11 +66,12 @@ func update() -> void:
 	
 	var focused_option_button: Button
 	 
-	for index in options.size():
-		var option = options[index]
+	for index: int in options.size():
+		var option: MenuOption = options[index]
 		var option_button = IS.create_button(option.text, option.icon, true, false, {flat = true})
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.pressed.connect(set_focus_index.bind(index))
+		if not option.function.is_null(): option_button.pressed.connect(option.function)
 		for key in option.get_meta_list():
 			var val = option.get_meta(key)
 			option_button.set(key, val)

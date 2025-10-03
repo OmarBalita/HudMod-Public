@@ -1,4 +1,4 @@
-@tool class_name EditorRect extends FocusControl
+class_name EditorRect extends FocusControl
 
 
 signal l_button_downed(pos: Vector2)
@@ -15,9 +15,7 @@ signal wheel_upped(pos: Vector2)
 
 @export_group("Theme")
 @export_subgroup("Constant")
-@export var header_size: int = 50.0:
-	set(val):
-		header_size = val
+@export var header_size: int = 50
 @export_subgroup("Font", "font")
 @export var font_header: Font
 @export var font_main: Font
@@ -69,7 +67,7 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	
+	super(event)
 	if not is_focus: return
 	
 	if event is InputEventMouseButton:
@@ -108,6 +106,7 @@ func match_key_code(event: InputEventKey, callables: Dictionary) -> void:
 		if event.keycode == key:
 			callables[key].call()
 			var is_key_declared = key in pressed_keys
+			pass
 
 
 

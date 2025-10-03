@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://c5j8uwlpcdbkb"]
+[gd_scene load_steps=28 format=3 uid="uid://c5j8uwlpcdbkb"]
 
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Build/Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
@@ -24,6 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://n88yf18v4s47" path="res://Asset/Icons/paperclip.png" id="18_52oax"]
 [ext_resource type="Texture2D" uid="uid://wdwchq2hkx31" path="res://Asset/Icons/zoom-in.png" id="19_k2li5"]
 [ext_resource type="Texture2D" uid="uid://df12acsow1u4v" path="res://Asset/Icons/zoom-out.png" id="20_ig1nw"]
+[ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="25_ig1nw"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fucdc"]
 bg_color = Color(0.1008, 0.104, 0.12, 1)
@@ -95,16 +96,18 @@ theme_override_constants/separation = 0
 [node name="Split" type="VSplitContainer" parent="Margin/Box/Split"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
 [node name="Split2" type="HSplitContainer" parent="Margin/Box/Split/Split"]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.7
+theme_override_constants/separation = 0
 split_offset = 300
 
 [node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split/Split2" groups=["media_explorer"]]
 clip_contents = true
-custom_minimum_size = Vector2(550, 0)
+custom_minimum_size = Vector2(450, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("1_7i47x")
@@ -125,6 +128,7 @@ script = ExtResource("2_7i47x")
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.7
+theme_override_constants/separation = 0
 split_offset = 300
 
 [node name="ClipNodesExplorer" type="Control" parent="Margin/Box/Split/Split/Split" groups=["clip_nodes_explorer"]]
@@ -135,6 +139,7 @@ script = ExtResource("11_30pfl")
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+layer_display_size = 55.0
 texture_select_mode = ExtResource("12_13ga7")
 texture_split_mode = ExtResource("13_pu2bm")
 texture_split = ExtResource("13_kg1lx")
@@ -150,12 +155,13 @@ texture_zoom_out = ExtResource("20_ig1nw")
 
 [node name="Properties" type="Control" parent="Margin/Box/Split" groups=["properties"]]
 clip_contents = true
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(450, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("3_7i47x")
 
 [node name="Bottom" type="PanelContainer" parent="Margin/Box"]
+visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_fucdc")
@@ -206,3 +212,15 @@ grow_vertical = 2
 mouse_filter = 2
 script = SubResource("GDScript_a0jjo")
 metadata/_custom_type_script = "uid://dhcmxesxndwle"
+
+[node name="DrawableRect" type="ColorRect" parent="." groups=["drawable_rect"]]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+script = ExtResource("25_ig1nw")
+metadata/_custom_type_script = "uid://d1jx0qooyty3l"

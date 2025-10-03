@@ -25,6 +25,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, custom_set_f
 	
 	var edits_box_container = IS.create_box_container(12, true)
 	var edit_box_container = IS.create_custom_edit_box(name, edits_box_container)
+	edits_box_container.set_meta("owner", edit_box_container)
 	usable_res.res_changed.connect(edit_box_container.emit_signal.bind('val_changed', usable_res))
 	
 	var ui_profile = UIProfile.new()

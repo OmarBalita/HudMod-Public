@@ -53,9 +53,28 @@ func add_component(section_key: String, component: ComponentRes, node: Node) -> 
 	component.set_owner(self)
 	if node: component._enter(node)
 
-func remove_component(section_key: String, component: ComponentRes, node: Node) -> void:
+func erase_component(section_key: String, component: ComponentRes, node: Node) -> void:
 	get_section_absolute(section_key).erase(component)
 	if node: component._exit(node)
+
+func remove_component(section_key: String, component_id: StringName, node: Node) -> void:
+	for component: ComponentRes in get_section_absolute(section_key):
+		if component.get_res_id() == component_id:
+			erase_component(section_key, component, node)
+			return
+
+
+func move_component(section_key: String, index_from: int, index_to: int) -> void:
+	
+	var section: Array = get_section_absolute(section_key)
+	var section_size:= section.size()
+	
+	if index_from < 0 or index_from >= section_size: return
+	if index_to < 0 or index_to >= section_size: return
+	
+	var component: ComponentRes = section[index_from]
+	section.remove_at(index_from)
+	section.insert(index_to, component)
 
 func loop_components(node: Node, method: Callable, frame: int = -1) -> void:
 	for section_key: String in components:
@@ -92,8 +111,3 @@ func exit_component(node: Node, component: ComponentRes, custom_frame: int) -> v
 
 func update_component(node: Node, component: ComponentRes, frame: int) -> void:
 	component._update()
-
-
-
-
-

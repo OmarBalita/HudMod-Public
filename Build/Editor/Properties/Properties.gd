@@ -2,11 +2,89 @@ class_name Properties extends EditorRect
 
 var media_clips_selection_group:= EditorServer.media_clips_selection_group
 
+@export_group("Theme")
+@export_subgroup("Texture")
+@export var texture_add: Texture2D = preload("res://Asset/Icons/plus.png")
+@export var texture_search: Texture2D = preload("res://Asset/Icons/magnifying-glass.png")
+@export var texture_delete: Texture2D = preload("res://Asset/Icons/trash-can.png")
+@export var texture_drag: Texture2D = preload("res://Asset/Icons/drag.png")
+@export_group("Constant")
+@export var scroll_margin: float = 100.0
+@export var scroll_speed: float = 700.0
+
+var curr_media_clips: Array[MediaClip]
+
+var drag_info: Dictionary[StringName, Variant]
+
+var curr_scroll_speed: float = .0
+
+
 func _ready() -> void:
 	super()
 	# Connections
-	media_clips_selection_group.selected_objects_changed.connect(on_media_clips_selection_group_selected_objects_changed)
+	media_clips_selection_group.selected_objects_changed.connect(
+		on_media_clips_selection_group_selected_objects_changed
+	)
 
+func _input(event: InputEvent) -> void:
+	super(event)
+	if drag_info.size() and drag_info.drag_enabled:
+		if event is InputEventMouseMotion:
+			
+			var dragged_edit_box: Control = drag_info.dragged_edit_box
+			var comps_container: BoxContainer = drag_info.comps_container
+			var comp_box: ScrollContainer = comps_container.get_parent().get_parent()
+			
+			var mouse_pos: Vector2 = get_global_mouse_position()
+			var drag_offset: Vector2 = drag_info.drag_offset
+			var box_pos: Vector2 = comp_box.global_position
+			var box_size: Vector2 = comp_box.size
+			
+			dragged_edit_box.global_position.y = clamp(
+				mouse_pos.y + drag_offset.y,
+				box_pos.y,
+				box_pos.y + box_size.y - dragged_edit_box.size.y
+			)
+			
+			if mouse_pos.y < box_pos.y + scroll_margin: curr_scroll_speed = -scroll_speed
+			elif mouse_pos.y > box_pos.y + box_size.y - scroll_margin: curr_scroll_speed = scroll_speed
+			else: curr_scroll_speed = .0
+			drag_info[&"scroll_container"] = comp_box
+			
+			#var index_from: int = drag_info.index_from
+			var index_to: int = get_component_index_from_display_pos(comps_container, mouse_pos.y)
+			#var move_range: Array
+			#var displace_dir: int
+			
+			if index_to != -1:
+				#if index_to > index_from:
+					#index_from += 1; index_to += 1
+					#move_range = range(index_from, index_to)
+					#displace_dir = -1
+				#else:
+					#move_range = range(index_to, index_from)
+					#index_from -= 1
+					#displace_dir = 1
+				#var edit_box: IS.EditBoxContainer = drag_info.edit_box
+				var target_edit_box: IS.EditBoxContainer = comps_container.get_child(index_to)
+				#var boxes_displacement: float = abs(target_edit_box.position.y - edit_box.position.y) * displace_dir
+				#
+				#var comps_main_pos: Dictionary[int, float] = drag_info.comps_main_poss
+				#var comps_curr_poss: Dictionary[int, float] = drag_info.comps_poss
+				
+				drag_info["index_to"] = index_to
+				var drawable_rect:= EditorServer.drawable_rect
+				var rect2:= target_edit_box.get_global_rect()
+				var color:= IS.COLOR_ACCENT_BLUE
+				drawable_rect.clear_drawed_entities()
+				drawable_rect.draw_new_rect(rect2, Color(color, .4), true)
+				drawable_rect.draw_new_rect(rect2, color, false, 5.0)
+
+func _physics_process(delta: float) -> void:
+	
+	if drag_info and drag_info.drag_enabled:
+		var scroll_container: ScrollContainer = drag_info[&"scroll_container"]
+		if scroll_container: scroll_container.scroll_vertical += curr_scroll_speed * delta
 
 func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> void:
 	
@@ -26,8 +104,8 @@ func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> voi
 			var section_key: String = sections_keys[index]
 			
 			var options_container:= IS.create_box_container()
-			var new_components_button:= IS.create_button("New Component", null, true)
-			var search_line_edit:= IS.create_line_edit("Search for %s Component" % section_key)
+			var new_components_button:= IS.create_button("", texture_add, true)
+			var search_line_edit:= IS.create_line_edit("Search for %s Component" % section_key, "", texture_search)
 			options_container.add_child(new_components_button)
 			options_container.add_child(search_line_edit)
 			
@@ -55,9 +133,7 @@ func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> voi
 				IS.popup_menu(section_components, new_components_button)
 			)
 			
-			var focus_media_clip = media_clips[0]
-			if is_instance_valid(focus_media_clip):
-				update_properties(focus_media_clip.clip_res, section_key)
+			update_properties(media_clips, section_key)
 		
 		var change_focus_index_func: Callable = func(index: int) -> void:
 			for child_index: int in body.get_child_count():
@@ -74,23 +150,68 @@ func add_new_component(media_clips: Array[MediaClip], section_key: String, compo
 	component.set_script(component_script)
 	for media_clip: MediaClip in media_clips:
 		media_clip.clip_res.add_component(section_key, component.duplicate(true), Scene.get_scene_node(media_clip.layer_index))
-	update_properties(media_clips[0].clip_res, section_key)
+	update_properties(media_clips, section_key)
 
+func delete_component(media_clips: Array[MediaClip], component_id: StringName, section_key: String) -> void:
+	for media_clip: MediaClip in media_clips:
+		media_clip.clip_res.remove_component(section_key, component_id, Scene.get_scene_node(media_clip.layer_index))
+	update_properties(media_clips, section_key)
 
-func update_properties(media_res: MediaClipRes, section_key: String) -> void:
+func update_properties(media_clips: Array[MediaClip], section_key: String) -> void:
+	
+	if media_clips.size(): curr_media_clips = media_clips
+	else: media_clips = curr_media_clips
+	
+	var media_ress: Array = media_clips.map(
+		func(element: MediaClip) -> MediaClipRes:
+			return element.clip_res
+	)
+	if not media_ress: return
+	var curr_media_res = media_ress[0]
+	
 	var root_container: SplitContainer = body.get_node(section_key)
+	
 	if root_container:
+		
 		var curr_components_container: BoxContainer = root_container.get_meta("components_container")
 		IS.clear_children(curr_components_container)
-		var section: Array = media_res.get_section_absolute(section_key)
-		for component: ComponentRes in section:
+		var section: Array = curr_media_res.get_section_absolute(section_key)
+		
+		for index: int in section.size():
+			var component: ComponentRes = section[index]
 			var controller: Control = ComponentRes.create_custom_edit(component.get_res_id(), component)[0]
-			curr_components_container.add_child(controller.get_parent().get_parent().get_parent())
+			var edit_box: IS.EditBoxContainer = controller.get_meta("owner")
+			
+			var delete_button:= IS.create_texture_button(texture_delete)
+			var method_controller:= IS.create_option_controller([
+				{text = "Set"}, {text = "Add"}, {text = "Sub"}, {text = "Multiply"}, {text = "Divid"}
+			])
+			var drag_button:= IS.create_texture_button(texture_drag)
+			
+			delete_button.pressed.connect(delete_component.bind(media_clips, component.get_res_id(), section_key))
+			drag_button.button_down.connect(on_component_drag_button_button_down.bind(edit_box, component, section_key))
+			drag_button.button_up.connect(on_component_drag_button_button_up)
+			#drag_button.gui_input.connect(func(event: InputEvent) -> void: on_component_drag_button_gui_input.call(event, index))
+			
+			IS.add_childs(edit_box.header, [method_controller, delete_button, drag_button])
+			curr_components_container.add_child(edit_box)
+
+func get_component_index_from_display_pos(comp_container: BoxContainer, pos: float) -> int:
+	var scroll_container: ScrollContainer = comp_container.get_parent().get_parent()
+	var comps_count: int = comp_container.get_child_count()
+	for index: int in comps_count:
+		var comp_edit_box: IS.EditBoxContainer = comp_container.get_child(index)
+		var box_pos: float = comp_edit_box.global_position.y
+		var box_size: float = comp_edit_box.size.y
+		var is_above_pos: bool = box_pos < pos
+		var is_under_pos: bool = box_pos + box_size >= pos
+		if (is_above_pos or index == 0) and (is_under_pos or index == comps_count - 1):
+			return index
+	return -1
 
 
 func on_media_clips_selection_group_selected_objects_changed() -> void:
 	
-	var clip_type: int
 	var objects: Dictionary[String, Dictionary] = media_clips_selection_group.get_objects()
 	
 	var media_clips_selected: Array[MediaClip]
@@ -107,16 +228,68 @@ func on_media_clips_selection_group_selected_objects_changed() -> void:
 	var properties_sections: Array = MediaServer.get_types_intersection_properties_sections(types_selected)
 	open_properties(media_clips_selected, properties_sections)
 
+func on_component_drag_button_button_down(edit_box: IS.EditBoxContainer, component: ComponentRes, section_key: StringName) -> void:
+	# Comps Container and Comps Main Poss
+	var comps_container:= edit_box.get_parent()
+	var comps_main_poss: Dictionary[int, float] = {}
+	for index: int in comps_container.get_child_count():
+		comps_main_poss[index] = comps_container.get_child(index).position.y
+	# Instance Dragged Edit Box
+	var dragged_edit_box:= edit_box.duplicate()
+	ObjectServer.call_method_deep(dragged_edit_box, &"set_script", [null])
+	dragged_edit_box.global_position = edit_box.global_position
+	dragged_edit_box.size = edit_box.size
+	get_tree().get_current_scene().add_child(dragged_edit_box)
+	# Hide Edit Boxe
+	edit_box.modulate.a = .0
+	# identify Dragged Component Info
+	var index_from: int = component.get_owner().get_section_absolute(section_key).find(component)
+	drag_info = {
+		&"drag_enabled": true,
+		&"drag_offset": edit_box.global_position - get_global_mouse_position(),
+		
+		&"comps_main_poss": comps_main_poss,
+		&"comps_poss": {} as Dictionary[int, float],
+		
+		&"comps_container": comps_container,
+		&"scroll_container": null,
+		&"edit_box": edit_box,
+		&"dragged_edit_box": dragged_edit_box,
+		
+		&"component": component,
+		
+		&"section_key": section_key,
+		
+		&"index_from": index_from,
+		&"index_to": index_from
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
+func on_component_drag_button_button_up() -> void:
+	
+	var edit_box: IS.EditBoxContainer = drag_info.edit_box
+	var dragged_edit_box: Control = drag_info.dragged_edit_box
+	
+	var component: ComponentRes = drag_info.component
+	var media_res: MediaClipRes = component.get_owner()
+	
+	var section_key: String = drag_info.section_key
+	
+	var index_from: int = drag_info.index_from
+	var index_to: int = drag_info.index_to
+	
+	if index_from == index_to and index_to != -1:
+		drag_info.drag_enabled = false
+		var tween: Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tween.tween_property(dragged_edit_box, "global_position:y", edit_box.global_position.y, .2)
+		tween.play()
+		await tween.finished
+		edit_box.modulate.a = 1.0
+	else:
+		media_res.move_component(section_key, index_from, index_to)
+		update_properties([], section_key)
+	
+	dragged_edit_box.queue_free()
+	drag_info.clear()
+	curr_scroll_speed = .0
+	
+	EditorServer.drawable_rect.clear_drawed_entities()

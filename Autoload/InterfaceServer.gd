@@ -4,7 +4,7 @@ extends Node
 const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
 const COLOR_DARK_BG = Color(0.08, 0.08, 0.09, 1.0)        # #141417
 const COLOR_DARK_PANEL = Color(0.12, 0.12, 0.14, 1.0)     # #1e1e24
-const COLOR_DARK_HEADER = Color(0.06, 0.06, 0.07, 1.0)    # #0f0f12
+const COLOR_DARK_HEADER = Color(0.059, 0.059, 0.071, 1.0)    # #0f0f12
 const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)       # #3399ff
 const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
 const COLOR_SUCCESS_GREEN = Color(0.2, 0.8, 0.4, 1.0)     # #33cc66
@@ -42,8 +42,13 @@ const TEXTURE_DOWN = preload("res://Asset/Icons/down.png")
 const TEXTURE_TOGGLE_BUTTON_CHECKED = preload("res://Asset/Icons/toggle-button.png")
 const TEXTURE_TOGGLE_BUTTON_UNCHECKED = preload("res://Asset/Icons/toggle-button2.png")
 
+var STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
+var STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")
+
+var STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
 var STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
 var STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
+
 
 # Create modern styles programmatically
 var STYLE_BOX_EMPTY: StyleBoxEmpty
@@ -309,6 +314,12 @@ class EditBoxContainer extends BoxContainer:
 	var controller_curr_val_id: Dictionary[String, Variant] = {method = "", vari = ""} # Name of curr_val Variable in Controller
 	# controller_cur_val_id has 2 keys: method and var, method is a Callable that i can Call to assign new Val
 	# and the var assigned Manually
+	var header: BoxContainer = IS.create_box_container()
+	
+	func _ready() -> void:
+		add_child(header)
+		move_child(header, 0)
+		IS.expand(header)
 	
 	func get_curr_val() -> Variant:
 		return curr_val
@@ -427,14 +438,14 @@ func create_panel(style: StyleBox = STYLE_PANEL, more: Dictionary = {}) -> Panel
 func create_v_line_panel(min_size: float = 1, color: Color = Color(1,1,1, .3), more: Dictionary = {size_flags_horizontal = Control.SIZE_SHRINK_CENTER}) -> Panel:
 	var panel = create_panel(STYLE_V_LINE.duplicate())
 	panel.get_theme_stylebox("panel").color = color
-	panel.custom_minimum_size.y = min_size
+	panel.custom_minimum_size.x = min_size
 	ObjectServer.describe(panel, more)
 	return panel
 
 func create_h_line_panel(min_size: float = 1, color: Color = Color(1,1,1, .3), more: Dictionary = {size_flags_vertical = Control.SIZE_SHRINK_CENTER}) -> Panel:
 	var panel = create_panel(STYLE_H_LINE.duplicate())
 	panel.get_theme_stylebox("panel").color = color
-	panel.custom_minimum_size.x = min_size
+	panel.custom_minimum_size.y = min_size
 	ObjectServer.describe(panel, more)
 	return panel
 
@@ -508,6 +519,12 @@ func create_popuped_menu(options: Array, more: Dictionary = {}) -> PopupedMenu:
 	ObjectServer.describe(pop_menu, more)
 	return pop_menu
 
+func create_popuped_categories_menu(options: Dictionary[MenuOption, Array], more: Dictionary = {}) -> PopupedCategoriesMenu:
+	var pop_categories_menu:= PopupedCategoriesMenu.new(options)
+	set_base_panel_settings(pop_categories_menu, IS.STYLE_BODY)
+	ObjectServer.describe(pop_categories_menu, more)
+	return pop_categories_menu
+
 func create_popuped_color_controller(main_color: Color, more: Dictionary = {}) -> PopupedColorController:
 	var pop_color_controller = PopupedColorController.new()
 	set_base_panel_settings(pop_color_controller, IS.STYLE_BODY)
@@ -521,6 +538,7 @@ func create_popuped_box(elements: Array, more: Dictionary = {}) -> PopupedBox:
 	pop_box.elements = elements
 	ObjectServer.describe(pop_box, more)
 	return pop_box
+
 
 func popup(popuped: PopupedControl, pop_from = null, pop_in = null, min_size: Vector2 = Vector2.ZERO) -> void:
 	var pop_pos
@@ -536,6 +554,11 @@ func popup_menu(options: Array, pop_from = null, pop_in = null, min_size: Vector
 	var pop_menu = create_popuped_menu(options)
 	popup(pop_menu, pop_from, pop_in, min_size)
 	return pop_menu
+
+func popup_categories_menu(options: Dictionary[MenuOption, Array], pop_from = null, pop_in = null, min_size: Vector2 = Vector2.ZERO) -> PopupedCategoriesMenu:
+	var pop_cat_menu = create_popuped_categories_menu(options)
+	popup(pop_cat_menu, pop_from, pop_in, min_size)
+	return pop_cat_menu
 
 func popup_color_controller(main_color: Color, pop_from = null, pop_in = null, min_size: Vector2 = Vector2.ZERO) -> PopupedColorController:
 	var pop_color_controller = create_popuped_color_controller(main_color)
@@ -675,7 +698,7 @@ func create_edit_box(name: String, min_size: Vector2, vertical: bool = false, na
 	var box = create_edit_box_container(16, vertical, {custom_minimum_size = min_size})
 	var name_label = create_name_label(name, name_alignment)
 	expand(name_label)
-	box.add_child(name_label)
+	box.header.add_child(name_label)
 	return box
 
 func create_custom_edit_box(name: String, edits_box_container: BoxContainer, min_size: Vector2 = EDIT_BOX_MIN_SIZE) -> EditBoxContainer:
@@ -789,7 +812,6 @@ func create_color_range_edit(name: String, color_range_res: ColorRangeRes, min_s
 	return [color_range_control]
 
 
-
 func get_main_controller_from(controllers: Array[Control]) -> Control:
 	var controller: Control
 	for ctrlr in controllers:
@@ -798,7 +820,6 @@ func get_main_controller_from(controllers: Array[Control]) -> Control:
 			break
 	return controller
 
-
 func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 	var main_controller = get_main_controller_from(controllers)
 	var edit_box: Node = main_controller
@@ -806,6 +827,19 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 		edit_box = edit_box.get_parent()
 	return edit_box
 
+
+
+
+
+func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0)) -> GraphNode:
+	var graph_node:= GraphNode.new()
+	graph_node.title = title
+	graph_node.add_theme_stylebox_override("panel", STYLE_GRAPH_NODE_BODY)
+	graph_node.add_theme_stylebox_override("panel_selected", STYLE_GRAPH_NODE_BODY)
+	graph_node.add_theme_stylebox_override("titlebar", STYLE_GRAPH_NODE_BASE_HEADER)
+	graph_node.add_theme_stylebox_override("titlebar_selected", STYLE_GRAPH_NODE_BASE_HEADER)
+	graph_node.add_theme_stylebox_override("panel_focus", StyleBoxFlat.new())
+	return graph_node
 
 
 
@@ -940,10 +974,3 @@ func add_childs(parent: Node, childs: Array[Node]) -> void:
 func clear_children(parent: Node) -> void:
 	for child in parent.get_children():
 		child.queue_free()
-
-
-
-
-
-
-

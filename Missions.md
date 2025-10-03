@@ -60,7 +60,7 @@
 - Play and Stop Timeline Wherever the Mouse is Present
 
 - Export Project as Image or Video with custom Quality, Resolution, Aspect-Ratio, and FPS
-- Save Preset in Project or as Global Preset 
+- Save Preset in Project or as Global Preset
 - Apply Export and Save in Media-Clip Popuped Menu
 - Full Save System
 - Undo, Redo System
@@ -89,9 +89,3 @@
 - Undo-Redo
 - Effects / Shader Node Graph
 - Compositor Node Graph
-
-
-
-
-
-

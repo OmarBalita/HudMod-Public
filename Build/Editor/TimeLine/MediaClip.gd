@@ -282,8 +282,9 @@ func on_dragging() -> void:
 						#clip_layer.draw_new_rect(Rect2(Vector2(rect_x_pos, 0), selected_clip.size))
 				
 				var rect_x_pos = timeline.get_display_pos_from_frame(target_frame, layer)
-				layer.draw_new_rect(Rect2(Vector2(rect_x_pos, 0), size))
-				break
+				var rect2 = Rect2(Vector2(rect_x_pos, 0), size)
+				layer.draw_new_rect(rect2, Color(IS.COLOR_ACCENT_BLUE, .4))
+				layer.draw_new_rect(rect2, IS.COLOR_ACCENT_BLUE, false, 5.0)
 
 
 func on_drag_finished() -> void:

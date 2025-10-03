@@ -43,6 +43,7 @@ var time_line: TimeLine
 var media_explorer: MediaExplorer
 var clip_nodes_explorer: ClipNodesExplorer
 var properties: Properties
+var drawable_rect: DrawableRect
 
 var editor_default_settings:= EditorDefaultSettings.new()
 
@@ -61,6 +62,7 @@ func _ready() -> void:
 	media_explorer = get_tree().get_first_node_in_group("media_explorer")
 	clip_nodes_explorer = get_tree().get_first_node_in_group("clip_nodes_explorer")
 	properties = get_tree().get_first_node_in_group("properties")
+	drawable_rect = get_tree().get_first_node_in_group("drawable_rect")
 	
 	get_tree().get_root().files_dropped.connect(on_files_dropped)
 	

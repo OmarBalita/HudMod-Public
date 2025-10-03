@@ -19,7 +19,8 @@ var is_expanded: bool:
 @onready var header_button: Button
 @onready var custom_color_rect: ColorRect
 @onready var content_margin_container: MarginContainer
-@onready var content_container: FlexGridContainer
+
+var content_container: FlexGridContainer = IS.create_grid_container(content_control_size, 12, 12)
 
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
@@ -32,7 +33,6 @@ func _ready() -> void:
 	header_button = IS.create_button("")
 	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10.0, .0)})
 	content_margin_container = IS.create_margin_container(6,0,0,0)
-	content_container = IS.create_grid_container(content_control_size, 12, 12)
 	
 	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
 	

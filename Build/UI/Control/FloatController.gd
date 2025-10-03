@@ -179,6 +179,7 @@ func request_grab() -> bool:
 
 func update_ui() -> void:
 	var not_state = not state
+	if not typing_line: return
 	typing_line.visible = state
 	progress_bar.visible = not_state
 	curr_val_label.visible = not_state

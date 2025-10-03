@@ -28,7 +28,7 @@ func _process(node: Node, frame: int) -> void:
 	var frame_pos: Vector2 = Vector2(x_curve.sample(frame), y_curve.sample(frame))
 	if get_prop(&"interpolate", frame):
 		node.position = frame_pos
-	elif (get_prop(&"points")).has(frame):
+	elif get_prop(&"points").has(frame):
 		node.position = frame_pos
 
 func _update() -> void:
@@ -52,8 +52,6 @@ func _update() -> void:
 	y_baked_curve.max_domain = length
 	y_baked_curve.min_value = -offset_scale
 	y_baked_curve.max_value = offset_scale
-	#ObjectServer.describe(x_baked_curve, {max_domain = length, min_val = -offset_scale, max_val = offset_scale})
-	#ObjectServer.describe(y_baked_curve, {max_domain = length, min_val = -offset_scale, max_val = offset_scale})
 	
 	# Loop and Collect Peaks
 	var add_peak_point_func: Callable = func(frame: int) -> void:

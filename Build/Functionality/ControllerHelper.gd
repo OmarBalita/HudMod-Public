@@ -38,7 +38,7 @@ static func get_res_controller_args(ui_cond: Array, res: UsableRes) -> Dictionar
 
 static func get_options_info_from_keys(keys: Array) -> Array[Dictionary]:
 	var result: Array[Dictionary]
-	for key in keys: result.append({text = key})
+	for key in keys: result.append({text = key, icon = null})
 	return result
 
 static func get_ui_cond(cond_func: Callable = Callable(), needed_result: Array = []) -> Dictionary[String, Variant]:

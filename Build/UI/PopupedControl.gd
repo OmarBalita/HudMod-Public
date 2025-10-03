@@ -50,7 +50,7 @@ func popup(pos = null) -> void:
 	if pos == null:
 		pos = get_global_mouse_position()
 	
-	var window_size = Vector2(get_window().size)
+	var window_size = Vector2(get_window().size / ProjectSettings.get_setting("display/window/stretch/scale"))
 	var dist = pos + custom_minimum_size - window_size
 	if dist.x > 0:
 		pos.x -= dist.x
