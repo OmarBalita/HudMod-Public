@@ -146,6 +146,7 @@ class ColorRangeController extends FocusControl:
 	func set_color_range_res(new_color_range_res: ColorRangeRes) -> void:
 		color_range_res = new_color_range_res
 	
+	
 	func add_key(x_pos: float) -> void:
 		var new_color = color_range_res.sample(x_pos)
 		color_range_res.add_key(x_pos, new_color)
@@ -222,7 +223,6 @@ class ColorRangeController extends FocusControl:
 	
 	func get_xpos_from_display_pos(display_pos: float) -> float:
 		return clamp(display_pos / size.x, .0, 1.0)
-	
 	
 	func _on_color_range_changed():
 		queue_redraw()

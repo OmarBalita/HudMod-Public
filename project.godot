@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Edit App"
 run/main_scene="uid://c5j8uwlpcdbkb"
-config/features=PackedStringArray("4.5", "Forward Plus")
+config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -29,10 +29,9 @@ Scene="*res://Autoload/Scene.gd"
 
 [display]
 
-window/size/viewport_width=1382
-window/size/viewport_height=778
+window/size/viewport_width=1600
+window/size/viewport_height=750
 window/subwindows/embed_subwindows=false
-window/stretch/scale=0.9
 
 [dotnet]
 

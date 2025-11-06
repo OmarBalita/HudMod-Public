@@ -2,35 +2,40 @@ class_name SelectionGroupRes extends Resource
 
 signal selected_objects_changed()
 
-
 var selected_objects: Dictionary[String, Dictionary]
 var focused: Dictionary
 
 
-func add_object(key: String, object: FocusControl, metadata: Dictionary, activate_grouping: bool = true, emit_changes: bool = false) -> void:
+func add_object(key: String, object: FocusControl, metadata: Dictionary, activate_grouping: bool = true, emit_change: bool = false) -> void:
+	
 	if not activate_grouping:
-		clear_objects()
-	object.is_selected = true
+		clear_objects({}, false)
 	selected_objects[key] = {"object": object, "metadata": metadata}
+	
+	object.is_selected = true
+	if focused and focused.object:
+		focused.object.focus_exit()
+	object.focus_enter()
 	focused = selected_objects[key]
-	if emit_changes:
+	
+	if emit_change:
 		selected_objects_changed.emit()
 
-func remove_object(key: String, emit_changes: bool = false) -> void:
+func remove_object(key: String, emit_change: bool = false) -> void:
 	if selected_objects.has(key):
 		
 		var object = selected_objects[key].object
-		if object == focused.object:
+		if focused and object == focused.object:
 			focused.clear()
 		
 		object.is_selected = false
 		selected_objects.erase(key)
 	
-	if emit_changes:
+	if emit_change:
 		selected_objects_changed.emit()
 
 func add_objects(objects: Dictionary[String, Control], metadata_keys: Array[String]) -> void:
-	for key in objects:
+	for key: String in objects:
 		var object = objects[key]
 		if not is_instance_valid(object):
 			continue
@@ -40,11 +45,11 @@ func add_objects(objects: Dictionary[String, Control], metadata_keys: Array[Stri
 		add_object(key, object, metadata)
 	selected_objects_changed.emit()
 
-func remove_objects(objects: Dictionary[String, Control]) -> void:
-	for key in objects: remove_object(key)
-	selected_objects_changed.emit()
+func remove_objects(objects: Dictionary[String, Control], emit_change: bool = true) -> void:
+	for key: String in objects: remove_object(key)
+	if emit_change: selected_objects_changed.emit()
 
-func clear_objects(filter_meta: Dictionary = {}) -> void:
+func clear_objects(filter_meta: Dictionary = {}, emit_change: bool = true) -> void:
 	for key in selected_objects:
 		
 		if filter_meta:
@@ -58,7 +63,9 @@ func clear_objects(filter_meta: Dictionary = {}) -> void:
 	
 	selected_objects.clear()
 	focused.clear()
-	selected_objects_changed.emit()
+	
+	if emit_change:
+		selected_objects_changed.emit()
 
 
 func get_objects(filter_meta: Dictionary = {}) -> Dictionary[String, Dictionary]:
@@ -71,6 +78,10 @@ func get_objects(filter_meta: Dictionary = {}) -> Dictionary[String, Dictionary]
 		objects = selected_objects
 	return objects
 
+func get_focused() -> Dictionary:
+	return focused
+
+
 
 func get_selected_meta() -> Array[Dictionary]:
 	var meta: Array[Dictionary]
@@ -80,7 +91,7 @@ func get_selected_meta() -> Array[Dictionary]:
 
 func get_selected_objects_property(property: String) -> Array[Variant]:
 	var property_arr: Array[Variant]
-	for info in selected_objects.values():
+	for info: Dictionary in selected_objects.values():
 		if is_instance_valid(info.object):
 			property_arr.append(info.object.get(property))
 	return property_arr

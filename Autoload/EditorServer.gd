@@ -27,7 +27,10 @@ var editor_path = app_data_dir + "/editor/"
 var frame: int:
 	set(val): frame = val; frame_changed.emit(val)
 
-var media_cards_selection_group:= SelectionGroupRes.new()
+var editor_settings:= AppEditorSettings.new()
+
+var import_media_cards_selection_group:= SelectionGroupRes.new()
+var object_media_cards_selection_group:= SelectionGroupRes.new()
 var media_clips_selection_group:= SelectionGroupRes.new()
 var time_markers_selection_group:= SelectionGroupRes.new()
 var media_clips_focused: Array[MediaClip]
@@ -45,8 +48,7 @@ var clip_nodes_explorer: ClipNodesExplorer
 var properties: Properties
 var drawable_rect: DrawableRect
 
-var editor_default_settings:= EditorDefaultSettings.new()
-
+var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
 
 
 # Background Called Functions
@@ -68,6 +70,7 @@ func _ready() -> void:
 	
 	push_guides()
 
+
 # Frame
 # ---------------------------------------------------
 
@@ -78,13 +81,39 @@ func set_frame(new_frame: int) -> void:
 	frame = new_frame
 
 
+# ---------------------------------------------------
+
+func set_usable_res_controllers(usable_res: UsableRes, edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
+	usable_ress_controllers[usable_res] = {edit_box_container: properties_containers}
+
+func clear_usable_res_controllers(usable_res: UsableRes) -> void:
+	usable_ress_controllers.erase(usable_res)
+
+func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> IS.EditBoxContainer:
+	if usable_ress_controllers.has(usable_res):
+		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].values()[0]
+		var property_container: IS.EditBoxContainer = curr_properties_containers[property_key]
+		return property_container
+	return null
+
+func update_usable_res_property_controller(usable_res: UsableRes, property_key: StringName, new_val: Variant, has_keyframe: bool) -> void:
+	var property_container:= get_usable_res_property_controller(usable_res, property_key)
+	if property_container:
+		property_container.set_controller_val_manually(new_val)
+		property_container.set_keyframe_method(int(has_keyframe))
+
+func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, property_key: StringName, has_keyframe: bool) -> void:
+	var property_container:= get_usable_res_property_controller(usable_res, property_key)
+	if property_container: property_container.set_keyframe_method(int(has_keyframe))
+
+
+
 
 # Media Clips
 # ---------------------------------------------------
 
 func is_any_media_clip_focused() -> bool:
 	return media_clips_focused.size() > 0
-
 
 # Guides Functions
 # ---------------------------------------------------

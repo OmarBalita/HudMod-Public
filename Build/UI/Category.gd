@@ -1,5 +1,7 @@
 class_name Category extends SplitContainer
 
+signal expand_changed()
+
 @export var has_header: bool = true:
 	set(val):
 		has_header = val
@@ -12,15 +14,23 @@ class_name Category extends SplitContainer
 @export var content_control_size: Vector2 = Vector2(32, 32):
 	set(val): content_control_size = val; update_ui()
 @export var has_custom_color: bool = true
+@export var use_flex_container: bool = true:
+	set(val):
+		use_flex_container = val
+		if val: content_container = IS.create_grid_container(content_control_size, 12, 12)
+		else: content_container = IS.create_box_container(12, true)
 
 var is_expanded: bool:
-	set(val): is_expanded = val; update_ui()
+	set(val):
+		is_expanded = val;
+		update_ui()
+		expand_changed.emit()
 
 @onready var header_button: Button
 @onready var custom_color_rect: ColorRect
 @onready var content_margin_container: MarginContainer
 
-var content_container: FlexGridContainer = IS.create_grid_container(content_control_size, 12, 12)
+var content_container: Container
 
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
@@ -32,12 +42,13 @@ var content_container: FlexGridContainer = IS.create_grid_container(content_cont
 func _ready() -> void:
 	header_button = IS.create_button("")
 	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10.0, .0)})
-	content_margin_container = IS.create_margin_container(6,0,0,0)
+	content_margin_container = IS.create_margin_container(0,0,0,0)
 	
 	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
 	
 	if has_custom_color:
-		custom_color_rect.set_anchors_and_offsets_preset(PRESET_LEFT_WIDE)
+		custom_color_rect.set_anchors_and_offsets_preset(PRESET_RIGHT_WIDE)
+		custom_color_rect.position.x = custom_color_rect.position.x - custom_color_rect.size.x
 		header_button.add_child(custom_color_rect)
 	
 	content_margin_container.add_child(content_container)
@@ -56,7 +67,8 @@ func update_ui() -> void:
 	header_button.set_text(category_name)
 	header_button.icon = texture_expand if is_expanded else texture_collapse
 	custom_color_rect.set_color(category_custom_color)
-	content_container.set_control_size(content_control_size)
+	if use_flex_container:
+		content_container.set_control_size(content_control_size)
 	content_margin_container.set_visible(is_expanded)
 
 func get_contents() -> Array[Node]:
@@ -71,7 +83,6 @@ func move_content(content: Control, to_index: int) -> void:
 func remove_all_contents() -> void:
 	for content: Control in content_container.get_children():
 		content.queue_free()
-
 
 
 func on_header_button_pressed() -> void:

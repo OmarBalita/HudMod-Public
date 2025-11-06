@@ -69,6 +69,8 @@ func set_curr_media_box(new_media_box: int) -> void:
 
 class MediaBox extends Container:
 	
+	var selection_group: SelectionGroupRes = EditorServer.import_media_cards_selection_group
+	
 	var categories: Dictionary[String, Category]
 	
 	var media_explorer: MediaExplorer
@@ -223,20 +225,21 @@ class ImportBox extends MediaBox:
 	
 	func update() -> void:
 		
-		path_controller.update(curr_display_path)
+		selection_group.clear_objects()
 		
+		path_controller.update(curr_display_path)
 		import_category.remove_all_contents()
 		
 		if display_file_system == null:
 			return
-		var files_and_folders = display_file_system.get_files_and_folders_at(curr_display_path)
+		var files_and_folders: Dictionary = display_file_system.get_files_and_folders_at(curr_display_path)
 		
-		for index in files_and_folders.keys().size():
+		for index: int in files_and_folders.keys().size():
 			
-			var i = files_and_folders.keys()[index]
-			var info = files_and_folders.get(i)
+			var i: String = files_and_folders.keys()[index]
+			var info: Dictionary = files_and_folders.get(i)
 			
-			var card = null
+			var card: DoubleClickControl = null
 			if info.type == "file":
 				card = media_explorer.imported_card_scene.instantiate()
 				card.resource_path = i
@@ -247,6 +250,7 @@ class ImportBox extends MediaBox:
 				card.display_name = i
 			card.date = info.date
 			
+			card.selection_group = selection_group
 			card.custom_minimum_size = media_explorer.card_display_size
 			import_category.add_content(card)
 			
@@ -260,7 +264,7 @@ class ImportBox extends MediaBox:
 		if not search_line:
 			return
 		
-		var search_text = search_line.text.strip_edges().to_lower()
+		var search_text: String = search_line.text.strip_edges().to_lower()
 		var filter_func: Callable = func(path: String) -> bool:
 			return not curr_filter or MediaServer.get_media_type_from_path(path) == curr_filter - 1
 		
@@ -268,28 +272,26 @@ class ImportBox extends MediaBox:
 		var sort_func: Callable
 		match curr_sort:
 			0:
-				sort_func = func(a, b): return a.display_name.to_lower() < b.display_name.to_lower()
+				sort_func = func(a, b) -> bool: return a.display_name.to_lower() < b.display_name.to_lower()
 			1:
-				sort_func = func(a, b):
+				sort_func = func(a, b) -> bool:
 					if a.card_type and not b.card_type:
 						return true
 					elif not a.card_type and b.card_type:
 						return false
 					else:
-						var type_a = MediaServer.get_media_type_from_path(a.resource_path)
-						var type_b = MediaServer.get_media_type_from_path(b.resource_path)
+						var type_a: int = MediaServer.get_media_type_from_path(a.resource_path)
+						var type_b: int = MediaServer.get_media_type_from_path(b.resource_path)
 						return type_a < type_b
-			2:
-				sort_func = func(a, b): return a.date > b.date
-			3:
-				sort_func = func(a, b): return a.date < b.date
+			2: sort_func = func(a, b) -> bool: return a.date > b.date
+			3: sort_func = func(a, b) -> bool: return a.date < b.date
 		
 		sorted_media_clips.sort_custom(sort_func)
 		
-		for index in sorted_media_clips.size():
-			var media_card = sorted_media_clips[index]
-			var contains_search_text = media_card.display_name.to_lower().contains(search_text)
-			var resource_path = media_card.resource_path
+		for index: int in sorted_media_clips.size():
+			var media_card: DoubleClickControl = sorted_media_clips[index]
+			var contains_search_text: bool = media_card.display_name.to_lower().contains(search_text)
+			var resource_path: String = media_card.resource_path
 			media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
 			import_category.move_content(media_card, index)
 	
@@ -303,8 +305,8 @@ class ImportBox extends MediaBox:
 		filter_and_sort()
 	
 	func on_folder_button_pressed() -> void:
-		var name_line = IS.create_line_edit("Type Folder Name", "New Folder")
-		var box = WindowManager.popup_accept_window(
+		var name_line: LineEdit = IS.create_line_edit("Type Folder Name", "New Folder")
+		var box: BoxContainer = WindowManager.popup_accept_window(
 			get_tree().current_scene,
 			Vector2(400, 150),
 			"Create Folder",
@@ -316,7 +318,7 @@ class ImportBox extends MediaBox:
 		name_line.grab_focus()
 	
 	func on_import_button_pressed() -> void:
-		var file_dialog = WindowManager.create_file_dialog_window(
+		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
 			get_tree().current_scene, FileDialog.FILE_MODE_OPEN_FILES, MediaServer.MEDIA_EXTENSIONS
 		)
 		file_dialog.files_selected.connect(func(paths: PackedStringArray):
@@ -337,15 +339,18 @@ class ObjectBox extends MediaBox:
 	func _ready() -> void:
 		super()
 		
-		var cat_object_2d = add_category("Object2D")
-		var cat_object_3d = add_category("Object3D")
+		var cat_object_2d: Category = add_category("Object2D")
+		var cat_object_3d: Category = add_category("Object3D")
 		
 		for object: Dictionary in TypeServer.objects:
-			var card = media_explorer.object_card_scene.instantiate()
-			card.object_res_id = object.type_id
-			card.display_name = object.text
-			card.display_image = object.thumbnail
-			card.custom_minimum_size = media_explorer.card_display_size
+			var card: DoubleClickControl = media_explorer.object_card_scene.instantiate()
+			ObjectServer.describe(card, {
+				object_res_id = object.type_id,
+				display_name = object.text,
+				display_image = object.thumbnail,
+				custom_minimum_size = media_explorer.card_display_size,
+				selection_group = selection_group
+			})
 			get_category(object.category).add_content(card)
 
 

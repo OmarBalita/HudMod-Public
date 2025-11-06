@@ -35,7 +35,6 @@ func _ready() -> void:
 	super()
 	
 	# Setup
-	selection_group = EditorServer.media_cards_selection_group
 	display_name_label.text = display_name
 	if card_type in [2, 3, 4]: display_texture_rect.texture = display_image
 	
@@ -112,26 +111,26 @@ func on_add_button_pressed() -> void:
 
 func on_drag_finished() -> void:
 	
-	var timeline = EditorServer.time_line
-	var mouse_pos = get_global_mouse_position()
-	var target_frame = timeline.get_frame_from_display_pos(mouse_pos.x).keys()[0]
+	var timeline: TimeLine = EditorServer.time_line
+	var mouse_pos: Vector2 = get_global_mouse_position()
+	var target_frame: int = timeline.get_frame_from_display_pos(mouse_pos.x).keys()[0]
 	
 	if not timeline.is_focus:
 		return
 	
-	var layer = timeline.get_layer_by_pos(mouse_pos)
+	var layer: Layer = timeline.get_layer_by_pos(mouse_pos)
 	if layer:
-		var selected_cards = selection_group.selected_objects
-		for key in selected_cards:
-			var media_card = selected_cards[key].object
-			var resource_path = media_card.resource_path
+		var selected_cards: Dictionary[String, Dictionary] = selection_group.selected_objects
+		for key: String in selected_cards.keys():
+			var media_card: FocusControl = selected_cards[key].object
+			var resource_path: String = media_card.resource_path
 			ProjectServer.add_media_clip(media_card.resource_path, layer.index, target_frame, media_card.get_my_object_res())
 
 func on_menu_button_pressed(index: int) -> void:
 	match index:
 		0:
 			var pathes_or_names: Array
-			var selected_objects = EditorServer.media_cards_selection_group.selected_objects
+			var selected_objects = selection_group.selected_objects
 			for key in selected_objects.keys():
 				var card = selected_objects.get(key).object
 				if not is_instance_valid(card):

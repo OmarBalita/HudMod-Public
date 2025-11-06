@@ -1,0 +1,59 @@
+[gd_scene load_steps=4 format=3 uid="uid://3g1a2e4tsd51"]
+
+[sub_resource type="GDScript" id="GDScript_62e2m"]
+script/source = "extends Node
+
+@onready var texture_rect: TextureRect = $TextureRect
+
+var fps: int = 60
+var delta: float = 1.0 / fps
+
+var screen_frames: Array[Image]
+
+func _ready() -> void:
+	var time: float = Time.get_ticks_msec()
+	step_recording((time / 1000.0) * fps, time)
+
+func step_recording(record_time: int = 0, time_before: float = .0) -> void:
+	var time_curr: float = Time.get_ticks_msec()
+	var delta_passed: float = (time_curr - time_before) / 1000.0
+	var delta_difference: float = delta_passed - delta
+	await get_tree().create_timer(delta - delta_difference).timeout
+	step_recording(record_time + 1, time_curr)
+	print(record_time / (time_curr / 1000.0))
+	#printt(record_time, time_curr)
+"
+
+[sub_resource type="Shader" id="Shader_uchyk"]
+code = "shader_type canvas_item;
+
+uniform float lod: hint_range(0.0, 5) = 0.0;
+uniform sampler2D SCREEN_TEXTURE: hint_screen_texture, filter_linear_mipmap;
+
+void fragment(){
+	vec4 color = texture(SCREEN_TEXTURE, SCREEN_UV, lod);
+	COLOR = color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0fbet"]
+shader = SubResource("Shader_uchyk")
+shader_parameter/lod = 2.0
+
+[node name="Control" type="Node"]
+script = SubResource("GDScript_62e2m")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BlurRect" type="ColorRect" parent="."]
+visible = false
+material = SubResource("ShaderMaterial_0fbet")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

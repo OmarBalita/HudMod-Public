@@ -1,37 +1,41 @@
 class_name Shake2DComponent extends ComponentRes
 
 func _init() -> void:
+	super()
 	set_res_id("Shake2D")
-	register_properties({
+	register_props({
 		dur_between_peaks = 1,
 		offset_scale = 5.0,
 		direction = Vector2.RIGHT,
 		spread = 1.0,
 		normalized = false,
 		interpolate = true,
+		x_curve = Curve.new(),
+		y_curve = Curve.new(),
+		points = {}
 	})
 
-func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var frame: int = EditorServer.frame
 	return {
-		dur_between_peaks = CtrlrHelper.get_float_controller_args([], true, get_prop(&"dur_between_peaks", frame), 1, 1e6),
-		offset_scale = CtrlrHelper.get_float_controller_args([], false, get_prop(&"offset_scale", frame), .0, INF, .001, .5),
-		direction = CtrlrHelper.get_vec2_controller_args([], get_prop(&"direction", frame)),
-		spread = CtrlrHelper.get_float_controller_args([], false, get_prop(&"spread", frame), .0, 1.0),
-		normalized = CtrlrHelper.get_bool_controller_args([], get_prop(&"normalized", frame)),
-		interpolate = CtrlrHelper.get_bool_controller_args([], get_prop(&"interpolate", frame))
+		dur_between_peaks = CtrlrHelper.get_float_controller_args([], true, get_prop(&"dur_between_peaks"), 1, 1e6),
+		offset_scale = CtrlrHelper.get_float_controller_args([], false, get_prop(&"offset_scale"), .0, INF, .001, .5),
+		direction = CtrlrHelper.get_vec2_controller_args([], get_prop(&"direction")),
+		spread = CtrlrHelper.get_float_controller_args([], false, get_prop(&"spread"), .0, 1.0),
+		normalized = CtrlrHelper.get_bool_controller_args([], get_prop(&"normalized")),
+		interpolate = CtrlrHelper.get_bool_controller_args([], get_prop(&"interpolate"))
 	}
 
-func _process(node: Node, frame: int) -> void:
+func _process(frame: int) -> void:
+	request_push_animations_result(frame)
 	var x_curve: Curve = get_prop(&"x_curve")
 	var y_curve: Curve = get_prop(&"y_curve")
 	var frame_pos: Vector2 = Vector2(x_curve.sample(frame), y_curve.sample(frame))
-	if get_prop(&"interpolate", frame):
-		node.position = frame_pos
-	elif get_prop(&"points").has(frame):
-		node.position = frame_pos
+	if get_prop(&"interpolate") or get_prop(&"points").has(frame):
+		submit_stacked_value("position", frame_pos)
 
 func _update() -> void:
+	
 	if not owner:
 		return
 	
@@ -74,14 +78,10 @@ func _update() -> void:
 		if frame == latest_frame: continue
 		add_peak_point_func.call(frame)
 	
-	register_property(&"x_curve", x_baked_curve)
-	register_property(&"y_curve", y_baked_curve)
-	register_property(&"points", points)
-
-
-
-
-
-
+	set_prop(&"x_curve", x_baked_curve)
+	set_prop(&"y_curve", y_baked_curve)
+	set_prop(&"points", points)
+	
+	super()
 
 

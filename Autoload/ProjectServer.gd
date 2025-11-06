@@ -39,7 +39,7 @@ var layers: Dictionary[int, Dictionary]
 		# audio_bus: {volume: int(), muted: bool()},
 		# loked: bool(),
 		# hidden: bool(),
-		# muted: bool()
+		# more: {}
 	#}
 #}
 
@@ -82,7 +82,7 @@ func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0
 	
 	var media_res = MediaClipRes.new()
 	var clip_id = generate_clip_id()
-	var media_length = EditorServer.editor_default_settings.media_length
+	var media_length = EditorServer.editor_settings.clip_default_length
 	
 	if MediaServer.get_media_type_from_path(media_path) in [1, 2]:
 		media_length = MediaServer.get_audio_duration_with_ffprobe(media_path)
@@ -240,8 +240,6 @@ func remove_media_clips(clips_info: Array[Dictionary], emit_changes: bool = true
 # Layers
 # ---------------------------------------------------
 
-
-
 func check_layer(layer_index: int, frame_in: int, media_length: int) -> int:
 	if layer_index < 0 or not is_layer_unoccupied(layer_index, frame_in, media_length):
 		layer_index = get_best_unoccupied_layer(frame_in, media_length)
@@ -257,18 +255,21 @@ func get_best_unoccupied_layer(frame_in: int, media_length: int) -> int:
 
 func is_layer_unoccupied(layer_index: int, frame_in: int, media_length: int) -> bool:
 	
-	var layer = make_layer_absolute(layer_index)
-	var media_clips = layer.media_clips
+	var layer: Dictionary = get_layer(layer_index)
+	var media_clips: Dictionary = layer.media_clips
 	
-	var new_time_begin = frame_in
-	var new_time_end = frame_in + media_length
+	var new_time_begin: int = frame_in
+	var new_time_end: int = frame_in + media_length
 	
 	for time_begin: int in media_clips.keys():
-		var media = media_clips.get(time_begin)
-		var time_end = time_begin + media.length
+		var media: MediaClipRes = media_clips.get(time_begin)
+		var time_end: int = time_begin + media.length
 		if not (time_end <= new_time_begin or new_time_end <= time_begin):
 			return false
 	return true
+
+func get_layer(layer_index: int) -> Dictionary:
+	return layers[layer_index]
 
 func make_layer_absolute(layer_index: int) -> Dictionary:
 	if not layers.has(layer_index):
@@ -280,11 +281,25 @@ func make_layer_absolute(layer_index: int) -> Dictionary:
 			},
 			locked = false,
 			hidden = false,
+			more = {},
 		}
-	make_audio_bus_absolute(layer_index)
+		var editor_settings: AppEditorSettings = EditorServer.editor_settings
+		set_layer_customization(layer_index, "", editor_settings.layer_color, editor_settings.layer_size)
+		make_audio_bus_absolute(layer_index)
 	return layers[layer_index]
 
+func move_layer(index_from: int, index_to: int) -> void:
+	var layer_from: Dictionary = layers[index_from]
+	layers[index_from] = layers[index_to]
+	layers[index_to] = layer_from
 
+func set_layer_customization(layer_index: int, name: StringName, color: Color, size: int) -> void:
+	get_layer(layer_index)["customization"] = {
+		&"name": name, &"color": color, &"size": size
+	} as Dictionary[StringName, Variant]
+
+func get_layer_customization(layer_index: int) -> Dictionary[StringName, Variant]:
+	return get_layer(layer_index).customization
 
 func set_layer_lock(index: int, val: bool) -> void:
 	layers[index].locked = val
@@ -313,9 +328,9 @@ func get_layer_mute(index: int) -> bool:
 # ---------------------------------------------------
 
 func make_audio_bus_absolute(layer_index: int) -> void:
-	var bus_name = get_bus_name_from_layer_index(layer_index)
-	var bus_count = AudioServer.bus_count
-	for i in bus_count:
+	var bus_name: StringName = get_bus_name_from_layer_index(layer_index)
+	var bus_count: int = AudioServer.bus_count
+	for i: int in bus_count:
 		if AudioServer.get_bus_name(i) == bus_name:
 			return
 	AudioServer.add_bus(bus_count)
@@ -374,13 +389,13 @@ func update_scene_nodes(curr_frame: int = -1) -> Dictionary[int, int]:
 				new_clips[layer_index] = time_begin
 				var layer_node = Scene.get_scene_node(layer_index)
 				var local_frame = TimeServer.localize_frame(curr_frame, time_begin)
-				if layer_node: media_res.process(layer_node, local_frame)
+				if layer_node: media_res.process(local_frame)
 				break
 	
 	var removed_clips: Dictionary[int, int]
 	var added_clips: Dictionary[int, int]
 	
-	for index in curr_clips.keys():
+	for index: int in curr_clips.keys():
 		var curr_clip_id = curr_clips[index]
 		if new_clips.has(index) and curr_clip_id == new_clips[index]:
 			continue
@@ -428,7 +443,7 @@ func instance_node(layer: int, clip_id: int) -> void:
 		8: node = Scene.create_audio_2d(layer, clip_res, clip_id)
 	
 	clip_res.enter(node)
-	clip_res.process(node, 0)
+	clip_res.process(TimeServer.localize_frame(EditorServer.frame, clip_id))
 
 
 func generate_clip_id(id_length: int = 12) -> String:
@@ -477,7 +492,6 @@ func generate_new_id(used_id: PackedStringArray, id_length: int = 12) -> String:
 		result_id = ""
 		for time in id_length:
 			result_id += id_keys[randi_range(0, keys_length)]
-	
 	
 	return result_id
 

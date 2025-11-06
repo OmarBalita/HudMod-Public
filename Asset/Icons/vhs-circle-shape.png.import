@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gifwc83343dm"
-path="res://.godot/imported/AppIcon.webp-806b2e0f828dc7836c9fd401bb26394b.ctex"
+uid="uid://df6eogyfv10gm"
+path="res://.godot/imported/vhs-circle-shape.png-ef6457dd5c1a548247251642e3f4c6d1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Asset/AppIcon.webp"
-dest_files=["res://.godot/imported/AppIcon.webp-806b2e0f828dc7836c9fd401bb26394b.ctex"]
+source_file="res://Asset/Icons/vhs-circle-shape.png"
+dest_files=["res://.godot/imported/vhs-circle-shape.png-ef6457dd5c1a548247251642e3f4c6d1.ctex"]
 
 [params]
 

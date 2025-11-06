@@ -54,7 +54,6 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 	{text = "Audio2D", icon = RES_ICON, thumbnail = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"}
 ]
 
-
 @onready var sections_hint: Dictionary[String, Dictionary] = {
 	"Display2D": {info = {text = "Display 2D", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Display2D"},
 	"Image": {info = {text = "Image", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Image"},

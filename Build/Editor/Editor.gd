@@ -39,6 +39,9 @@ var body: MarginContainer
 
 
 
+func _init() -> void:
+	draw_focus = false
+
 
 func _ready() -> void:
 	# Start Connections

@@ -1,7 +1,7 @@
 class_name ProcessingControl extends ColorRect
 
-@export var forward_color:= Color("73c4ff99")
-@export var back_color:= Color("3b487364")
+@export var forward_color:= IS.COLOR_ACCENT_BLUE
+@export var back_color:= Color(IS.COLOR_ACCENT_BLUE * .4, 1.0)
 @export var radius: float = 30.0
 @export var width: float = 5.0
 @export var speed: float = .01
@@ -15,5 +15,5 @@ func _draw() -> void:
 	var time = Time.get_ticks_msec() * speed
 	var pos = size/2
 	var tail = 3.15 + time
-	draw_arc(pos, radius, time - back_offset, tail - back_offset, subdivision, back_color, width)
-	draw_arc(pos, radius, time, tail, subdivision, forward_color, width)
+	draw_arc(pos, radius, time - back_offset, tail - back_offset, subdivision, back_color, width, true)
+	draw_arc(pos, radius, time, tail, subdivision, forward_color, width, true)

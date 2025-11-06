@@ -301,37 +301,108 @@ func create_box_container(separation_scale: int = 16, vertical: bool = false, mo
 	ObjectServer.describe(box_container, more)
 	return box_container
 
+
+
 class EditBoxContainer extends BoxContainer:
 	
 	signal val_changed(new_val: Variant)
+	signal keyframe_sended(usable_res: UsableRes, key: StringName, new_val: Variant)
+	
+	enum KeyframeMethod {
+		KEYFRAME_ADD,
+		KEYFRAME_REMOVE
+	}
+	
+	@export var texture_add_keyframe: Texture2D = preload("res://Asset/Icons/keyframe_add.png")
+	@export var texture_remove_keyframe: Texture2D = preload("res://Asset/Icons/keyframe_remove.png")
+	@export var texture_reset: Texture2D = preload("res://Asset/Icons/reset.png")
 	
 	var curr_val: Variant:
 		set(val):
 			curr_val = val
-			val_changed.emit(val)
+			if emit_change:
+				val_changed.emit(curr_val)
+	var default_val: Variant
+	var keyframable: bool = true
 	
-	var controller: Control
-	var controller_curr_val_id: Dictionary[String, Variant] = {method = "", vari = ""} # Name of curr_val Variable in Controller
+	var keyframe_method: int:
+		set(val):
+			keyframe_method = val
+			var texture: Texture2D
+			match val:
+				0: texture = texture_add_keyframe
+				1: texture = texture_remove_keyframe
+			if keyframe_button:
+				keyframe_button.texture_normal = texture
+	
+	var emit_change: bool = true
+	
+	var controller_curr_val_id: Dictionary[StringName, Variant] = {method = null, method_manual = null, vari = null} # Name of curr_val Variable in Controller
 	# controller_cur_val_id has 2 keys: method and var, method is a Callable that i can Call to assign new Val
 	# and the var assigned Manually
+	
+	var controller: Control
 	var header: BoxContainer = IS.create_box_container()
+	var keyframe_button: TextureButton
+	var reset_button: TextureButton
 	
 	func _ready() -> void:
+		
+		if keyframable:
+			keyframe_button = IS.create_texture_button(null)
+			keyframe_button.pressed.connect(on_keyframe_button_pressed)
+			header.add_child(keyframe_button)
+			header.move_child(keyframe_button, 1)
+		
+		reset_button = IS.create_texture_button(texture_reset)
+		reset_button.pressed.connect(on_reset_button_pressed)
+		header.add_child(reset_button)
+		header.move_child(reset_button, 2)
+		
 		add_child(header)
 		move_child(header, 0)
 		IS.expand(header)
+		
+		set_keyframe_method(0)
+		update_ui()
 	
 	func get_curr_val() -> Variant:
 		return curr_val
 	
-	func set_curr_val(new_val: Variant, edit_controller: bool = false) -> void:
+	func set_curr_val(new_val: Variant, update_controller: bool = false, _emit_change: bool = true) -> void:
+		if not _emit_change: emit_change = false
 		curr_val = new_val
-		if edit_controller:
-			var method = controller_curr_val_id.method
-			var vari = controller_curr_val_id.vari
-			if method:
-				controller.call_deferred(method, new_val)
-			elif vari: controller.set(vari, new_val)
+		emit_change = true
+		if update_controller:
+			set_controller_val(new_val)
+		update_ui()
+	
+	func set_controller_val(new_val: Variant) -> void:
+		var method = controller_curr_val_id.method
+		var vari = controller_curr_val_id.vari
+		if method: controller.call_deferred(method, new_val)
+		elif vari: controller.set(vari, new_val)
+	
+	func set_controller_val_manually(new_val: Variant) -> void:
+		var method = controller_curr_val_id.method_manual
+		if method: controller.call_deferred(method, new_val)
+		else: set_controller_val(new_val)
+	
+	func set_keyframe_method(what: KeyframeMethod) -> void:
+		keyframe_method = what
+	
+	func update_ui() -> void:
+		if not reset_button:
+			return
+		if default_val != null: reset_button.visible = curr_val != default_val
+		else: reset_button.visible = false
+	
+	func on_keyframe_button_pressed() -> void:
+		keyframe_sended.emit(null, &"", curr_val)
+	
+	func on_reset_button_pressed() -> void:
+		pass
+
 
 func create_edit_box_container(separation_scale: int = 16, vertical: bool = false, more: Dictionary = {alignment = BoxContainer.ALIGNMENT_CENTER, custom_minimum_size = Vector2(32, 32)}) -> EditBoxContainer:
 	var box_container = EditBoxContainer.new()
@@ -396,6 +467,7 @@ class CustomTextureButton extends TextureButton:
 	
 	var normal_color: Color = COLOR_NORMAL
 	var accent_color: Color = COLOR_ACCENT_BLUE
+	
 	
 	func _ready() -> void:
 		# Connections
@@ -479,17 +551,19 @@ func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: 
 	return bar
 
 
-func create_category(has_header: bool, category_name: StringName, custom_color: Color = Color.BLACK, content_size: Vector2 = Vector2(32, 32), more: Dictionary = {}) -> Category:
+func create_category(has_header: bool, category_name: StringName, custom_color: Color = Color.BLACK, content_size: Vector2 = Vector2(32, 32), use_flex_container: bool = true, more: Dictionary = {}) -> Category:
 	var category = Category.new()
 	set_base_settings(category)
 	category.add_theme_stylebox_override("bg", STYLE_BODY)
-	category.collapsed = true
-	category.vertical = true
-	category.has_header = has_header
-	category.category_name = category_name
-	category.category_custom_color = custom_color
-	category.content_control_size = content_size
-	ObjectServer.describe(category, more)
+	ObjectServer.describe(category, {
+		collapsed = true,
+		vertical = true,
+		has_header = has_header,
+		category_name = category_name,
+		category_custom_color = custom_color,
+		content_control_size = content_size,
+		use_flex_container = use_flex_container
+	}.merged(more))
 	return category
 
 
@@ -710,11 +784,14 @@ func create_custom_edit_box(name: String, edits_box_container: BoxContainer, min
 	box.add_child(panel_container)
 	return box
 
-func connect_controller_to_edit_box(box: EditBoxContainer, controller: Control, connect_signal_func: Callable, set_func_id: StringName = "", vari_id: StringName = "") -> void:
+func connect_controller_to_edit_box(box: EditBoxContainer, controller: Control, connect_signal_func: Callable, set_func_id: StringName = "", set_func_manually_id: StringName = "", vari_id: StringName = "") -> void:
 	connect_signal_func.call()
 	box.controller = controller
-	box.controller_curr_val_id.method = set_func_id
-	box.controller_curr_val_id.vari = vari_id
+	box.controller_curr_val_id = {
+		method = set_func_id,
+		method_manual = set_func_manually_id,
+		vari = vari_id
+	}
 
 func create_option_edit(name: String, options_info: Array[Dictionary], save_path: String = "", default_id: int = 0, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box = create_edit_box(name, min_size, false, name_alignment)
@@ -722,7 +799,7 @@ func create_option_edit(name: String, options_info: Array[Dictionary], save_path
 	expand(option_controller)
 	box.add_child(option_controller)
 	
-	connect_controller_to_edit_box(box, option_controller, func(): option_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: box.set_curr_val(id)), "set_selected_id")
+	connect_controller_to_edit_box(box, option_controller, func(): option_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: box.set_curr_val(id)), "set_selected_id", "set_selected_id_manually")
 	return [option_controller]
 
 func create_bool_edit(name: String, is_checked: bool, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
@@ -730,7 +807,7 @@ func create_bool_edit(name: String, is_checked: bool, min_size: Vector2 = EDIT_B
 	var check_button = create_check_button(is_checked)
 	box.add_child(check_button)
 	
-	connect_controller_to_edit_box(box, check_button, func(): check_button.pressed.connect(func() -> void: box.set_curr_val(check_button.button_pressed)), "", "button_pressed")
+	connect_controller_to_edit_box(box, check_button, func(): check_button.pressed.connect(func() -> void: box.set_curr_val(check_button.button_pressed)), "", "", "button_pressed")
 	return [check_button]
 
 func create_line_edit_edit(name: String, placeholder: String = "", text: String = "", min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
@@ -761,13 +838,13 @@ func create_float_edit(name: String, use_slider: bool, use_spinbox: bool, curr_v
 		slider_control = create_slider_control(curr_val, min_val, max_val, step, left_texture, right_texture)
 		expand(slider_control)
 		box.add_child(slider_control)
-		connect_controller_to_edit_box(box, slider_control, func(): slider_control.slider_controller.val_changed.connect(box.set_curr_val), "set_curr_val")
+		connect_controller_to_edit_box(box, slider_control, func() -> void: slider_control.slider_controller.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
 	
 	elif use_spinbox:
 		float_control = create_float_controller(curr_val, min_val, max_val, step, spin_scale, spin_magnet_step, is_int)
 		expand(float_control)
 		box.add_child(float_control)
-		connect_controller_to_edit_box(box, float_control, func(): float_control.val_changed.connect(box.set_curr_val), "set_curr_val")
+		connect_controller_to_edit_box(box, float_control, func() -> void: float_control.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
 	
 	return [slider_control, float_control]
 
@@ -776,7 +853,7 @@ func create_vec2_edit(name: String, curr_val: Vector2, min_size: Vector2 = EDIT_
 	var vec2_controller:= create_vec2_controller(curr_val)
 	expand(vec2_controller)
 	box.add_child(vec2_controller)
-	connect_controller_to_edit_box(box, vec2_controller, func() -> void: vec2_controller.val_changed.connect(box.set_curr_val), "set_curr_val")
+	connect_controller_to_edit_box(box, vec2_controller, func() -> void: vec2_controller.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
 	return [vec2_controller]
 
 func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
@@ -785,7 +862,7 @@ func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vecto
 	expand(color_button)
 	box.add_child(color_button)
 	
-	connect_controller_to_edit_box(box, color_button, func(): color_button.color_changed.connect(box.set_curr_val), "set_curr_color")
+	connect_controller_to_edit_box(box, color_button, func(): color_button.color_changed.connect(box.set_curr_val), "set_curr_color", "set_curr_color_manually")
 	return [color_button]
 
 func create_list_edit(name: String, list: Array, list_types: Array[String] = [], connections: Array[Signal] = [], can_add_element: bool = true, can_remove_element: bool = true, can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
@@ -798,8 +875,7 @@ func create_list_edit(name: String, list: Array, list_types: Array[String] = [],
 	func():
 		var callable = box.set_curr_val.bind(list)
 		list_controller.list_changed.connect(callable)
-		list_controller.list_val_changed.connect(func(index: int, val: Variant) -> void: callable.call()),
-	"set_list")
+		list_controller.list_val_changed.connect(func(index: int, val: Variant) -> void: callable.call()), "set_list", "set_list_manually")
 	return [list_controller]
 
 func create_color_range_edit(name: String, color_range_res: ColorRangeRes, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
@@ -846,11 +922,13 @@ func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0))
 
 # Enhanced media clip controls for Modern Video Editor
 
-func create_layer(id: int, min_size: Vector2, color: Color, more: Dictionary = {}) -> Layer:
+func create_layer(id: int, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
 	var layer = Layer.new(id)
-	layer.custom_minimum_size = min_size
-	layer.color = color
-	ObjectServer.describe(layer, more)
+	ObjectServer.describe(layer, {
+		curr_y_size = y_size,
+		side_panel_x_size = side_panel_x_size,
+		color = color
+	}.merged(more))
 	return layer
 
 

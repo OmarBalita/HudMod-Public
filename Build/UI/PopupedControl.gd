@@ -4,10 +4,12 @@ signal popuped()
 signal popdowned()
 
 @export_group("Custom Properties")
+@export var poppable_down: bool = true
 @export var popdown_when_mouse_move: bool
 @export var popdown_duration: float = 1.0
 @export var popup_speed: float = .05
 @export var popdown_speed: float = .05
+@export var hidden_on_start: bool = true
 
 var mouse_move_popdown_requested: bool
 
@@ -22,26 +24,31 @@ func _ready() -> void:
 	# Connections
 	
 	# Setup Base Settings
-	hide()
-	await get_tree().process_frame
-	custom_minimum_size.x = size.x + 50
-	custom_minimum_size.y = size.y
+	if hidden_on_start:
+		hide()
+		await get_tree().process_frame
+		custom_minimum_size.x = size.x + 50
+		custom_minimum_size.y = size.y
 
 
 
 
 func _input(event: InputEvent) -> void:
-	var mouse_in = get_global_rect().has_point(get_global_mouse_position())
-	if event is InputEventMouseButton:
-		if event.is_pressed() and not mouse_in:
-			popdown()
-	elif event is InputEventMouseMotion:
-		if popdown_when_mouse_move and not mouse_move_popdown_requested:
-			mouse_move_popdown_requested = true
-			await get_tree().create_timer(popdown_duration).timeout
-			if not mouse_in:
+	if poppable_down:
+		
+		var mouse_in: bool = get_global_rect().has_point(get_global_mouse_position())
+		
+		if event is InputEventMouseButton:
+			if event.is_pressed() and not mouse_in:
 				popdown()
-			mouse_move_popdown_requested = false
+		
+		elif event is InputEventMouseMotion:
+			if popdown_when_mouse_move and not mouse_move_popdown_requested:
+				mouse_move_popdown_requested = true
+				await get_tree().create_timer(popdown_duration).timeout
+				if not mouse_in:
+					popdown()
+				mouse_move_popdown_requested = false
 
 
 func popup(pos = null) -> void:

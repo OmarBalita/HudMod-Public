@@ -217,6 +217,9 @@ func set_list(new_list: Array) -> void:
 	list = new_list
 	list_changed.emit()
 
+func set_list_manually(new_list: Array) -> void:
+	list = new_list
+
 func set_button_display(index: int, value: Variant, button: Button, ready_update: bool) -> void:
 	var is_dynamic = types.size() != 1
 	

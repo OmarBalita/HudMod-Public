@@ -105,7 +105,7 @@ func get_key_val(x_pos: float) -> float:
 	return keys.get(x_pos).y_val
 
 
-#Made by ChatGPT, Edited by Omar TOP
+# Made by ChatGPT, Edited by Omar TOP
 func sample(offset: float) -> float:
 	
 	var keys_keys = keys.keys()

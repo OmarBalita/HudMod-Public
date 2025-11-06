@@ -12,7 +12,8 @@ var media_clips_selection_group:= EditorServer.media_clips_selection_group
 @export var scroll_margin: float = 100.0
 @export var scroll_speed: float = 700.0
 
-var curr_media_clips: Array[MediaClip]
+var curr_selected_media_clips: Array[MediaClip]
+var curr_focused_media_clip: MediaClip
 
 var drag_info: Dictionary[StringName, Variant]
 
@@ -86,10 +87,13 @@ func _physics_process(delta: float) -> void:
 		var scroll_container: ScrollContainer = drag_info[&"scroll_container"]
 		if scroll_container: scroll_container.scroll_vertical += curr_scroll_speed * delta
 
-func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> void:
-	
+func close_properties() -> void:
 	IS.clear_children(header)
 	IS.clear_children(body)
+
+func open_properties(media_clips: Array[MediaClip], focused_media_clip: MediaClip, sections_keys: Array) -> void:
+	
+	close_properties()
 	await get_tree().process_frame
 	
 	if sections_keys:
@@ -129,11 +133,11 @@ func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> voi
 			new_components_button.pressed.connect(func() -> void:
 				var section_components: Array
 				for section_info: Dictionary in TypeServer.components[section_key]:
-					section_components.append(MenuOption.new(section_info.text, section_info.icon, add_new_component.bind(media_clips, section_key, section_info.script)))
+					section_components.append(MenuOption.new(section_info.text, section_info.icon, add_new_component.bind(media_clips, focused_media_clip, section_key, section_info.script)))
 				IS.popup_menu(section_components, new_components_button)
 			)
 			
-			update_properties(media_clips, section_key)
+			update_section_properties(media_clips, focused_media_clip if is_instance_valid(focused_media_clip) else null, section_key)
 		
 		var change_focus_index_func: Callable = func(index: int) -> void:
 			for child_index: int in body.get_child_count():
@@ -145,29 +149,25 @@ func open_properties(media_clips: Array[MediaClip], sections_keys: Array) -> voi
 		sections_menu.focus_index_changed.connect(change_focus_index_func)
 
 
-func add_new_component(media_clips: Array[MediaClip], section_key: String, component_script: Script) -> void:
+func add_new_component(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String, component_script: Script) -> void:
 	var component:= ComponentRes.new()
 	component.set_script(component_script)
-	for media_clip: MediaClip in media_clips:
-		media_clip.clip_res.add_component(section_key, component.duplicate(true), Scene.get_scene_node(media_clip.layer_index))
-	update_properties(media_clips, section_key)
+	focused_media_clip.clip_res.add_component(section_key, component, Scene.get_scene_node(focused_media_clip.layer_index))
+	update_section_properties(media_clips, focused_media_clip, section_key)
 
-func delete_component(media_clips: Array[MediaClip], component_id: StringName, section_key: String) -> void:
-	for media_clip: MediaClip in media_clips:
-		media_clip.clip_res.remove_component(section_key, component_id, Scene.get_scene_node(media_clip.layer_index))
-	update_properties(media_clips, section_key)
+func delete_component(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String, component: ComponentRes) -> void:
+	focused_media_clip.clip_res.erase_component(section_key, component, Scene.get_scene_node(focused_media_clip.layer_index))
+	update_section_properties(media_clips, focused_media_clip, section_key)
 
-func update_properties(media_clips: Array[MediaClip], section_key: String) -> void:
-	
-	if media_clips.size(): curr_media_clips = media_clips
-	else: media_clips = curr_media_clips
+func update_section_properties(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String) -> void:
 	
 	var media_ress: Array = media_clips.map(
 		func(element: MediaClip) -> MediaClipRes:
 			return element.clip_res
 	)
+	if not focused_media_clip: return
 	if not media_ress: return
-	var curr_media_res = media_ress[0]
+	var focused_media_res: MediaClipRes = focused_media_clip.clip_res
 	
 	var root_container: SplitContainer = body.get_node(section_key)
 	
@@ -175,20 +175,23 @@ func update_properties(media_clips: Array[MediaClip], section_key: String) -> vo
 		
 		var curr_components_container: BoxContainer = root_container.get_meta("components_container")
 		IS.clear_children(curr_components_container)
-		var section: Array = curr_media_res.get_section_absolute(section_key)
+		var section: Array = focused_media_res.get_section_absolute(section_key)
 		
 		for index: int in section.size():
 			var component: ComponentRes = section[index]
-			var controller: Control = ComponentRes.create_custom_edit(component.get_res_id(), component)[0]
-			var edit_box: IS.EditBoxContainer = controller.get_meta("owner")
 			
+			var controller: Control = UsableRes.create_custom_edit(component.get_res_id(), component)[0]
+			var edit_box: IS.EditBoxContainer = controller.get_meta("owner")
+			edit_box.keyframable = false
 			var delete_button:= IS.create_texture_button(texture_delete)
 			var method_controller:= IS.create_option_controller([
 				{text = "Set"}, {text = "Add"}, {text = "Sub"}, {text = "Multiply"}, {text = "Divid"}
-			])
+			], "", component.method_type)
 			var drag_button:= IS.create_texture_button(texture_drag)
 			
-			delete_button.pressed.connect(delete_component.bind(media_clips, component.get_res_id(), section_key))
+			edit_box.keyframe_sended.connect(component.request_animation_keyframe)
+			delete_button.pressed.connect(delete_component.bind(media_clips, focused_media_clip, section_key, component))
+			method_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: component.method_type = id)
 			drag_button.button_down.connect(on_component_drag_button_button_down.bind(edit_box, component, section_key))
 			drag_button.button_up.connect(on_component_drag_button_button_up)
 			#drag_button.gui_input.connect(func(event: InputEvent) -> void: on_component_drag_button_gui_input.call(event, index))
@@ -210,23 +213,36 @@ func get_component_index_from_display_pos(comp_container: BoxContainer, pos: flo
 	return -1
 
 
+
+
 func on_media_clips_selection_group_selected_objects_changed() -> void:
 	
 	var objects: Dictionary[String, Dictionary] = media_clips_selection_group.get_objects()
+	var focused_object: Dictionary = media_clips_selection_group.focused
 	
-	var media_clips_selected: Array[MediaClip]
+	var selected_media_clips: Array[MediaClip]
+	var focused_media_clip: MediaClip
 	var types_selected: Array[int]
 	
 	for key: String in objects:
 		var info: Dictionary = objects[key]
-		var object: MediaClip = info["object"]
+		if not info.object: continue
+		var object: MediaClip = info.object
 		var object_type: int = object.type
-		media_clips_selected.append(object)
+		selected_media_clips.append(object)
 		if not types_selected.has(object_type):
 			types_selected.append(object_type)
 	
+	if focused_object.size():
+		focused_media_clip = focused_object.object
+	
+	if curr_selected_media_clips == selected_media_clips and curr_focused_media_clip == focused_media_clip:
+		return
+	curr_selected_media_clips = selected_media_clips
+	curr_focused_media_clip = focused_media_clip
+	
 	var properties_sections: Array = MediaServer.get_types_intersection_properties_sections(types_selected)
-	open_properties(media_clips_selected, properties_sections)
+	open_properties(selected_media_clips, focused_media_clip, properties_sections)
 
 func on_component_drag_button_button_down(edit_box: IS.EditBoxContainer, component: ComponentRes, section_key: StringName) -> void:
 	# Comps Container and Comps Main Poss
@@ -286,7 +302,7 @@ func on_component_drag_button_button_up() -> void:
 		edit_box.modulate.a = 1.0
 	else:
 		media_res.move_component(section_key, index_from, index_to)
-		update_properties([], section_key)
+		update_section_properties(curr_selected_media_clips, curr_focused_media_clip, section_key)
 	
 	dragged_edit_box.queue_free()
 	drag_info.clear()

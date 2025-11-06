@@ -101,13 +101,12 @@ theme_override_constants/separation = 0
 [node name="Split2" type="HSplitContainer" parent="Margin/Box/Split/Split"]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.7
 theme_override_constants/separation = 0
 split_offset = 300
 
 [node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split/Split2" groups=["media_explorer"]]
 clip_contents = true
-custom_minimum_size = Vector2(450, 0)
+custom_minimum_size = Vector2(550, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("1_7i47x")
@@ -132,6 +131,7 @@ theme_override_constants/separation = 0
 split_offset = 300
 
 [node name="ClipNodesExplorer" type="Control" parent="Margin/Box/Split/Split/Split" groups=["clip_nodes_explorer"]]
+visible = false
 layout_mode = 2
 script = ExtResource("11_30pfl")
 
@@ -139,7 +139,6 @@ script = ExtResource("11_30pfl")
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-layer_display_size = 55.0
 texture_select_mode = ExtResource("12_13ga7")
 texture_split_mode = ExtResource("13_pu2bm")
 texture_split = ExtResource("13_kg1lx")

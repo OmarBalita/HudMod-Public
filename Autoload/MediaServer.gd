@@ -34,7 +34,6 @@ const ARR_MEDIA_EXTENSIONS = [
 	IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS
 ]
 
-
 var media_properties_sections: Dictionary[int, Array] = {
 	0: ["Display2D", "Image", "Color", "Transition"],
 	1: ["Display2D", "Image", "Color", "Transition", "Sound"],
@@ -52,23 +51,16 @@ var media_clip_info: Dictionary[int, Dictionary] = {
 	1: {default_name = "Video", style = preload("uid://bnc4n8cvuae5s"), control = IS.create_clip_video_control}, # Video
 	2: {default_name = "Audio", style = preload("uid://djbj0r563olrv"), control = IS.create_clip_audio_control}, # Audio
 	3: {default_name = "Empty Object 2D", style = preload("uid://djp5a3r486n1c")}, # Empty Object 2D
-	4: {default_name = "Text", style = preload("uid://d0sgurvxit0n2")}, # Text
+	4: {default_name = "Text", style = preload("uid://bum2qjv15h7uu")}, # Text
 	5: {default_name = "Draw", style = preload("uid://bdh5bw2do3yxc")}, # Draw
-	6: {default_name = "Particles", style = preload("uid://d0sgurvxit0n2")}, # Particles
-	7: {default_name = "Camera 2D", style = preload("uid://d0sgurvxit0n2")}, # Camera 2D
-	8: {default_name = "Audio 2D", style = preload("uid://d0sgurvxit0n2")} # Audio 2D
+	6: {default_name = "Particles", style = preload("uid://cutvayr76572b")}, # Particles
+	7: {default_name = "Camera 2D", style = preload("uid://dxxh6guqix0k")}, # Camera 2D
+	8: {default_name = "Audio 2D", style = preload("uid://pk4vsqxdvixi")} # Audio 2D
 }
-
 
 var media_preloaded: Dictionary[String, Variant] = {}
 
 var audio_durations: Dictionary[String, float] # as Seconds
-
-
-
-
-
-
 
 
 func _ready() -> void:
@@ -77,7 +69,6 @@ func _ready() -> void:
 	#var audio_dur = get_audio_duration_with_ffprobe(audio_path)
 	#generate_waveform_dynamic(audio_path, audio_path + ".png", audio_dur)
 	pass
-
 
 
 # Image Services
@@ -100,7 +91,6 @@ func get_video_display_texture_from_path(path: String, thumbnails_folder_path: S
 		extract_video_thumbnail(path, output_path)
 	return get_image_texture_from_path(output_path)
 
-
 func extract_video_thumbnail(video_path: String, output_path: String) -> void:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
 	var abs_video_path = ProjectSettings.globalize_path(video_path)
@@ -119,7 +109,6 @@ func extract_video_thumbnail(video_path: String, output_path: String) -> void:
 	if err != OK:
 		printerr("Failed to start ffmpeg:", err)
 
-
 func is_stream_has_audio(file_path: String) -> bool:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
 	var abs_path = ProjectSettings.globalize_path(file_path)
@@ -135,21 +124,17 @@ func is_stream_has_audio(file_path: String) -> bool:
 
 # Audio Services
 
-
 func get_audio_stream_from_path(audio_path: String) -> AudioStreamWAV:
 	var preload_key = audio_path + "_audio"
 	if not media_preloaded.has(preload_key):
 		media_preloaded[preload_key] = AudioStreamHelper.create_stream_from_path(audio_path)
 	return media_preloaded[preload_key]
 
-
-
 func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, color_key: String = "bfbfbf", fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
 	var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".png"]
 	if not FileAccess.file_exists(output_path):
 		generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), color_key, fixed_size, size)
 	return get_image_texture_from_path(output_path)
-
 
 func get_audio_duration_with_ffprobe(audio_path: String) -> float:
 	
@@ -168,7 +153,6 @@ func get_audio_duration_with_ffprobe(audio_path: String) -> float:
 	else:
 		printerr("Failed to get duration")
 		return 0.0
-
 
 func generate_waveform_dynamic(audio_path: String, output_path: String, duration_seconds: float, color_key: String, fixed_size:= false, size:= Vector2i.ONE) -> void:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
@@ -197,22 +181,16 @@ func generate_waveform_dynamic(audio_path: String, output_path: String, duration
 		printerr("Failed to generate waveform image:", err)
 
 
-
-
-
-
 # Get Media Type
 
 func get_media_type_from_path(path: String) -> MediaTypes:
 	var extension = path.get_file().get_extension()
 	var media_type: int = -1
-	for i in ARR_MEDIA_EXTENSIONS:
+	for i: PackedStringArray in ARR_MEDIA_EXTENSIONS:
 		media_type += 1
 		if extension in i:
 			return media_type
-	
 	return ResourceLoader.load(path).object_media_type
-
 
 func get_types_intersection_properties_sections(types: Array[int]) -> Array:
 	var types_sections: Array[Array]
@@ -229,13 +207,6 @@ func get_types_intersection_properties_sections(types: Array[int]) -> Array:
 		result = result.filter(func(element: String) -> bool: return element in types_sections[index])
 	
 	return result
-
-
-
-
-
-
-
 
 
 

@@ -2,38 +2,32 @@ class_name SelectionBox extends FocusControl
 
 signal selection_changed()
 signal selection_started()
-signal selection_ended(grouping: bool)
-
-@export var id_key_function_name: String
+signal selection_ended(group: bool, remove: bool)
+signal selection_canceled()
 
 @export var enabled: bool = true
 @export var select_from: Array[Control]
+@export var id_key_function_name: StringName
 
 @export_group("Theme")
-@export var color: Color = Color.WHITE
+@export var color: Color = IS.COLOR_ACCENT_BLUE:
+	set(val):
+		color = val
+		fill_color = Color(color, transparancy)
 @export var transparancy: float = .3
 var fill_color: Color = Color(color, transparancy)
 
-
-var request_selection_func: Callable
-
-var selected_nodes: Dictionary[String, Control]
-
-var select_rect: Rect2
-var dragged: bool
+var is_active: bool
 var start_pos: Vector2
 var end_pos: Vector2
-var group: bool
-var remove: bool
-var canceled: bool
+var select_rect: Rect2
 
-
+var selected_nodes: Dictionary[String, Control]
 
 
 func _init() -> void:
 	mouse_entering_calculation = false
 	rect_calculation = true
-
 
 func _input(event: InputEvent) -> void:
 	
@@ -43,42 +37,32 @@ func _input(event: InputEvent) -> void:
 		return
 	
 	if event is InputEventMouseButton:
-		var pressed = event.is_pressed()
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			
-			start_pos = event.position
-			end_pos = event.position
-			group = event.ctrl_pressed
-			remove = event.alt_pressed
-			
-			if pressed:
-				if request_selection_func.is_null() or request_selection_func.call():
-					canceled = false
-					selection_started.emit()
-					dragged = true
-			
-			elif not canceled:
-				selection_ended.emit(group, remove)
-				dragged = false
-		
-		else:
-			canceled = true
-			dragged = false
-		update_selection()
+		var is_pressed: bool = event.is_pressed()
+		var event_pos: Vector2 = event.position
+		match event.button_index:
+			MOUSE_BUTTON_LEFT:
+				var group: bool = event.ctrl_pressed
+				var remove: bool = event.alt_pressed
+				if is_pressed:
+					request_start_selection(event_pos)
+				elif is_active:
+					end_selection(group, remove)
+			MOUSE_BUTTON_RIGHT:
+				if is_pressed:
+					cancel_selection()
+		update_selection(event_pos)
 	
-	elif event is InputEventMouseMotion and dragged:
-		end_pos = event.position
-		update_selection()
+	elif event is InputEventMouseMotion and is_active:
+		update_selection(event.position)
 
 
 func _draw() -> void:
-	if dragged:
+	if is_active:
 		draw_selecting_rect(select_rect)
 		for key in selected_nodes:
 			var node = selected_nodes[key]
 			if not is_instance_valid(node): continue
 			draw_selecting_rect(node.get_global_rect())
-
 
 func draw_selecting_rect(rect: Rect2, color: Color = IS.COLOR_ACCENT_BLUE) -> void:
 	rect = Rect2(rect.position - global_position, rect.size)
@@ -94,19 +78,33 @@ func draw_selecting_rect(rect: Rect2, color: Color = IS.COLOR_ACCENT_BLUE) -> vo
 	draw_dashed_line(to_y_pos, start_pos, color, 2.0, 10.0)
 
 
+func get_id_key_function_name() -> StringName:
+	return id_key_function_name
+
+func set_id_key_function_name(new_val: StringName) -> void:
+	id_key_function_name = new_val
 
 
+func request_start_selection(pos: Vector2) -> void:
+	if request_selection_func.is_null() or request_selection_func.call():
+		start_selection(pos)
 
+func start_selection(pos: Vector2) -> void:
+	is_active = true
+	start_pos = pos
+	end_pos = pos
+	selection_started.emit()
 
-func update_selection() -> void:
+func update_selection(new_pos: Vector2) -> void:
 	var intersected_nodes: Dictionary[String, Control]
 	
+	end_pos = new_pos
 	select_rect = Rect2(start_pos, end_pos - start_pos).abs()
 	
-	for folder in select_from:
+	for folder: Control in select_from:
 		if not is_instance_valid(folder):
 			continue
-		for node in folder.get_children():
+		for node: Node in folder.get_children():
 			if node is FocusControl:
 				if select_rect.intersects(node.get_global_rect()):
 					intersected_nodes[node.call(id_key_function_name)] = node
@@ -116,6 +114,10 @@ func update_selection() -> void:
 	
 	queue_redraw()
 
+func end_selection(group: bool, remove: bool) -> void:
+	is_active = false
+	selection_ended.emit(group, remove)
 
-
-
+func cancel_selection() -> void:
+	is_active = false
+	selection_canceled.emit()

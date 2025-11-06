@@ -1,7 +1,9 @@
 class_name MediaClip extends FocusControl
 
-var focus_style = preload("uid://bdikx7yabbrki")
-var expand_button_style = preload("uid://bb4m7kvycelsj")
+const STYLE_SELECT: StyleBoxFlat = preload("uid://bdikx7yabbrki")
+const STYLE_FOCUS: StyleBoxFlat = preload("uid://kkroptu2c0c1")
+const STYLE_BUTTONS_SELECT: StyleBoxFlat = preload("uid://bb4m7kvycelsj")
+const STYLE_BUTTONS_FOCUS: StyleBoxFlat = preload("uid://yvx6gwfm0v3b")
 
 # Main Variables
 var type: int
@@ -24,27 +26,43 @@ var l_button_dragged: bool
 
 # RealTime Nodes
 var layer: Layer
+var clip_control: Control:
+	set(val):
+		if clip_control:
+			clip_control.queue_free()
+		if val:
+			val.set_name("clip_control")
+			add_child(val)
+		clip_control = val
+var graph_editors_container: BoxContainer:
+	set(val):
+		if graph_editors_container:
+			graph_editors_container.queue_free()
+		if val:
+			val.set_name("editors_container")
+			add_child(val)
+		graph_editors_container = val
+		var is_null: bool = val == null
+		clip_control.visible = is_null
+		update_expand_buttons()
 
 var focus_panel: PanelContainer
 var r_expand_button: Button
 var l_expand_button: Button
 
 
-
-
-
 func _init() -> void:
-	
 	draw_focus = false
 	
 	selectable = true
 	draggable = true
 	
-	#select_cancelers.append(EditorServer.time_line.is_timeline_state_equal_to.bind(2))
+	var request_func: Callable = EditorServer.time_line.request_media_clip_selection
+	request_selection_func = request_func
+	request_drag_func = request_func
 	metadata_keys = ["layer_index", "clip_pos", "clip_res"]
 
 func _ready() -> void:
-	
 	# Super Ready
 	super()
 	
@@ -59,8 +77,10 @@ func _ready() -> void:
 		selection_group.add_object(id_key, self, get_metadata())
 	
 	# Focus Panel
-	focus_panel = IS.create_panel_container(Vector2.ZERO, focus_style, {visible = false})
+	focus_panel = IS.create_panel_container(Vector2.ZERO, STYLE_SELECT, {visible = false})
 	focus_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	focus_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	focus_panel.name = "focus_panel"
 	add_child(focus_panel)
 	
 	# Expand Control
@@ -69,7 +89,7 @@ func _ready() -> void:
 	l_expand_button = Button.new()
 	l_expand_button.custom_minimum_size = Vector2(10, size.y)
 	l_expand_button.mouse_filter = Control.MOUSE_FILTER_PASS
-	IS.set_button_style(l_expand_button, expand_button_style)
+	IS.set_button_style(l_expand_button, STYLE_BUTTONS_SELECT)
 	r_expand_button = l_expand_button.duplicate()
 	add_child(l_expand_button)
 	add_child(r_expand_button)
@@ -93,7 +113,7 @@ func _ready() -> void:
 	
 	update_lock()
 	update_expand_buttons()
-
+	select(true, false)
 
 func _input(event: InputEvent) -> void:
 	if not ProjectServer.get_layer_lock(layer_index) and EditorServer.time_line.timeline_selection_mode == 0:
@@ -108,9 +128,8 @@ func _input(event: InputEvent) -> void:
 				if event.button_index == MOUSE_BUTTON_RIGHT:
 					if event.is_pressed(): press_pos = event.position
 					elif press_pos.distance_to(event.position) <= min_drag_distance:
-						popup_context_menu()
-
-
+						EditorServer.time_line.popup_media_clips_menu()
+						select(event.ctrl_pressed, event.alt_pressed)
 
 func _physics_process(delta: float) -> void:
 	if r_button_dragged:
@@ -121,16 +140,40 @@ func _physics_process(delta: float) -> void:
 		layer.update()
 
 
-#func _draw() -> void:
-	#var rect = Rect2(Vector2.ZERO, size)
-	#draw_rect(rect, color)
-	#draw_rect(rect, Color(.0,.0,.0, .8), false, 5.0)
-	#super()
+func focus_enter() -> void:
+	set_select_style(STYLE_FOCUS, STYLE_BUTTONS_FOCUS)
+
+func focus_exit() -> void:
+	set_select_style(STYLE_SELECT, STYLE_BUTTONS_SELECT)
 
 func get_id_key() -> String:
 	return clip_res.id
 
 
+func set_clip_control(new_val: Control) -> void:
+	clip_control = new_val
+
+func get_clip_control() -> Control:
+	return clip_control
+
+func set_graph_editors_container(new_val: BoxContainer) -> void:
+	graph_editors_container = new_val
+
+func get_graph_editors_container() -> BoxContainer:
+	return graph_editors_container
+
+
+func open_graph_editors() -> void:
+	layer.open_graph_editors(clip_pos)
+
+func close_graph_editors() -> void:
+	layer.close_graph_editors(clip_pos)
+
+func set_select_style(panel_style: StyleBoxFlat, buttons_style: StyleBoxFlat) -> void:
+	if not focus_panel or not l_expand_button or not r_expand_button: return
+	focus_panel.add_theme_stylebox_override("panel", panel_style)
+	IS.set_button_style(l_expand_button, buttons_style)
+	IS.set_button_style(r_expand_button, buttons_style)
 
 
 func set_r_button_dragged(val: bool) -> void:
@@ -141,7 +184,6 @@ func set_r_button_dragged(val: bool) -> void:
 	if not val:
 		edit()
 
-
 func set_l_button_dragged(val: bool) -> void:
 	l_button_dragged = val
 	is_editing = val
@@ -149,7 +191,6 @@ func set_l_button_dragged(val: bool) -> void:
 	EditorServer.time_line.timeline_state = 3 * int(val)
 	if not val:
 		edit()
-
 
 
 
@@ -163,11 +204,14 @@ func update_lock() -> void:
 
 func update_expand_buttons() -> void:
 	focus_panel.visible = is_selected
+	var show_expand_buttons:= is_selected and not graph_editors_container
 	if l_expand_button:
-		l_expand_button.visible = is_selected
+		l_expand_button.visible = show_expand_buttons
+		l_expand_button.size.y = size.y
 	if r_expand_button:
-		r_expand_button.visible = is_selected
+		r_expand_button.visible = show_expand_buttons
 		r_expand_button.position.x = size.x - 10
+		r_expand_button.size.y = size.y
 
 func drag_right_button() -> void:
 	edit_frame_in = clip_pos
@@ -189,32 +233,12 @@ func split(split_right: bool, split_left: bool, split_in = null) -> void:
 		split_in = EditorServer.time_line.curr_frame
 	ProjectServer.split_media_clip(get_metadata(), split_in, split_right, split_left)
 
-
 func edit(emit_changes: bool = true) -> void:
 	ProjectServer.edit_media_clip(layer_index, clip_pos, {
 		"frame_in": edit_frame_in,
 		"from": edit_from,
 		"length": edit_length
 	}, emit_changes)
-
-func popup_context_menu() -> void:
-	
-	var menu = IS.create_popuped_menu([
-		MenuOption.new("Cut"), MenuOption.new("Copy"), MenuOption.new("Duplicate"), MenuOption.new("Remove"), MenuOption.new_line(),
-		MenuOption.new("Group"), MenuOption.new("UnGroup"), MenuOption.new_line(),
-		MenuOption.new("Reparent"), MenuOption.new("Parent Up"), MenuOption.new("Clear Parents"), MenuOption.new_line(),
-		MenuOption.new("Replace Media"), MenuOption.new("Reverse Clip"), MenuOption.new("Extract Audio"), MenuOption.new_line(),
-		MenuOption.new("Go Inside"), MenuOption.new("Open Graph Editor"), MenuOption.new_line(),
-		MenuOption.new("Render Clip/s"), MenuOption.new("Save Clip/s as"), MenuOption.new("Save as Global Preset"), MenuOption.new("Save as Project Preset")
-	])
-	get_tree().get_current_scene().add_child(menu)
-	menu.popup()
-
-
-
-
-func request_drag() -> bool:
-	return not EditorServer.time_line.get_timemarks_bg_mouse_entered()
 
 
 
@@ -246,10 +270,10 @@ func on_dragging() -> void:
 				
 				var clips_resources = selection_group.get_selected_objects_property("clip_res")
 				
-				var begin_pos = dragged_rect.global_position.x
-				var frame_begin_result = timeline.get_frame_from_display_pos(begin_pos, clips_resources, true, true, false)
-				var frame_end_result = timeline.get_frame_from_display_pos(begin_pos + size.x, clips_resources, true, true, false)
-				var begin_snap_dist = frame_begin_result.values()[0]
+				var begin_pos: float = dragged_rect.global_position.x
+				var frame_begin_result: Dictionary[int, Variant] = timeline.get_frame_from_display_pos(begin_pos, clips_resources, true, true, false)
+				var frame_end_result: Dictionary[int, Variant] = timeline.get_frame_from_display_pos(begin_pos + size.x, clips_resources, true, true, false)
+				var begin_snap_dist: Variant = frame_begin_result.values()[0]
 				var end_snap_dist = frame_end_result.values()[0]
 				
 				if begin_snap_dist or end_snap_dist == null:
@@ -262,9 +286,9 @@ func on_dragging() -> void:
 					target_frame = end_frame - clip_res.length
 					timeline.set_snap_pos(end_frame if end_snap_dist != null else null)
 				
-				var selected_objects = selection_group.selected_objects
-				var layer_delta = target_layer_index - layer_index
-				var frame_delta = target_frame - clip_pos
+				var selected_objects: Dictionary[String, Dictionary] = selection_group.selected_objects
+				var layer_delta: int = target_layer_index - layer_index
+				var frame_delta: int = target_frame - clip_pos
 				
 				for key in selected_objects:
 					var selected_clip = selected_objects[key].object
@@ -275,17 +299,18 @@ func on_dragging() -> void:
 					selected_clip.target_layer_index = clip_target_layer
 					selected_clip.target_frame = clip_target_frame
 					
-					#var clip_layer = timeline.get_layer_from_index(clip_target_layer)
-					#var clip_dragged_rect = selected_clip.dragged_rect
-					#if clip_layer and clip_dragged_rect:
-						#var rect_x_pos = timeline.get_display_pos_from_frame(timeline.get_frame_from_display_pos(clip_dragged_rect.global_position.x, [], true, true, false).keys()[0], clip_layer)
-						#clip_layer.draw_new_rect(Rect2(Vector2(rect_x_pos, 0), selected_clip.size))
+					var clip_layer = timeline.get_layer(clip_target_layer)
+					var clip_dragged_rect = selected_clip.dragged_rect
+					if clip_layer and clip_dragged_rect:
+						var rect_x_pos = timeline.get_display_pos_from_frame(timeline.get_frame_from_display_pos(clip_dragged_rect.global_position.x, [], true, true, false).keys()[0], clip_layer)
+						var rect2: Rect2 = Rect2(Vector2(rect_x_pos, 0), selected_clip.size)
+						clip_layer.draw_new_rect(rect2, Color(IS.COLOR_ACCENT_BLUE, .4))
+						clip_layer.draw_new_rect(rect2, IS.COLOR_ACCENT_BLUE, false, 5.0)
 				
-				var rect_x_pos = timeline.get_display_pos_from_frame(target_frame, layer)
-				var rect2 = Rect2(Vector2(rect_x_pos, 0), size)
+				var rect_x_pos: float = timeline.get_display_pos_from_frame(target_frame, layer)
+				var rect2: Rect2 = Rect2(Vector2(rect_x_pos, 0), Vector2(size.x, layer.curr_y_size))
 				layer.draw_new_rect(rect2, Color(IS.COLOR_ACCENT_BLUE, .4))
 				layer.draw_new_rect(rect2, IS.COLOR_ACCENT_BLUE, false, 5.0)
-
 
 func on_drag_finished() -> void:
 	
@@ -301,12 +326,14 @@ func on_drag_finished() -> void:
 	
 	var timeline = EditorServer.time_line
 	timeline.set_timeline_state(0)
-	timeline.clear_layers_drawed_entities()
 
 
 func on_dragged_rect_created(dragged_rect: Control) -> void:
-	dragged_rect.get_child(0).size = size
-	dragged_rect.get_child(1).size = size
+	var clip_control: Control = dragged_rect.get_node("clip_control")
+	var editors_container: BoxContainer = dragged_rect.get_node("editors_container")
+	dragged_rect.get_node("focus_panel").size = size
+	clip_control.show(); clip_control.size = size
+	if editors_container: editors_container.hide()
 
 
 func on_r_expand_button_downed() -> void:

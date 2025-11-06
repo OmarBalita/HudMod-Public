@@ -2,7 +2,6 @@ class_name DrawableRect extends ColorRect
 
 @export var drawed_entities: Array[Dictionary]
 
-
 func draw_new_rect(rect: Rect2, color: Color = Color.GRAY, filled: bool = true, width: int = -1, antialiased: bool = false) -> void:
 	drawed_entities.append({"rect": [rect, color, filled, width, antialiased]})
 	queue_redraw()

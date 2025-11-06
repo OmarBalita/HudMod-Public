@@ -41,10 +41,10 @@ const ALT_MASK: int = 67108864
 
 @export_multiline() var editor_guides: Array[Dictionary]
 
-var select_cancelers: Array[Callable]
-
 var id_key: String
 
+var request_selection_func: Callable
+var request_drag_func: Callable
 
 
 # RealTime Variables
@@ -76,7 +76,7 @@ var focus_alpha: float = .0:
 		focus_alpha = val
 		queue_redraw()
 
-
+var is_pressed: bool
 var press_pos: Vector2
 var start_drag_dist: Vector2
 var can_drag: bool
@@ -102,11 +102,37 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	
+	#if event is InputEventMouse:
+		#var event_pos: Vector2 = event.position
+		#
+		#var group: bool = multiselect and event.ctrl_pressed
+		#var remove: bool = event.alt_pressed
+		#
+		#if event is InputEventMouseButton:
+			#var is_pressed: bool = event.is_pressed()
+			#if is_pressed: press_pos = event_pos
+			#
+			#match event.button_index:
+				#MOUSE_BUTTON_LEFT:
+					#if is_pressed:
+						#pass
+					#else:
+						#pass
+				#MOUSE_BUTTON_RIGHT:
+					#if is_pressed:
+						#pass
+					#else:
+						#pass
+		#
+		#elif event is InputEventMouseMotion:
+			#pass
+	
 	if event is InputEventMouse:
+		var mouse_pos: Vector2 = event.position
+		var dist: float = press_pos.distance_to(mouse_pos)
 		
-		var mouse_pos = event.position
-		var dist = press_pos.distance_to(event.position)
-		var grouping = multiselect and event.ctrl_pressed
+		var group: bool = multiselect and event.ctrl_pressed
+		var remove: bool = event.alt_pressed
 		
 		if event is InputEventMouseButton and selectable:
 			
@@ -114,25 +140,26 @@ func _input(event: InputEvent) -> void:
 				
 				if event.is_pressed():
 					if is_focus:
+						is_pressed = true
 						press_pos = mouse_pos
 						start_drag_dist = mouse_pos - global_position
-						can_drag = request_drag()
+						can_drag = request_drag_func.is_null() or request_drag_func.call()
 				
 				else:
 					if dragged_rect:
 						end_drag()
-					elif is_selected:
+					elif is_focus and is_pressed:
 						if dist <= min_drag_distance:
-							if event.alt_pressed:
-								deselect()
-					elif is_focus:
-						select(grouping)
+							if is_selected:
+								if event.alt_pressed: deselect()
+								else: request_select(group, remove)
+							else: request_select(group, remove)
+						is_pressed = false
 					can_drag = false
 		
 		elif event is InputEventMouseMotion:
-			
 			if can_drag and dist > min_drag_distance:
-				start_drag(grouping)
+				start_drag(true, false)
 			
 			if dragged_rect:
 				dragged_rect.global_position = mouse_pos - start_drag_dist
@@ -141,8 +168,9 @@ func _input(event: InputEvent) -> void:
 			if rect_calculation:
 				set_is_focus(get_rect().has_point(get_local_mouse_position()))
 
+
 func _draw() -> void:
-	var rect = Rect2(Vector2.ONE, size - Vector2.ONE)
+	var rect: Rect2 = Rect2(Vector2.ONE, size - Vector2.ONE)
 	if draw_focus and is_focus:
 		draw_rect(rect, Color(focus_color, focus_alpha), false, 3.0)
 	if draw_select and is_selected:
@@ -154,24 +182,29 @@ func _draw() -> void:
 # ---------------------------------------------------
 
 
-func select(grouping: bool, is_drag_selection: bool = false) -> void:
+func request_select(group: bool, remove: bool, is_drag_selection: bool = false) -> void:
+	if request_selection_func.is_null() or request_selection_func.call():
+		select(group, remove, is_drag_selection)
+
+func select(group: bool, remove: bool, is_drag_selection: bool = false) -> void:
+	
 	var metadata: Dictionary = get_metadata()
-	selection_group.add_object(get_id_key(), self, metadata, grouping, true)
+	selection_group.add_object(get_id_key(), self, metadata, group, true)
+	
 	if not is_drag_selection:
 		selected_without_drag.emit()
+	
 	if once_selection:
 		deselect()
 
 func deselect() -> void:
 	selection_group.remove_object(get_id_key(), true)
 
-func request_drag() -> bool:
-	return true
 
-func start_drag(grouping: bool) -> void:
+func start_drag(group: bool, remove: bool) -> void:
 	if not dragged_rect:
 		
-		select(grouping, true)
+		select(group, remove, true)
 		create_dragged_rect()
 		hide()
 		drag_started.emit()
@@ -187,7 +220,7 @@ func start_drag(grouping: bool) -> void:
 			if selected_clip == self: continue
 			selected_clip.start_drag_dist = press_pos - selected_clip.global_position
 			selected_clip.following_drag = self
-			selected_clip.start_drag(grouping)
+			selected_clip.start_drag(group, remove)
 
 func end_drag() -> void:
 	dragged_rect.queue_free()
@@ -199,15 +232,22 @@ func end_drag() -> void:
 	
 	drag_finished.emit()
 
-func create_dragged_rect() -> void:
-	
-	dragged_rect = duplicate()
+func get_dragged_rect() -> Control:
+	var dragged_rect: Control = duplicate()
 	dragged_rect.set_script(null)
-	ObjectServer.describe_node_deep(dragged_rect, {"mouse_filter" = Control.MOUSE_FILTER_IGNORE})
-	
+	ObjectServer.describe_node_deep(dragged_rect, {mouse_filter = MOUSE_FILTER_IGNORE})
+	return dragged_rect
+
+func create_dragged_rect() -> void:
+	dragged_rect = get_dragged_rect()
 	get_tree().current_scene.add_child(dragged_rect)
 	dragged_rect_created.emit(dragged_rect)
 
+func focus_enter() -> void:
+	pass
+
+func focus_exit() -> void:
+	pass
 
 
 func get_id_key() -> String:

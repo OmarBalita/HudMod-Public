@@ -32,7 +32,6 @@
 - Create New Graph Editor for Keyframes and Curves
 - Save Preset as Global or Project
 - Apply Media Clip Popup Menu
-- Player Edit Mode
 - Player Panning and Zoom
 - Player Play/Pause, FullScreen
 
@@ -50,14 +49,30 @@
 - Add more and more Draw Modes
 - Add Curve Handles Edit
 
-- Full Properties System for each Media Type
-- Keyframing Properties from Graph Editor and support Curves
+- Full Properties System for each Media Type [+]
+- Keyframing Properties:
+	new AnimationRes for each property [+]
+	add a new keyframe manually [+]
+	remove keyframe manually [+]
+	change keyframe manually
+	create a new AnimationResController as contains the following:
+		embeded multiselection system
+		adding and remove keyframes
+		move keyframes using y to change the value and x to change the time (frame)
+		control the position of keyframe
+		preset interpolation modes
+		bake selected with custom fps
+	support intermittent and linear and linear_angular and cubic_bezier interpolations
+	recording properties when changed
+	update properties controllers when AnimationResController property changed and vice versa [+]
+	update the instance node when any property changed from any controller [+]
 - Shaders Effects for Display Objects
 - Audio Effects for Audio Objects
 - Add Layer Properties
 - Support Commonly AI Tools
-- Pivot-Point or Cursor Base Scale and Rotation
+- Pivot-Point or Cursor Base Scale and Rotation [+]
 - Play and Stop Timeline Wherever the Mouse is Present
+- Rewrite Types Interpolation System to Globalize it in One Strong and Flexible Script, that means delete two scripts (ColorRangeRes; KeysRes)
 
 - Export Project as Image or Video with custom Quality, Resolution, Aspect-Ratio, and FPS
 - Save Preset in Project or as Global Preset
@@ -66,7 +81,7 @@
 - Undo, Redo System
 - App Header ToolBar
 
-- Add more and more Components of all kinds to all Media
+- Add more and more Components for all kinds to all Media
 - Add Images and Videos or Stickers of Commonly used Memes
 
 - Create App Launcher

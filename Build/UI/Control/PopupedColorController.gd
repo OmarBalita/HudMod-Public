@@ -20,27 +20,27 @@ var curr_color: Color = Color.BLACK:
 
 var curr_state: State = 0
 
-var built_in_color_palettes: Array = [
-  ColorPaletteRes.new_res("Material Design Bright", ["#f44336","#e81e63","#9c27b0","#673ab7","#3f51b5","#2196f3","#03a9f4","#00bcd4","#009688","#4caf50","#8bc34a","#cddc39"]),
-  ColorPaletteRes.new_res("Material Design Warm", ["#ffc107","#ff9800","#ff5722","#795548","#9e9e9e","#607d8b","#000000"]),
-  ColorPaletteRes.new_res("Dreamy Pastel", ["#f8f29a","#a5ce7c","#f7f4d4","#f7bfb8","#b3aede","#c3e9f8"]),
-  ColorPaletteRes.new_res("Summer Sea", ["#e3caa2","#f0e1cc","#73bdbc","#0d96ba","#167997"]),
-  ColorPaletteRes.new_res("Vintage Summer", ["#00896f","#99bf72","#f4df9e","#e38f2d","#d45d37"]),
-  ColorPaletteRes.new_res("Blissful Summer", ["#65ae39","#8cbe69","#f3dd25","#eebf25","#e69489","#aa7fa5"]),
-  ColorPaletteRes.new_res("Summer Pool Party", ["#0198f1","#49c2ff","#a9eeff","#0067d4","#e999de","#7c62c4"]),
-  ColorPaletteRes.new_res("Summer Festival", ["#01a7ec","#ffff46","#ffc94b","#fe8f5d","#fe47b3","#80da65"]),
-  ColorPaletteRes.new_res("Rustic Brown & Green", ["#102820","#4c6444","#caba9c","#8a6240","#4d2d18"]),
-  ColorPaletteRes.new_res("Burgundy & Earth Tones", ["#8c1127","#a68e80","#a65437","#592418","#26130f"]),
-  ColorPaletteRes.new_res("Forest Harvest", ["#385248","#f29849","#f27c38","#732d14","#0d0d0d"]),
-  ColorPaletteRes.new_res("Rustic Autumn", ["#385928","#f2c063","#bf7c41","#8c512e","#26120b"]),
-  ColorPaletteRes.new_res("Rustic Charm", ["#261c0f","#a6886d","#bf7245","#a6360d","#731b07"]),
-  ColorPaletteRes.new_res("Rainy Day Coziness", ["#03060d","#2d4d59","#6593a6","#aabbbf","#d5dde1","#f0f4f7"]),
-  ColorPaletteRes.new_res("Cappuccino", ["#a68f78","#c3b091","#e0d7c5","#f2ebe2","#8b6d5c","#5a432e"]),
-  ColorPaletteRes.new_res("Beach Pastel Rainbow", ["#ff9fb1","#ffd47f","#ffffc1","#c1ffcf","#a7d8ff","#d8baff"]),
-  ColorPaletteRes.new_res("Beautiful Blues", ["#083d77","#085f63","#08a045","#51c17b","#a8e890","#d6f5c1"]),
-  ColorPaletteRes.new_res("Shades of Teal", ["#004d4d","#006666","#008080","#009999","#00cccc","#33ffff"]),
-  ColorPaletteRes.new_res("Ice Cream Pastels", ["#ffd3e0","#ffe1a8","#e1ffd3","#d3e1ff","#f0d3ff","#ffdfe1"]),
-  ColorPaletteRes.new_res("VaporWave Neon", ["#ff6ec7","#9d65c9","#65c9dd","#65e4c9","#c9ff65","#6eff65"])
+static var built_in_color_palettes: Array = [
+	ColorPaletteRes.new_res("Material Design Bright", ["#f44336","#e81e63","#9c27b0","#673ab7","#3f51b5","#2196f3","#03a9f4","#00bcd4","#009688","#4caf50","#8bc34a","#cddc39"]),
+	ColorPaletteRes.new_res("Material Design Warm", ["#ffc107","#ff9800","#ff5722","#795548","#9e9e9e","#607d8b","#000000"]),
+	ColorPaletteRes.new_res("Dreamy Pastel", ["#f8f29a","#a5ce7c","#f7f4d4","#f7bfb8","#b3aede","#c3e9f8"]),
+	ColorPaletteRes.new_res("Summer Sea", ["#e3caa2","#f0e1cc","#73bdbc","#0d96ba","#167997"]),
+	ColorPaletteRes.new_res("Vintage Summer", ["#00896f","#99bf72","#f4df9e","#e38f2d","#d45d37"]),
+	ColorPaletteRes.new_res("Blissful Summer", ["#65ae39","#8cbe69","#f3dd25","#eebf25","#e69489","#aa7fa5"]),
+	ColorPaletteRes.new_res("Summer Pool Party", ["#0198f1","#49c2ff","#a9eeff","#0067d4","#e999de","#7c62c4"]),
+	ColorPaletteRes.new_res("Summer Festival", ["#01a7ec","#ffff46","#ffc94b","#fe8f5d","#fe47b3","#80da65"]),
+	ColorPaletteRes.new_res("Rustic Brown & Green", ["#102820","#4c6444","#caba9c","#8a6240","#4d2d18"]),
+	ColorPaletteRes.new_res("Burgundy & Earth Tones", ["#8c1127","#a68e80","#a65437","#592418","#26130f"]),
+	ColorPaletteRes.new_res("Forest Harvest", ["#385248","#f29849","#f27c38","#732d14","#0d0d0d"]),
+	ColorPaletteRes.new_res("Rustic Autumn", ["#385928","#f2c063","#bf7c41","#8c512e","#26120b"]),
+	ColorPaletteRes.new_res("Rustic Charm", ["#261c0f","#a6886d","#bf7245","#a6360d","#731b07"]),
+	ColorPaletteRes.new_res("Rainy Day Coziness", ["#03060d","#2d4d59","#6593a6","#aabbbf","#d5dde1","#f0f4f7"]),
+	ColorPaletteRes.new_res("Cappuccino", ["#a68f78","#c3b091","#e0d7c5","#f2ebe2","#8b6d5c","#5a432e"]),
+	ColorPaletteRes.new_res("Beach Pastel Rainbow", ["#ff9fb1","#ffd47f","#ffffc1","#c1ffcf","#a7d8ff","#d8baff"]),
+	ColorPaletteRes.new_res("Beautiful Blues", ["#083d77","#085f63","#08a045","#51c17b","#a8e890","#d6f5c1"]),
+	ColorPaletteRes.new_res("Shades of Teal", ["#004d4d","#006666","#008080","#009999","#00cccc","#33ffff"]),
+	ColorPaletteRes.new_res("Ice Cream Pastels", ["#ffd3e0","#ffe1a8","#e1ffd3","#d3e1ff","#f0d3ff","#ffdfe1"]),
+	ColorPaletteRes.new_res("VaporWave Neon", ["#ff6ec7","#9d65c9","#65c9dd","#65e4c9","#c9ff65","#6eff65"])
 ]
 
 var custom_color_palettes: Array
@@ -81,8 +81,6 @@ var type_menu: Menu
 func _ready() -> void:
 	
 	# PopupControl
-	popup_speed = .2
-	popdown_speed = .1
 	super()
 	
 	# Save Component
@@ -102,11 +100,11 @@ func _ready() -> void:
 	
 	var controller_box = IS.create_box_container(10, true)
 	
-	var color_palettes_scroll_controller = IS.create_scroll_container(1, 1, {custom_minimum_size = Vector2(310, 0)})
-	var color_palettes_margin_container = IS.create_margin_container(12, 12, 12, 12, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var color_palette_split_container = IS.create_split_container(2, true)
-	color_palettes_box = IS.create_box_container(10, true)
-	add_palette_button = IS.create_button("Add New Color Palette", texture_add_palette, true)
+	#var color_palettes_scroll_controller = IS.create_scroll_container(1, 1, {custom_minimum_size = Vector2(310, 0)})
+	#var color_palettes_margin_container = IS.create_margin_container(12, 12, 12, 12, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	#var color_palette_split_container = IS.create_split_container(2, true)
+	#color_palettes_box = IS.create_box_container(10, true)
+	#add_palette_button = IS.create_button("Add New Color Palette", texture_add_palette, true)
 	
 	var color_control_box = IS.create_box_container()
 	var color_display_box = IS.create_box_container()
@@ -159,15 +157,15 @@ func _ready() -> void:
 	controller_box.add_child(hex_line)
 	controller_box.add_child(type_menu)
 	
-	color_palettes_margin_container.add_child(color_palettes_box)
-	color_palettes_scroll_controller.add_child(color_palettes_margin_container)
+	#color_palettes_margin_container.add_child(color_palettes_box)
+	#color_palettes_scroll_controller.add_child(color_palettes_margin_container)
 	
-	color_palette_split_container.add_child(add_palette_button)
-	color_palette_split_container.add_child(color_palettes_scroll_controller)
+	#color_palette_split_container.add_child(add_palette_button)
+	#color_palette_split_container.add_child(color_palettes_scroll_controller)
 	
-	split_container.add_child(controller_box)
-	split_container.add_child(color_palette_split_container)
-	margin_container.add_child(split_container)
+	#split_container.add_child(controller_box)
+	#split_container.add_child(color_palette_split_container)
+	margin_container.add_child(controller_box)
 	add_child(margin_container)
 	
 	# Connections
@@ -186,15 +184,14 @@ func _ready() -> void:
 	type_menu.focus_index_changed.connect(on_type_menu_focus_index_changed)
 	hex_line.text_submitted.connect(on_hex_line_text_changed)
 	
-	add_palette_button.pressed.connect(on_add_palette_button_pressed)
+	#add_palette_button.pressed.connect(on_add_palette_button_pressed)
 	
 	hex_line.grab_focus()
 	hex_line.select()
 	
 	# Update/Spawn Palettes Boxes
-	spawn_built_in_palettes()
-	update_custom_palettes()
-	
+	#spawn_built_in_palettes()
+	#update_custom_palettes()
 
 func _input(event: InputEvent) -> void:
 	
@@ -336,6 +333,8 @@ class VHSCircleShape extends Control:
 		set(val):
 			radius = val
 			update_properties()
+			regenerate_texture = true
+			queue_redraw()
 	
 	var hue: float
 	var sat: float
@@ -343,12 +342,17 @@ class VHSCircleShape extends Control:
 	
 	var dragged: bool
 	
+	var circle_texture: Texture2D = preload("res://Asset/Icons/vhs-circle-shape.png")
+	var regenerate_texture: bool = true
+	var cached_val: float = -1.0
+	
 	func _init(_hue: float, _sat: float, _val: float) -> void:
 		update(_hue, _sat, _val)
 	
 	func _ready() -> void:
 		# Set Base Settings
 		update_properties()
+		generate_circle_texture()
 	
 	func _input(event: InputEvent) -> void:
 		
@@ -358,6 +362,7 @@ class VHSCircleShape extends Control:
 				if dist_to_center <= radius:
 					dragged = event.is_pressed()
 					update_from_display_point()
+					val_changed.emit(hue, sat)
 				else: dragged = false
 		
 		elif event is InputEventMouseMotion:
@@ -365,17 +370,47 @@ class VHSCircleShape extends Control:
 				update_from_display_point()
 				val_changed.emit(hue, sat)
 	
+	
+	func generate_circle_texture():
+		
+		#var img_size = int(radius * 2)
+		#var image = Image.create(img_size, img_size, false, Image.FORMAT_RGBA8)
+		#var center = Vector2(img_size, img_size) / 2
+		#
+		#for x in img_size:
+			#for y in img_size:
+				#var offset = Vector2(x, y) - center
+				#var dist = offset.length()
+				#
+				#if dist <= radius:
+					#var angle = atan2(offset.y, offset.x)
+					#if angle < 0:
+						#angle += TAU 
+					#
+					#var h = angle / TAU
+					#var s = dist / radius
+					#var color = Color.from_hsv(h, s, 1.0)
+					#
+					#if dist > radius - 1.0:
+						#var alpha = 1.0 - (dist - (radius - 1.0))
+						#color.a = alpha
+					#image.set_pixel(x, y, color)
+				#else:
+					#image.set_pixel(x, y, Color.TRANSPARENT)
+		#circle_texture = ImageTexture.create_from_image(image)
+		regenerate_texture = false
+	
 	func _draw() -> void:
+		if regenerate_texture or cached_val != val:
+			if regenerate_texture:
+				generate_circle_texture()
+			cached_val = val
 		
 		var center = size / 2.0
-		var pixel_size = Vector2.ONE * radius / 100.0 * 2.0
+		var texture_size = Vector2.ONE * radius * 2.0
+		var texture_pos = center - texture_size / 2.0
 		
-		for h in 360:
-			for s in 100:
-				var hue = h / 360.0
-				var sat = s / 100.0
-				var rect_pos = Vector2(cos(deg_to_rad(h)), sin(deg_to_rad(h))) * sat * radius
-				draw_rect(Rect2(center + rect_pos, pixel_size), Color.from_hsv(hue, sat, val), true, -1.0, s + 1 == 100)
+		draw_texture_rect(circle_texture, Rect2(texture_pos, texture_size), false, Color(val, val, val, 1.0))
 		
 		var angle_rad = TAU * hue
 		var display_offset = Vector2(cos(angle_rad), sin(angle_rad)) * sat * radius
@@ -383,7 +418,7 @@ class VHSCircleShape extends Control:
 		draw_circle(center + display_offset, 6.0, IS.COLOR_ACCENT_BLUE, false, 2.0, true)
 	
 	func update_properties() -> void:
-		custom_minimum_size = Vector2.ONE * radius * 2.1
+		custom_minimum_size = Vector2.ONE * radius * 2.0
 	
 	func update(_hue: float, _sat: float, _val: float) -> void:
 		hue = _hue
@@ -609,10 +644,4 @@ class PaletteBox extends PanelContainer:
 		func on_mouse_exited() -> void:
 			radius_scale = 1.0
 			queue_redraw()
-
-
-
-
-
-
 

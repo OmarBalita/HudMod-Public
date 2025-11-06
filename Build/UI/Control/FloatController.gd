@@ -170,6 +170,9 @@ func set_curr_val(new_val: float, emit_change: bool = true) -> void:
 		val_changed.emit(curr_val)
 	queue_redraw()
 
+func set_curr_val_manually(new_val: float) -> void:
+	set_curr_val(new_val, false)
+
 
 func set_is_grab(new_val: bool) -> void:
 	is_grab = new_val

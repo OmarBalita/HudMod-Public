@@ -13,7 +13,6 @@ var selected_id: int:
 	set(val):
 		selected_id = val
 		selected_option = options[val]
-		selected_option_changed.emit(val, selected_option)
 		update_display_option(val)
 
 var selected_option: MenuOption
@@ -42,6 +41,10 @@ func get_selected_id() -> int:
 	return selected_id
 
 func set_selected_id(new_selected_id: int) -> void:
+	selected_id = new_selected_id
+	selected_option_changed.emit(selected_id, selected_option)
+
+func set_selected_id_manually(new_selected_id: int) -> void:
 	selected_id = new_selected_id
 
 

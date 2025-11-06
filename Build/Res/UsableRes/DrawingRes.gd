@@ -70,8 +70,7 @@ func _init(init_points: PackedVector2Array = [], init_drawn_entities: Array[Draw
 	points_changed.connect(on_points_changed)
 
 
-
-func _get_exported_parameters() -> Dictionary[StringName, Dictionary]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var line_cond = [get_draw_line, [true]]
 	var display_container = _get_drawing_res_display_viewport_container()
 	var is_brush_exported_parameters: Dictionary[StringName, Dictionary]

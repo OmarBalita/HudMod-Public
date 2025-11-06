@@ -117,7 +117,7 @@ func _ready() -> void:
 	more_button = IS.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
-	time_container.add_child(IS.create_h_line_panel(15))
+	#time_container.add_child(IS.create_v_line_panel(15))
 	time_container.add_child(max_time_label)
 	time_panel.add_child(time_container)
 	
