@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://oridk17j24yo"]
 
 [ext_resource type="Script" uid="uid://c2ejkss1jnbne" path="res://Build/Object/Draw.gd" id="1_es7rl"]
-[ext_resource type="Script" uid="uid://0ls4kucvr2wj" path="res://Build/Editor/Player/DrawEditor.gd" id="2_es7rl"]
-[ext_resource type="Script" uid="uid://t8jg61bvq0k0" path="res://Build/Editor/Player/DrawEditorControl.gd" id="5_7sxuu"]
+[ext_resource type="Script" uid="uid://0ls4kucvr2wj" path="res://Editor/Player/DrawEditor.gd" id="2_es7rl"]
+[ext_resource type="Script" uid="uid://t8jg61bvq0k0" path="res://Editor/Player/DrawEditorControl.gd" id="5_7sxuu"]
 
 [node name="DrawPrototype" type="Node"]
 

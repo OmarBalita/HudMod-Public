@@ -20,6 +20,7 @@
 - New Flexible Editor Save System [+]
 - Drag and Drop Media Files into Project - TimeLine, and File Explorer [+]
 
+
 - Layer: Move UP and Move DOWN and Duplicate
 - Layer: Customization
 - Group and UnGroup Media Clips

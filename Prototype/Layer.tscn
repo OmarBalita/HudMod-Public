@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bfgp3ptbyjrsl"]
 
-[ext_resource type="Script" uid="uid://jngd8482x8ob" path="res://Build/Editor/TimeLine/Layer.gd" id="1_gibuo"]
+[ext_resource type="Script" uid="uid://jngd8482x8ob" path="res://Editor/TimeLine/Layer.gd" id="1_gibuo"]
 
 [node name="Layer" type="ColorRect"]
 anchors_preset = 10

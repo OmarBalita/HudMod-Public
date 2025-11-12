@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://3ovsm84qqal0"]
 
-[ext_resource type="Script" uid="uid://yylbrx46a58v" path="res://Build/Editor/ShaderGraphEditor/ShaderGraphEditor.gd" id="1_sv8pf"]
+[ext_resource type="Script" uid="uid://yylbrx46a58v" path="res://Editor/ShaderGraphEditor/ShaderGraphEditor.gd" id="1_sv8pf"]
 
 [node name="ShaderGraphEditor" type="Control"]
 layout_mode = 3

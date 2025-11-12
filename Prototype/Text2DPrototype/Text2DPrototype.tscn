@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3 uid="uid://csgm7mspbb2nl"]
+
+[ext_resource type="Script" uid="uid://b3whtab5swyy8" path="res://Prototype/Text2DPrototype/Text2D.gd" id="1_nxx1d"]
+[ext_resource type="Script" uid="uid://btgemojrw2hpt" path="res://Prototype/Text2DPrototype/TextSliceRes.gd" id="2_yapne"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Control" type="Control" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Text2D" type="Node2D" parent="CenterContainer/Control"]
+script = ExtResource("1_nxx1d")
+text_slices = Array[ExtResource("2_yapne")]([])
+metadata/_custom_type_script = "uid://b3whtab5swyy8"

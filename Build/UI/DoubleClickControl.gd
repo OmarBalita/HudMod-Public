@@ -7,7 +7,6 @@ enum ButtonIndeces {MOUSE_BUTTON_LEFT = 1, MOUSE_BUTTON_RIGHT = 2, MOUSE_BUTTON_
 @export var button_index: ButtonIndeces = 1
 @export var double_click_threshold: float = 0.3
 
-
 var last_click_time: float = 0.0
 
 func _input(event) -> void:
@@ -22,3 +21,4 @@ func _input(event) -> void:
 
 func _double_click() -> void:
 	clicked.emit()
+

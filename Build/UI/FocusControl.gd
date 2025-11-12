@@ -25,13 +25,12 @@ const ALT_MASK: int = 67108864
 @export_subgroup("Selection")
 @export var selectable: bool
 @export var selection_group: SelectionGroupRes
-@export var metadata_keys: Array[String]
 @export var multiselect: bool = true
-@export var once_selection: bool
 
 @export_subgroup("Dragging")
 @export var draggable: bool
 @export var min_drag_distance: float = 5.0
+@export var group_when_dragging: bool
 
 @export_group("Theme")
 @export var draw_focus: bool = true
@@ -42,6 +41,7 @@ const ALT_MASK: int = 67108864
 @export_multiline() var editor_guides: Array[Dictionary]
 
 var id_key: String
+var metadata: Dictionary
 
 var request_selection_func: Callable
 var request_drag_func: Callable
@@ -53,23 +53,17 @@ var request_drag_func: Callable
 var is_focus: bool:
 	set(val):
 		is_focus = val
-		var tween = create_tween()
-		tween.tween_property(self, "focus_alpha", float(is_focus) * .5, .15)
-		if is_focus:
-			EditorServer.push_guides(editor_guides)
+		if draw_focus:
+			var tween = create_tween()
+			tween.tween_property(self, "focus_alpha", float(is_focus) * .5, .15)
+			if is_focus:
+				EditorServer.push_guides(editor_guides)
 		focus_changed.emit(is_focus)
 
-var is_selected: bool:
-	set(val):
-		is_selected = val
-		if val: selected.emit()
-		else: deselected.emit()
-		queue_redraw()
+var is_selected: bool: set = set_is_selected
 
-var dragged_rect: Control:
-	set(val):
-		dragged_rect = val
-		queue_redraw()
+var is_dragging: bool
+var dragged_rect: Control
 
 var focus_alpha: float = .0:
 	set(val):
@@ -84,9 +78,14 @@ var following_drag: Control
 
 
 
-func set_is_focus(focus: bool) -> void:
-	is_focus = focus
+func set_is_selected(new_val: bool) -> void:
+	is_selected = new_val
+	if new_val: selected.emit()
+	else: deselected.emit()
+	queue_redraw()
 
+func set_is_focus(new_val: bool) -> void:
+	is_focus = new_val
 
 
 # Background Called Functions
@@ -146,7 +145,7 @@ func _input(event: InputEvent) -> void:
 						can_drag = request_drag_func.is_null() or request_drag_func.call()
 				
 				else:
-					if dragged_rect:
+					if is_dragging:
 						end_drag()
 					elif is_focus and is_pressed:
 						if dist <= min_drag_distance:
@@ -159,10 +158,11 @@ func _input(event: InputEvent) -> void:
 		
 		elif event is InputEventMouseMotion:
 			if can_drag and dist > min_drag_distance:
-				start_drag(true, false)
+				start_drag(group or group_when_dragging, false)
 			
-			if dragged_rect:
-				dragged_rect.global_position = mouse_pos - start_drag_dist
+			if is_dragging:
+				if dragged_rect:
+					dragged_rect.global_position = mouse_pos - start_drag_dist
 				dragging.emit()
 			
 			if rect_calculation:
@@ -186,24 +186,20 @@ func request_select(group: bool, remove: bool, is_drag_selection: bool = false) 
 	if request_selection_func.is_null() or request_selection_func.call():
 		select(group, remove, is_drag_selection)
 
-func select(group: bool, remove: bool, is_drag_selection: bool = false) -> void:
-	
-	var metadata: Dictionary = get_metadata()
-	selection_group.add_object(get_id_key(), self, metadata, group, true)
-	
-	if not is_drag_selection:
-		selected_without_drag.emit()
-	
-	if once_selection:
-		deselect()
+func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+	selection_group.add_object(get_id_key(), self, get_metadata(), group, emit_change)
+	if not is_drag_selection: selected_without_drag.emit()
+	#if once_selection:
+		#deselect()
 
 func deselect() -> void:
 	selection_group.remove_object(get_id_key(), true)
 
 
 func start_drag(group: bool, remove: bool) -> void:
-	if not dragged_rect:
+	if not is_dragging:
 		
+		is_dragging = true
 		select(group, remove, true)
 		create_dragged_rect()
 		hide()
@@ -212,10 +208,10 @@ func start_drag(group: bool, remove: bool) -> void:
 		if following_drag:
 			return
 		
-		var selected_objects = selection_group.selected_objects
-		for key in selected_objects:
-			var info = selected_objects.get(key)
-			var selected_clip = info.object
+		var selected_objects: Dictionary[String, Dictionary] = selection_group.selected_objects
+		for key: String in selected_objects.keys():
+			var info: Dictionary = selected_objects.get(key)
+			var selected_clip: Variant = info.object
 			if not is_instance_valid(selected_clip): continue
 			if selected_clip == self: continue
 			selected_clip.start_drag_dist = press_pos - selected_clip.global_position
@@ -223,7 +219,10 @@ func start_drag(group: bool, remove: bool) -> void:
 			selected_clip.start_drag(group, remove)
 
 func end_drag() -> void:
-	dragged_rect.queue_free()
+	
+	is_dragging = false
+	if dragged_rect:
+		dragged_rect.queue_free()
 	show()
 	
 	if following_drag:
@@ -240,8 +239,9 @@ func get_dragged_rect() -> Control:
 
 func create_dragged_rect() -> void:
 	dragged_rect = get_dragged_rect()
-	get_tree().current_scene.add_child(dragged_rect)
-	dragged_rect_created.emit(dragged_rect)
+	if dragged_rect:
+		get_tree().current_scene.add_child(dragged_rect)
+		dragged_rect_created.emit(dragged_rect)
 
 func focus_enter() -> void:
 	pass
@@ -256,10 +256,14 @@ func get_id_key() -> String:
 	return id_key
 
 func get_metadata() -> Dictionary:
-	var metadata: Dictionary
-	for key in metadata_keys:
-		metadata[key] = get(key)
 	return metadata
+
+func calculate_metadata(metadata_keys: Array[String]) -> Dictionary:
+	var result: Dictionary
+	for key: String in metadata_keys:
+		result[key] = get(key)
+	metadata = result
+	return result
 
 
 

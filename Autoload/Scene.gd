@@ -1,13 +1,11 @@
 extends Node
 
-
 var viewport: SubViewport
 
 var root: Node2D
 var camera: Camera2D
 
 var curr_nodes: Dictionary
-
 
 # RealTime Variables
 var update_video_viewers_on_drag: bool
@@ -16,11 +14,33 @@ var update_video_viewers_rate: float = .5
 
 
 
+class NodeData extends Resource:
+	
+	var instantiated_node: Node
+	@export var parent: NodeData
+	@export var children: Dictionary[int, NodeData]
+	
+	@export var node_owner: MediaClipRes
+	
+	func set_instantiated_node(new_val: Node) -> void:
+		instantiated_node = new_val
+	
+	func set_parent(new_val: NodeData) -> void:
+		parent = new_val
+	
+	func add_child() -> void:
+		pass
+	
+	func remove_child() -> void:
+		pass
+	
+	func set_node_owner(new_val: MediaClipRes) -> void:
+		node_owner = new_val
+
+
+
 func get_curr_nodes() -> Dictionary:
 	return curr_nodes
-
-
-
 
 func _ready() -> void:
 	if get_tree().get_current_scene().scene_file_path == "res://Prototype/PrototypeMain.tscn":
@@ -28,7 +48,7 @@ func _ready() -> void:
 		start_scene()
 		# Connections
 		var timeline = EditorServer.time_line
-		ProjectServer.layer_changed.connect(on_layer_changed)
+		ProjectServer.layer_property_changed.connect(on_layer_property_changed)
 		timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
 		timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
 		timeline.timeline_played.connect(try_play)
@@ -122,10 +142,19 @@ func instance_node(layer: int, node: Node, clip_res: MediaClipRes, frame_begin: 
 		"scene_node" = node
 	}
 
+
+
 func instance_node_2d(layer: int, node: Node, clip_res: MediaClipRes, frame_begin: int) -> void:
 	setup_node2d(layer, node)
 	instance_node(layer, node, clip_res, frame_begin)
 
+func update_node_2d_visbility(layer: int, node: Node, visibility: Variant = null) -> void:
+	var node_visib: bool
+	if visibility == null:
+		node_visib = not ProjectServer.get_layer_hide(layer)
+	else:
+		node_visib = visibility
+	node.visible = node_visib
 
 
 
@@ -174,16 +203,10 @@ func stop() -> void:
 				node.stop()
 	)
 
-func update_visibilities(visibility = null) -> void:
+func update_visibilities(visibility: Variant = null) -> void:
 	loop_nodes(
 		func(layer: int, node: Node):
-			if node is Node2D:
-				var node_visib: bool
-				if visibility == null:
-					node_visib = not ProjectServer.get_layer_hide(layer)
-				else:
-					node_visib = visibility
-				node.visible = node_visib
+			if node is Node2D: update_node_2d_visbility(layer, node, visibility)
 	)
 
 func seek_video_viewers_frame(curr_frame = null) -> void:
@@ -210,7 +233,7 @@ func seek_video_viewers_frame(curr_frame = null) -> void:
 
 
 
-func on_layer_changed() -> void:
+func on_layer_property_changed(index: int) -> void:
 	update_visibilities()
 
 func on_timeline_curr_frame_played_manually() -> void:

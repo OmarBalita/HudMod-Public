@@ -51,7 +51,7 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 	{text = "Draw", icon = RES_ICON, thumbnail = preload("uid://b34e2o0he11w5"), type_id = DrawRes, object_id = GDDraw, category = "Object2D"},
 	#{text = "Particles", icon = RES_ICON, thumbnail = RES_ICON, type_id = ParticlesRes, object_id = Particles, category = "Object2D"},
 	{text = "Camera2D", icon = RES_ICON, thumbnail = preload("uid://dbafad8ipb25s"), type_id = Camera2DRes, object_id = Camera2D, category = "Object2D"},
-	{text = "Audio2D", icon = RES_ICON, thumbnail = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"}
+	{text = "Audio2D", icon = RES_ICON, thumbnail = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"},
 ]
 
 @onready var sections_hint: Dictionary[String, Dictionary] = {

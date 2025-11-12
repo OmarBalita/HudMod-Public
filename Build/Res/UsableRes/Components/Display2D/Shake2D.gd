@@ -26,6 +26,8 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		interpolate = CtrlrHelper.get_bool_controller_args([], get_prop(&"interpolate"))
 	}
 
+
+
 func _process(frame: int) -> void:
 	request_push_animations_result(frame)
 	var x_curve: Curve = get_prop(&"x_curve")

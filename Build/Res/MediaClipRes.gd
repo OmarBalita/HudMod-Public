@@ -53,6 +53,20 @@ func get_frame_or_curr_frame(frame: Variant = null) -> int:
 	return curr_frame if frame == null else frame
 
 
+func get_children() -> Dictionary[int, Dictionary]:
+	return children
+
+func set_children(_children: Dictionary[int, Dictionary]) -> void:
+	children = _children
+
+func get_components() -> Dictionary[String, Array]:
+	return components
+
+func set_components(_components: Dictionary[String, Array]) -> void:
+	components = _components
+
+
+
 func add_child() -> void:
 	pass
 

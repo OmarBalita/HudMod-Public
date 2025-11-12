@@ -29,8 +29,8 @@ Scene="*res://Autoload/Scene.gd"
 
 [display]
 
-window/size/viewport_width=1600
-window/size/viewport_height=750
+window/size/viewport_width=1700
+window/size/viewport_height=800
 window/subwindows/embed_subwindows=false
 
 [dotnet]
@@ -46,6 +46,7 @@ enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg")
 folder_colors={
 "res://Autoload/": "yellow",
 "res://Build/": "gray",
+"res://Editor/": "teal",
 "res://Prototype/": "purple"
 }
 

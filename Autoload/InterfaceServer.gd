@@ -2,9 +2,9 @@ extends Node
 
 # Modern Color Palette for Video Editor
 const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
-const COLOR_DARK_BG = Color(0.08, 0.08, 0.09, 1.0)        # #141417
-const COLOR_DARK_PANEL = Color(0.12, 0.12, 0.14, 1.0)     # #1e1e24
-const COLOR_DARK_HEADER = Color(0.059, 0.059, 0.071, 1.0)    # #0f0f12
+const COLOR_DARK_BG = Color(0.118, 0.118, 0.129)        # #141417
+const COLOR_DARK_PANEL = Color(0.071, 0.071, 0.086)     # #1e1e24
+const COLOR_DARK_HEADER = Color(0.129, 0.129, 0.137)    # #0f0f12
 const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)       # #3399ff
 const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
 const COLOR_SUCCESS_GREEN = Color(0.2, 0.8, 0.4, 1.0)     # #33cc66
@@ -18,14 +18,14 @@ const COLOR_SELECTION = Color(0.2, 0.6, 1.0, 0.3)         # #3399ff with alpha
 
 
 const RAINBOW_COLORS: Array[Color] = [
-	Color("999999"), # Gray
-	Color("#B266FF"), # Violet
-	Color("#6699FF"), # Blue
-	Color("#66CCFF"), # Cyan
-	Color("#66FFB2"), # Green
-	Color("#FFFF99"), # Yellow
-	Color("#FFCC66"), # Orange
-	Color("#FF9999")  # Red
+	Color(0.6, 0.6, 0.6), # Gray
+	Color(0.698, 0.4, 1.0), # Violet
+	Color(0.4, 0.6, 1.0), # Blue
+	Color(0.4, 0.8, 1.0), # Cyan
+	Color(0.0, 0.82, 0.72), # Green
+	Color(1.0, 1.0, 0.6), # Yellow
+	Color(1.0, 0.8, 0.4), # Orange
+	Color(1.0, 0.6, 0.6)  # Red
 ]
 
 const EDIT_BOX_MIN_SIZE: Vector2 = Vector2(32, 32)
@@ -98,7 +98,7 @@ func _create_modern_styles():
 	STYLE_HEADER = StyleBoxFlat.new()
 	STYLE_HEADER.bg_color = COLOR_DARK_HEADER
 	STYLE_HEADER.border_width_bottom = 2
-	STYLE_HEADER.border_color = Color(COLOR_ACCENT_BLUE, .5)
+	STYLE_HEADER.border_color = Color(COLOR_ACCENT_BLUE, .8)
 	STYLE_HEADER.corner_radius_top_left = 8
 	STYLE_HEADER.corner_radius_top_right = 8
 	
@@ -967,7 +967,7 @@ func create_clip_image_control(clip_res: MediaClipRes, style: StyleBox) -> Contr
 func create_clip_video_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
 	var video_path = clip_res.media_resource_path
 	
-	var vsplit_container = create_split_container(5, true, {})
+	var vsplit_container = create_split_container(5, true)
 	var hbox_container = create_box_container(5, false, {})
 	
 	var name_label = create_name_label(video_path.get_file())
@@ -1018,26 +1018,24 @@ func create_name_label(name: String, h_alignment: int = 0) -> Label:
 # Additional helper functions for video editor
 
 func create_timeline_panel(more: Dictionary = {}) -> PanelContainer:
-	var panel = create_panel_container(Vector2.ZERO, STYLE_TIMELINE, more)
+	var panel: PanelContainer = create_panel_container(Vector2.ZERO, STYLE_TIMELINE, more)
 	return panel
 
 func create_toolbar_button(icon: Texture2D, tooltip: String = "", more: Dictionary = {}) -> Button:
-	var button = create_button("", icon, false, false, more)
+	var button: Button = create_button("", icon, false, false, more)
 	button.tooltip_text = tooltip
 	button.custom_minimum_size = Vector2(32, 32)
 	return button
 
 func create_status_label(text: String, status_type: String = "normal") -> Label:
-	var label = create_label(text, LABEL_SETTINGS_MAIN)
+	var label: Label = create_label(text, LABEL_SETTINGS_MAIN)
+	var font_color: Color
 	match status_type:
-		"success":
-			label.add_theme_color_override("font_color", COLOR_SUCCESS_GREEN)
-		"warning":
-			label.add_theme_color_override("font_color", COLOR_WARNING_YELLOW)
-		"error":
-			label.add_theme_color_override("font_color", COLOR_ERROR_RED)
-		_:
-			label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		"success": font_color = COLOR_SUCCESS_GREEN
+		"warning": font_color = COLOR_WARNING_YELLOW
+		"error": font_color = COLOR_ERROR_RED
+		_: font_color = COLOR_TEXT_PRIMARY
+	label.add_theme_color_override("font_color", font_color)
 	return label
 
 
@@ -1050,5 +1048,5 @@ func add_childs(parent: Node, childs: Array[Node]) -> void:
 		parent.add_child(node)
 
 func clear_children(parent: Node) -> void:
-	for child in parent.get_children():
+	for child: Node in parent.get_children():
 		child.queue_free()
