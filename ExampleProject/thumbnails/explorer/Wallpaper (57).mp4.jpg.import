@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmt4dqj1kocsw"
-path="res://.godot/imported/drag.png-d25d981dedfc3a62ce7e7f062e7bf1ce.ctex"
+uid="uid://cmagtje0vh2jc"
+path="res://.godot/imported/Wallpaper (57).mp4.jpg-16f2d6a3d249a0e5f3ac02e96bdcf1e2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Asset/Icons/drag.png"
-dest_files=["res://.godot/imported/drag.png-d25d981dedfc3a62ce7e7f062e7bf1ce.ctex"]
+source_file="res://ExampleProject/thumbnails/explorer/Wallpaper (57).mp4.jpg"
+dest_files=["res://.godot/imported/Wallpaper (57).mp4.jpg-16f2d6a3d249a0e5f3ac02e96bdcf1e2.ctex"]
 
 [params]
 

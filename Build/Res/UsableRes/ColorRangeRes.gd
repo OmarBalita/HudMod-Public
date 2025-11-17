@@ -88,5 +88,3 @@ func sample(offset: float) -> Color:
 				return color1.lerp(color2, local_offset)
 	
 	return Color.BLACK
-
-

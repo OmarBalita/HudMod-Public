@@ -380,6 +380,7 @@ func popup_audio_settings() -> void:
 
 func popup_customization_settings() -> void:
 	
+	var popup_title: Label = IS.create_label(layer_label.text, IS.LABEL_SETTINGS_HEADER)
 	var main_custom: Dictionary[StringName, Variant] = ProjectServer.get_layer_customization(index).duplicate(true)
 	var custom_name_controller: LineEdit = IS.create_line_edit_edit("Name", "", main_custom.name)[0]
 	var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custom.color)[0]
@@ -408,12 +409,13 @@ func popup_customization_settings() -> void:
 	
 	var window_container: BoxContainer = WindowManager.popup_accept_window(
 		get_window(),
-		Vector2(400.0, 300.0),
+		Vector2(400.0, 260.0),
 		"Layer Customization",
 		update_func, cancel_func
 	)
 	
 	IS.add_childs(window_container, [
+		popup_title,
 		custom_name_controller.get_parent(),
 		custom_color_controller.get_parent(),
 		custom_size_controller.get_parent()
@@ -464,15 +466,3 @@ func on_clip_selected() -> void:
 
 func on_clip_deselected() -> void:
 	update_force_existing()
-
-
-
-
-
-
-
-
-
-
-
-

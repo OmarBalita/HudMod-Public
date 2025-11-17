@@ -1,0 +1,114 @@
+[gd_scene load_steps=16 format=3 uid="uid://csgm7mspbb2nl"]
+
+[ext_resource type="Script" uid="uid://d2ov0cvertnkk" path="res://Build/Object/Text2D.gd" id="1_rujx6"]
+[ext_resource type="Script" uid="uid://i1m3v2j0kks" path="res://Build/Res/UsableRes/TextSliceRes.gd" id="2_0kso0"]
+[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Asset/Fonts/Cascadia.ttf" id="3_cyckk"]
+[ext_resource type="Script" uid="uid://bkgrlpfaq41p6" path="res://Build/Res/UsableRes/TextOutlineRes.gd" id="4_6fa8k"]
+[ext_resource type="FontFile" uid="uid://cba2cc3wsyd1i" path="res://Asset/Fonts/Aftika-Font/Fontspring-DEMO-aftika-extrabold.otf" id="5_rlrhs"]
+[ext_resource type="FontFile" uid="uid://dvhwhkkqo3512" path="res://Asset/Fonts/Aftika-Font/Fontspring-DEMO-aftika-extralight.otf" id="6_v8gbm"]
+
+[sub_resource type="FontVariation" id="FontVariation_jnakn"]
+base_font = ExtResource("3_cyckk")
+
+[sub_resource type="Resource" id="Resource_eflnr"]
+script = ExtResource("2_0kso0")
+start_char_index = 0
+font = SubResource("FontVariation_jnakn")
+font_size = 80
+font_color = Color(1, 1, 1, 1)
+font_variation = 0
+outline_size = 0
+outline_color = Color(1, 1, 1, 1)
+outlines = Array[ExtResource("4_6fa8k")]([])
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0)
+shadow_offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://i1m3v2j0kks"
+
+[sub_resource type="FontVariation" id="FontVariation_6n2nw"]
+base_font = ExtResource("5_rlrhs")
+
+[sub_resource type="Resource" id="Resource_11u65"]
+script = ExtResource("4_6fa8k")
+size = 25
+color = Color(1, 1, 1, 1)
+offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://bkgrlpfaq41p6"
+
+[sub_resource type="Resource" id="Resource_23qyw"]
+script = ExtResource("2_0kso0")
+start_char_index = 21
+font = SubResource("FontVariation_6n2nw")
+font_size = 140
+font_color = Color(5.0056e-06, 0.640039, 0.895258, 1)
+font_variation = 0
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+outlines = Array[ExtResource("4_6fa8k")]([SubResource("Resource_11u65")])
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0)
+shadow_offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://i1m3v2j0kks"
+
+[sub_resource type="FontVariation" id="FontVariation_qoyak"]
+base_font = ExtResource("3_cyckk")
+
+[sub_resource type="Resource" id="Resource_timiw"]
+script = ExtResource("2_0kso0")
+start_char_index = 27
+font = SubResource("FontVariation_qoyak")
+font_size = 80
+font_color = Color(1, 1, 1, 1)
+font_variation = 0
+outline_size = 0
+outline_color = Color(1, 1, 1, 1)
+outlines = Array[ExtResource("4_6fa8k")]([])
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0)
+shadow_offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://i1m3v2j0kks"
+
+[sub_resource type="FontVariation" id="FontVariation_ps1eb"]
+base_font = ExtResource("6_v8gbm")
+
+[sub_resource type="Resource" id="Resource_4ooi4"]
+script = ExtResource("2_0kso0")
+start_char_index = 34
+font = SubResource("FontVariation_ps1eb")
+font_size = 16
+font_color = Color(1, 1, 1, 1)
+font_variation = 0
+outline_size = 0
+outline_color = Color(1, 1, 1, 1)
+outlines = Array[ExtResource("4_6fa8k")]([])
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0)
+shadow_offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://i1m3v2j0kks"
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Control" type="Control" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Text2D" type="Node2D" parent="CenterContainer/Control"]
+script = ExtResource("1_rujx6")
+text_slices = Array[ExtResource("2_0kso0")]([SubResource("Resource_eflnr"), SubResource("Resource_23qyw"), SubResource("Resource_timiw"), SubResource("Resource_4ooi4")])
+text = "برنــVideoــامج
+مونــــEditorــــتاج
+فقط للتجربة"
+metadata/_custom_type_script = "uid://d2ov0cvertnkk"
