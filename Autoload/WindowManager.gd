@@ -14,13 +14,13 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	
 	var processing_rect: ProcessingControl = create_processing_rect(is_processing_rect_hidden)
 	window.close_requested.connect(on_window_close_request.bind(window, processing_rect))
+	window.tree_exited.connect(processing_rect.queue_free)
 	processing_node.add_child(processing_rect)
 	
 	window.add_child(margin)
 	add_child(window)
 	
 	return margin
-
 
 func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), window_title:= "Window") -> MarginContainer:
 	
@@ -33,12 +33,10 @@ func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), windo
 	
 	return margin2
 
-
 func popup_borderless_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window") -> MarginContainer:
-	var window: MarginContainer = popup_window(processing_node, window_size, window_title)
-	window.borderless = true
-	return window
-
+	var margin: MarginContainer = popup_window(processing_node, window_size, window_title)
+	margin.get_window().borderless = true
+	return margin
 
 func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window", accept_pressed = null, cancel_pressed = null) -> BoxContainer:
 	
@@ -67,7 +65,6 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	
 	return box
 
-
 func popup_color_controller_window(processing_node: Node, main_color: Color, on_color_changed: Callable = Callable()) -> PopupedColorController:
 	var window_container: MarginContainer = WindowManager.popup_window_base(processing_node, Vector2i(350.0, 650.0), "Pick a Color", true)
 	window_container.get_window().always_on_top = true
@@ -80,8 +77,6 @@ func popup_color_controller_window(processing_node: Node, main_color: Color, on_
 	window_container.add_child(color_controller)
 	
 	return color_controller
-
-
 
 func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FILE_MODE_OPEN_FILES, filters:= PackedStringArray(), window_size:= Vector2(800, 500), title:= "Open Files") -> FileDialog:
 	
@@ -107,7 +102,6 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	add_child(file_dialog)
 	
 	return file_dialog
-
 
 func create_processing_rect(is_hidden: bool = false) -> ColorRect:
 	var rect:= ProcessingControl.new()

@@ -85,7 +85,7 @@ func _input(event: InputEvent) -> void:
 				var drawable_rect:= EditorServer.drawable_rect
 				var rect2:= target_edit_box.get_global_rect()
 				var color:= IS.COLOR_ACCENT_BLUE
-				drawable_rect.clear_drawed_entities()
+				drawable_rect.clear_drawn_entities()
 				drawable_rect.draw_new_theme_rect(rect2)
 
 func _physics_process(delta: float) -> void:
@@ -318,4 +318,4 @@ func on_component_drag_button_button_up() -> void:
 	drag_info.clear()
 	curr_scroll_speed = .0
 	
-	EditorServer.drawable_rect.clear_drawed_entities()
+	EditorServer.drawable_rect.clear_drawn_entities()

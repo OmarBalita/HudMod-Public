@@ -6,7 +6,7 @@ const STYLE_BUTTONS_SELECT: StyleBoxFlat = preload("uid://bb4m7kvycelsj")
 const STYLE_BUTTONS_FOCUS: StyleBoxFlat = preload("uid://yvx6gwfm0v3b")
 
 # Main Variables
-var type: int
+var type: MediaClipRes.MediaType
 var layer_index: int
 var clip_pos: int
 var clip_res: MediaClipRes
@@ -156,7 +156,7 @@ func focus_exit() -> void:
 func get_id_key() -> String:
 	return clip_res.id
 
-func get_dragged_rect() -> Control:
+func _get_dragged_rect() -> Control:
 	#var color_rect: ColorRect = ColorRect.new()
 	#color_rect.color = Color(IS.COLOR_ACCENT_BLUE, .5)
 	return null
@@ -216,7 +216,7 @@ func close_graph_editors() -> void:
 func drag_right_button() -> void:
 	edit_frame_in = clip_pos
 	edit_from = clip_res.from
-	var length: int = clip_res.length # TimeServer.seconds_to_frame(MediaServer.get_audio_duration_with_ffprobe(clip_res.media_resource_path))
+	var length: int = clip_res.length # TimeServer.seconds_to_frame(MediaServer.get_audio_duration_with_ffprobe(clip_res.key_as_path))
 	var is_range_limit: bool = type in [2, 3]
 	edit_length = clamp(EditorServer.time_line.get_frame_from_mouse_pos([clip_res]) - clip_pos, 1, length - clip_res.from if is_range_limit else +INF)
 
@@ -250,16 +250,14 @@ func on_focus_changed(new_val: bool) -> void:
 	else: EditorServer.media_clips_focused.erase(self)
 
 func on_drag_started() -> void:
-	if not following_drag:
-		EditorServer.time_line.clips_start_move(
-			TimeLine.ClipsMoveMode.MOVE_EDIT,
-			selection_group.selected_objects.values(),
-			selection_group.selected_objects[get_id_key()]
-		)
+	EditorServer.time_line.clips_start_move(
+		TimeLine.ClipsMoveMode.MOVE_EDIT,
+		selection_group.selected_objects.values(),
+		selection_group.selected_objects[get_id_key()]
+	)
 
 func on_drag_finished() -> void:
-	if not following_drag:
-		EditorServer.time_line.clips_end_move()
+	EditorServer.time_line.clips_end_move()
 
 
 # ---------------------------------------------------

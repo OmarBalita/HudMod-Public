@@ -2,9 +2,16 @@ class_name MediaClipRes extends Resource
 
 signal component_property_changed(property_key: StringName, property_new_val: Variant)
 
+enum MediaType {
+	MEDIA_TYPE_IMAGE,
+	MEDIA_TYPE_VIDEO,
+	MEDIA_TYPE_AUDIO
+}
+
 @export var id: String
 
-@export_file() var media_resource_path: String
+@export var type: MediaType
+@export_file() var key_as_path: String
 # files types:
 # Image: svg, png, jpeg, jif ...
 # Video: mp4, avi, av1, mkv, gif ...

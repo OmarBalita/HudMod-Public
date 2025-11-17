@@ -6,6 +6,7 @@ const COLOR_DARK_BG = Color(0.118, 0.118, 0.129)        # #141417
 const COLOR_DARK_PANEL = Color(0.071, 0.071, 0.086)     # #1e1e24
 const COLOR_DARK_HEADER = Color(0.129, 0.129, 0.137)    # #0f0f12
 const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)       # #3399ff
+const COLOR_ACCENT_BLUE_HIGHLIGHT = Color(0.616, 0.749, 0.945)
 const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
 const COLOR_SUCCESS_GREEN = Color(0.2, 0.8, 0.4, 1.0)     # #33cc66
 const COLOR_WARNING_YELLOW = Color(1.0, 0.8, 0.2, 1.0)    # #ffcc33
@@ -905,7 +906,14 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 
 
 
-
+func create_layer(id: int, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
+	var layer = Layer.new(id)
+	ObjectServer.describe(layer, {
+		curr_y_size = y_size,
+		side_panel_x_size = side_panel_x_size,
+		color = color
+	}.merged(more))
+	return layer
 
 func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0)) -> GraphNode:
 	var graph_node:= GraphNode.new()
@@ -918,91 +926,76 @@ func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0))
 	return graph_node
 
 
-
-
-# Enhanced media clip controls for Modern Video Editor
-
-func create_layer(id: int, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
-	var layer = Layer.new(id)
-	ObjectServer.describe(layer, {
-		curr_y_size = y_size,
-		side_panel_x_size = side_panel_x_size,
-		color = color
-	}.merged(more))
-	return layer
-
-
-func create_clip_base_control(style: StyleBox, child_control: Control = null) -> Control:
-	var bg_panel = create_panel_container(Vector2.ZERO, style)
-	var margin_container = create_margin_container(4,4,4,4)
-	var control = create_empty_control(.0, .0, {clip_contents = true})
-	if child_control:
-		control.add_child(child_control)
-	margin_container.add_child(control)
-	bg_panel.add_child(margin_container)
-	bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	return bg_panel
-
-func create_clip_basic_control(name: String, style: StyleBox) -> Control:
-	var name_label = create_name_label(name)
-	name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	return create_clip_base_control(style, name_label)
-
-
-func create_clip_image_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	var image_path = clip_res.media_resource_path
-	
-	var box_container = create_box_container(5, false, {})
-	var image_texture_rect = create_texture_rect(MediaServer.get_image_texture_from_path(image_path))
-	var name_label = create_name_label(image_path.get_file())
-	box_container.add_child(image_texture_rect)
-	box_container.add_child(name_label)
-	
-	expand(name_label, true, true)
-	image_texture_rect.set_custom_minimum_size(Vector2(100, 0))
-	
-	return create_clip_base_control(style, box_container)
-
-
-func create_clip_video_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	var video_path = clip_res.media_resource_path
-	
-	var vsplit_container = create_split_container(5, true)
-	var hbox_container = create_box_container(5, false, {})
-	
-	var name_label = create_name_label(video_path.get_file())
-	var video_texture_rect = create_texture_rect(MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.explorer_thumbnails_path))
-	
-	hbox_container.add_child(video_texture_rect)
-	hbox_container.add_child(name_label)
-	vsplit_container.add_child(hbox_container)
-	
-	if await MediaServer.is_stream_has_audio(video_path):
-		var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(video_path, ProjectServer.timeline_thumbnails_path, "224d29", false), {})
-		
-		wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
-		vsplit_container.add_child(wave_texture_rect)
-	
-	expand(name_label, true, true)
-	video_texture_rect.set_custom_minimum_size(Vector2(100, 0))
-	
-	return create_clip_base_control(style, vsplit_container)
-
-
-func create_clip_audio_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	var audio_path = clip_res.media_resource_path
-	
-	var name_label = create_name_label(audio_path.get_file())
-	var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.timeline_thumbnails_path, "20394d", false), {})
-	
-	expand(name_label, true)
-	wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
-	
-	wave_texture_rect.add_child(name_label)
-	
-	return create_clip_base_control(style, wave_texture_rect)
+#func create_clip_base_control(style: StyleBox, child_control: Control = null) -> Control:
+	#var bg_panel = create_panel_container(Vector2.ZERO, style)
+	#var margin_container = create_margin_container(4,4,4,4)
+	#var control = create_empty_control(.0, .0, {clip_contents = true})
+	#if child_control:
+		#control.add_child(child_control)
+	#margin_container.add_child(control)
+	#bg_panel.add_child(margin_container)
+	#bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	#return bg_panel
+#
+#func create_clip_basic_control(name: String, style: StyleBox) -> Control:
+	#var name_label = create_name_label(name)
+	#name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	#return create_clip_base_control(style, name_label)
+#
+#
+#func create_clip_image_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
+	#var image_path = clip_res.key_as_path
+	#
+	#var box_container = create_box_container(5, false, {})
+	#var image_texture_rect = create_texture_rect(MediaServer.get_image_texture_from_path(image_path))
+	#var name_label = create_name_label(image_path.get_file())
+	#box_container.add_child(image_texture_rect)
+	#box_container.add_child(name_label)
+	#
+	#expand(name_label, true, true)
+	#image_texture_rect.set_custom_minimum_size(Vector2(100, 0))
+	#
+	#return create_clip_base_control(style, box_container)
+#
+#
+#func create_clip_video_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
+	#var video_path = clip_res.key_as_path
+	#
+	#var vsplit_container = create_split_container(5, true)
+	#var hbox_container = create_box_container(5, false, {})
+	#
+	#var name_label = create_name_label(video_path.get_file())
+	#var video_texture_rect = create_texture_rect(MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.explorer_thumbnails_path))
+	#
+	#hbox_container.add_child(video_texture_rect)
+	#hbox_container.add_child(name_label)
+	#vsplit_container.add_child(hbox_container)
+	#
+	#if await MediaServer.is_stream_has_audio(video_path):
+		#var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(video_path, ProjectServer.timeline_thumbnails_path, "224d29", false), {})
+		#
+		#wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		#ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
+		#vsplit_container.add_child(wave_texture_rect)
+	#
+	#expand(name_label, true, true)
+	#video_texture_rect.set_custom_minimum_size(Vector2(100, 0))
+	#
+	#return create_clip_base_control(style, vsplit_container)
+#
+#func create_clip_audio_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
+	#var audio_path = clip_res.key_as_path
+	#
+	#var name_label = create_name_label(audio_path.get_file())
+	#var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.timeline_thumbnails_path, "20394d", false), {})
+	#
+	#expand(name_label, true)
+	#wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	#ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
+	#
+	#wave_texture_rect.add_child(name_label)
+	#
+	#return create_clip_base_control(style, wave_texture_rect)
 
 
 func create_name_label(name: String, h_alignment: int = 0) -> Label:

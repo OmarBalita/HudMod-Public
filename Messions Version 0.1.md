@@ -1,4 +1,3 @@
-
 ...
 
 - TimeLine Edit:
@@ -12,6 +11,11 @@
 		Clear Parents
 		Read Nested Media Clip and spawn it
 		Fix Layers Spawning Problem
+	
+	Media Clip Display:
+		True Audio Display
+		True Video Display
+		Different ways to display regarding Zoom Scale
 	
 	Edit Media Clip:
 		Fix Copy and Past and Edit problems

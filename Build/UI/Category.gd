@@ -19,6 +19,7 @@ signal expand_changed()
 		use_flex_container = val
 		if val: content_container = IS.create_grid_container(content_control_size, 12, 12)
 		else: content_container = IS.create_box_container(12, true)
+		content_container.clip_contents = false
 
 var is_expanded: bool:
 	set(val):
@@ -42,7 +43,7 @@ var content_container: Container
 func _ready() -> void:
 	header_button = IS.create_button("")
 	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10.0, .0)})
-	content_margin_container = IS.create_margin_container(0,0,0,0)
+	content_margin_container = IS.create_margin_container(0,0,0,0, {clip_contents = false})
 	
 	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
 	

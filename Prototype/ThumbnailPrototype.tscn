@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3 uid="uid://bob0cphn5vafo"]
+
+[sub_resource type="GDScript" id="GDScript_gb6l1"]
+script/source = "extends Control
+
+@onready var texture_rect: TextureRect = %TextureRect
+@onready var box_container: BoxContainer = %BoxContainer
+
+@export_global_file() var image_path: String
+@export_global_file() var video_path: String
+@export_global_file() var audio_path: String
+
+func _ready() -> void:
+	#test_image()
+	#test_video()
+	test_audio()
+
+func test_image() -> void:
+	var image: Image = Image.load_from_file(image_path)
+	var texture: ImageTexture = MediaServer.create_thumbnail_from_image(image_path, image).texture
+	texture_rect.texture = texture
+
+func test_video() -> void:
+	pass
+
+func test_audio() -> void:
+	var test_audio_stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(audio_path)
+	
+	#var images: Array[Image] = await MediaServer.generate_waveform_images(test_audio_stream, MediaServer.draw_waveform_line_timeline)
+	#for image: Image in images:
+		#var image_texture: ImageTexture = ImageTexture.create_from_image(image)
+		#var texture_rect: TextureRect = IS.create_texture_rect(image_texture)
+		#box_container.add_child(texture_rect)
+	
+	var texture: ImageTexture = MediaServer.create_thumbnail_from_audio(\"\", test_audio_stream).texture
+	texture_rect.texture = texture
+
+"
+
+[node name="ThumbnailPrototype" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_gb6l1")
+image_path = "C:/Users/User/Documents/Images/Screenshot 2025-01-30 011939.png"
+audio_path = "C:/Users/User/Documents/Godot Projects/edit-app/untitled.mp3"
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0605303, 0.0605303, 0.0605303, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BoxContainer" type="BoxContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="CenterContainer"]
+unique_name_in_owner = true
+layout_mode = 2

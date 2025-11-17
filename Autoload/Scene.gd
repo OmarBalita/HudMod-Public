@@ -7,36 +7,11 @@ var camera: Camera2D
 
 var curr_nodes: Dictionary
 
+
 # RealTime Variables
 var update_video_viewers_on_drag: bool
 var update_video_viewers_frame: bool
 var update_video_viewers_rate: float = .5
-
-
-
-class NodeData extends Resource:
-	
-	var instantiated_node: Node
-	@export var parent: NodeData
-	@export var children: Dictionary[int, NodeData]
-	
-	@export var node_owner: MediaClipRes
-	
-	func set_instantiated_node(new_val: Node) -> void:
-		instantiated_node = new_val
-	
-	func set_parent(new_val: NodeData) -> void:
-		parent = new_val
-	
-	func add_child() -> void:
-		pass
-	
-	func remove_child() -> void:
-		pass
-	
-	func set_node_owner(new_val: MediaClipRes) -> void:
-		node_owner = new_val
-
 
 
 func get_curr_nodes() -> Dictionary:
@@ -64,20 +39,20 @@ func start_scene() -> void:
 
 func create_sprite(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Sprite2D:
 	var sprite:= Sprite2D.new()
-	sprite.texture = MediaServer.get_image_texture_from_path(clip_res.media_resource_path)
+	sprite.texture = MediaCache.get_texture(clip_res.key_as_path)
 	instance_node_2d(layer, sprite, clip_res, frame_begin)
 	return sprite
 
 func create_video(layer: int, clip_res: MediaClipRes, frame_begin: int) -> VideoViewer:
 	var video_renderer:= VideoViewer.new()
-	video_renderer.path = clip_res.media_resource_path
+	video_renderer.path = clip_res.key_as_path
 	instance_node_2d(layer, video_renderer, clip_res, frame_begin)
 	try_play()
 	return video_renderer
 
 func create_audio(layer: int, clip_res: MediaClipRes, frame_begin: int) -> AudioStreamPlayer:
 	var audio_player:= AudioStreamPlayer.new()
-	var stream:= MediaServer.get_audio_stream_from_path(clip_res.media_resource_path)
+	var stream:= MediaCache.get_audio(clip_res.key_as_path)
 	audio_player.stream = stream
 	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(layer)
 	instance_node(layer, audio_player, clip_res, frame_begin)
@@ -94,7 +69,7 @@ func create_text() -> void:
 
 func create_draw(layer: int, clip_res: MediaClipRes, frame_begin: int) -> GDDraw:
 	var draw:= GDDraw.new()
-	var draw_res: DrawRes = ResourceLoader.load(clip_res.media_resource_path)
+	var draw_res: DrawRes = ResourceLoader.load(clip_res.key_as_path)
 	draw.drawings_ress = draw_res.drawings_ress
 	instance_node_2d(layer, draw, clip_res, frame_begin)
 	return draw

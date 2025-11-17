@@ -166,7 +166,10 @@ func on_files_dropped(files_pathes: Array[String]) -> void:
 		for file_path: String in files_pathes:
 			media_explorer.import_media(file_path, false)
 			if insert_media:
-				ProjectServer.add_media_clip(file_path, target_layer_index, target_frame_index)
+				ProjectServer.add_media_clip(
+					MediaServer.get_media_type_from_path(file_path),
+					file_path, target_layer_index, target_frame_index
+				)
 	
 	if media_explorer.get_global_rect().has_point(mouse_pos):
 		import_func.call()

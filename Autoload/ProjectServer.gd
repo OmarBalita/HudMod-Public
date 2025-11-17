@@ -28,8 +28,8 @@ const EXAMPLE_PATH: String = "res://ExampleProject/"
 var project_path: String = EXAMPLE_PATH
 var objects_path: String = project_path + "objects"
 var explorer_thumbnails_path: String = project_path + "thumbnails/explorer"
-var timeline_thumbnails_path: String = project_path + "thumbnails/timeline"
 var brush_thumbnails_path: String = project_path + "thumbnails/brushes"
+var timeline_thumbnails_path: String = project_path + "timeline"
 
 var aspect_ratio: Vector2
 var resolution: Vector2i = Vector2i(1280, 720)
@@ -80,8 +80,8 @@ var curr_spacial_frames: Array[int]
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(objects_path)
 	DirAccess.make_dir_recursive_absolute(explorer_thumbnails_path)
-	DirAccess.make_dir_recursive_absolute(timeline_thumbnails_path)
 	DirAccess.make_dir_recursive_absolute(brush_thumbnails_path)
+	DirAccess.make_dir_recursive_absolute(timeline_thumbnails_path)
 	
 	update_curr_length_and_curr_spacial_frames()
 
@@ -92,25 +92,16 @@ func _ready() -> void:
 func get_media_clip(layer_index: int, frame_in: int) -> MediaClipRes:
 	return curr_layers[layer_index].media_clips[frame_in]
 
-func add_media_clip(media_path: String, layer_index: int = -1, frame_in: int = 0, object_res: UsableRes = null, emit_changes: bool = false) -> void:
-	
-	if object_res != null:
-		if media_path.is_empty():
-			var object_id: String = generate_new_id(DirAccess.get_files_at(objects_path))
-			var object_name: String = "object_" + object_id + ".res"
-			media_path = "%s/%s" % [objects_path, object_name]
-		ResourceSaver.save(object_res, media_path, ResourceSaver.FLAG_COMPRESS)
+func add_media_clip(media_type: int, key_as_path: StringName, layer_index: int = -1, frame_in: int = 0, emit_changes: bool = false) -> void:
 	
 	var media_res: MediaClipRes = MediaClipRes.new()
 	var clip_id: String = generate_clip_id()
-	var media_length: int = EditorServer.editor_settings.clip_default_length
 	
-	if MediaServer.get_media_type_from_path(media_path) in [1, 2]:
-		media_length = MediaServer.get_audio_duration_with_ffprobe(media_path)
-	media_length = int(media_length * fps)
+	var media_length: int = int(MediaServer.get_media_length(media_type, key_as_path) * fps)
 	
 	media_res.id = clip_id
-	media_res.media_resource_path = media_path
+	media_res.type = media_type
+	media_res.key_as_path = key_as_path
 	media_res.length = media_length
 	
 	layer_index = check_layer(layer_index, frame_in, media_length)
@@ -282,7 +273,7 @@ func update_curr_layers() -> void:
 	
 	for info: Dictionary in curr_layers_path:
 		var media_res: MediaClipRes = info.res
-		var media_name: String = media_res.media_resource_path.get_file()
+		var media_name: String = media_res.key_as_path.get_file()
 		curr_layers_string_path.append(media_name)
 	
 	if curr_layers_path.is_empty(): curr_layers = layers
@@ -557,8 +548,8 @@ func remove_node(layer: int, clip_id: int) -> void:
 
 func instance_node(layer: int, clip_id: int) -> void:
 	var clip_res: MediaClipRes = layers[layer].media_clips[clip_id]
-	var media_res_path: String = clip_res.media_resource_path
-	var media_type: int = MediaServer.get_media_type_from_path(media_res_path)
+	var media_res_path: String = clip_res.key_as_path
+	var media_type: int = clip_res.type
 	
 	if media_type == -1:
 		printerr("Project Server: Invalid Instance Layer Clip (Media type could not be recognized).")
@@ -572,7 +563,7 @@ func instance_node(layer: int, clip_id: int) -> void:
 		3: node = Scene.create_empty_object(layer, clip_res, clip_id)
 		4: node = Node.new() # Scene.create_text()
 		5: node = Scene.create_draw(layer, clip_res, clip_id)
-		6: node = Node.new() # Scene.create_particles()
+		6: node = Node.new() # Scene.create_particles(layer, clip_res, clip_id)
 		7: node = Scene.create_camera_2d(layer, clip_res, clip_id)
 		8: node = Scene.create_audio_2d(layer, clip_res, clip_id)
 	

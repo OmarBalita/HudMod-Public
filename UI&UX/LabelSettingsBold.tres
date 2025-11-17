@@ -1,6 +1,6 @@
 [gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://d4ncbh3p6cxjn"]
 
-[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Cascadia.ttf" id="1_aavd6"]
+[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Asset/Fonts/Cascadia.ttf" id="1_aavd6"]
 
 [resource]
 font = ExtResource("1_aavd6")

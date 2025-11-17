@@ -1,12 +1,9 @@
-[gd_scene load_steps=29 format=3 uid="uid://c5j8uwlpcdbkb"]
+[gd_scene load_steps=26 format=3 uid="uid://c5j8uwlpcdbkb"]
 
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
 [ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Editor/Player/Player.gd" id="2_7i47x"]
-[ext_resource type="PackedScene" uid="uid://ilpv866vtt" path="res://Editor/MediaExplorer/FolderCard.tscn" id="2_kg1lx"]
 [ext_resource type="Script" uid="uid://r643re6ydjnt" path="res://Editor/Properties/Properties.gd" id="3_7i47x"]
-[ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Editor/MediaExplorer/ImportedCard.tscn" id="3_k2li5"]
-[ext_resource type="PackedScene" uid="uid://bae3uny8skmyp" path="res://Editor/MediaExplorer/ObjectCard.tscn" id="4_k2li5"]
 [ext_resource type="LabelSettings" uid="uid://wv4o1kifc17q" path="res://UI&UX/LabelSettingsMain.tres" id="6_rceaj"]
 [ext_resource type="StyleBox" uid="uid://b334pukgkfrk8" path="res://UI&UX/StyleAccent.tres" id="7_jkecq"]
 [ext_resource type="LabelSettings" uid="uid://btchr08otjlgb" path="res://UI&UX/LabelSettingsHeader.tres" id="7_o3877"]
@@ -112,9 +109,6 @@ custom_minimum_size = Vector2(550, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("1_7i47x")
-folder_card_scene = ExtResource("2_kg1lx")
-imported_card_scene = ExtResource("3_k2li5")
-object_card_scene = ExtResource("4_k2li5")
 
 [node name="Player" type="Control" parent="Margin/Box/Split/Split/Split2" groups=["player"]]
 clip_contents = true

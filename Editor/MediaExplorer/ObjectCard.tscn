@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://bae3uny8skmyp"]
-
-[ext_resource type="PackedScene" uid="uid://i61gc3qnxlo8" path="res://Editor/MediaExplorer/ImportedCard.tscn" id="1_cqyhj"]
-
-[node name="MediaCard" instance=ExtResource("1_cqyhj")]
-card_type = 2

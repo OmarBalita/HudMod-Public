@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://de167ffrhdl5u"
-path="res://.godot/imported/Cascadia.ttf-73e12fcbc276e51b77f00687e4ff8894.fontdata"
+path="res://.godot/imported/Cascadia.ttf-6d4c467d4e6e0c536c3c94051ef3dd07.fontdata"
 
 [deps]
 
-source_file="res://Cascadia.ttf"
-dest_files=["res://.godot/imported/Cascadia.ttf-73e12fcbc276e51b77f00687e4ff8894.fontdata"]
+source_file="res://Asset/Fonts/Cascadia.ttf"
+dest_files=["res://.godot/imported/Cascadia.ttf-6d4c467d4e6e0c536c3c94051ef3dd07.fontdata"]
 
 [params]
 

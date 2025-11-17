@@ -625,11 +625,11 @@ func get_layer_by_pos(pos: Vector2) -> Layer:
 			return layer.get_global_rect().has_point(pos)
 	)
 
-func clear_layers_drawed_entities(layers: Array = []) -> void:
+func clear_layers_drawn_entities(layers: Array = []) -> void:
 	for layer: Layer in layers_container.get_children():
 		var index: int = layer.index
 		if not layers or index in layers:
-			layer.clear_drawed_entities()
+			layer.clear_drawn_entities()
 
 
 
@@ -828,7 +828,6 @@ func step_frame() -> void:
 	if is_playing: step_frame()
 
 
-
 # ---------------------------------------------------
 
 func popup_media_clips_menu() -> void:
@@ -999,9 +998,12 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 		0:
 			clips_moved_get_target_func = func(object_index: int, info: Dictionary, mouse_pos: Vector2,
 			main_layer_index: int, layer_delta: int, frame_delta: int) -> Array[int]:
+				var metadata: Dictionary = info.metadata
+				var key_as_path: StringName = metadata.path if metadata.has(&"path") else &""
+				
 				var layer_index: int = main_layer_index + object_index
 				var frame: int = get_frame_from_display_pos(mouse_pos.x).keys()[0]
-				var length: int = TimeServer.seconds_to_frame(EditorServer.editor_settings.clip_default_length)
+				var length: int = int(MediaServer.get_media_length(metadata.type, key_as_path) * ProjectServer.fps)
 				return [layer_index, frame, length]
 		1:
 			clips_moved_get_target_func = func(object_index: int, info: Dictionary, mouse_pos: Vector2,
@@ -1021,12 +1023,13 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 
 func clips_moved() -> void:
 	var mouse_pos: Vector2 = get_global_mouse_position()
+	var frame_string: String = str(get_frame_from_display_pos(mouse_pos.x).keys()[0], "f")
 	
 	var dragged_object: FocusControl = clips_moved_object.object
 	var main_layer: Layer = get_layer_by_pos(mouse_pos)
 	var drawable_rect: DrawableRect = EditorServer.drawable_rect
-	clear_layers_drawed_entities()
-	drawable_rect.clear_drawed_entities()
+	clear_layers_drawn_entities()
+	drawable_rect.clear_drawn_entities()
 	
 	clips_moved_target_layers_indeces.clear()
 	clips_moved_target_frames_indeces.clear()
@@ -1073,12 +1076,15 @@ func clips_moved() -> void:
 			var rect_x_size: float = target_length * display_frame_size
 			var rect2: Rect2 = Rect2(Vector2(rect_x_pos, .0), Vector2(rect_x_size, target_layer.size.y))
 			
-			var is_layer_unoccupied : bool = ProjectServer.is_layer_unoccupied(target_layer_index, target_frame, target_length)
+			#var is_layer_unoccupied : bool = ProjectServer.is_layer_unoccupied(target_layer_index, target_frame, target_length)
 			#var custom_color: Color = IS.COLOR_ACCENT_BLUE if is_layer_unoccupied else IS.COLOR_WARNING_YELLOW
 			target_layer.draw_new_theme_rect(rect2, IS.COLOR_ACCENT_BLUE)
 			
 			clips_moved_target_layers_indeces.append(target_layer_index)
 			clips_moved_target_frames_indeces.append(target_frame)
+		
+		drawable_rect.draw_new_rect(Rect2(mouse_pos + Vector2(-5, 3), Vector2(5 + frame_string.length() * 10.0, -18.0)), Color.BLACK)
+		drawable_rect.draw_new_string(font_main, mouse_pos, frame_string)
 	
 	elif clips_move_mode == 0:
 		var _size: Vector2 = clips_moved_objects[0].object.size
@@ -1089,7 +1095,6 @@ func clips_moved() -> void:
 			var rect2: Rect2 = Rect2(center_pos + Vector2(offset, offset), _size)
 			drawable_rect.draw_new_theme_rect(rect2)
 
-
 func clips_end_move() -> void:
 	
 	if clips_moved_target_layers_indeces.size():
@@ -1097,13 +1102,10 @@ func clips_end_move() -> void:
 		match clips_move_mode:
 			0:
 				for info: Dictionary in clips_moved_objects:
-					var media_card: FocusControl = info.object
-					var resource_path: String = media_card.resource_path
-					ProjectServer.add_media_clip(
-						resource_path,
-						clips_moved_target_layer_index,
-						get_frame_from_display_pos(get_global_mouse_position().x).keys()[0],
-						media_card.get_my_object_res()
+					var media_card: MediaExplorer.MediaCard = info.object
+					media_card.add_media(
+						clips_moved_target_layer_index, 
+						get_frame_from_display_pos(get_global_mouse_position().x).keys()[0]
 					)
 				ProjectServer.emit_media_clips_change()
 			1:
@@ -1122,8 +1124,8 @@ func clips_end_move() -> void:
 	
 	set_timeline_state(0)
 	await get_tree().process_frame
-	clear_layers_drawed_entities()
-	EditorServer.drawable_rect.clear_drawed_entities()
+	clear_layers_drawn_entities()
+	EditorServer.drawable_rect.clear_drawn_entities()
 
 
 func drag(delta: float, horizontally: bool = true, vertically: bool = true) -> void:

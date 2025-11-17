@@ -30,12 +30,7 @@ var v_texture: ImageTexture
 var video_preload_path: String
 
 
-
 func _ready() -> void:
-	start()
-
-
-func start() -> void:
 	
 	material = shader_material
 	texture = ImageTexture.new()
@@ -44,6 +39,7 @@ func start() -> void:
 	video_preload_path = "%s%s%s" % [path, "_video_", get_meta("layer")]
 	
 	# Open Video
+	
 	if MediaServer.media_preloaded.has(video_preload_path):
 		video = MediaServer.media_preloaded[video_preload_path]
 	else:
@@ -96,21 +92,15 @@ func seek_frame(timeline_frame: int) -> void:
 	else:
 		_set_frame_image()
 
-
 func is_open() -> bool:
 	return video != null and video.is_open()
 
 func is_updated() -> bool:
 	return updated
 
-
 func get_absolute_frame(curr_frame: int) -> int:
 	curr_frame = TimeServer.localize_frame(curr_frame + get_meta("clip_res").from, get_meta("clip_pos"))
 	return TimeServer.map_frames_between_fps(curr_frame, 0, frame_rate)
-
-
-
-
 
 
 

@@ -45,14 +45,14 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 	#{text = "Curve2D", type_id = Curve2D, dflt_ctrlr_args = [], ctrlr = null},
 ] # All resources inherited from UsableRes
 
-@onready var objects: Array[Dictionary] = [
-	{text = "EmptyObject2D", icon = RES_ICON, thumbnail = preload("uid://cnd2y4daw32sc"), type_id = EmptyObject2DRes, object_id = Node2D, category = "Object2D"},
-	#{text = "Text", icon = RES_ICON, thumbnail = RES_ICON, type_id = TextRes, object_id = Text, category = "Object2D"},
-	{text = "Draw", icon = RES_ICON, thumbnail = preload("uid://b34e2o0he11w5"), type_id = DrawRes, object_id = GDDraw, category = "Object2D"},
-	#{text = "Particles", icon = RES_ICON, thumbnail = RES_ICON, type_id = ParticlesRes, object_id = Particles, category = "Object2D"},
-	{text = "Camera2D", icon = RES_ICON, thumbnail = preload("uid://dbafad8ipb25s"), type_id = Camera2DRes, object_id = Camera2D, category = "Object2D"},
-	{text = "Audio2D", icon = RES_ICON, thumbnail = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"},
-]
+@onready var objects: Dictionary[int, Dictionary] = {
+	3: {text = "EmptyObject2D", icon = RES_ICON, type_id = EmptyObject2DRes, object_id = Node2D, category = "Object2D"},
+	#4: {text = "Text", icon = RES_ICON, thumbnail = RES_ICON, type_id = TextRes, object_id = Text, category = "Object2D"},
+	5: {text = "Draw", icon = RES_ICON, type_id = DrawRes, object_id = GDDraw, category = "Object2D"},
+	#6: {text = "Particles", icon = RES_ICON, thumbnail = RES_ICON, type_id = ParticlesRes, object_id = Particles, category = "Object2D"},
+	7: {text = "Camera2D", icon = RES_ICON, type_id = Camera2DRes, object_id = Camera2D, category = "Object2D"},
+	8: {text = "Audio2D", icon = RES_ICON, type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"},
+}
 
 @onready var sections_hint: Dictionary[String, Dictionary] = {
 	"Display2D": {info = {text = "Display 2D", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Display2D"},
@@ -75,7 +75,6 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 func _ready() -> void:
 	update_components()
 	update_types()
-
 
 func update_components() -> void:
 	
@@ -185,7 +184,6 @@ func get_type_from_name(name: String, custom_types: Array[Dictionary] = []) -> i
 
 func get_name_from_val(value: Variant) -> String:
 	return get_type_name(get_type_from_value(value))
-
 
 
 func get_section_info(section_key: String) -> Dictionary:

@@ -1,11 +1,5 @@
 class_name MediaExplorer extends EditorRect
 
-@export var folder_card_scene: PackedScene
-@export var imported_card_scene: PackedScene
-@export var object_card_scene: PackedScene
-@export var transition_card_scene: PackedScene
-@export var preset_card_scene: PackedScene
-
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
 @export var texture_import: Texture2D = preload("res://Asset/Icons/gallery.png")
@@ -20,7 +14,7 @@ class_name MediaExplorer extends EditorRect
 @export var texture_undo_path: Texture2D = preload("res://Asset/Icons/up-arrow.png")
 @export var texture_reload: Texture = preload("res://Asset/Icons/reload.png")
 @export_subgroup("Constant")
-@export var card_display_size: Vector2 = Vector2(128, 128)
+@export var card_display_size: Vector2 = Vector2(140, 140)
 
 var curr_media_box: int:
 	set(val):
@@ -103,10 +97,16 @@ class MediaBox extends Container:
 		body_container = IS.create_box_container(10, true)
 		options_container = IS.create_box_container()
 		var scroll_container = IS.create_scroll_container(1,1, {size_flags_vertical = Control.PRESET_FULL_RECT})
+		var margin_container = IS.create_margin_container(12, 12, 12, 12)
 		media_categories_box = IS.create_box_container(12, true, {})
-		IS.expand(media_categories_box, true, true)
 		
-		scroll_container.add_child(media_categories_box)
+		IS.expand(margin_container, true, true)
+		IS.expand(media_categories_box, true, true)
+		body_container.clip_contents = false
+		media_categories_box.clip_contents = false
+		
+		margin_container.add_child(media_categories_box)
+		scroll_container.add_child(margin_container)
 		body_container.add_child(options_container)
 		body_container.add_child(scroll_container)
 		add_child(body_container)
@@ -150,6 +150,10 @@ class MediaBox extends Container:
 
 class ImportBox extends MediaBox:
 	
+	@export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
+	@export var texture_check: Texture2D = preload("res://Asset/Icons/check.png")
+	@export var texture_wait: Texture2D = preload("res://Asset/Icons/hourglass.png")
+	
 	var display_file_system: DisplayFileSystemRes = DisplayFileSystemRes.new()
 	var curr_display_path: Array
 	
@@ -166,6 +170,10 @@ class ImportBox extends MediaBox:
 	var path_controller: PathController
 	
 	var import_category: Category
+	
+	var progress_window: Window
+	var progress_list: ItemList
+	var progress_bar: ProgressBar
 	
 	
 	func _ready() -> void:
@@ -239,36 +247,46 @@ class ImportBox extends MediaBox:
 	func update() -> void:
 		
 		selection_group.clear_objects()
-		
 		path_controller.update(curr_display_path)
 		import_category.remove_all_contents()
 		
-		if display_file_system == null:
-			return
+		if display_file_system == null: return
 		var files_and_folders: Dictionary = display_file_system.get_files_and_folders_at(curr_display_path)
 		
-		for index: int in files_and_folders.keys().size():
+		for index: int in files_and_folders.size():
 			
-			var i: String = files_and_folders.keys()[index]
-			var info: Dictionary = files_and_folders.get(i)
+			var key: String = files_and_folders.keys()[index]
+			var info: Dictionary = files_and_folders.values()[index]
+			var type: String = info.type
 			
-			var card: DoubleClickControl = null
-			if info.type == "file":
-				card = media_explorer.imported_card_scene.instantiate()
-				card.resource_path = i
-				card.display_name = i.get_file()
-			else:
-				card = media_explorer.folder_card_scene.instantiate()
-				card.clicked.connect(on_folder_clicked.bind(i))
-				card.display_name = i
-			card.date = info.date
+			var media_card: MediaCard = null
 			
-			card.selection_group = selection_group
-			card.custom_minimum_size = media_explorer.card_display_size
-			import_category.add_content(card)
+			match type:
+				"file":
+					# the Key be the file path when the type is "file"
+					var media_type: int = info.media_type
+					var media_cache: Variant = MediaCache.get_from_type(key, media_type)
+					var import_card:= ImportCard.new()
+					import_card.import_info = {
+						&"type": media_type,
+						&"path": key,
+						&"thumbnail": MediaServer.get_thumbnail(key).texture
+					}
+					media_card = import_card
+				
+				"folder":
+					# the key be the folder name when the type is "folder"
+					var folder_card:= FolderCard.new()
+					folder_card.folder_info = {
+						&"type": -1,
+						&"name": key,
+						&"forward": info.forward
+					}
+					folder_card.clicked.connect(on_folder_clicked.bind(key))
+					media_card = folder_card
 			
-			if info.type == "file":
-				card.display_imported_media_at(index * .02)
+			media_card.custom_minimum_size = media_explorer.card_display_size
+			import_category.add_content(media_card)
 		
 		filter_and_sort()
 	
@@ -293,20 +311,20 @@ class ImportBox extends MediaBox:
 					elif not a.card_type and b.card_type:
 						return false
 					else:
-						var type_a: int = MediaServer.get_media_type_from_path(a.resource_path)
-						var type_b: int = MediaServer.get_media_type_from_path(b.resource_path)
+						var type_a: int = MediaServer.get_media_type_from_path(a.import_info.path)
+						var type_b: int = MediaServer.get_media_type_from_path(b.import_info.path)
 						return type_a < type_b
 			2: sort_func = func(a, b) -> bool: return a.date > b.date
 			3: sort_func = func(a, b) -> bool: return a.date < b.date
 		
 		sorted_media_clips.sort_custom(sort_func)
 		
-		for index: int in sorted_media_clips.size():
-			var media_card: DoubleClickControl = sorted_media_clips[index]
-			var contains_search_text: bool = media_card.display_name.to_lower().contains(search_text)
-			var resource_path: String = media_card.resource_path
-			media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
-			import_category.move_content(media_card, index)
+		#for index: int in sorted_media_clips.size():
+			#var media_card: DoubleClickControl = sorted_media_clips[index]
+			#var contains_search_text: bool = media_card.display_name.to_lower().contains(search_text)
+			#var resource_path: String = media_card.import_info.path
+			#media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
+			#import_category.move_content(media_card, index)
 	
 	
 	func on_filter_button_selected_option_changed(index: int, option: MenuOption) -> void:
@@ -332,45 +350,86 @@ class ImportBox extends MediaBox:
 	
 	func on_import_button_pressed() -> void:
 		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
-			get_tree().current_scene, FileDialog.FILE_MODE_OPEN_FILES, MediaServer.MEDIA_EXTENSIONS
+			get_tree().current_scene,
+			FileDialog.FILE_MODE_OPEN_FILES,
+			MediaServer.MEDIA_EXTENSIONS
 		)
-		file_dialog.files_selected.connect(func(paths: PackedStringArray):
-			for path: String in paths:
-				create_file(curr_display_path, path)
-			update()
-		)
+		file_dialog.files_selected.connect(on_file_dialog_files_selected)
 		file_dialog.popup_centered()
 	
 	func on_folder_clicked(folder_name: String) -> void:
 		curr_display_path.append(folder_name)
 		update()
-
-
+	
+	
+	func on_file_dialog_files_selected(paths: PackedStringArray) -> void:
+		
+		var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(600, 400))
+		var box_container: BoxContainer = IS.create_box_container(12, true)
+		
+		progress_window = window_margin.get_window()
+		progress_list = ItemList.new()
+		progress_bar = IS.create_progress_bar(.0, .0, 100.0, .01)
+		progress_bar.value_changed.connect(
+			func(value: float) -> void:
+				if value >= progress_bar.max_value:
+					update()
+					progress_window.queue_free()
+		)
+		
+		box_container.add_child(progress_list)
+		box_container.add_child(progress_bar)
+		window_margin.add_child(box_container)
+		
+		IS.set_base_settings(progress_list)
+		IS.expand(progress_list, true, true)
+		
+		var thread: Thread = Thread.new()
+		thread.start(_thread_create_files.bind(paths, curr_display_path))
+	
+	func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) -> void:
+		var total: int = paths.size()
+		for index: int in total:
+			var path: String = paths.get(index)
+			_report_start.call_deferred(index, path)
+			await create_file(curr_display_path, path)
+			_report_progress.call_deferred(index, total, path)
+	
+	func _report_start(index: int, path: String) -> void:
+		progress_list.add_item(path, texture_wait)
+	
+	func _report_progress(index: int, total: int, path: String) -> void:
+		
+		progress_list.set_item_custom_bg_color(index, Color(Color.GREEN_YELLOW, .1))
+		progress_list.set_item_text(index, path.get_file())
+		progress_list.set_item_icon(index, texture_check)
+		
+		var tween: Tween = create_tween()
+		var progress_bar_val: float = ((index + 1) / float(total)) * 100.0
+		tween.tween_property(progress_bar, "value", progress_bar_val, .2)
+		
+		await get_tree().process_frame
+		var scroll_bar: VScrollBar = progress_list.get_v_scroll_bar()
+		scroll_bar.value = scroll_bar.max_value
 
 class ObjectBox extends MediaBox:
 	
 	func _ready() -> void:
 		super()
-		
 		var cat_object_2d: Category = add_category("Object2D")
 		var cat_object_3d: Category = add_category("Object3D")
 		
-		for object: Dictionary in TypeServer.objects:
-			var card: DoubleClickControl = media_explorer.object_card_scene.instantiate()
-			ObjectServer.describe(card, {
-				object_res_id = object.type_id,
-				display_name = object.text,
-				display_image = object.thumbnail,
-				custom_minimum_size = media_explorer.card_display_size,
-				selection_group = selection_group
-			})
-			get_category(object.category).add_content(card)
-
-
+		var objects: Dictionary[int, Dictionary] = TypeServer.objects
+		
+		for object_id: int in objects.keys():
+			var object_info: Dictionary = TypeServer.objects.get(object_id)
+			var object_card:= ObjectCard.new()
+			object_card.object_info = {&"type": object_id}
+			object_card.custom_minimum_size = media_explorer.card_display_size
+			get_category(object_info.category).add_content(object_card)
 
 class TransitionBox extends MediaBox:
 	pass
-
 
 class PresetBox extends MediaBox:
 	pass
@@ -378,6 +437,147 @@ class PresetBox extends MediaBox:
 
 
 
+class MediaCard extends DoubleClickControl:
+	
+	@onready var name_label: Label
+	@onready var add_button: TextureButton
+	@onready var thumbnail_texture_rect: TextureRect
+	
+	@export var display_name: StringName = &"Media Card"
+	@export var display_texture: Texture2D = preload("res://Asset/icon.svg")
+	@export var add_texture: Texture2D = preload("res://Asset/Icons/plus.png")
+	
+	func _init() -> void:
+		selectable = true
+		draggable = true
+		
+		draw_select = true
+		draw_width = 3.0
+	
+	func _ready() -> void:
+		super()
+		drag_started.connect(on_drag_started)
+		drag_finished.connect(on_drag_finished)
+	
+	func _get_dragged_rect() -> Control:
+		return
+	
+	func _double_click() -> void:
+		add_media(-1, EditorServer.frame)
+		super()
+	
+	func _setup_media_card(name: StringName, thumbnail_texture: Texture2D) -> void:
+		
+		name_label = IS.create_label(name)
+		add_button = IS.create_texture_button(add_texture)
+		thumbnail_texture_rect = IS.create_texture_rect(thumbnail_texture, {})
+		
+		var panel_container:= IS.create_panel_container(Vector2.ZERO, IS.STYLE_PANEL)
+		var margin_container:= IS.create_margin_container()
+		var split_container:= IS.create_split_container(2, true)
+		var split_container2:= IS.create_split_container()
+		
+		IS.add_childs(split_container2, [add_button, name_label])
+		IS.add_childs(split_container, [thumbnail_texture_rect, split_container2])
+		margin_container.add_child(split_container)
+		panel_container.add_child(margin_container)
+		add_child(panel_container)
+		
+		name_label.set_text_overrun_behavior(TextServer.OVERRUN_TRIM_ELLIPSIS)
+		panel_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		
+		thumbnail_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		thumbnail_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		IS.expand(thumbnail_texture_rect, true, true)
+		
+		add_button.pressed.connect(on_add_button_pressed)
+		
+		display_name = name
+		display_texture = thumbnail_texture
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		pass
+	
+	func on_add_button_pressed() -> void:
+		add_media(-1, EditorServer.frame)
+	
+	func on_drag_started() -> void:
+		if not following_drag:
+			EditorServer.time_line.clips_start_move(
+				TimeLine.ClipsMoveMode.MOVE_ADD,
+				selection_group.selected_objects.values(),
+				selection_group.selected_objects[get_id_key()]
+			)
+	
+	func on_drag_finished() -> void:
+		if not following_drag:
+			EditorServer.time_line.clips_end_move()
+
+
+class ImportCard extends MediaCard:
+	
+	enum ImportCardType {
+		TYPE_IMAGE,
+		TYPE_VIDEO,
+		TYPE_AUDIO,
+		TYPE_FOLDER
+	}
+	
+	@export var import_card_type: ImportCardType
+	@export var import_info: Dictionary[StringName, Variant]
+	
+	func _ready() -> void:
+		super()
+		selection_group = EditorServer.object_media_cards_selection_group
+		_setup_media_card(import_info.path.get_file(), import_info.thumbnail)
+		set_metadata(import_info)
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		ProjectServer.add_media_clip(import_info.type, import_info.path, layer_index, frame_in, true)
+
+
+class FolderCard extends MediaCard:
+	
+	@export var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
+	
+	var folder_info: Dictionary[StringName, Variant]
+	
+	func _ready() -> void:
+		super()
+		selection_group = EditorServer.import_media_cards_selection_group
+		_setup_media_card(folder_info.name, folder_texture)
+		set_metadata({&"type": 0})
+	
+	func _double_click() -> void:
+		clicked.emit()
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		var forward: Dictionary = folder_info.forward
+		for key: String in forward:
+			var key_info: Dictionary = forward.get(key)
+			if key_info.type == "file":
+				var media_type: int = key_info.media_type
+				ProjectServer.add_media_clip(media_type, key, layer_index, frame_in)
+
+
+class ObjectCard extends MediaCard:
+	
+	@export var object_info: Dictionary[StringName, Variant]
+	
+	func _ready() -> void:
+		super()
+		selection_group = EditorServer.object_media_cards_selection_group
+		_setup_media_card("test", display_texture)
+		set_metadata(object_info)
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		pass
+
+class TransitionCard extends MediaCard:
+	pass
+
+class PresetCard extends MediaCard:
+	pass
 
 
 
@@ -397,280 +597,3 @@ class PresetBox extends MediaBox:
 
 
 
-
-
-
-
-
-
-#class MediaBox extends Container:
-	#
-	#var filter_save_path = EditorServer.editor_path + "explorer_filter.tres"
-	#var sort_save_path = EditorServer.editor_path + "explorer_sort.tres"
-	#
-	#var media_box_info: Dictionary
-	#var curr_display_path: Array
-	#var curr_filter: int
-	#var curr_sort: int
-	#
-	#var media_explorer: MediaExplorer
-	#
-	#var filter_button: Button
-	#var sort_button: Button
-	#var search_line: LineEdit
-	#var import_button: Button
-	#var folder_button: Button
-	#
-	#var undo_path_button: TextureButton
-	#var reload_button: TextureButton
-	#var path_container: BoxContainer
-	#
-	#var media_container: FlexGridContainer
-	#
-	#
-	#
-	#func _init(_media_explorer: MediaExplorer) -> void:
-		#media_explorer = _media_explorer
-	#
-	#func _ready() -> void:
-		## Base Settings
-		#IS.set_base_container_settings(self)
-		## Update Filter and Sort
-		#var filter_group = ResourceLoader.load(media_explorer.filter_group_path)
-		#var sort_group = ResourceLoader.load(media_explorer.sort_group_path)
-		#if filter_group: curr_filter = filter_group.checked_index
-		#if sort_group: curr_sort = sort_group.checked_index
-	#
-	#
-	#func create(media: String) -> void:
-		#
-		#media_box_info = media_explorer.media_info.get(media)
-		#
-		#media_box_info.file_system_res = ProjectServer.get_res_file(media_box_info.save_path, DisplayFileSystemRes.new())
-		#
-		#var body_container = IS.create_box_container(10, true)
-		#
-		#var options_container = IS.create_box_container()
-		#search_line = IS.create_line_edit("Search for Media", "", media_explorer.texture_search)
-		#folder_button = IS.create_button("", media_explorer.texture_folder)
-		#search_line.text_changed.connect(func(new_text: String): filter_and_sort())
-		#folder_button.pressed.connect(on_folder_button_pressed)
-		#
-		#if media_box_info.filter:
-			#filter_button = IS.create_button("Filter", media_explorer.texture__filter)
-			#filter_button.pressed.connect(on_filter_button_pressed)
-			#options_container.add_child(filter_button)
-		#
-		#if media_box_info.sort:
-			#sort_button = IS.create_button("Sort", media_explorer.texture_sort)
-			#sort_button.pressed.connect(on_sort_button_pressed)
-			#options_container.add_child(sort_button)
-		#
-		#options_container.add_child(search_line)
-		#
-		#if media_box_info.import_media:
-			#import_button = IS.create_button("", media_explorer.texture_file, true)
-			#import_button.pressed.connect(on_import_button_pressed)
-			#options_container.add_child(import_button)
-		#options_container.add_child(folder_button)
-		#
-		#var head_path_container = IS.create_box_container()
-		#undo_path_button = IS.create_texture_button(media_explorer.texture_undo_path)
-		#reload_button = IS.create_texture_button(media_explorer.texture_reload)
-		#path_container = IS.create_box_container(10, false, {alignment = BoxContainer.ALIGNMENT_BEGIN})
-		#undo_path_button.pressed.connect(undo.bind(1))
-		#reload_button.pressed.connect(update)
-		#path_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		#head_path_container.add_child(undo_path_button)
-		#head_path_container.add_child(reload_button)
-		#head_path_container.add_child(path_container)
-		#
-		#var scroll_container = IS.create_scroll_container(1,1, {size_flags_vertical = Control.PRESET_FULL_RECT})
-		#media_container = IS.create_grid_container(media_explorer.media_display_size)
-		#media_container.control_size = media_explorer.media_display_size
-		#
-		#body_container.add_child(options_container)
-		#body_container.add_child(head_path_container)
-		#body_container.add_child(scroll_container)
-		#scroll_container.add_child(media_container)
-		#add_child(body_container)
-		#
-		#update()
-	#
-	#func create_folder(display_path: Array, folder_name: String) -> void:
-		#media_box_info.file_system_res.create_folder(display_path, folder_name)
-		#update()
-	#
-	#func create_file(display_path: Array, file_path: String) -> void:
-		#media_box_info.file_system_res.create_file(display_path, file_path)
-	#
-	#func delete_file_or_folder(display_path: Array, path_or_name: String) -> void:
-		#media_box_info.file_system_res.delete(display_path, path_or_name)
-	#
-	#func undo(times: int) -> void:
-		#for time in times:
-			#curr_display_path.pop_back()
-		#update()
-	#
-	#func update() -> void:
-		#
-		#for i in path_container.get_children(): i.queue_free()
-		#for i in media_container.get_children(): i.queue_free()
-		#
-		#for time in curr_display_path.size() + 1:
-			#time -= 1
-			#
-			#var button = IS.create_button("", null, false, false, {flat = true})
-			#var folder_name = "Project"
-			#
-			#if time > -1:
-				#folder_name = curr_display_path[time]
-			#
-			#var undo_times = curr_display_path.size() - time - 1
-			#button.pressed.connect(undo.bind(undo_times))
-			#
-			#button.text = folder_name
-			#path_container.add_child(button)
-			#path_container.add_child(IS.create_label("/"))
-		#
-		#var file_system_res = media_box_info.file_system_res
-		#if file_system_res == null:
-			#return
-		#var files_and_folders = file_system_res.get_files_and_folders_at(curr_display_path)
-		#
-		#for index in files_and_folders.keys().size():
-			#
-			#var i = files_and_folders.keys()[index]
-			#var info = files_and_folders.get(i)
-			#
-			#var card = null
-			#if info.type == "file":
-				#card = media_explorer.media_card_scene.instantiate()
-				#card.clicked.connect(on_file_clicked.bind(i))
-				#card.resource_path = i
-				#card.display_name = i.get_file()
-			#else:
-				#card = media_explorer.folder_card_scene.instantiate()
-				#card.clicked.connect(on_folder_clicked.bind(i))
-				#card.display_name = i
-			#card.date = info.date
-			#
-			#card.custom_minimum_size = media_explorer.media_display_size
-			#media_container.add_child(card)
-			#
-			#if info.type == "file":
-				#card.display_at(index * .02)
-		#
-		#filter_and_sort()
-	#
-	#func filter_and_sort() -> void:
-		#var search_text = search_line.text.strip_edges().to_lower()
-		#var filter_func: Callable = func(path: String) -> bool:
-			#return not curr_filter or MediaServer.get_media_type_from_path(path) == curr_filter - 1
-		#
-		#var sorted_media_clips: Array[Node] = media_container.get_children()
-		#var sort_func: Callable
-		#match curr_sort:
-			#0:
-				#sort_func = func(a, b): return a.display_name.to_lower() < b.display_name.to_lower()
-			#1:
-				#sort_func = func(a, b):
-					#if a.is_folder and not b.is_folder:
-						#return true
-					#elif not a.is_folder and b.is_folder:
-						#return false
-					#else:
-						#var type_a = MediaServer.get_media_type_from_path(a.resource_path)
-						#var type_b = MediaServer.get_media_type_from_path(b.resource_path)
-						#return type_a < type_b
-			#2:
-				#sort_func = func(a, b): return a.date > b.date
-			#3:
-				#sort_func = func(a, b): return a.date < b.date
-		#
-		#sorted_media_clips.sort_custom(sort_func)
-		#
-		#for index in sorted_media_clips.size():
-			#var media_card = sorted_media_clips[index]
-			#var contains_search_text = media_card.display_name.to_lower().contains(search_text)
-			#var resource_path = media_card.resource_path
-			#media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
-			#media_container.move_child(media_card, index)
-	#
-	#
-	#
-	#func on_filter_button_pressed() -> void:
-		#var filter_menu = IS.create_popuped_menu(media_box_info.filter)
-		#filter_menu.menu_button_pressed.connect(on_filter_menu_button_pressed)
-		#get_tree().get_current_scene().add_child(filter_menu)
-		#filter_menu.popup()
-	#
-	#func on_sort_button_pressed() -> void:
-		#var sort_menu = IS.create_popuped_menu(media_box_info.sort)
-		#sort_menu.menu_button_pressed.connect(on_sort_menu_button_pressed)
-		#get_tree().get_current_scene().add_child(sort_menu)
-		#sort_menu.popup()
-	#
-	#func on_folder_button_pressed() -> void:
-		#var name_line = IS.create_line_edit("Type Folder Name", "New Folder")
-		#var box = WindowManager.popup_accept_window(
-			#get_tree().current_scene,
-			#Vector2(400, 150),
-			#"Create Folder",
-			#func(): create_folder(curr_display_path, name_line.text)
-		#)
-		#box.add_child(name_line)
-		#box.move_child(name_line, 0)
-		#name_line.select()
-		#name_line.grab_focus()
-	#
-	#func on_import_button_pressed() -> void:
-		#var file_dialog = WindowManager.create_file_dialog_window(
-			#get_tree().current_scene, FileDialog.FILE_MODE_OPEN_FILES, MediaServer.MEDIA_EXTENSIONS
-		#)
-		#file_dialog.files_selected.connect(func(paths: PackedStringArray):
-			#for path: String in paths:
-				#create_file(curr_display_path, path)
-			#update()
-		#)
-		#file_dialog.popup_centered()
-	#
-	#func on_folder_clicked(folder_name: String) -> void:
-		#curr_display_path.append(folder_name)
-		#update()
-	#
-	#func on_file_clicked(file_path: String) -> void:
-		#ProjectServer.add_media_clip(file_path, -1, EditorServer.time_line.curr_frame)
-	#
-	#func on_filter_menu_button_pressed(index: int) -> void:
-		#curr_filter = index
-		#filter_and_sort()
-	#
-	#func on_sort_menu_button_pressed(index: int) -> void:
-		#curr_sort = index
-		#filter_and_sort()
-
-
-
-#func _start() -> void:
-	#super()
-	#
-	## Start Header
-	#var header_menu = IS.create_menu(media_options)
-	#header_menu.focus_index_changed.connect(on_header_menu_focus_index_changed)
-	#header.add_child(header_menu)
-	#
-	## Start Body
-	#for media in media_info:
-		#var media_box = MediaBox.new(self)
-		#media_box.create(media)
-		#body.add_child(media_box)
-
-#func delete_files_or_folders(pathes_or_names: Array) -> void:
-	#for path_or_name in pathes_or_names:
-		#delete_file_or_folder(path_or_name, false)
-	#get_media_box(0).update()
-#
-#
-#func get_media_box(index: int) -> MediaBox:
-	#return body.get_child(index)

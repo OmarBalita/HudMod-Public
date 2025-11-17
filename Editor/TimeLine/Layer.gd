@@ -161,7 +161,7 @@ func displayed_media_clips_clear() -> void:
 
 func displayed_media_clips_update_expand_buttons() -> void:
 	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
-		(displayed_media_clips[frame_in].clip as MediaClip).update_expand_buttons()
+		displayed_media_clips[frame_in].clip.update_expand_buttons()
 	)
 
 
@@ -198,19 +198,20 @@ func spawn_and_manage_clips(select_new_clips: bool) -> void:
 			clip = displayed_media_clips[frame_in].clip
 		else:
 			clip = MediaClip.new()
-			var media_type:= MediaServer.get_media_type_from_path(clip_res.media_resource_path)
-			var media_clip_info: Dictionary = MediaServer.media_clip_info[media_type]
+			var clip_type: int = clip_res.type
 			# Setup Clip Informations
 			ObjectServer.describe(clip, {
 				layer = self,
-				type = media_type,
+				type = clip_type,
 				layer_index = index,
 				clip_pos = frame_in,
 				clip_res = clip_res
 			})
 			# Interface Setup
-			if media_clip_info.has("control"): clip.set_clip_control(media_clip_info.control.call(clip_res, media_clip_info.style))
-			else: clip.set_clip_control(IS.create_clip_basic_control(media_clip_info.default_name, media_clip_info.style))
+			var clip_panel:= MediaServer.ClipPanelContainer.new()
+			IS.set_base_panel_settings(clip_panel, MediaServer.media_clip_info[clip_type].style)
+			clip.set_clip_control(clip_panel)
+			# clip.set_clip_control(IS.create_clip_basic_control(media_clip_info.default_name, media_clip_info.style))
 			# Connections
 			clip.selected.connect(on_clip_selected)
 			clip.deselected.connect(on_clip_deselected)
@@ -264,7 +265,7 @@ func open_graph_editors(frame: int) -> void:
 	var graph_editors_container: BoxContainer = IS.create_box_container(0, true, {})
 	var header_rect: ColorRect = IS.create_color_rect(clip.clip_control.get_theme_stylebox("panel").bg_color, {custom_minimum_size = Vector2(.0, 30.0)})
 	var margin_container: MarginContainer = IS.create_margin_container(12,2,2,2)
-	var name_label: Label = IS.create_label(clip_res.media_resource_path, IS.LABEL_SETTINGS_BOLD, {})
+	var name_label: Label = IS.create_label(clip_res.key_as_path, IS.LABEL_SETTINGS_BOLD, {})
 	margin_container.add_child(name_label)
 	header_rect.add_child(margin_container)
 	graph_editors_container.add_child(header_rect)
@@ -425,7 +426,7 @@ func popup_customization_settings() -> void:
 func on_media_clips_changed() -> void:
 	update()
 	await get_tree().process_frame
-	clear_drawed_entities()
+	clear_drawn_entities()
 
 func on_layers_changed() -> void:
 	displayed_media_clips_clear()

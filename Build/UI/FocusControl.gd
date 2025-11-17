@@ -35,8 +35,9 @@ const ALT_MASK: int = 67108864
 @export_group("Theme")
 @export var draw_focus: bool = true
 @export var draw_select: bool
-@export var focus_color: Color
-@export var select_color: Color = Color.WHITE
+@export var draw_width: float = 3.0
+@export var draw_focus_color: Color = IS.COLOR_ACCENT_BLUE
+@export var draw_select_color: Color = IS.COLOR_ACCENT_BLUE_HIGHLIGHT
 
 @export_multiline() var editor_guides: Array[Dictionary]
 
@@ -92,8 +93,6 @@ func set_is_focus(new_val: bool) -> void:
 # ---------------------------------------------------
 
 func _ready() -> void:
-	focus_color = IS.STYLE_ACCENT.bg_color
-	
 	# Connections
 	if mouse_entering_calculation:
 		mouse_entered.connect(set_is_focus.bind(true))
@@ -170,12 +169,11 @@ func _input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
-	var rect: Rect2 = Rect2(Vector2.ONE, size - Vector2.ONE)
-	if draw_focus and is_focus:
-		draw_rect(rect, Color(focus_color, focus_alpha), false, 3.0)
+	var rect: Rect2 = Rect2(Vector2(-draw_width, -draw_width) / 2.0, size + Vector2(draw_width, draw_width))
 	if draw_select and is_selected:
-		draw_rect(rect, select_color, false, 3.0)
-
+		draw_rect(rect, draw_select_color, false, draw_width)
+	elif draw_focus and is_focus:
+		draw_rect(rect, Color(draw_focus_color, focus_alpha), false, draw_width)
 
 
 # FocusControl Base Functions
@@ -201,12 +199,13 @@ func start_drag(group: bool, remove: bool) -> void:
 		
 		is_dragging = true
 		select(group, remove, true)
-		create_dragged_rect()
+		_create_dragged_rect()
 		hide()
-		drag_started.emit()
 		
 		if following_drag:
 			return
+		
+		drag_started.emit()
 		
 		var selected_objects: Dictionary[String, Dictionary] = selection_group.selected_objects
 		for key: String in selected_objects.keys():
@@ -231,14 +230,14 @@ func end_drag() -> void:
 	
 	drag_finished.emit()
 
-func get_dragged_rect() -> Control:
+func _get_dragged_rect() -> Control:
 	var dragged_rect: Control = duplicate()
 	dragged_rect.set_script(null)
 	ObjectServer.describe_node_deep(dragged_rect, {mouse_filter = MOUSE_FILTER_IGNORE})
 	return dragged_rect
 
-func create_dragged_rect() -> void:
-	dragged_rect = get_dragged_rect()
+func _create_dragged_rect() -> void:
+	dragged_rect = _get_dragged_rect()
 	if dragged_rect:
 		get_tree().current_scene.add_child(dragged_rect)
 		dragged_rect_created.emit(dragged_rect)
@@ -249,7 +248,6 @@ func focus_enter() -> void:
 func focus_exit() -> void:
 	pass
 
-
 func get_id_key() -> String:
 	if not id_key:
 		id_key = ProjectServer.generate_new_id(selection_group.selected_objects.keys())
@@ -257,6 +255,9 @@ func get_id_key() -> String:
 
 func get_metadata() -> Dictionary:
 	return metadata
+
+func set_metadata(new_metadata: Dictionary) -> void:
+	metadata = new_metadata
 
 func calculate_metadata(metadata_keys: Array[String]) -> Dictionary:
 	var result: Dictionary

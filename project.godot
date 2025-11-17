@@ -13,7 +13,7 @@ config_version=5
 config/name="Edit App"
 run/main_scene="uid://c5j8uwlpcdbkb"
 config/features=PackedStringArray("4.4", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://Asset/icon.svg"
 
 [autoload]
 
@@ -26,6 +26,8 @@ MediaServer="*res://Autoload/MediaServer.gd"
 EditorServer="*res://Autoload/EditorServer.gd"
 ProjectServer="*res://Autoload/ProjectServer.gd"
 Scene="*res://Autoload/Scene.gd"
+Scene2="*res://Autoload/Scene2.gd"
+MediaCache="*res://Autoload/MediaCache.gd"
 
 [display]
 

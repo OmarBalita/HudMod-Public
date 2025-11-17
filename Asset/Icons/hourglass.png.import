@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dm0rpg47hb3t6"
-path="res://.godot/imported/35mm-film-projector-start-99740.mp3.png-4cd1d72bfd7b49d6be8273ffdc6a9684.ctex"
+uid="uid://c2ota1011jman"
+path="res://.godot/imported/hourglass.png-88df007aa47c8692c3bed93aa2997e6e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ExampleProject/thumbnails/explorer/35mm-film-projector-start-99740.mp3.png"
-dest_files=["res://.godot/imported/35mm-film-projector-start-99740.mp3.png-4cd1d72bfd7b49d6be8273ffdc6a9684.ctex"]
+source_file="res://Asset/Icons/hourglass.png"
+dest_files=["res://.godot/imported/hourglass.png-88df007aa47c8692c3bed93aa2997e6e.ctex"]
 
 [params]
 

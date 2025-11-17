@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1ovgos10erj7"
-path="res://.godot/imported/convert test.mkv.jpg-83e47390b794702437dea67d4fcb2d35.ctex"
+uid="uid://dun154hm334xh"
+path="res://.godot/imported/check.png-96ef61c045754ce89e40640e67bbf587.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ExampleProject/thumbnails/explorer/convert test.mkv.jpg"
-dest_files=["res://.godot/imported/convert test.mkv.jpg-83e47390b794702437dea67d4fcb2d35.ctex"]
+source_file="res://Asset/Icons/check.png"
+dest_files=["res://.godot/imported/check.png-96ef61c045754ce89e40640e67bbf587.ctex"]
 
 [params]
 

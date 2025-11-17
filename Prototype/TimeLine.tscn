@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://42fbjb04onq6"]
 
 [ext_resource type="Script" uid="uid://4katumkpiy24" path="res://Editor/TimeLine/TimeLine.gd" id="1_3l2iu"]
-[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Cascadia.ttf" id="2_wilel"]
+[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Asset/Fonts/Cascadia.ttf" id="2_wilel"]
 
 [node name="TimeLine" type="Control"]
 clip_contents = true
