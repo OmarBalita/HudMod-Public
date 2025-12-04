@@ -34,9 +34,7 @@ var transition_box:= TransitionBox.new(self)
 var preset_box:= PresetBox.new(self)
 
 
-
-func _ready() -> void:
-	super()
+func _ready_editor() -> void:
 	
 	header_menu = IS.create_menu([
 		MenuOption.new("Import", texture_import),
@@ -144,7 +142,7 @@ class MediaBox extends Container:
 			#media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
 			#media_container.move_child(media_card, index)
 	
-	func on_search_line_text_changed() -> void:
+	func on_search_line_text_changed(new_text: String) -> void:
 		filter_and_sort()
 
 
@@ -178,7 +176,14 @@ class ImportBox extends MediaBox:
 	
 	func _ready() -> void:
 		super()
-		
+		on_file_dialog_files_selected(PackedStringArray([
+			"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/icon.svg",
+			"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/App/logo2_512.png",
+			"C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
+		]))
+		update()
+	
+	func _ready_options() -> void:
 		var path_container = IS.create_box_container()
 		
 		undo_path_button = IS.create_texture_button(media_explorer.texture_undo_path)
@@ -196,10 +201,6 @@ class ImportBox extends MediaBox:
 		path_controller.undo_requested.connect(undo)
 		
 		import_category = add_category("Import", false)
-		
-		update()
-	
-	func _ready_options() -> void:
 		
 		filter_button = IS.create_option_controller([
 			{text = "All"},
@@ -259,7 +260,7 @@ class ImportBox extends MediaBox:
 			var info: Dictionary = files_and_folders.values()[index]
 			var type: String = info.type
 			
-			var media_card: MediaCard = null
+			var card: CreatedCard = null
 			
 			match type:
 				"file":
@@ -267,64 +268,61 @@ class ImportBox extends MediaBox:
 					var media_type: int = info.media_type
 					var media_cache: Variant = MediaCache.get_from_type(key, media_type)
 					var import_card:= ImportCard.new()
+					import_card.created_card_type = media_type + 1
 					import_card.import_info = {
 						&"type": media_type,
 						&"path": key,
 						&"thumbnail": MediaServer.get_thumbnail(key).texture
 					}
-					media_card = import_card
+					card = import_card
 				
 				"folder":
 					# the key be the folder name when the type is "folder"
 					var folder_card:= FolderCard.new()
+					folder_card.created_card_type = -1
 					folder_card.folder_info = {
 						&"type": -1,
 						&"name": key,
 						&"forward": info.forward
 					}
 					folder_card.clicked.connect(on_folder_clicked.bind(key))
-					media_card = folder_card
+					card = folder_card
 			
-			media_card.custom_minimum_size = media_explorer.card_display_size
-			import_category.add_content(media_card)
+			card.create_date = info.date
+			card.custom_minimum_size = media_explorer.card_display_size
+			import_category.add_content(card)
 		
 		filter_and_sort()
 	
 	func filter_and_sort() -> void:
 		
-		if not search_line:
-			return
-		
 		var search_text: String = search_line.text.strip_edges().to_lower()
-		var filter_func: Callable = func(path: String) -> bool:
-			return not curr_filter or MediaServer.get_media_type_from_path(path) == curr_filter - 1
+		var filter_func: Callable = func(type: int) -> bool:
+			return not curr_filter or type == curr_filter or type == -1
 		
 		var sorted_media_clips: Array[Node] = import_category.get_contents()
 		var sort_func: Callable
 		match curr_sort:
 			0:
-				sort_func = func(a, b) -> bool: return a.display_name.to_lower() < b.display_name.to_lower()
+				sort_func = func(a: CreatedCard, b: CreatedCard) -> bool:
+					return a.display_name.to_lower() < b.display_name.to_lower()
+			
 			1:
-				sort_func = func(a, b) -> bool:
-					if a.card_type and not b.card_type:
-						return true
-					elif not a.card_type and b.card_type:
-						return false
-					else:
-						var type_a: int = MediaServer.get_media_type_from_path(a.import_info.path)
-						var type_b: int = MediaServer.get_media_type_from_path(b.import_info.path)
-						return type_a < type_b
-			2: sort_func = func(a, b) -> bool: return a.date > b.date
-			3: sort_func = func(a, b) -> bool: return a.date < b.date
+				sort_func = func(a: CreatedCard, b:CreatedCard) -> bool:
+					if a.created_card_type and not b.created_card_type: return true
+					elif not a.created_card_type and b.created_card_type: return false
+					else: return a.created_card_type < b.created_card_type
+			
+			2: sort_func = func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date > b.create_date
+			3: sort_func = func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date < b.create_date
 		
 		sorted_media_clips.sort_custom(sort_func)
 		
-		#for index: int in sorted_media_clips.size():
-			#var media_card: DoubleClickControl = sorted_media_clips[index]
-			#var contains_search_text: bool = media_card.display_name.to_lower().contains(search_text)
-			#var resource_path: String = media_card.import_info.path
-			#media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
-			#import_category.move_content(media_card, index)
+		for index: int in sorted_media_clips.size():
+			var card: CreatedCard = sorted_media_clips[index]
+			var contains_search_text: bool = card.display_name.to_lower().contains(search_text)
+			card.visible = filter_func.call(card.created_card_type) and (search_text.is_empty() or contains_search_text)
+			import_category.move_content(card, index)
 	
 	
 	func on_filter_button_selected_option_changed(index: int, option: MenuOption) -> void:
@@ -419,12 +417,17 @@ class ObjectBox extends MediaBox:
 		var cat_object_2d: Category = add_category("Object2D")
 		var cat_object_3d: Category = add_category("Object3D")
 		
-		var objects: Dictionary[int, Dictionary] = TypeServer.objects
+		var objects: Dictionary[StringName, Dictionary] = TypeServer.objects
 		
-		for object_id: int in objects.keys():
-			var object_info: Dictionary = TypeServer.objects.get(object_id)
-			var object_card:= ObjectCard.new()
-			object_card.object_info = {&"type": object_id}
+		for object_key: StringName in objects:
+			var object_info: Dictionary = objects[object_key]
+			var object_card: ObjectCard = ObjectCard.new()
+			object_card.object_info = {
+				&"type": -1,
+				&"name": object_key,
+				&"thumbnail": object_info.icon,
+				&"object_id": object_info.type_id
+			}
 			object_card.custom_minimum_size = media_explorer.card_display_size
 			get_category(object_info.category).add_content(object_card)
 
@@ -444,7 +447,7 @@ class MediaCard extends DoubleClickControl:
 	@onready var thumbnail_texture_rect: TextureRect
 	
 	@export var display_name: StringName = &"Media Card"
-	@export var display_texture: Texture2D = preload("res://Asset/icon.svg")
+	@export var display_texture: Texture2D = preload("res://Asset/icons/icon.svg")
 	@export var add_texture: Texture2D = preload("res://Asset/Icons/plus.png")
 	
 	func _init() -> void:
@@ -499,10 +502,11 @@ class MediaCard extends DoubleClickControl:
 		pass
 	
 	func on_add_button_pressed() -> void:
-		add_media(-1, EditorServer.frame)
+		add_media(0, EditorServer.frame)
 	
 	func on_drag_started() -> void:
 		if not following_drag:
+			selection_group.clear_previously_freed_instances()
 			EditorServer.time_line.clips_start_move(
 				TimeLine.ClipsMoveMode.MOVE_ADD,
 				selection_group.selected_objects.values(),
@@ -513,17 +517,18 @@ class MediaCard extends DoubleClickControl:
 		if not following_drag:
 			EditorServer.time_line.clips_end_move()
 
-
-class ImportCard extends MediaCard:
-	
-	enum ImportCardType {
-		TYPE_IMAGE,
-		TYPE_VIDEO,
-		TYPE_AUDIO,
-		TYPE_FOLDER
+class CreatedCard extends MediaCard:
+	enum CreatedCardType {
+		TYPE_FOLDER = -1,
+		TYPE_IMAGE = 0,
+		TYPE_VIDEO = 1,
+		TYPE_AUDIO = 2
 	}
+	@export var created_card_type: CreatedCardType
+	@export var create_date: float
+
+class ImportCard extends CreatedCard:
 	
-	@export var import_card_type: ImportCardType
 	@export var import_info: Dictionary[StringName, Variant]
 	
 	func _ready() -> void:
@@ -533,10 +538,10 @@ class ImportCard extends MediaCard:
 		set_metadata(import_info)
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		ProjectServer.add_media_clip(import_info.type, import_info.path, layer_index, frame_in, true)
+		ProjectServer.add_imported_clip(import_info.type, import_info.path, layer_index, frame_in, true)
 
 
-class FolderCard extends MediaCard:
+class FolderCard extends CreatedCard:
 	
 	@export var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
 	
@@ -557,7 +562,8 @@ class FolderCard extends MediaCard:
 			var key_info: Dictionary = forward.get(key)
 			if key_info.type == "file":
 				var media_type: int = key_info.media_type
-				ProjectServer.add_media_clip(media_type, key, layer_index, frame_in)
+				ProjectServer.add_imported_clip(media_type, key, layer_index, frame_in)
+		ProjectServer.emit_media_clips_change()
 
 
 class ObjectCard extends MediaCard:
@@ -567,11 +573,12 @@ class ObjectCard extends MediaCard:
 	func _ready() -> void:
 		super()
 		selection_group = EditorServer.object_media_cards_selection_group
-		_setup_media_card("test", display_texture)
+		_setup_media_card(object_info.name, object_info.thumbnail)
 		set_metadata(object_info)
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		pass
+		var object_res: ObjectRes = object_info.object_id.new()
+		ProjectServer.add_object_clip(object_res, layer_index, frame_in, true)
 
 class TransitionCard extends MediaCard:
 	pass

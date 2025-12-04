@@ -83,8 +83,7 @@ var curr_object_editor: Control:
 # ---------------------------------------------------
 # Background Called Functions
 
-func _ready() -> void:
-	super()
+func _ready_editor() -> void:
 	
 	# Describe Player
 	_ready_ui()
@@ -112,6 +111,12 @@ func _ready() -> void:
 
 func _ready_ui() -> void:
 	add_child(tweener)
+	
+	var header_box_container: BoxContainer = IS.create_box_container(12, false, {})
+	var official_logo_button: Button = IS.create_button("HudMod", load("res://Asset/Icons/App/logo2_bg.png"), false, false,
+	{expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	header_box_container.add_child(official_logo_button)
+	header.add_child(header_box_container)
 	
 	screen_options_parent = IS.create_split_container(1, true)
 	flex_view_control = FlexViewportControl.new()
@@ -240,25 +245,26 @@ func update_timecode() -> void:
 	slider_time_code_label.set_text(curr_frame_timecode + " / " + video_length_timecode)
 
 func update_object_editor() -> void:
-	var focus = EditorServer.media_clips_selection_group.focused
-	if focus:
-		var focus_metadata: Dictionary = focus.metadata
-		var object: Node = Scene.get_scene_node(focus_metadata.layer_index)
-		
-		var object_editor: Control
-		
-		if object is GDDraw:
-			draw_editor.draw_node = object
-			object_editor = draw_editor_control
-		
-		var is_frame_entered_media: bool = ProjectServer.is_frame_on_media(curr_frame, focus_metadata.clip_pos, focus_metadata.clip_res.length)
-		if object_editor:
-			object_editor.set_enabling(is_frame_entered_media)
-			curr_object_editor = object_editor
-		else:
-			disable_curr_object_editor()
-	else:
-		disable_curr_object_editor()
+	#var focus = EditorServer.media_clips_selection_group.focused
+	#if focus:
+		#var focus_metadata: Dictionary = focus.metadata
+		#var object: Node = Scene2.get_object(focus_metadata.clip_res)
+		#
+		#var object_editor: Control
+		#
+		#if object is GDDraw:
+			#draw_editor.draw_node = object
+			#object_editor = draw_editor_control
+		#
+		#var is_frame_entered_media: bool = ProjectServer.is_frame_on_media(curr_frame, focus_metadata.clip_pos, focus_metadata.clip_res.length)
+		#if object_editor:
+			#object_editor.set_enabling(is_frame_entered_media)
+			#curr_object_editor = object_editor
+		#else:
+			#disable_curr_object_editor()
+	#else:
+		#disable_curr_object_editor()
+	pass
 
 
 func disable_curr_object_editor() -> void:

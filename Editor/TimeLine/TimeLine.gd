@@ -18,8 +18,14 @@ signal timeline_view_changed()
 # ---------------------------------------------------
 
 enum TimelineSelectionModes {
-	SELECT,
-	SPLIT
+	SELECT_MODE,
+	SPLIT_MODE,
+	SLIP_MODE
+}
+
+enum TimelineEditMode {
+	EDIT_MODE_SINGLE,
+	EDIT_MODE_MULTIPLE,
 }
 
 enum TimelineStates {
@@ -29,24 +35,34 @@ enum TimelineStates {
 	EXPAND_MEDIA_CLIP,
 }
 
+enum MediaClipPlaceMethod {
+	PLACE_METHOD_PLACE_ON_TOP,
+	PLACE_METHOD_INSERT,
+	PLACE_METHOD_OVERWRITE,
+	PLACE_METHOD_FIT_TO_FILL,
+	PLACE_METHOD_REPLACE
+}
+
 @export_group("Properties")
 
 @export var timeline_selection_mode: TimelineSelectionModes:
 	set(val):
 		timeline_selection_mode = val
 		match val:
-			0:
-				mouse_default_cursor_shape = Control.CURSOR_ARROW
-				splited_media_clip = null
-			1:
-				mouse_default_cursor_shape = Control.CURSOR_IBEAM
-		#update_selection_box_enabling()
+			0: mouse_default_cursor_shape = Control.CURSOR_ARROW
+			1: mouse_default_cursor_shape = Control.CURSOR_IBEAM
+			2: mouse_default_cursor_shape = Control.CURSOR_HSPLIT
+		edited_media_clip = null
+		queue_redraw()
 
-@export var timeline_state: TimelineStates = 0:
+@export var timeline_edit_mode: TimelineEditMode = 1
+
+@export var timeline_state: TimelineStates:
 	set(val):
 		timeline_state = val
 		shortcut_node.enabled = val == 0
 
+@export var media_clip_place_method: MediaClipPlaceMethod
 
 @export var is_snap_to_timemarks: bool = true
 @export var is_snap_to_timemarkers_and_cursor: bool = true
@@ -66,11 +82,14 @@ enum TimelineStates {
 @export_group("Layers")
 #@export_range(1, 200) var layer_display_size: float = 80.0
 @export_range(1, 1000) var layer_side_panel_x_size: float = 280.0
+@export_range(1, 10) var default_layers_count: int = 2
+@export_range(1, 100) var max_layers_count: int = 5
 
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
 @export var texture_select_mode: Texture2D
 @export var texture_split_mode: Texture2D
+@export var texture_slip_mode: Texture2D
 @export var texture_split: Texture2D
 @export var texture_split_right: Texture2D
 @export var texture_split_left: Texture2D
@@ -81,6 +100,11 @@ enum TimelineStates {
 @export var texture_link: Texture2D
 @export var texture_zoom_in: Texture2D
 @export var texture_zoom_out: Texture2D
+@export var texture_place_on_top: Texture2D
+@export var texture_insert: Texture2D
+@export var texture_overwrite: Texture2D
+@export var texture_fit_to_fill: Texture2D
+@export var texture_replace: Texture2D
 
 @export_subgroup("Constant")
 @export var timemarks_bg_size: float = 30:
@@ -136,7 +160,7 @@ var curr_frame: int:
 	set(val):
 		curr_frame = val
 		EditorServer.set_frame(val)
-		ProjectServer.update_scene_nodes()
+		ProjectServer.update_scene_objects()
 		queue_redraw()
 		if emit_frame_changed:
 			curr_frame_changed.emit(val)
@@ -174,11 +198,10 @@ var clips_selection_box: SelectionBox
 var timemarkers_parent: Control
 var timemarkers_nodes: Dictionary[int, TimeMarker]
 
-var splited_media_clip: MediaClip
+var edited_media_clip: MediaClip
 
-var selection_mode_button: Button
-
-
+var selection_mode_button: OptionController
+var edit_mode_button: OptionController
 
 
 # Set Get Functions
@@ -202,7 +225,6 @@ func set_snap_pos(new_val: Variant) -> void:
 	snap_pos = new_val
 
 
-
 # Background Called Functions
 # ---------------------------------------------------
 
@@ -215,9 +237,7 @@ func _init() -> void:
 	]
 
 
-func _ready() -> void:
-	super()
-	
+func _ready_editor() -> void:
 	# Start ShortCuts
 	shortcut_node.create_key_shortcut(CTRL_MASK, KEY_A, select_all_media_clips)
 	shortcut_node.create_key_shortcut(ALT_MASK, KEY_A, deselect_all_media_clips)
@@ -230,7 +250,10 @@ func _ready() -> void:
 	shortcut_node.create_key_shortcut(0, KEY_C, split_media_clips.bind(true, false))
 	shortcut_node.create_key_shortcut(0, KEY_Z, split_media_clips.bind(false, true))
 	shortcut_node.create_key_shortcut(0, KEY_TAB, func() -> void:
-		update_timeline_selection_mode(timeline_selection_mode + 1)
+		timeline_selection_mode += 1
+		if timeline_selection_mode > TimelineSelectionModes.size() - 1:
+			timeline_selection_mode = 0
+		selection_mode_button.set_selected_id(timeline_selection_mode)
 	)
 	shortcut_node.create_key_shortcut(0, KEY_ENTER, enter_media_clip)
 	shortcut_node.create_key_shortcut(0, KEY_BACKSPACE, ProjectServer.exit_media_clip_children.bind(1))
@@ -239,7 +262,9 @@ func _ready() -> void:
 	ProjectServer.media_clip_entered.connect(on_project_server_media_clip_entered)
 	ProjectServer.media_clip_exited.connect(on_project_server_media_clip_exited)
 	ProjectServer.layer_added.connect(on_project_server_layer_added)
+	ProjectServer.layer_removed.connect(on_project_server_layer_removed)
 	ProjectServer.layers_added.connect(on_project_server_layers_added)
+	ProjectServer.layers_removed.connect(on_project_server_layers_removed)
 	ProjectServer.layer_property_changed.connect(on_project_server_layer_property_changed)
 	ProjectServer.time_markers_changed.connect(on_project_server_timemarkers_changed)
 	ProjectServer.curr_layers_changed.connect(on_project_server_curr_layers_changed)
@@ -288,13 +313,13 @@ func _input(event: InputEvent) -> void:
 		if right_button_down:
 			displacement_pos -= Vector2(event.relative.x / display_snap_dist, .0)
 			if KEY_SHIFT in pressed_keys: layers_scroll_container.scroll_vertical -= event.relative.y
-		elif is_focus and timeline_selection_mode == TimelineSelectionModes.SPLIT:
+		
+		elif is_focus and timeline_selection_mode != 0:
 			var media_clips_focused: Array[MediaClip] = EditorServer.media_clips_focused
-			if media_clips_focused.size():
-				splited_media_clip = media_clips_focused[0]
-			else:
-				splited_media_clip = null
+			if media_clips_focused.size(): edited_media_clip = media_clips_focused[0]
+			else: edited_media_clip = null
 			queue_redraw()
+		
 		elif timeline_state == 1:
 			clips_moved()
 		#timemarks_bg_mouse_entered = get_local_mouse_position().y < header_size + timemarks_bg_size
@@ -303,14 +328,14 @@ func _input(event: InputEvent) -> void:
 		match event.button_index:
 			MOUSE_BUTTON_LEFT when is_focus:
 				if event.is_released():
-					if splited_media_clip:
-						splited_media_clip.split(true, true, get_frame_from_mouse_pos())
+					if edited_media_clip:
+						if timeline_selection_mode == 1:
+							edited_media_clip.split(true, true, get_frame_from_mouse_pos())
 					else:
 						snap_pos = null
 			MOUSE_BUTTON_RIGHT:
 				if event.is_pressed(): right_button_down = is_focus
 				else: right_button_down = false
-
 
 func _draw() -> void:
 	
@@ -339,7 +364,6 @@ func _draw() -> void:
 			#display_snap_step = step
 	
 	# Draw Limits
-	
 	
 	var start_and_end: Array[int] = ProjectServer.get_start_and_end_frame()
 	var frame_start_in: int = start_and_end[0]
@@ -412,15 +436,17 @@ func _draw() -> void:
 		draw_dashed_line(Vector2(display_snap_pos, header_size), Vector2(display_snap_pos, size.y), Color.ORANGE, 1.0, 10)
 	
 	# Draw Split Line on Top of Layer
-	if splited_media_clip != null:
-		var display_split_pos = get_display_pos_from_mouse_pos()
-		var y_pos = splited_media_clip.global_position.y - global_position.y
-		draw_line(
-			Vector2(display_split_pos, y_pos),
-			Vector2(display_split_pos, y_pos + splited_media_clip.size.y),
-			Color.RED,
-			2.0
-		)
+	if edited_media_clip != null:
+		match timeline_selection_mode:
+			TimelineSelectionModes.SPLIT_MODE:
+				var display_split_pos: int = get_display_pos_from_mouse_pos()
+				var y_pos: int = edited_media_clip.global_position.y - global_position.y
+				draw_line(
+					Vector2(display_split_pos, y_pos),
+					Vector2(display_split_pos, y_pos + edited_media_clip.size.y),
+					Color.RED,
+					2.0
+				)
 	
 	super()
 	
@@ -449,16 +475,31 @@ func start_toolbar() -> void:
 	var snaptool_container:= IS.create_box_container()
 	var snaptool_margin:= IS.create_margin_container(4, 4, 4, 4)
 	
-	selection_mode_button = IS.create_button("Select Mode", texture_select_mode)
+	selection_mode_button = IS.create_option_controller([
+		{text = "Select Mode", icon = texture_select_mode},
+		{text = "Split Mode", icon = texture_split_mode},
+		{text = "Slip Mode", icon = texture_slip_mode}
+	], "", timeline_selection_mode, true)
+	edit_mode_button = IS.create_option_controller([
+		{text = "Edit Single"},
+		{text = "Edit Multiple"},
+	], "", timeline_edit_mode)
 	var split_left_button:= IS.create_texture_button(texture_split_left)
 	var split_button:= IS.create_texture_button(texture_split)
 	var split_right_button:= IS.create_texture_button(texture_split_right)
 	var marker_button:= IS.create_texture_button(texture_marker)
 	
 	var snap_markers_button:= IS.create_texture_button(texture_snap_markers, null, null, true, {button_pressed = is_snap_to_timemarks})
-	var snap_cursor_button:= IS.create_texture_button(texture_snap_cursor, null, null, true, {button_pressed = is_snap_to_timemarkers_and_cursor})
 	var magnet_clips_button:= IS.create_texture_button(texture_magnet_clips, null, null, true, {button_pressed = is_magnet_to_media_clips})
-	var zoom_slider:= IS.create_slider_control(zoom, min_zoom, max_zoom, 500.0, texture_zoom_out, texture_zoom_in)
+	var clips_overlay_menu: Menu = IS.create_menu([
+		MenuOption.new("", texture_place_on_top),
+		MenuOption.new("", texture_insert),
+		MenuOption.new("", texture_overwrite),
+		MenuOption.new("", texture_fit_to_fill),
+		MenuOption.new("", texture_replace),
+	], false, false, {custom_minimum_size = Vector2(300.0, .0)})
+	#var zoom_slider:= IS.create_slider_control(zoom, min_zoom, max_zoom, 500.0, texture_zoom_out, texture_zoom_in)
+	var snap_cursor_button:= IS.create_texture_button(texture_snap_cursor, null, null, true, {button_pressed = is_snap_to_timemarkers_and_cursor})
 	
 	splittool_panel.add_child(splittool_margin)
 	splittool_margin.add_child(splittool_container)
@@ -473,18 +514,21 @@ func start_toolbar() -> void:
 	snaptool_container.add_child(magnet_clips_button)
 	
 	toolbar_left_container.add_child(selection_mode_button)
+	toolbar_left_container.add_child(edit_mode_button)
 	toolbar_left_container.add_child(splittool_panel)
 	toolbar_left_container.add_child(marker_button)
 	toolbar_left_container.add_child(path_controller)
 	
+	toolbar_right_container.add_child(clips_overlay_menu)
+	#toolbar_right_container.add_child(zoom_slider)
 	toolbar_right_container.add_child(snaptool_panel)
-	toolbar_right_container.add_child(zoom_slider)
 	
 	split_container.add_child(toolbar_left_container)
 	split_container.add_child(toolbar_right_container)
 	header.add_child(split_container)
 	
-	selection_mode_button.pressed.connect(on_selection_mode_button_pressed.bind(selection_mode_button))
+	selection_mode_button.selected_option_changed.connect(on_selection_mode_button_selected_option_changed)
+	edit_mode_button.selected_option_changed.connect(on_edit_mode_button_selected_option_changed)
 	split_button.pressed.connect(on_split_button_pressed)
 	split_left_button.pressed.connect(on_split_left_button_pressed)
 	split_right_button.pressed.connect(on_split_right_button_pressed)
@@ -493,9 +537,8 @@ func start_toolbar() -> void:
 	snap_markers_button.pressed.connect(on_snap_markers_button_pressed)
 	snap_cursor_button.pressed.connect(on_snap_cursor_button_pressed)
 	magnet_clips_button.pressed.connect(on_magnet_clips_button_pressed)
-	zoom_slider.slider_controller.val_changed.connect(on_zoom_slider_val_changed)
-	
-	update_timeline_selection_mode()
+	clips_overlay_menu.focus_index_changed.connect(on_clips_overlay_menu_focus_index_changed)
+	#zoom_slider.slider_controller.val_changed.connect(on_zoom_slider_val_changed)
 
 
 func start_selection_box() -> void:
@@ -517,11 +560,15 @@ func request_selection_box_selection() -> bool:
 	# Approximate numbers for the required Rect
 	var cond1: bool = is_inside_rect_has_point(get_local_mouse_position())
 	var cond2: bool = EditorServer.media_clips_focused.size() == 0
-	var cond3: bool = timeline_selection_mode == 0
-	return cond1 and cond2 and cond3
+	var cond3: bool = EditorServer.roll_buttons_spawned.size() == 0
+	var cond4: bool = timeline_selection_mode == 0
+	return cond1 and cond2 and cond3 and cond4
 
 func request_media_clip_selection() -> bool:
-	return is_inside_rect_has_point(get_local_mouse_position())
+	var cond1: bool = is_inside_rect_has_point(get_local_mouse_position())
+	var cond2: bool = EditorServer.roll_buttons_spawned.size() == 0
+	var cond3: bool = timeline_selection_mode == 0
+	return cond1 and cond2 and cond3
 
 
 
@@ -540,8 +587,7 @@ func start_layers() -> void:
 	IS.expand(margin_container)
 	
 	await resized
-	var layers_count: int = 8
-	ProjectServer.make_layers_absolute(PackedInt32Array(range(layers_count)))
+	ProjectServer.make_layers_absolute(PackedInt32Array(range(default_layers_count)))
 
 #func update_layers(delay_to_update_pos: bool = true) -> void:
 	#
@@ -590,18 +636,33 @@ func loop_layers(method: Callable) -> void:
 		var layer: Layer = curr_layers[index]
 		method.call(layer)
 
-func spawn_layer(index: int) -> Layer:
-	var layer: Layer = IS.create_layer(index, editor_settings.layer_size, layer_side_panel_x_size, color_layer)
-	layers_container.add_child(layer)
-	curr_layers[index] = layer
-	clips_selection_box.select_from.append(layer.clips_control)
+func spawn_layer(index: int, is_root_layer: bool) -> Layer:
+	var layer: Layer
+	if curr_layers.has(index):
+		layer = curr_layers[index]
+	else:
+		layer = IS.create_layer(index, is_root_layer, editor_settings.layer_size, layer_side_panel_x_size, color_layer)
+		layers_container.add_child(layer)
+		clips_selection_box.select_from.append(layer.clips_control)
+		curr_layers[index] = layer
 	return layer
 
 func spawn_layers(indeces: PackedInt32Array) -> void:
-	for index: int in indeces: spawn_layer(index)
+	var root_layers: bool = ProjectServer.curr_layers_path.size() == 0
+	for index: int in indeces: spawn_layer(index, root_layers)
 	arrange_layers()
 	await get_tree().process_frame
 	layers_scroll_container.scroll_vertical = layers_container.size.y
+
+func free_layer() -> void:
+	var max_layer_index: int = curr_layers.keys().max()
+	curr_layers[max_layer_index].queue_free()
+	curr_layers.erase(max_layer_index)
+
+func free_layers(layers_count: int) -> void:
+	for time: int in layers_count:
+		free_layer()
+	arrange_layers()
 
 func arrange_layers() -> void:
 	curr_layers.sort()
@@ -631,7 +692,11 @@ func clear_layers_drawn_entities(layers: Array = []) -> void:
 		if not layers or index in layers:
 			layer.clear_drawn_entities()
 
+func set_layers_clips_modulate_transparent() -> void:
+	loop_layers(func(layer: Layer) -> void: layer.set_clips_modulate_transparent())
 
+func set_layers_clips_modulate_white() -> void:
+	loop_layers(func(layer: Layer) -> void: layer.set_clips_modulate_white())
 
 
 # Timemarker Functions
@@ -842,6 +907,7 @@ func popup_media_clips_menu() -> void:
 		MenuOption.new("UnGroup", null, ungroup_media_clips),
 		MenuOption.new_line(),
 		MenuOption.new("Enter", null, enter_media_clip),
+		MenuOption.new("Create Parent", null, create_media_clips_parent),
 		MenuOption.new("Reparent", null, reparent_media_clips),
 		MenuOption.new("Parent Up", null, parent_up),
 		MenuOption.new("Clear Parents", null, clear_parents),
@@ -899,14 +965,18 @@ func enter_media_clip() -> void:
 		var metadata: Dictionary = focused_object.metadata
 		ProjectServer.enter_media_clip_children(metadata.layer_index, metadata.clip_pos)
 
+func create_media_clips_parent() -> void:
+	ProjectServer.create_media_clips_parent(media_clips_selection_group.get_focused().metadata, get_selected_clips_meta())
+
 func reparent_media_clips() -> void:
-	pass
+	ProjectServer.reparent_media_clips(media_clips_selection_group.get_focused().metadata, get_selected_clips_meta())
 
 func parent_up() -> void:
-	pass
+	ProjectServer.parent_up_media_clips(get_selected_clips_meta())
 
 func clear_parents() -> void:
-	pass
+	ProjectServer.clear_media_clips_parents(get_selected_clips_meta())
+
 
 func replace_media_clips() -> void:
 	pass
@@ -947,16 +1017,16 @@ func loop_selected_media_clips(info: Dictionary[StringName, Variant], instance_v
 	var updatable_layers: Array[Layer]
 	
 	for key: String in selected_objects.keys():
-		var media_clip: MediaClip = selected_objects[key].object
-		
-		if is_instance_valid(media_clip):
-			instance_valid_method.call(media_clip, info)
-		elif else_method.is_valid(): else_method.call(info)
-		
-		if update_media_clips_layers:
-			var layer: Layer = media_clip.layer
-			if not updatable_layers.has(layer):
-				updatable_layers.append(layer)
+		var media_clip: Variant = selected_objects[key].object
+		if media_clip:
+			if is_instance_valid(media_clip):
+				instance_valid_method.call(media_clip, info)
+			elif else_method.is_valid(): else_method.call(info)
+			
+			if update_media_clips_layers:
+				var layer: Layer = media_clip.layer
+				if not updatable_layers.has(layer):
+					updatable_layers.append(layer)
 	
 	await get_tree().process_frame
 	for layer: Layer in updatable_layers: layer.update()
@@ -1003,7 +1073,7 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 				
 				var layer_index: int = main_layer_index + object_index
 				var frame: int = get_frame_from_display_pos(mouse_pos.x).keys()[0]
-				var length: int = int(MediaServer.get_media_length(metadata.type, key_as_path) * ProjectServer.fps)
+				var length: int = int(MediaServer.get_media_default_length(metadata.type, key_as_path) * ProjectServer.fps)
 				return [layer_index, frame, length]
 		1:
 			clips_moved_get_target_func = func(object_index: int, info: Dictionary, mouse_pos: Vector2,
@@ -1020,11 +1090,11 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 			)
 	
 	set_timeline_state(1)
+	
+	set_layers_clips_modulate_transparent()
 
 func clips_moved() -> void:
 	var mouse_pos: Vector2 = get_global_mouse_position()
-	var frame_string: String = str(get_frame_from_display_pos(mouse_pos.x).keys()[0], "f")
-	
 	var dragged_object: FocusControl = clips_moved_object.object
 	var main_layer: Layer = get_layer_by_pos(mouse_pos)
 	var drawable_rect: DrawableRect = EditorServer.drawable_rect
@@ -1041,10 +1111,11 @@ func clips_moved() -> void:
 		
 		clips_moved_target_layer_index = main_layer.index
 		
+		var begin_pos: float = (mouse_pos - dragged_object.start_drag_dist).x
+		var frame_begin_result: Dictionary[int, Variant] = get_frame_from_display_pos(begin_pos, clips_moved_clips_ress, true, true, false)
+		
 		if clips_move_mode == 1:
 			
-			var begin_pos: float = (mouse_pos - dragged_object.start_drag_dist).x
-			var frame_begin_result: Dictionary[int, Variant] = get_frame_from_display_pos(begin_pos, clips_moved_clips_ress, true, true, false)
 			var frame_end_result: Dictionary[int, Variant] = get_frame_from_display_pos(begin_pos + dragged_object.size.x, clips_moved_clips_ress, true, true, false)
 			var begin_snap_dist: Variant = frame_begin_result.values()[0]
 			var end_snap_dist: Variant = frame_end_result.values()[0]
@@ -1071,7 +1142,12 @@ func clips_moved() -> void:
 			var target_length: float = targets[2]
 			
 			var target_layer: Layer = get_layer(target_layer_index)
-			if target_layer == null: continue
+			
+			clips_moved_target_layers_indeces.append(target_layer_index)
+			clips_moved_target_frames_indeces.append(target_frame)
+			if target_layer == null:
+				continue
+			
 			var rect_x_pos: float = get_display_pos_from_frame(target_frame, target_layer)
 			var rect_x_size: float = target_length * display_frame_size
 			var rect2: Rect2 = Rect2(Vector2(rect_x_pos, .0), Vector2(rect_x_size, target_layer.size.y))
@@ -1079,12 +1155,10 @@ func clips_moved() -> void:
 			#var is_layer_unoccupied : bool = ProjectServer.is_layer_unoccupied(target_layer_index, target_frame, target_length)
 			#var custom_color: Color = IS.COLOR_ACCENT_BLUE if is_layer_unoccupied else IS.COLOR_WARNING_YELLOW
 			target_layer.draw_new_theme_rect(rect2, IS.COLOR_ACCENT_BLUE)
-			
-			clips_moved_target_layers_indeces.append(target_layer_index)
-			clips_moved_target_frames_indeces.append(target_frame)
 		
-		drawable_rect.draw_new_rect(Rect2(mouse_pos + Vector2(-5, 3), Vector2(5 + frame_string.length() * 10.0, -18.0)), Color.BLACK)
-		drawable_rect.draw_new_string(font_main, mouse_pos, frame_string)
+		#var frame_string: String = str(frame_begin_result.keys()[0], "f")
+		#drawable_rect.draw_new_rect(Rect2(mouse_pos + Vector2(-5, 3), Vector2(5 + frame_string.length() * 10.0, -18.0)), Color.BLACK)
+		#drawable_rect.draw_new_string(font_main, mouse_pos, frame_string)
 	
 	elif clips_move_mode == 0:
 		var _size: Vector2 = clips_moved_objects[0].object.size
@@ -1101,10 +1175,11 @@ func clips_end_move() -> void:
 		
 		match clips_move_mode:
 			0:
-				for info: Dictionary in clips_moved_objects:
+				for index: int in clips_moved_objects.size():
+					var info: Dictionary = clips_moved_objects[index]
 					var media_card: MediaExplorer.MediaCard = info.object
 					media_card.add_media(
-						clips_moved_target_layer_index, 
+						clips_moved_target_layers_indeces[index],
 						get_frame_from_display_pos(get_global_mouse_position().x).keys()[0]
 					)
 				ProjectServer.emit_media_clips_change()
@@ -1126,7 +1201,8 @@ func clips_end_move() -> void:
 	await get_tree().process_frame
 	clear_layers_drawn_entities()
 	EditorServer.drawable_rect.clear_drawn_entities()
-
+	
+	set_layers_clips_modulate_white()
 
 func drag(delta: float, horizontally: bool = true, vertically: bool = true) -> void:
 	var mouse_pos: Vector2 = get_local_mouse_position()
@@ -1147,33 +1223,33 @@ func drag(delta: float, horizontally: bool = true, vertically: bool = true) -> v
 
 # ---------------------------------------------------
 
-func update_timeline_selection_mode(index: int = -1) -> void:
-	var options: Array = get_selection_mode_menu_options()
-	var save_path: String = get_selection_mode_save_path()
-	var group_res: Resource = ResourceLoader.load(save_path)
-	if index == -1:
-		index = group_res.checked_index
-	if index >= options.size():
-		index = 0
-	
-	var menu_option: MenuOption = options[index]
-	timeline_selection_mode = index
-	selection_mode_button.text = menu_option.text
-	selection_mode_button.icon = menu_option.icon
-	
-	group_res.checked_index = index
-	ResourceSaver.save(group_res, save_path)
+#func update_timeline_selection_mode(index: int = -1) -> void:
+	#var options: Array = get_selection_mode_menu_options()
+	#var save_path: String = get_selection_mode_save_path()
+	#var group_res: Resource = ResourceLoader.load(save_path)
+	#if index == -1:
+		#index = group_res.checked_index
+	#if index >= options.size():
+		#index = 0
+	#
+	#var menu_option: MenuOption = options[index]
+	#timeline_selection_mode = index
+	#selection_mode_button.text = menu_option.text
+	#selection_mode_button.icon = menu_option.icon
+	#
+	#group_res.checked_index = index
+	#ResourceSaver.save(group_res, save_path)
 
-func get_selection_mode_menu_options() -> Array:
-	return MenuOption.new_options_with_check_group(
-		[
-			{text = "Select Mode", icon = texture_select_mode},
-			{text = "Split Mode", icon = texture_split_mode}
-		], get_selection_mode_save_path()
-	)
-
-func get_selection_mode_save_path() -> String:
-	return EditorServer.editor_path + "timeline_selection_mode.tres"
+#func get_selection_mode_menu_options() -> Array:
+	#return MenuOption.new_options_with_check_group(
+		#[
+			#{text = "Select Mode", icon = texture_select_mode},
+			#{text = "Split Mode", icon = texture_split_mode}
+		#], get_selection_mode_save_path()
+	#)
+#
+#func get_selection_mode_save_path() -> String:
+	#return EditorServer.editor_path + "timeline_selection_mode.tres"
 
 
 # Connections Functions
@@ -1186,39 +1262,41 @@ func on_project_server_media_clip_exited(clip_res_from: MediaClipRes, times: int
 	pass
 
 func on_project_server_layer_added(index: int) -> void:
-	spawn_layer(index)
+	spawn_layer(index, ProjectServer.curr_layers_path.size() == 0)
 	arrange_layers()
+
+func on_project_server_layer_removed() -> void:
+	free_layer()
 
 func on_project_server_layers_added(indeces: PackedInt32Array) -> void:
 	spawn_layers(indeces)
 
+func on_project_server_layers_removed(layers_count: int) -> void:
+	free_layers(layers_count)
+
 func on_project_server_layer_property_changed(index: int) -> void:
 	var layer: Layer = get_layer(index)
 	layer.queue_redraw()
-	layer.loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
-		info.clip.update_lock()
-	)
 
 func on_project_server_timemarkers_changed() -> void:
 	update_timemarkers()
 
 func on_project_server_curr_layers_changed() -> void:
-	
 	var curr_layers_string_path: Array[String] = ProjectServer.curr_layers_string_path
 	var backend_curr_layers: Dictionary[int, Dictionary] = ProjectServer.curr_layers
 	
 	path_controller.update(curr_layers_string_path)
-	for layer: Layer in curr_layers.values(): layer.queue_free()
+	for layer: Layer in curr_layers.values():
+		layer.queue_free()
 	curr_layers.clear()
 	
 	if backend_curr_layers.size():
 		var layers_indeces: Array = backend_curr_layers.keys()
 		spawn_layers(layers_indeces)
-	else: ProjectServer.make_layers_absolute(PackedInt32Array(range(2)))
+	else: ProjectServer.make_layers_absolute(PackedInt32Array(range(default_layers_count)))
 	
 	queue_redraw()
-	
-	await get_tree().process_frame
+	 
 	media_clips_selection_group.clear_objects()
 
 
@@ -1268,13 +1346,11 @@ func on_clips_selection_box_selection_ended(grouping: bool, remove: bool) -> voi
 	
 	selection_group_res.add_objects(selected_nodes, ["layer_index", "clip_pos", "clip_res"])
 
-func on_selection_mode_button_pressed(selection_mode_button: BaseButton) -> void:
-	var selection_mode_menu = IS.create_popuped_menu(get_selection_mode_menu_options())
-	
-	selection_mode_menu.menu_button_pressed.connect(update_timeline_selection_mode)
-	
-	add_child(selection_mode_menu)
-	selection_mode_menu.popup()
+func on_selection_mode_button_selected_option_changed(id: int, option: MenuOption) -> void:
+	timeline_selection_mode = id
+
+func on_edit_mode_button_selected_option_changed(id: int, option: MenuOption) -> void:
+	timeline_edit_mode = id
 
 func on_split_button_pressed() -> void:
 	split_media_clips(true, true)
@@ -1300,5 +1376,8 @@ func on_snap_markers_button_pressed() -> void:
 func on_magnet_clips_button_pressed() -> void:
 	is_magnet_to_media_clips = not is_magnet_to_media_clips
 
-func on_zoom_slider_val_changed(new_val: float) -> void:
-	zoom = new_val
+func on_clips_overlay_menu_focus_index_changed(index: int) -> void:
+	media_clip_place_method = index as MediaClipPlaceMethod
+
+#func on_zoom_slider_val_changed(new_val: float) -> void:
+	#zoom = new_val

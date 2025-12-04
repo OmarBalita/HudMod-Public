@@ -28,7 +28,7 @@ func _ready() -> void:
 	var left_control: PanelContainer = IS.create_panel_container(Vector2.ZERO, null, {custom_minimum_size = Vector2(200, .0)})
 	var right_control: SplitContainer = IS.create_split_container(2, true)
 	
-	categories_menu = IS.create_menu(categories_options.keys(), true, {focus_style = IS.STYLE_ACCENT_LEFT})
+	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.STYLE_ACCENT_LEFT})
 	search_line = IS.create_line_edit(search_line_text, "", search_texture)
 	scroll_container = IS.create_scroll_container(0)
 	var right_margin_container: MarginContainer = IS.create_margin_container()

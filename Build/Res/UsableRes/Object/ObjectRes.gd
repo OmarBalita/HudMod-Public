@@ -1,10 +1,7 @@
 class_name ObjectRes extends UsableRes
 
-@export var object_media_type: int
+func _init() -> void:
+	set_res_id(&"Object")
 
-func get_object_media_type() -> int:
-	return object_media_type
-
-func set_object_media_type(new_object_media_type: int) -> void:
-	object_media_type = new_object_media_type
-
+func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
+	return

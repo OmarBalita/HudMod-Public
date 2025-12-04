@@ -30,7 +30,6 @@ func _ready() -> void:
 	_setup()
 
 func _input(event: InputEvent) -> void:
-	
 	if forwarded:
 		return
 	
@@ -91,7 +90,7 @@ func _setup() -> void:
 			
 			options_box.add_child(option_box)
 	
-	cursor_rect = IS.create_panel()
+	cursor_rect = IS.create_panel(IS.STYLE_BODY)
 	add_child(cursor_rect)
 	
 	margin_container.add_child(options_box)

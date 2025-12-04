@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://c5j8uwlpcdbkb"]
+[gd_scene load_steps=33 format=3 uid="uid://c5j8uwlpcdbkb"]
 
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
@@ -6,23 +6,39 @@
 [ext_resource type="Script" uid="uid://r643re6ydjnt" path="res://Editor/Properties/Properties.gd" id="3_7i47x"]
 [ext_resource type="LabelSettings" uid="uid://wv4o1kifc17q" path="res://UI&UX/LabelSettingsMain.tres" id="6_rceaj"]
 [ext_resource type="StyleBox" uid="uid://b334pukgkfrk8" path="res://UI&UX/StyleAccent.tres" id="7_jkecq"]
+[ext_resource type="Texture2D" uid="uid://csoln2s11vr3e" path="res://Asset/Icons/horizontal.png" id="7_k2li5"]
 [ext_resource type="LabelSettings" uid="uid://btchr08otjlgb" path="res://UI&UX/LabelSettingsHeader.tres" id="7_o3877"]
 [ext_resource type="Script" uid="uid://bci4vqikuv2cq" path="res://Build/UI/NotificationLabel.gd" id="7_pln24"]
 [ext_resource type="Script" uid="uid://bcd2jbumhww6p" path="res://Editor/ClipNodesExplorer/ClipNodesExplorer.gd" id="11_30pfl"]
 [ext_resource type="Texture2D" uid="uid://6jj5fxul1n5v" path="res://Asset/Icons/cursor.png" id="12_13ga7"]
 [ext_resource type="Texture2D" uid="uid://dkjcas8n8sra0" path="res://Asset/Icons/split-clip.png" id="13_kg1lx"]
-[ext_resource type="Texture2D" uid="uid://ge8ak6eret2d" path="res://Asset/Icons/split-bill.png" id="13_pu2bm"]
 [ext_resource type="Texture2D" uid="uid://cq7tqrosc2nx3" path="res://Asset/Icons/right-split-clip.png" id="14_2kogo"]
 [ext_resource type="Texture2D" uid="uid://blfyk8dqdjqa0" path="res://Asset/Icons/location-marker.png" id="14_k2li5"]
 [ext_resource type="Texture2D" uid="uid://ba4hea5saqvlq" path="res://Asset/Icons/snap (1).png" id="15_ig1nw"]
 [ext_resource type="Texture2D" uid="uid://b8rxo816n0cnf" path="res://Asset/Icons/left-split-clip.png" id="15_pu2bm"]
 [ext_resource type="Texture2D" uid="uid://du588acsbuu58" path="res://Asset/Icons/snap (2).png" id="16_2kogo"]
+[ext_resource type="Texture2D" uid="uid://bwo2mxeu17gjw" path="res://Asset/Icons/AddClipMethods/icon4.png" id="17_pajpo"]
 [ext_resource type="Texture2D" uid="uid://i6e0sd1tev1o" path="res://Asset/Icons/snap.png" id="17_pu2bm"]
 [ext_resource type="Texture2D" uid="uid://n88yf18v4s47" path="res://Asset/Icons/paperclip.png" id="18_52oax"]
+[ext_resource type="Texture2D" uid="uid://3xyfwyb34va" path="res://Asset/Icons/AddClipMethods/icon1.png" id="18_nh1mg"]
 [ext_resource type="Texture2D" uid="uid://wdwchq2hkx31" path="res://Asset/Icons/zoom-in.png" id="19_k2li5"]
+[ext_resource type="Texture2D" uid="uid://dx7vdixisdhou" path="res://Asset/Icons/AddClipMethods/icon5.png" id="19_sruw6"]
 [ext_resource type="FontFile" uid="uid://b8qbp1wmi0fj" path="res://Asset/Fonts/Aftika-Font/Fontspring-DEMO-aftika-bold.otf" id="20_2kogo"]
+[ext_resource type="Texture2D" uid="uid://b6l02k5lq0kmq" path="res://Asset/Icons/AddClipMethods/icon3.png" id="20_gck3f"]
 [ext_resource type="Texture2D" uid="uid://df12acsow1u4v" path="res://Asset/Icons/zoom-out.png" id="20_ig1nw"]
+[ext_resource type="Texture2D" uid="uid://c7wn4rjr5qi7q" path="res://Asset/Icons/AddClipMethods/icon2.png" id="21_s30d6"]
+[ext_resource type="Script" uid="uid://d2t1uchaqp6v3" path="res://Build/Functionality/TweenerComponent.gd" id="24_k2li5"]
 [ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="25_ig1nw"]
+
+[sub_resource type="GDScript" id="GDScript_pajpo"]
+script/source = "extends Control
+
+func _ready() -> void:
+	#get_window().borderless = false
+	#get_window().mode = Window.MODE_MAXIMIZED
+	EditorServer._ready_editor_server()
+	Scene2._ready_scene()
+"
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fucdc"]
 bg_color = Color(0.1008, 0.104, 0.12, 1)
@@ -52,6 +68,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = SubResource("GDScript_pajpo")
 
 [node name="BG" type="ColorRect" parent="."]
 z_index = -2
@@ -136,7 +153,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 texture_select_mode = ExtResource("12_13ga7")
-texture_split_mode = ExtResource("13_pu2bm")
+texture_split_mode = ExtResource("13_kg1lx")
+texture_slip_mode = ExtResource("7_k2li5")
 texture_split = ExtResource("13_kg1lx")
 texture_split_right = ExtResource("14_2kogo")
 texture_split_left = ExtResource("15_pu2bm")
@@ -147,6 +165,11 @@ texture_magnet_clips = ExtResource("17_pu2bm")
 texture_link = ExtResource("18_52oax")
 texture_zoom_in = ExtResource("19_k2li5")
 texture_zoom_out = ExtResource("20_ig1nw")
+texture_place_on_top = ExtResource("20_gck3f")
+texture_insert = ExtResource("18_nh1mg")
+texture_overwrite = ExtResource("19_sruw6")
+texture_fit_to_fill = ExtResource("17_pajpo")
+texture_replace = ExtResource("21_s30d6")
 color_layer = Color(0.196078, 0.196078, 0.207843, 1)
 font_header = ExtResource("20_2kogo")
 
@@ -221,3 +244,9 @@ mouse_filter = 2
 color = Color(1, 1, 1, 0)
 script = ExtResource("25_ig1nw")
 metadata/_custom_type_script = "uid://d1jx0qooyty3l"
+
+[node name="TweenerComponent" type="Node" parent="." groups=["tweener"]]
+script = ExtResource("24_k2li5")
+transType = 7
+easeType = 1
+metadata/_custom_type_script = "uid://d2t1uchaqp6v3"

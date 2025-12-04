@@ -70,7 +70,6 @@ func get_possible_interpolation_types() -> Array[int]:
 			possible_types.append(type)
 	return possible_types
 
-
 func sample(frame: float) -> Variant:
 	var min_xpos: float = keys.keys().min()
 	var max_xpos: float = keys.keys().max()

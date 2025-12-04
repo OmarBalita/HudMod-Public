@@ -25,15 +25,24 @@ func test_video() -> void:
 
 func test_audio() -> void:
 	var test_audio_stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(audio_path)
+	var images: Array[Image] = await MediaServer.generate_waveform_images(test_audio_stream, MediaServer.draw_waveform_line_timeline, 30, 256, 64, 0, 1)
+	for image: Image in images:
+		var image_texture: ImageTexture = ImageTexture.create_from_image(image)
+		var texture_rect: TextureRect = IS.create_texture_rect(image_texture)
+		box_container.add_child(texture_rect)
+	print(images)
 	
-	#var images: Array[Image] = await MediaServer.generate_waveform_images(test_audio_stream, MediaServer.draw_waveform_line_timeline)
-	#for image: Image in images:
-		#var image_texture: ImageTexture = ImageTexture.create_from_image(image)
-		#var texture_rect: TextureRect = IS.create_texture_rect(image_texture)
-		#box_container.add_child(texture_rect)
-	
-	var texture: ImageTexture = MediaServer.create_thumbnail_from_audio(\"\", test_audio_stream).texture
-	texture_rect.texture = texture
+	#var texture: ImageTexture = MediaServer.create_thumbnail_from_audio(\"\", test_audio_stream).texture
+	#texture_rect.texture = texture
+
+
+
+
+
+
+
+
+
 
 "
 
@@ -46,7 +55,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = SubResource("GDScript_gb6l1")
 image_path = "C:/Users/User/Documents/Images/Screenshot 2025-01-30 011939.png"
-audio_path = "C:/Users/User/Documents/Godot Projects/edit-app/untitled.mp3"
+audio_path = "C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
 
 [node name="ColorRect" type="ColorRect" parent="."]
 layout_mode = 1
@@ -55,7 +64,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0605303, 0.0605303, 0.0605303, 1)
+color = Color(0.348212, 0.249468, 0.848094, 1)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -69,6 +78,7 @@ grow_vertical = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="TextureRect" type="TextureRect" parent="CenterContainer"]
 unique_name_in_owner = true

@@ -78,7 +78,7 @@ func on_selected() -> void:
 	var custom_color_index: int = colors.find(time_marker_res.custom_color)
 	
 	var name_line: LineEdit = IS.create_line_edit("Custom Name", time_marker_res.custom_name, null, {max_length = 24})
-	var color_menu: Menu = IS.create_menu(color_options, false, {custom_minimum_size = Vector2(0, 40)})
+	var color_menu: Menu = IS.create_menu(color_options, false, true, {custom_minimum_size = Vector2(0, 40)})
 	var description_controller: TextEdit = IS.create_text_edit_edit("Custom Description", time_marker_res.custom_description)[0]
 	var description_edit: IS.EditBoxContainer = description_controller.get_parent()
 	

@@ -48,7 +48,6 @@ var custom_color_palettes: Array
 
 # RealTime Nodes
 
-var save_component: SaveComponent
 
 # Right Side (Color Palettes)
 var color_palettes_box: BoxContainer
@@ -82,15 +81,6 @@ func _ready() -> void:
 	
 	# PopupControl
 	super()
-	
-	# Save Component
-	save_component = SaveComponent.new()
-	save_component.properties = ["custom_color_palettes"]
-	save_component.save_path = EditorServer.editor_path + "color_palettes.tres"
-	add_child(save_component)
-	
-	save_component.load_data()
-	
 	
 	# Start Color Controller Editor
 	var rgb_step = 1.0 / 255
@@ -132,7 +122,7 @@ func _ready() -> void:
 	type_menu = IS.create_menu([
 		MenuOption.new("RGB"),
 		MenuOption.new("HSV")
-	], false, {custom_minimum_size = Vector2(0, 40)})
+	], false, true, {custom_minimum_size = Vector2(0, 40)})
 	
 	# Spawn UI Nodes
 	color_control_box.add_child(color_shape)
@@ -169,7 +159,7 @@ func _ready() -> void:
 	add_child(margin_container)
 	
 	# Connections
-	popdowned.connect(save)
+	#popdowned.connect(save)
 	
 	color_shape.val_changed.connect(on_color_shape_val_changed)
 	color_val_line.val_changed.connect(on_color_val_line_val_changed)
@@ -234,7 +224,7 @@ func update() -> void:
 func create_new_palette(palette_name: String, built_in: bool, colors: Array) -> void:
 	var new_color_palette_res = ColorPaletteRes.new_res(palette_name, colors, built_in)
 	custom_color_palettes.append(new_color_palette_res)
-	save()
+	#save()
 
 func spawn_palette_box(color_palette_res: ColorPaletteRes) -> PaletteBox:
 	var palette_box = PaletteBox.new()
@@ -264,9 +254,6 @@ func update_custom_palettes() -> void:
 		if not color_palettes_spawned_already.has(color_palette_res):
 			var palette_box = spawn_palette_box(color_palette_res)
 			color_palettes_box.move_child(palette_box, 0)
-
-func save() -> void:
-	save_component.save_data()
 
 
 

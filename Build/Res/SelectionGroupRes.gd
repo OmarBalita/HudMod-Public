@@ -66,7 +66,7 @@ func clear_objects(filter_meta: Dictionary = {}, emit_change: bool = true) -> vo
 	if emit_change:
 		selected_objects_changed.emit()
 
-func get_objects(filter_meta: Dictionary = {}) -> Dictionary[String, Dictionary]:
+func get_selected_objects(filter_meta: Dictionary = {}) -> Dictionary[String, Dictionary]:
 	var objects: Dictionary[String, Dictionary]
 	if filter_meta.size():
 		for key: String in selected_objects:
@@ -75,6 +75,10 @@ func get_objects(filter_meta: Dictionary = {}) -> Dictionary[String, Dictionary]
 	else: objects = selected_objects
 	return objects
 
+func loop_selected_objects(method: Callable) -> void:
+	for key: String in selected_objects.keys():
+		var info: Dictionary = selected_objects[key]
+		if info.object: method.call(info.object, info.metadata)
 
 func update_focused(new_focused: Dictionary = {}) -> void:
 	if focused and focused.object:
@@ -85,6 +89,9 @@ func update_focused(new_focused: Dictionary = {}) -> void:
 
 func get_focused() -> Dictionary:
 	return focused
+
+func get_objects() -> Array:
+	return selected_objects.values().map(func(info: Dictionary) -> FocusControl: return info.object)
 
 func get_selected_meta() -> Array[Dictionary]:
 	var meta: Array[Dictionary]
@@ -107,7 +114,12 @@ func is_metadata_filtered(key: String, filter_metadata: Dictionary) -> bool:
 			return false
 	return true
 
-
-
-
+func clear_previously_freed_instances() -> void:
+	var selected_objects_keys: Array[String] = selected_objects.keys()
+	var loop_range: Array = range(0, selected_objects.size())
+	loop_range.reverse()
+	for index: int in loop_range:
+		var key: String = selected_objects_keys[index]
+		var info: Dictionary = selected_objects.get(key)
+		if not info.object: selected_objects.erase(key)
 

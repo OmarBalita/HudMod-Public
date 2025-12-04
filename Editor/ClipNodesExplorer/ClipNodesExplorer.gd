@@ -6,9 +6,7 @@ var root: TreeItem
 var curr_nodes: Dictionary
 
 
-func _ready() -> void:
-	super()
-	
+func _ready_editor() -> void:
 	nodes_tree = Tree.new()
 	IS.set_base_container_settings(nodes_tree)
 	body.add_child(nodes_tree)

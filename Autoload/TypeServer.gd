@@ -45,25 +45,25 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 	#{text = "Curve2D", type_id = Curve2D, dflt_ctrlr_args = [], ctrlr = null},
 ] # All resources inherited from UsableRes
 
-@onready var objects: Dictionary[int, Dictionary] = {
-	3: {text = "EmptyObject2D", icon = RES_ICON, type_id = EmptyObject2DRes, object_id = Node2D, category = "Object2D"},
-	#4: {text = "Text", icon = RES_ICON, thumbnail = RES_ICON, type_id = TextRes, object_id = Text, category = "Object2D"},
-	5: {text = "Draw", icon = RES_ICON, type_id = DrawRes, object_id = GDDraw, category = "Object2D"},
-	#6: {text = "Particles", icon = RES_ICON, thumbnail = RES_ICON, type_id = ParticlesRes, object_id = Particles, category = "Object2D"},
-	7: {text = "Camera2D", icon = RES_ICON, type_id = Camera2DRes, object_id = Camera2D, category = "Object2D"},
-	8: {text = "Audio2D", icon = RES_ICON, type_id = Audio2DRes, object_id = AudioStreamPlayer2D, category = "Object2D"},
+@onready var objects: Dictionary[StringName, Dictionary] = {
+	&"EmptyObject2D": {text = "EmptyObject2D", icon = RES_ICON, type_id = EmptyObject2DRes, category = "Object2D"},
+	&"Text2D": {text = "Text2D", icon = RES_ICON, type_id = Text2DRes, category = "Object2D"},
+	&"Camera2D": {text = "Camera2D", icon = RES_ICON, type_id = Camera2DRes, category = "Object2D"},
+	&"Audio2D": {text = "Audio2D", icon = RES_ICON, type_id = Audio2DRes, category = "Object2D"},
+	&"Draw": {text = "Draw", icon = RES_ICON, type_id = DrawRes, category = "Object2D"},
+	&"Particles2D": {text = "Particles2D", icon = RES_ICON, type_id = Particles2DRes, category = "Object2D"},
 }
 
-@onready var sections_hint: Dictionary[String, Dictionary] = {
-	"Display2D": {info = {text = "Display 2D", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Display2D"},
-	"Image": {info = {text = "Image", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Image"},
-	"Color": {info = {text = "Color", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Color"},
-	"Transition": {info = {text = "Transition", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Transition"},
-	"Sound": {info = {text = "Sound", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Sound"},
-	"Text": {info = {text = "Text", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Text"},
-	"Draw": {info = {text = "Draw", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Draw"},
-	"Particles": {info = {text = "Particles", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Particles"},
-	"Camera": {info = {text = "Camera", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Camera"}
+@onready var sections_hint: Dictionary[StringName, Dictionary] = {
+	&"Display2D": {info = {text = "Display 2D", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Display2D"},
+	&"Image": {info = {text = "Image", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Image"},
+	&"Color": {info = {text = "Color", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Color"},
+	&"Transition": {info = {text = "Transition", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Transition"},
+	&"Sound": {info = {text = "Sound", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Sound"},
+	&"Text": {info = {text = "Text", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Text"},
+	&"Draw": {info = {text = "Draw", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Draw"},
+	&"Particles": {info = {text = "Particles", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Particles"},
+	&"Camera": {info = {text = "Camera", icon = null}, folder_path = "res://Build/Res/UsableRes/Components/Camera"}
 } # Key: Section Key, Val: Components Folder Path
 
 @onready var components: Dictionary[String, Array]
@@ -78,7 +78,7 @@ func _ready() -> void:
 
 func update_components() -> void:
 	
-	for section_key: String in sections_hint:
+	for section_key: StringName in sections_hint:
 		
 		var section: Array = components.get_or_add(section_key, [])
 		var section_folder_path: String = sections_hint[section_key].folder_path
@@ -194,10 +194,4 @@ func get_sections_info(sections_keys: Array) -> Array[Dictionary]:
 	for section_key: String in sections_keys:
 		result.append(get_section_info(section_key))
 	return result
-
-
-
-
-
-
 

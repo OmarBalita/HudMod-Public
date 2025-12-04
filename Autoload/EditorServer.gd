@@ -29,7 +29,6 @@ var import_media_cards_selection_group:= SelectionGroupRes.new()
 var object_media_cards_selection_group:= SelectionGroupRes.new()
 var media_clips_selection_group:= SelectionGroupRes.new()
 var time_markers_selection_group:= SelectionGroupRes.new()
-var media_clips_focused: Array[MediaClip]
 
 # RealTime Variables
 # ---------------------------------------------------
@@ -51,12 +50,13 @@ var drawable_rect: DrawableRect
 
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
 
+var media_clips_focused: Array[MediaClip]
+var roll_buttons_spawned: Array[Button]
 
 # Background Called Functions
 # ---------------------------------------------------
 
-func _ready() -> void:
-	
+func _ready_editor_server() -> void:
 	DirAccess.make_dir_absolute(app_data_dir)
 	DirAccess.make_dir_absolute(editor_path)
 	
@@ -67,9 +67,17 @@ func _ready() -> void:
 	properties = get_tree().get_first_node_in_group("properties")
 	drawable_rect = get_tree().get_first_node_in_group("drawable_rect")
 	
+	player._ready_editor()
+	time_line._ready_editor()
+	media_explorer._ready_editor()
+	clip_nodes_explorer._ready_editor()
+	properties._ready_editor()
+	
 	get_window().files_dropped.connect(on_files_dropped)
 	
 	push_guides()
+
+
 
 # Frame
 # ---------------------------------------------------
@@ -166,7 +174,7 @@ func on_files_dropped(files_pathes: Array[String]) -> void:
 		for file_path: String in files_pathes:
 			media_explorer.import_media(file_path, false)
 			if insert_media:
-				ProjectServer.add_media_clip(
+				ProjectServer.add_imported_clip(
 					MediaServer.get_media_type_from_path(file_path),
 					file_path, target_layer_index, target_frame_index
 				)

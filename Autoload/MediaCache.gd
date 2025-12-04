@@ -56,13 +56,13 @@ func register_video_info(path: StringName) -> void:
 		&"audio": audio_stream
 	}
 	MediaServer.create_thumbnail_from_video_path(path)
-	MediaServer.create_timeline_waveform_images_from_audio(path, audio_stream)
+	MediaServer.create_timeline_waveform_textures_from_audio(path, audio_stream)
 
 func register_audio(path: StringName) -> void:
 	var audio_stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(path)
 	audio_stream_waves[path] = audio_stream
 	MediaServer.create_thumbnail_from_audio(path, audio_stream)
-	MediaServer.create_timeline_waveform_images_from_audio(path, audio_stream)
+	MediaServer.create_timeline_waveform_textures_from_audio(path, audio_stream)
 
 func push_video(media_res: MediaClipRes, path: StringName) -> void:
 	var video: Video = Video.new()

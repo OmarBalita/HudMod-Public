@@ -3,7 +3,7 @@ class_name Text2D extends Node2D
 
 signal text_changed(new_text: String)
 
-class LineData:
+class LineData extends Resource:
 	var segments: Array[Segment]
 	var max_height: float
 	var max_ascent: float
@@ -12,7 +12,7 @@ class LineData:
 	var line_text: String
 	var position: Vector2
 
-class Segment:
+class Segment extends Resource:
 	var glyphs: Array[Dictionary]
 	var slice: TextSliceRes
 	var width: float
@@ -60,8 +60,8 @@ enum PivotPosition {
 
 var ts: TextServer
 var total_text_size: Vector2 = Vector2.ZERO
-var chars_data: Array = []
-var shaped_texts: Array = []
+var chars_data: Array[CharacterData] = []
+var shaped_texts: Array[RID] = []
 var _non_space_map: PackedInt32Array
 
 func _init() -> void:
@@ -89,7 +89,7 @@ func update_data() -> void:
 	var max_line_width: float = 0.0
 	var total_height: float = 0.0
 	
-	for line_index in range(lines.size()):
+	for line_index: int in range(lines.size()):
 		var raw_line: String = lines[line_index]
 		var line_text: String = raw_line
 		if line_text.strip_edges().is_empty():
@@ -202,7 +202,7 @@ func _shape_multislice_line(line_text: String, line_start_index: int) -> Diction
 	
 	for i in range(line_text.length()):
 		var global_index: int = line_start_index + i
-		char_to_slice_map[i] = _get_slice_at_position_real(global_index)
+		char_to_slice_map[i] = _get_slice_at_position(global_index)
 	
 	var main_shaped: RID = ts.create_shaped_text()
 	
@@ -272,7 +272,7 @@ func _compose_segments_from_glyphs(ordered_glyphs: Array, line_text: String, lin
 	
 	for glyph in ordered_glyphs:
 		var char_index: int = line_start_index + glyph.start
-		var current_slice: TextSliceRes = _get_slice_at_position_real(char_index)
+		var current_slice: TextSliceRes = _get_slice_at_position(char_index)
 		
 		if last_slice != null and last_slice != current_slice:
 			if current_segment.glyphs.size() > 0:
@@ -372,23 +372,62 @@ func _calculate_total_line_width(segments: Array[Segment]) -> float:
 		total_width += segment.width
 	return total_width
 
+var offset_func_indexer: Array[Callable] = [
+	pivot_top_left_func,
+	pivot_top_center_func,
+	pivot_top_right_func,
+	pivot_center_left_func,
+	pivot_center_func,
+	pivot_center_right_func,
+	pivot_bottom_left_func,
+	pivot_bottom_center_func,
+	pivot_bottom_right_func
+]
+
+func pivot_top_left_func() -> Vector2:
+	return Vector2(total_text_size.x / 2.0, 0)
+
+func pivot_top_center_func() -> Vector2:
+	return Vector2.ZERO
+
+func pivot_top_right_func() -> Vector2:
+	return Vector2(-total_text_size.x / 2.0, 0)
+
+func pivot_center_left_func() -> Vector2:
+	return Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
+
+func pivot_center_func() -> Vector2:
+	return Vector2(0, -total_text_size.y / 2.0)
+
+func pivot_center_right_func() -> Vector2:
+	return Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
+
+func pivot_bottom_left_func() -> Vector2:
+	return Vector2(-total_text_size.x / 2.0, -total_text_size.y)
+
+func pivot_bottom_center_func() -> Vector2:
+	return Vector2(0, -total_text_size.y)
+
+func pivot_bottom_right_func() -> Vector2:
+	return Vector2(total_text_size.x / 2.0, -total_text_size.y)
+
 
 func _get_pivot_offset() -> Vector2:
-	var offset := Vector2.ZERO
 	
+	var offset:= Vector2.ZERO
 	match pivot_position:
 		PivotPosition.TOP_LEFT:
-			offset = Vector2(total_text_size.x / 2.0, 0)
+			offset = Vector2(-total_text_size.x / 2.0, 0)
 		PivotPosition.TOP_CENTER:
 			offset = Vector2.ZERO
 		PivotPosition.TOP_RIGHT:
-			offset = Vector2(-total_text_size.x / 2.0, 0)
+			offset = Vector2(total_text_size.x / 2.0, 0)
 		PivotPosition.CENTER_LEFT:
-			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
+			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
 		PivotPosition.CENTER:
 			offset = Vector2(0, -total_text_size.y / 2.0)
 		PivotPosition.CENTER_RIGHT:
-			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
+			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
 		PivotPosition.BOTTOM_LEFT:
 			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y)
 		PivotPosition.BOTTOM_CENTER:

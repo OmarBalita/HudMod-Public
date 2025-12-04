@@ -23,9 +23,7 @@ var warning_message_label: Label = IS.create_label("There is no Media Clip to Di
 var components_root_container: MarginContainer = IS.create_margin_container()
 
 
-func _ready() -> void:
-	super()
-	
+func _ready_editor() -> void:
 	warning_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	body.add_child(warning_message_label)
 	body.add_child(components_root_container)
@@ -162,11 +160,11 @@ func open_properties(media_clips: Array[MediaClip], focused_media_clip: MediaCli
 func add_new_component(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String, component_script: Script) -> void:
 	var component:= ComponentRes.new()
 	component.set_script(component_script)
-	focused_media_clip.clip_res.add_component(section_key, component, Scene.get_scene_node(focused_media_clip.layer_index))
+	focused_media_clip.clip_res.add_component(section_key, component)
 	update_section_properties(media_clips, focused_media_clip, section_key)
 
 func delete_component(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String, component: ComponentRes) -> void:
-	focused_media_clip.clip_res.erase_component(section_key, component, Scene.get_scene_node(focused_media_clip.layer_index))
+	focused_media_clip.clip_res.erase_component(section_key, component)
 	update_section_properties(media_clips, focused_media_clip, section_key)
 
 func update_section_properties(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String) -> void:
@@ -227,7 +225,7 @@ func get_component_index_from_display_pos(comp_container: BoxContainer, pos: flo
 
 func on_media_clips_selection_group_selected_objects_changed() -> void:
 	
-	var objects: Dictionary[String, Dictionary] = media_clips_selection_group.get_objects()
+	var objects: Dictionary[String, Dictionary] = media_clips_selection_group.get_selected_objects()
 	var focused_object: Dictionary = media_clips_selection_group.focused
 	
 	var selected_media_clips: Array[MediaClip]
@@ -238,10 +236,11 @@ func on_media_clips_selection_group_selected_objects_changed() -> void:
 		var info: Dictionary = objects[key]
 		if not info.object: continue
 		var object: MediaClip = info.object
-		var object_type: int = object.type
-		selected_media_clips.append(object)
-		if not types_selected.has(object_type):
-			types_selected.append(object_type)
+		if object is ImportedClip:
+			var object_type: int = object.type
+			selected_media_clips.append(object)
+			if not types_selected.has(object_type):
+				types_selected.append(object_type)
 	
 	if focused_object.size() and focused_object.object:
 		focused_media_clip = focused_object.object

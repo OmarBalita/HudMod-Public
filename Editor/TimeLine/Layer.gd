@@ -1,6 +1,15 @@
 class_name Layer extends DrawableRect
 
-@export var index: int = 0
+signal updated()
+
+@export var index: int = 0:
+	set(val):
+		index = val
+		displayed_media_clips_clear()
+		if is_node_ready():
+			update_customization_ui()
+
+@export var is_root_layer: bool = false
 
 func get_layer_index() -> int:
 	return index
@@ -42,11 +51,13 @@ var mute_button: TextureButton
 var more_button: TextureButton
 
 
+
 # Background Called Functions
 # ---------------------------------------------------
 
-func _init(_index: int = 0) -> void:
+func _init(_index: int = 0, _is_root_layer: bool = false) -> void:
 	index = _index
+	is_root_layer = _is_root_layer
 
 func _ready() -> void:
 	
@@ -63,21 +74,26 @@ func _ready() -> void:
 	custom_color_rect = IS.create_color_rect(Color(), {custom_minimum_size = Vector2(5.0, .0)})
 	lock_button = IS.create_texture_button(texture_unlock, null, null, true)
 	layer_label = IS.create_name_label(str("Layer ", index)); layer_label.custom_minimum_size.x = 100.0
-	hide_button = IS.create_texture_button(texture_show, null, null, true)
-	mute_button = IS.create_texture_button(texture_unmute, null, null, true)
-	more_button = IS.create_texture_button(texture_more)
 	
 	container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	IS.add_childs(container, [
 		IS.create_empty_control(),
 		custom_color_rect,
 		lock_button,
-		layer_label,
-		hide_button,
-		mute_button,
-		more_button,
-		IS.create_empty_control()
+		layer_label
 	])
+	hide_button = IS.create_texture_button(texture_show, null, null, true)
+	hide_button.pressed.connect(on_hide_button_pressed)
+	container.add_child(hide_button)
+	if is_root_layer:
+		mute_button = IS.create_texture_button(texture_unmute, null, null, true)
+		mute_button.pressed.connect(on_mute_button_pressed)
+		container.add_child(mute_button)
+	more_button = IS.create_texture_button(texture_more)
+	more_button.pressed.connect(on_more_button_pressed)
+	container.add_child(more_button)
+	container.add_child(IS.create_empty_control())
+	
 	side_rect.add_child(container)
 	add_child(side_rect)
 	
@@ -88,46 +104,44 @@ func _ready() -> void:
 	EditorServer.time_line.timeline_view_changed.connect(update)
 	
 	lock_button.pressed.connect(on_lock_button_pressed)
-	hide_button.pressed.connect(on_hide_button_pressed)
-	mute_button.pressed.connect(on_mute_button_pressed)
-	more_button.pressed.connect(on_more_button_pressed)
 	
 	# Update
 	update_customization_ui()
 
-func _gui_input(event: InputEvent) -> void:
-	
-	#if EditorServer.media_clips_focused:
-		#return
-	
-	#if event is InputEventMouseButton:
-		#if event.button_index == MOUSE_BUTTON_RIGHT:
-			#if event.is_pressed(): press_pos = event.position
-			#elif press_pos.distance_to(event.position) <= 5.0:
-				#var menu = IS.create_popuped_menu([MenuOption.new("Past")])
-				#get_tree().get_current_scene().add_child(menu)
-				#menu.popup()
-	
-	pass
 
 func _draw() -> void:
-	var is_locked: bool = ProjectServer.get_layer_lock(index)
-	var is_hidden: bool = ProjectServer.get_layer_hide(index)
-	var is_muted: bool = ProjectServer.get_layer_mute(index)
-	lock_button.change_button_pressed(is_locked)
-	hide_button.change_button_pressed(is_hidden)
-	mute_button.change_button_pressed(is_muted)
 	draw_line(Vector2.ZERO, Vector2(size.x, .0), Color(Color.BLACK, .5), 5)
-	if is_locked:
-		var dist_between: float = 30.0
-		for time: int in size.x / dist_between:
-			var x_pos: float = time * dist_between
-			draw_line(Vector2(x_pos + 50, -5), Vector2(x_pos, curr_y_size + 5), Color(Color.YELLOW, .2), 10.0)
+	if ProjectServer.curr_layers.has(index):
+		var is_locked: bool = ProjectServer.get_layer_lock(index)
+		lock_button.change_button_pressed(is_locked)
+		if is_root_layer:
+			var is_muted: bool = ProjectServer.get_layer_mute(index)
+			mute_button.change_button_pressed(is_muted)
+		var is_hidden: bool = ProjectServer.get_layer_hide(index)
+		hide_button.change_button_pressed(is_hidden)
+		if is_locked:
+			var dist_between: float = 30.0
+			for time: int in size.x / dist_between:
+				var x_pos: float = time * dist_between
+				draw_line(Vector2(x_pos + 50, -5), Vector2(x_pos, curr_y_size + 5), Color(Color.YELLOW, .2), 10.0)
 	super()
 
 
 # Process Functions
 # ---------------------------------------------------
+
+func select_media_clip(clip_pos: int) -> void:
+	if displayed_media_clips.has(clip_pos):
+		displayed_media_clips[clip_pos].clip.select(true, false, false, false)
+
+func set_clips_modulate(new_modulate: Color) -> void:
+	clips_control.modulate = new_modulate
+
+func set_clips_modulate_transparent() -> void:
+	set_clips_modulate(Color(1.,1.,1.,.3))
+
+func set_clips_modulate_white() -> void:
+	set_clips_modulate(Color.WHITE)
 
 func loop_displayed_media_clips(method: Callable) -> void:
 	for frame_in: int in displayed_media_clips.keys():
@@ -139,13 +153,6 @@ func displayed_media_clips_select_all() -> void:
 		var media_clip: MediaClip = info.clip
 		media_clip.select(true, false, false, false)
 	)
-	#loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
-		#var media_clip: MediaClip = info.clip
-		#media_clip.focus_panel.show()
-		#media_clip.l_expand_button.show()
-		#media_clip.r_expand_button.show()
-	#)
-
 
 func displayed_media_clips_deselect_all() -> void:
 	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
@@ -163,6 +170,18 @@ func displayed_media_clips_update_expand_buttons() -> void:
 	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
 		displayed_media_clips[frame_in].clip.update_expand_buttons()
 	)
+
+func displayed_media_clips_clip_control_update_ui_transform() -> void:
+	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
+		displayed_media_clips[frame_in].clip.clip_control._update_ui_transform()
+	)
+
+func displayed_media_clips_set_modulate(new_modulate: Color, media_clips_ignored: Array = []) -> void:
+	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
+		if not media_clips_ignored.has(info.clip):
+			displayed_media_clips[frame_in].clip.modulate = new_modulate
+	)
+
 
 
 func update(select_new_clips: bool = true) -> void:
@@ -197,21 +216,29 @@ func spawn_and_manage_clips(select_new_clips: bool) -> void:
 		if displayed_media_clips.has(frame_in):
 			clip = displayed_media_clips[frame_in].clip
 		else:
-			clip = MediaClip.new()
-			var clip_type: int = clip_res.type
+			
+			if clip_res is ImportedClipRes:
+				clip = ImportedClip.new()
+				var clip_type: int = clip_res.type
+				clip.type = clip_type
+				# Interface Setup
+				var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
+				var clip_panel: MediaServer.ClipPanel = clip_panel_id.new(clip)
+				clip.set_clip_control(clip_panel)
+			
+			elif clip_res is ObjectClipRes:
+				clip = ObjectClip.new()
+				var clip_panel: MediaServer.ObjectClipPanel = MediaServer.ObjectClipPanel.new(clip)
+				clip.set_clip_control(clip_panel)
+			
 			# Setup Clip Informations
 			ObjectServer.describe(clip, {
 				layer = self,
-				type = clip_type,
 				layer_index = index,
 				clip_pos = frame_in,
 				clip_res = clip_res
 			})
-			# Interface Setup
-			var clip_panel:= MediaServer.ClipPanelContainer.new()
-			IS.set_base_panel_settings(clip_panel, MediaServer.media_clip_info[clip_type].style)
-			clip.set_clip_control(clip_panel)
-			# clip.set_clip_control(IS.create_clip_basic_control(media_clip_info.default_name, media_clip_info.style))
+			
 			# Connections
 			clip.selected.connect(on_clip_selected)
 			clip.deselected.connect(on_clip_deselected)
@@ -227,12 +254,13 @@ func spawn_and_manage_clips(select_new_clips: bool) -> void:
 		
 		var length: int = clip_res.length
 		if clip.is_editing:
-			frame_in = clip.edit_frame_in
+			frame_in = clip.edit_clip_pos
 			length = clip.edit_length
 		var display_begin_pos: float = timeline.get_display_pos_from_frame(frame_in, self)
 		var display_end_pos: float = timeline.get_display_pos_from_frame(frame_in + length, self)
 		clip.position = Vector2(display_begin_pos, .0)
 		clip.size = Vector2(display_end_pos - display_begin_pos, curr_y_size)
+		clip.clip_control._update_ui_transform()
 
 func clear_removed_clips() -> void:
 	var removable_frame_in: Array[int]
@@ -246,11 +274,12 @@ func clear_removed_clips() -> void:
 	for frame_in: int in removable_frame_in:
 		displayed_media_clips[frame_in].clip.queue_free()
 		displayed_media_clips.erase(frame_in)
-
+	
+	updated.emit()
 
 func update_force_existing() -> void:
 	await get_tree().process_frame
-	var selected_clips = EditorServer.media_clips_selection_group.get_objects({"layer_index": index}).size()
+	var selected_clips = EditorServer.media_clips_selection_group.get_selected_objects({"layer_index": index}).size()
 	force_existing = selected_clips
 	#printt("force_existing updated with index:", index, ", force_existing:", force_existing)
 

@@ -5,7 +5,7 @@ const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
 const COLOR_DARK_BG = Color(0.118, 0.118, 0.129)        # #141417
 const COLOR_DARK_PANEL = Color(0.071, 0.071, 0.086)     # #1e1e24
 const COLOR_DARK_HEADER = Color(0.129, 0.129, 0.137)    # #0f0f12
-const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)       # #3399ff
+const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)     # #3399ff
 const COLOR_ACCENT_BLUE_HIGHLIGHT = Color(0.616, 0.749, 0.945)
 const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
 const COLOR_SUCCESS_GREEN = Color(0.2, 0.8, 0.4, 1.0)     # #33cc66
@@ -20,13 +20,13 @@ const COLOR_SELECTION = Color(0.2, 0.6, 1.0, 0.3)         # #3399ff with alpha
 
 const RAINBOW_COLORS: Array[Color] = [
 	Color(0.6, 0.6, 0.6), # Gray
-	Color(0.698, 0.4, 1.0), # Violet
+	Color(0.672, 0.384, 0.96), # Violet
 	Color(0.4, 0.6, 1.0), # Blue
-	Color(0.4, 0.8, 1.0), # Cyan
-	Color(0.0, 0.82, 0.72), # Green
-	Color(1.0, 1.0, 0.6), # Yellow
-	Color(1.0, 0.8, 0.4), # Orange
-	Color(1.0, 0.6, 0.6)  # Red
+	Color(0.384, 0.769, 0.961), # Cyan
+	Color(0.478, 0.902, 0.361), # Green
+	Color(0.98, 0.97, 0.392), # Yellow
+	Color(1.0, 0.796, 0.349), # Orange
+	Color(1.0, 0.32, 0.388)  # Red
 ]
 
 const EDIT_BOX_MIN_SIZE: Vector2 = Vector2(32, 32)
@@ -49,7 +49,6 @@ var STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeS
 var STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
 var STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
 var STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
-
 
 # Create modern styles programmatically
 var STYLE_BOX_EMPTY: StyleBoxEmpty
@@ -573,43 +572,44 @@ func create_category(has_header: bool, category_name: StringName, custom_color: 
 
 
 
-func create_menu(options: Array, is_vertical: bool = false, more: Dictionary = {}) -> Menu:
+func create_menu(options: Array, is_vertical: bool = false, is_expanded: bool = true, more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
 	menu.options = options
 	menu.is_vertical = is_vertical
+	expand(menu, is_expanded, false)
 	ObjectServer.describe(menu, more)
 	return menu
 
 func create_popuped_text(text: String = "", more: Dictionary = {}) -> PopupedText:
 	var pop_text = PopupedText.new()
-	set_base_panel_settings(pop_text, IS.STYLE_BODY)
+	set_base_panel_settings(pop_text, STYLE_PANEL)
 	pop_text.text = text
 	ObjectServer.describe(pop_text, more)
 	return pop_text
 
 func create_popuped_menu(options: Array, more: Dictionary = {}) -> PopupedMenu:
 	var pop_menu = PopupedMenu.new()
-	set_base_panel_settings(pop_menu, IS.STYLE_BODY)
+	set_base_panel_settings(pop_menu, STYLE_PANEL)
 	pop_menu.options = options
 	ObjectServer.describe(pop_menu, more)
 	return pop_menu
 
 func create_popuped_categories_menu(options: Dictionary[MenuOption, Array], more: Dictionary = {}) -> PopupedCategoriesMenu:
 	var pop_categories_menu:= PopupedCategoriesMenu.new(options)
-	set_base_panel_settings(pop_categories_menu, IS.STYLE_BODY)
+	set_base_panel_settings(pop_categories_menu, STYLE_PANEL)
 	ObjectServer.describe(pop_categories_menu, more)
 	return pop_categories_menu
 
 func create_popuped_color_controller(main_color: Color, more: Dictionary = {}) -> PopupedColorController:
 	var pop_color_controller = PopupedColorController.new()
-	set_base_panel_settings(pop_color_controller, IS.STYLE_BODY)
+	set_base_panel_settings(pop_color_controller, STYLE_PANEL)
 	pop_color_controller.curr_color = main_color
 	ObjectServer.describe(pop_color_controller, more)
 	return pop_color_controller
 
 func create_popuped_box(elements: Array, more: Dictionary = {}) -> PopupedBox:
 	var pop_box = PopupedBox.new()
-	set_base_panel_settings(pop_box, IS.STYLE_BODY)
+	set_base_panel_settings(pop_box, STYLE_PANEL)
 	pop_box.elements = elements
 	ObjectServer.describe(pop_box, more)
 	return pop_box
@@ -657,9 +657,9 @@ func create_option_controller(options_info: Array[Dictionary], save_path: String
 	else: set_button_style(option_controller, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
 	
 	option_controller.icon = TEXTURE_DOWN
-	option_controller.options_info = options_info
+	option_controller.options = MenuOption.new_options_with_check_group(options_info, save_path, default_id)
 	option_controller.save_path = save_path
-	option_controller.default_index = default_id
+	option_controller.selected_id = default_id
 	
 	ObjectServer.describe(option_controller, more)
 	return option_controller
@@ -906,8 +906,8 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 
 
 
-func create_layer(id: int, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
-	var layer = Layer.new(id)
+func create_layer(id: int, is_root_layer: bool, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
+	var layer = Layer.new(id, is_root_layer)
 	ObjectServer.describe(layer, {
 		curr_y_size = y_size,
 		side_panel_x_size = side_panel_x_size,

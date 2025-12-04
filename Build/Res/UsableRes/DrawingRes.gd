@@ -69,7 +69,6 @@ func _init(init_points: PackedVector2Array = [], init_drawn_entities: Array[Draw
 	res_changed.connect(on_res_changed)
 	points_changed.connect(on_points_changed)
 
-
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var line_cond = [get_draw_line, [true]]
 	var display_container = _get_drawing_res_display_viewport_container()
@@ -106,12 +105,12 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 
 
 func _get_drawing_res_display_viewport_container() -> SubViewportContainer:
-	var viewport_container = IS.create_viewport_container({stretch = true, custom_minimum_size = Vector2(0, 80.0)})
-	var viewport = SubViewport.new()
+	var viewport_container:= IS.create_viewport_container({stretch = true, custom_minimum_size = Vector2(0, 80.0)})
+	var viewport:= SubViewport.new()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	
-	var drawing_node = GDDrawingNode.new()
-	var camera = Camera2D.new()
+	var drawing_node:= GDDrawingNode.new()
+	var camera:= Camera2D.new()
 	
 	viewport.add_child(drawing_node)
 	viewport.add_child(camera)

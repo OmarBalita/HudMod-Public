@@ -12,7 +12,6 @@ enum MethodType {
 	set(val):
 		owner = val
 		if owner:
-			print("owner changed")
 			_update()
 			res_changed.connect(func() -> void: print("res_changed emited"))
 			res_changed.connect(_update)
@@ -26,7 +25,6 @@ enum MethodType {
 @export var method_type: MethodType = 1:
 	set(val):
 		if owner and method_type != val:
-			print("method_type changed")
 			_update()
 		method_type = val
 

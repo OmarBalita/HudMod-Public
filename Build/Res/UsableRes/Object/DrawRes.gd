@@ -3,8 +3,12 @@ class_name DrawRes extends ObjectRes
 @export var drawings_ress: Array[GDDrawingRes]
 
 func _init() -> void:
-	set_res_id("Draw")
-	set_object_media_type(5)
+	set_res_id(&"Draw")
+
+func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
+	var draw:= GDDraw.new()
+	Scene2.instance_object_2d(parent_res, media_res, draw, layer_index, frame_in, root_layer_index)
+	return draw
 
 func get_drawings_ress() -> Array[GDDrawingRes]:
 	return drawings_ress

@@ -10,7 +10,7 @@ func create_folder(display_path: Array, folder_name: String) -> void:
 		&"date": Time.get_unix_time_from_system()
 	}
 
-func create_file(display_path: Array, file_path: String, store_cache: bool = true) -> void:
+func create_file(display_path: Array, file_path: String) -> void:
 	var curr_dir: Dictionary = get_dir(display_path)
 	var media_type_result: int = MediaCache.register_from_path(file_path)
 	curr_dir[file_path] = {

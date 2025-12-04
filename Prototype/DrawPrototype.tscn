@@ -16,7 +16,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(1382, 778)
+size = Vector2i(1700, 800)
 render_target_update_mode = 4
 
 [node name="GDDraw" type="Node2D" parent="SubViewportContainer/SubViewport"]
@@ -27,6 +27,7 @@ metadata/_custom_type_script = "uid://c2ejkss1jnbne"
 rotation = 0.00124382
 script = ExtResource("2_es7rl")
 draw_node = NodePath("../GDDraw")
+brushes = Array[Object]([])
 
 [node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport"]
 anchor_mode = 0

@@ -25,26 +25,29 @@ const AUDIO_EXTENSIONS: PackedStringArray = ["wav", "ogg", "mp3", "flac", "opus"
 const MEDIA_EXTENSIONS: PackedStringArray = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS + AUDIO_EXTENSIONS
 const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS]
 
-var media_clip_info: Dictionary[int, Dictionary] = {
-	0: {default_name = "Image", sections = ["Display2D", "Image", "Color", "Transition"], style = preload("uid://d0sgurvxit0n2")}, # Image
-	1: {default_name = "Video", sections = ["Display2D", "Image", "Color", "Transition", "Sound"], style = preload("uid://bnc4n8cvuae5s")}, # Video
-	2: {default_name = "Audio", sections = ["Sound"], style = preload("uid://djbj0r563olrv")}, # Audio
-	3: {default_name = "Empty Object 2D", sections = ["Display2D"], style = preload("uid://djp5a3r486n1c"), thumbnail = preload("uid://cnd2y4daw32sc")}, # Empty Object 2D
-	4: {default_name = "Text", sections = ["Display2D", "Transition", "Text"], style = preload("uid://bum2qjv15h7uu"), thumbnail = null}, # Text
-	5: {default_name = "Draw", sections = ["Display2D", "Color", "Draw"], style = preload("uid://bdh5bw2do3yxc"), thumbnail = preload("uid://b34e2o0he11w5")}, # Draw
-	6: {default_name = "Particles", sections = ["Display2D", "Particles"], style = preload("uid://cutvayr76572b"), thumbnail = null}, # Particles
-	7: {default_name = "Camera 2D", sections = ["Display2D", "Camera"], style = preload("uid://dxxh6guqix0k"), thumbnail = preload("uid://dbafad8ipb25s")}, # Camera 2D
-	8: {default_name = "Audio 2D", sections = ["Display2D", "Sound"], style = preload("uid://pk4vsqxdvixi"), thumbnail = preload("uid://bodxdwiaqu416")} # Audio 2D
+var imported_clip_info: Dictionary[int, Dictionary] = {
+	0: {default_name = "Image", sections = ["Display2D", "Image", "Color", "Transition"], clip_panel = ImageClipPanel},
+	1: {default_name = "Video", sections = ["Display2D", "Image", "Color", "Transition", "Sound"], clip_panel = VideoClipPanel},
+	2: {default_name = "Audio", sections = ["Sound"], clip_panel = AudioClipPanel},
+}
+
+var object_clip_info: Dictionary[StringName, Dictionary] = {
+	&"EmptyObject2D": {sections = ["Display2D"]},
+	&"Text2D": {sections = ["Display2D", "Transition", "Text"], },
+	&"Draw": {sections = ["Display2D", "Color", "Draw"]},
+	&"Particles2D": {sections = ["Display2D", "Particles"]},
+	&"Camera2D": {sections = ["Display2D", "Camera"]},
+	&"Audio2D": {sections = ["Display2D", "Sound"]},
 }
 
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
 const TIMELINE_VIDEO_IMAGE_WIDTH: int = 64
-const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 512
+const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 256
 
 var thumbnails: Dictionary[StringName, Dictionary]
-var timeline_video_images: Dictionary[StringName, Array]
-var timeline_waveform_images: Dictionary[StringName, Array]
+var timeline_video_textures: Dictionary[StringName, Dictionary]
+var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
 @onready var editor_settings: AppEditorSettings = EditorServer.editor_settings
 
@@ -80,48 +83,56 @@ func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV)
 func get_thumbnail(key_as_path: StringName) -> Dictionary:
 	return thumbnails[key_as_path]
 
-func create_timeline_video_images_from_video_path(video_path: StringName) -> Array[Image]:
+func create_timeline_video_textures_from_video_path(video_path: StringName) -> Array[Image]:
 	return []
 
-func get_timeline_video_images() -> Array[Image]:
+func get_timeline_video_textures() -> Array[Image]:
 	return []
 
-func get_timeline_video_images_range(frame_start: int, frame_end: int) -> Array[int]:
+func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Array[int]:
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
-func create_timeline_waveform_images_from_audio(key_as_path: StringName, audio: AudioStreamWAV) -> Array[Image]:
-	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 1, 2, Color.TRANSPARENT)
-	timeline_waveform_images[key_as_path] = waveform_images
+func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV) -> Array[Image]:
+	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
+	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
+	var total_width: int
+	for image: Image in waveform_images:
+		total_width += image.get_width()
+	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
 	return waveform_images
 
-func get_timeline_waveform_images(key_as_path: StringName) -> Array[Image]:
-	return timeline_waveform_images[key_as_path]
+func get_timeline_waveform_textures(key_as_path: StringName) -> Dictionary:
+	return timeline_waveform_textures[key_as_path]
 
-func get_timeline_waveform_images_range(frame_start: int, frame_end: int) -> Array[int]:
-	return [
-		frame_start / TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
-		frame_start % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
-		frame_end / TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
-		frame_end % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH
-	] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
+func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
+	return Vector2i(
+		frame_in / TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
+		frame_in % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH
+	)
 
-func get_media_length(media_type: int, key_as_path: StringName) -> float:
+func get_media_default_length(media_type: int, key_as_path: StringName, default_length: float = editor_settings.media_clip_default_length) -> float:
 	var media_length: float
-	
 	match media_type:
-		
-		MediaClipRes.MediaType.MEDIA_TYPE_VIDEO:
+		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
 			var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
 			media_length = video_info.frame_count * video_info.frame_rate
-		
-		MediaClipRes.MediaType.MEDIA_TYPE_AUDIO:
+		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
 			media_length = MediaCache.get_audio(key_as_path).get_length()
-		
-		_:
-			media_length = EditorServer.editor_settings.media_clip_default_length
-	
+		_: media_length = default_length
 	return media_length
 
+func get_media_default_from_and_length(media_res: MediaClipRes, default_from: int = -INF, default_length: int = INF) -> Vector2i:
+	var result: Vector2i = Vector2i(default_from, default_length)
+	if media_res is ImportedClipRes:
+		var fps: int = ProjectServer.fps
+		var key_as_path: StringName = media_res.key_as_path
+		match media_res.type:
+			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
+				var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
+				result = Vector2i(-1, video_info.frame_count * video_info.frame_rate * fps)
+			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
+				result = Vector2i(-1, MediaCache.get_audio(key_as_path).get_length() * fps)
+	return result
 
 # Written by Omar TOP and edited by Claude AI
 func generate_waveform_images(stream: AudioStreamWAV, draw_func: Callable, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
@@ -129,8 +140,8 @@ func generate_waveform_images(stream: AudioStreamWAV, draw_func: Callable, pixel
 	
 	var length: float = stream.get_length()
 	var pixels_per_length: int = length * pixels_per_second
-	var images_count: int = pixels_per_length / width
-	var chunk_length: float = length / images_count
+	var images_count: int = pixels_per_length / float(width)
+	var chunk_length: float = width / float(pixels_per_second)
 	
 	var pixels_remained: int = pixels_per_length % width
 	
@@ -228,21 +239,217 @@ func draw_waveform_line_thumbnail(image: Image, width: int, height: int, line_wi
 	)
 
 func draw_waveform_line_timeline(image: Image, width: int, height: int, line_width: int, x: int, sample: float) -> void:
+	#var sample_height: int = int(sample * height)
+	#for y: int in sample_height:
+		#if y > height - 5: color = editor_settings.media_clip_waveform_high_color
+		#elif y < height - 10: color = editor_settings.media_clip_waveform_low_color
+		#else: color = editor_settings.media_clip_waveform_medium_color
+		#for time: int in line_width:
+			#image.set_pixel(x + time, height - y - 1, Color(Color.BLACK, .6))
+	var offset: float = x / float(width)
+	
+	var height_half: int = height / 2
 	var sample_height: int = int(sample * height)
-	for y: int in sample_height:
-		var color: Color
-		if y > height - 5: color = editor_settings.media_clip_waveform_high_color
-		elif y < height - 10: color = editor_settings.media_clip_waveform_low_color
-		else: color = editor_settings.media_clip_waveform_medium_color
-		image.set_pixel(x, height - y - 1, color)
+	
+	image.fill_rect(
+		Rect2i(
+			Vector2i(x, height_half - sample_height / 2.0),
+			Vector2i(line_width, sample_height)
+		),
+		Color(Color.BLACK, .6)
+	)
 
 
-class ClipPanelContainer extends PanelContainer:
+class ClipPanel extends Panel:
+	
+	var owner_as_media_clip: MediaClip
+	var has_clips: bool
+	
+	var curr_frame_in: int
+	var curr_length: int
+	
+	var info_container: BoxContainer
+	
+	func _init(_owner_as_media_clip: MediaClip) -> void:
+		set_owner_as_media_clip(_owner_as_media_clip)
 	
 	func _ready() -> void:
+		has_clips = owner_as_media_clip.clip_res.has_clips()
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		self.set_mouse_filter(Control.MOUSE_FILTER_PASS)
+		_ready_ui()
+		_update_ui()
+	
+	func _draw() -> void:
+		if has_clips:
+			draw_polygon(PackedVector2Array([
+				size, size - Vector2(30.0, .0), size - Vector2(.0, 30.0),
+			]), PackedColorArray([Color(.0,.0,.0,.6)]))
+	
+	func _ready_ui() -> void:
+		var margin_container: MarginContainer = IS.create_margin_container(8, 8, 4, 4)
+		info_container = IS.create_box_container(8, false, {})
+		
+		var thumbnail: Texture2D = _get_ui_thumbnail()
+		if thumbnail:
+			var thumbnail_rect: TextureRect = IS.create_texture_rect(thumbnail, {})
+			thumbnail_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			thumbnail_rect.custom_minimum_size.x = MediaServer.THUMBNAIL_TARGET_WIDTH
+			info_container.add_child(thumbnail_rect)
+		
+		var name: String = _get_ui_name()
+		if name:
+			var name_label:= IS.create_name_label(name)
+			name_label.label_settings = null
+			name_label.add_theme_font_size_override("font_size", 14)
+			name_label.add_theme_color_override("font_color", Color(1.,1.,1.,.8))
+			name_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+			IS.expand(name_label, true, true)
+			info_container.add_child(name_label)
+		
+		margin_container.add_child(info_container)
+		add_child(margin_container)
+	
+	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
+		curr_frame_in = frame_in
+		curr_length = length
+	
+	func _update_ui_transform() -> void:
+		await get_tree().process_frame
+		var offset: float = max(8, EditorServer.time_line.global_position.x - global_position.x + 298.0)
+		info_container.position.x = offset
+	
+	func _get_ui_thumbnail() -> Texture2D:
+		return null
+	
+	func _get_ui_name() -> String:
+		return owner_as_media_clip.clip_res.key_as_path.get_file()
+	
+	func get_owner_as_media_clip() -> MediaClip:
+		return owner_as_media_clip
+	func set_owner_as_media_clip(new_val: MediaClip) -> void:
+		owner_as_media_clip = new_val
 
+class ImageClipPanel extends ClipPanel:
+	
+	func _ready() -> void:
+		super()
+		add_theme_stylebox_override(&"panel", preload("uid://d0sgurvxit0n2"))
+	
+	func _get_ui_thumbnail() -> Texture2D:
+		return MediaServer.get_thumbnail(owner_as_media_clip.clip_res.key_as_path).texture
 
+class VideoClipPanel extends ClipPanel:
+	func _ready() -> void:
+		super()
+		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
+
+class AudioClipPanel extends ClipPanel:
+	@onready var waveform_box_container: BoxContainer = IS.create_box_container(0, false, {})
+	
+	var texture_rects: Dictionary[int, TextureRect]
+	
+	var curr_waveform_textures_total_width: float
+	var curr_waveform_start_index: Vector2i
+	var curr_waveform_end_index: Vector2i
+	
+	func _ready() -> void:
+		super()
+		add_theme_stylebox_override(&"panel", preload("uid://djbj0r563olrv"))
+	
+	func _ready_ui() -> void:
+		add_child(waveform_box_container)
+		super()
+	
+	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
+		
+		var clip_res: MediaClipRes = owner_as_media_clip.clip_res
+		if frame_in == -1: frame_in = clip_res.from
+		if length == -1: length = clip_res.length
+		super(frame_in, length)
+		
+		var waveform_start_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in)
+		var waveform_end_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in + length)
+		
+		var waveform_textures_info: Dictionary = MediaServer.get_timeline_waveform_textures(clip_res.key_as_path)
+		var waveform_textures: Array = waveform_textures_info.textures
+		var ranged_waveform_textures: Array = waveform_textures.slice(waveform_start_index.x, waveform_end_index.x)
+		
+		# Remove
+		for index: int in texture_rects.keys():
+			if index < waveform_start_index.x or index > waveform_end_index.x:
+				texture_rects[index].queue_free()
+				texture_rects.erase(index)
+		
+		var curr_total_width: float
+		
+		for texture: ImageTexture in ranged_waveform_textures:
+			curr_total_width += texture.get_width()
+		
+		if waveform_end_index.y:
+			var last_texture_index: int = waveform_start_index.x + ranged_waveform_textures.size()
+			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
+			curr_total_width += last_waveform_texture.get_width()
+		
+		var texture_ratio: float = MediaServer.TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH / curr_total_width
+		for index: int in range(waveform_start_index.x, waveform_end_index.x):
+			var texture: ImageTexture = waveform_textures[index]
+			if not texture_rects.has(index):
+				texture_rects[index] = _push_waveform_texture_rect(texture)
+			texture_rects[index].size_flags_stretch_ratio = texture_ratio
+		
+		if waveform_end_index.y:
+			var last_texture_index: int = waveform_start_index.x + ranged_waveform_textures.size()
+			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
+			var last_texture_ratio: float = last_waveform_texture.get_width() / curr_total_width
+			if not texture_rects.has(last_texture_index):
+				texture_rects[last_texture_index] = _push_waveform_texture_rect(last_waveform_texture)
+			texture_rects[last_texture_index].size_flags_stretch_ratio = last_texture_ratio
+		
+		texture_rects.sort()
+		
+		for time: int in texture_rects.size():
+			var index: int = texture_rects.keys()[time]
+			var texture_rect: TextureRect = texture_rects[index]
+			waveform_box_container.move_child(texture_rect, time)
+		
+		curr_waveform_textures_total_width = curr_total_width
+		curr_waveform_start_index = waveform_start_index
+		curr_waveform_end_index = waveform_end_index
+		
+		_update_ui_transform()
+	
+	func _update_ui_transform() -> void:
+		var length_ratio: float = owner_as_media_clip.size.x / curr_length
+		var textures_total_size: float = curr_waveform_textures_total_width * length_ratio
+		var waveform_start_offset: float = curr_waveform_start_index.y * length_ratio
+		
+		waveform_box_container.position.x = -waveform_start_offset
+		waveform_box_container.size.x = textures_total_size
+		
+		super()
+	
+	func _push_waveform_texture_rect(texture: ImageTexture) -> Control:
+		var texture_rect: TextureRect = IS.create_texture_rect(texture, {})
+		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		texture_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		texture_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		waveform_box_container.add_child(texture_rect)
+		return texture_rect
+
+class ObjectClipPanel extends ClipPanel:
+	func _ready() -> void:
+		super()
+		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
+	
+	func _get_ui_name() -> String:
+		return owner_as_media_clip.clip_res.object_res.get_res_id()
+	
+	func _get_ui_thumbnail() -> Texture2D:
+		#var res_id: StringName = owner_as_media_clip.clip_res.object_res.get_res_id()
+		#return TypeServer.objects[res_id].icon
+		return null
 
 
 
@@ -335,7 +542,7 @@ func _ready() -> void:
 		#return result_dur
 	#else:
 		#printerr("Failed to get duration")
-		#return 0.0
+		#return .0
 
 func generate_waveform_dynamic(audio_path: String, output_path: String, duration_seconds: float, color_key: String, fixed_size:= false, size:= Vector2i.ONE) -> void:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
@@ -378,7 +585,7 @@ func get_types_intersection_properties_sections(types: Array[int]) -> Array:
 	var types_sections: Array[Array]
 	
 	for type: int in types:
-		var type_sections: Array = media_clip_info.get(type).sections
+		var type_sections: Array = imported_clip_info.get(type).sections
 		types_sections.append(type_sections)
 	
 	if types_sections.is_empty():

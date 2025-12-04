@@ -25,7 +25,6 @@ var just_press_functions: Dictionary
 var release_functions: Dictionary
 
 # RealTime Variables
-
 var pressed_keys: Array
 var key_just_pressed: bool
 var l_button_down: bool
@@ -67,6 +66,10 @@ func _ready() -> void:
 	
 	body_panel.mouse_entered.connect(set_is_focus.bind(true))
 	body_panel.mouse_exited.connect(set_is_focus.bind(false))
+
+
+func _ready_editor() -> void:
+	pass
 
 
 func _input(event: InputEvent) -> void:
@@ -113,11 +116,6 @@ func match_key_code(event: InputEventKey, callables: Dictionary) -> void:
 		#if event.keycode == key:
 			#callables[key].call()
 			#var is_key_declared = key in pressed_keys
-
-
-
-
-
 
 
 func on_shortcut_key_pressed(key: Array) -> void:
