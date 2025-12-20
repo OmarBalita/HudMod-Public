@@ -76,7 +76,7 @@ func _ready() -> void:
 	layer_label = IS.create_name_label(str("Layer ", index)); layer_label.custom_minimum_size.x = 100.0
 	
 	container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	IS.add_childs(container, [
+	IS.add_children(container, [
 		IS.create_empty_control(),
 		custom_color_rect,
 		lock_button,
@@ -130,9 +130,59 @@ func _draw() -> void:
 # Process Functions
 # ---------------------------------------------------
 
+func get_media_clip(clip_pos: int) -> MediaClip:
+	return displayed_media_clips[clip_pos].clip
+
+func reset_media_clip(clip_pos: int, select: bool = true) -> void:
+	remove_media_clip(clip_pos)
+	spawn_media_clip(clip_pos, ProjectServer.get_layer(index).media_clips[clip_pos], select)
+
+func request_remove_media_clip(clip_pos: int) -> void:
+	if displayed_media_clips.has(clip_pos):
+		remove_media_clip(clip_pos)
+
+func remove_media_clip(clip_pos: int) -> void:
+	get_media_clip(clip_pos).queue_free()
+	displayed_media_clips.erase(clip_pos)
+
+func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: bool = true) -> MediaClip:
+	var clip: MediaClip
+	if clip_res is ImportedClipRes:
+		clip = ImportedClip.new()
+		var clip_type: int = clip_res.type
+		clip.type = clip_type
+		# Interface Setup
+		var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
+		var clip_panel: MediaServer.ClipPanel = clip_panel_id.new(clip)
+		clip.set_clip_panel(clip_panel)
+	
+	elif clip_res is ObjectClipRes:
+		clip = ObjectClip.new()
+		var clip_panel: MediaServer.ObjectClipPanel = MediaServer.ObjectClipPanel.new(clip)
+		clip.set_clip_panel(clip_panel)
+	
+	# Setup Clip Informations
+	ObjectServer.describe(clip, {
+		"layer" = self,
+		"layer_index" = index,
+		"clip_pos" = clip_pos,
+		"clip_res" = clip_res
+	})
+	
+	# Connections
+	clip.selected.connect(on_clip_selected)
+	clip.deselected.connect(on_clip_deselected)
+	# Instance Clip
+	clips_control.add_child(clip)
+	if select_new_clips:
+		clip.select(true, false, false, false)
+		
+	displayed_media_clips[clip_pos] = {&"clip": clip}
+	return clip
+
 func select_media_clip(clip_pos: int) -> void:
 	if displayed_media_clips.has(clip_pos):
-		displayed_media_clips[clip_pos].clip.select(true, false, false, false)
+		get_media_clip(clip_pos).select(true, false, false, false)
 
 func set_clips_modulate(new_modulate: Color) -> void:
 	clips_control.modulate = new_modulate
@@ -171,9 +221,9 @@ func displayed_media_clips_update_expand_buttons() -> void:
 		displayed_media_clips[frame_in].clip.update_expand_buttons()
 	)
 
-func displayed_media_clips_clip_control_update_ui_transform() -> void:
+func displayed_media_clips_clip_panel_update_ui_transform() -> void:
 	loop_displayed_media_clips(func(frame_in: int, info: Dictionary) -> void:
-		displayed_media_clips[frame_in].clip.clip_control._update_ui_transform()
+		displayed_media_clips[frame_in].clip.clip_panel._update_ui_transform()
 	)
 
 func displayed_media_clips_set_modulate(new_modulate: Color, media_clips_ignored: Array = []) -> void:
@@ -190,16 +240,14 @@ func update(select_new_clips: bool = true) -> void:
 	clear_removed_clips.call_deferred()
 
 func update_size() -> void:
-	var timeline: TimeLine = EditorServer.time_line
-	
 	var layer_size: float = ProjectServer.get_layer_customization(index).size
 	var custom_size: float = .0
 	
 	for frame_in: int in displayed_media_clips.keys():
-		var info: Dictionary = displayed_media_clips[frame_in]
-		var curr_custom_size: float = info.custom_size
-		if curr_custom_size > custom_size:
-			custom_size = curr_custom_size
+		var clip_panel: MediaServer.ClipPanel = displayed_media_clips[frame_in].clip.clip_panel
+		if clip_panel.is_graph_editor_opened:
+			if clip_panel.custom_height > custom_size:
+				custom_size = clip_panel.custom_height
 	
 	var result_size: float = max(custom_size if custom_size else layer_size, layer_size)
 	curr_y_size = result_size
@@ -214,43 +262,9 @@ func spawn_and_manage_clips(select_new_clips: bool) -> void:
 		var clip: MediaClip = null
 		
 		if displayed_media_clips.has(frame_in):
-			clip = displayed_media_clips[frame_in].clip
+			clip = get_media_clip(frame_in)
 		else:
-			
-			if clip_res is ImportedClipRes:
-				clip = ImportedClip.new()
-				var clip_type: int = clip_res.type
-				clip.type = clip_type
-				# Interface Setup
-				var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
-				var clip_panel: MediaServer.ClipPanel = clip_panel_id.new(clip)
-				clip.set_clip_control(clip_panel)
-			
-			elif clip_res is ObjectClipRes:
-				clip = ObjectClip.new()
-				var clip_panel: MediaServer.ObjectClipPanel = MediaServer.ObjectClipPanel.new(clip)
-				clip.set_clip_control(clip_panel)
-			
-			# Setup Clip Informations
-			ObjectServer.describe(clip, {
-				layer = self,
-				layer_index = index,
-				clip_pos = frame_in,
-				clip_res = clip_res
-			})
-			
-			# Connections
-			clip.selected.connect(on_clip_selected)
-			clip.deselected.connect(on_clip_deselected)
-			# Instance Clip
-			clips_control.add_child(clip)
-			if select_new_clips:
-				clip.select(true, false, false, false)
-			displayed_media_clips[frame_in] = {
-				"clip": clip,
-				"graph_editors": {} as Dictionary[Dictionary, Dictionary],
-				"custom_size": .0
-			}
+			clip = spawn_media_clip(frame_in, clip_res, select_new_clips)
 		
 		var length: int = clip_res.length
 		if clip.is_editing:
@@ -260,7 +274,7 @@ func spawn_and_manage_clips(select_new_clips: bool) -> void:
 		var display_end_pos: float = timeline.get_display_pos_from_frame(frame_in + length, self)
 		clip.position = Vector2(display_begin_pos, .0)
 		clip.size = Vector2(display_end_pos - display_begin_pos, curr_y_size)
-		clip.clip_control._update_ui_transform()
+		clip.clip_panel._update_ui_transform()
 
 func clear_removed_clips() -> void:
 	var removable_frame_in: Array[int]
@@ -282,80 +296,6 @@ func update_force_existing() -> void:
 	var selected_clips = EditorServer.media_clips_selection_group.get_selected_objects({"layer_index": index}).size()
 	force_existing = selected_clips
 	#printt("force_existing updated with index:", index, ", force_existing:", force_existing)
-
-func open_graph_editors(frame: int) -> void:
-	
-	var info: Dictionary = displayed_media_clips[frame]
-	var clip: MediaClip = info.clip
-	var clip_res: MediaClipRes = clip.clip_res
-	var components: Dictionary[String, Array] = clip_res.components
-	var graph_editors: Dictionary[Dictionary, Dictionary] = info.graph_editors
-	
-	var graph_editors_container: BoxContainer = IS.create_box_container(0, true, {})
-	var header_rect: ColorRect = IS.create_color_rect(clip.clip_control.get_theme_stylebox("panel").bg_color, {custom_minimum_size = Vector2(.0, 30.0)})
-	var margin_container: MarginContainer = IS.create_margin_container(12,2,2,2)
-	var name_label: Label = IS.create_label(clip_res.key_as_path, IS.LABEL_SETTINGS_BOLD, {})
-	margin_container.add_child(name_label)
-	header_rect.add_child(margin_container)
-	graph_editors_container.add_child(header_rect)
-	clip.set_graph_editors_container(graph_editors_container)
-	clip.move_child(graph_editors_container, 0)
-	
-	var calculate_custom_size: Callable = func(update_layer: bool = false) -> void:
-		await get_tree().process_frame
-		
-		var custom_size: float = 30.0
-		for graph_editor_key: Dictionary in graph_editors:
-			var editor_info: Dictionary = graph_editors[graph_editor_key]
-			var category: Category = editor_info.graph_editor
-			editor_info.is_expanded = category.is_expanded
-			custom_size += category.size.y
-		info.custom_size = custom_size
-		
-		if update_layer:
-			update()
-			#EditorServer.time_line.update_layers()
-	
-	var hue_scale: float
-	
-	for section_key: String in components.keys():
-		var section_components: Array = components[section_key]
-		
-		for component: ComponentRes in section_components:
-			var animations: Dictionary[UsableRes, Dictionary] = component.animations
-			
-			for usable_res: UsableRes in animations.keys():
-				var usable_res_animations: Dictionary = animations[usable_res]
-				
-				for property_key: StringName in usable_res_animations.keys():
-					var anim_res: AnimationRes = usable_res_animations[property_key]
-					var graph_editor_key: Dictionary = {"usable_res": usable_res, "property_key": property_key}
-					
-					var curr_color: Color = Color.from_hsv(hue_scale, .8, .6)
-					var category: Category = IS.create_category(true, component.res_id + ":" + property_key, curr_color, Vector2.ZERO, false)
-					var color_rect: ColorRect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(.0, 150.0)})
-					
-					var is_expanded: bool
-					if graph_editors.has(graph_editor_key):
-						is_expanded = graph_editors[graph_editor_key].is_expanded
-						if is_expanded: category.is_expanded = true
-					
-					category.expand_changed.connect(calculate_custom_size.bind(true))
-					
-					graph_editors_container.add_child(category)
-					category.add_content(color_rect)
-					IS.expand(category)
-					
-					graph_editors[graph_editor_key] = {"graph_editor": category, "is_expanded": is_expanded}
-					
-					hue_scale += .1
-	
-	calculate_custom_size.call()
-
-func close_graph_editors(frame: int) -> void:
-	var info: Dictionary = displayed_media_clips[frame]
-	info.clip.set_graph_editors_container(null)
-	info.custom_size = .0
 
 func update_customization_ui() -> void:
 	var customization: Dictionary = ProjectServer.get_layer_customization(index)
@@ -443,7 +383,7 @@ func popup_customization_settings() -> void:
 		update_func, cancel_func
 	)
 	
-	IS.add_childs(window_container, [
+	IS.add_children(window_container, [
 		popup_title,
 		custom_name_controller.get_parent(),
 		custom_color_controller.get_parent(),

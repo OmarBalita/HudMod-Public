@@ -24,28 +24,16 @@ var input_mouse_motion_func: Callable
 
 # RealTime Nodes
 var layer: Layer
-var clip_control: MediaServer.ClipPanel:
+var clip_panel: MediaServer.ClipPanel:
 	set(val):
-		if clip_control:
-			clip_control.queue_free()
+		if clip_panel:
+			clip_panel.queue_free()
 		if val:
-			val.set_name("clip_control")
+			val.set_name("clip_panel")
 			add_child(val)
-		clip_control = val
+		clip_panel = val
 
-var graph_editors_container: BoxContainer:
-	set(val):
-		if graph_editors_container:
-			graph_editors_container.queue_free()
-		if val:
-			val.set_name("editors_container")
-			add_child(val)
-		graph_editors_container = val
-		var is_null: bool = val == null
-		clip_control.visible = is_null
-		update_expand_buttons()
-
-var focus_panel: PanelContainer
+var focus_panel: FocusPanelContainer
 
 var r_expand_button: Button
 var l_expand_button: Button
@@ -62,6 +50,63 @@ var l_roll_button: RollButton:
 			val.button_up.connect(on_l_roll_button_drag_changed.bind(false))
 		l_roll_button = val
 
+class FocusPanelContainer extends PanelContainer:
+	
+	@export var owner_as_media_clip: MediaClip
+	
+	var displayed_keys: Array[int]
+	
+	func _init(_owner_as_media_clip: MediaClip) -> void:
+		owner_as_media_clip = _owner_as_media_clip
+		owner_as_media_clip.clip_res.comp_keyframe_added.connect(_on_clip_res_comp_keyframe_added)
+		owner_as_media_clip.clip_res.comp_keyframe_removed.connect(_on_clip_res_comp_keyframe_removed)
+	
+	func _ready() -> void:
+		IS.set_base_panel_settings(self, STYLE_SELECT)
+		update_displayed_keys(false)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	func _draw() -> void:
+		
+		var size_half: Vector2 = owner_as_media_clip.clip_panel.box_container.get_child(0).size / 2.0
+		var key_rect_size: Vector2 = Vector2(10., 10.)
+		var key_rect_size_half: Vector2 = key_rect_size / 2.0
+		
+		var media_res: MediaClipRes = owner_as_media_clip.clip_res
+		
+		var from: int
+		var length: int
+		if owner_as_media_clip.is_editing:
+			from = owner_as_media_clip.edit_from
+			length = owner_as_media_clip.edit_length
+		else:
+			from = media_res.from
+			length = media_res.length
+		
+		for key_pos: int in displayed_keys:
+			var key_display_pos: float = (key_pos - from) / float(length) * size.x
+			var key_rect_pos:= Vector2(key_display_pos, size_half.y + 8) - key_rect_size_half
+			var key_rect: Rect2 = Rect2(key_rect_pos, key_rect_size)
+			
+			draw_rect(key_rect, Color.WHITE)
+			draw_rect(key_rect, Color.BLACK, false, 2.0)
+	
+	func get_displayed_keys() -> Array[int]:
+		return displayed_keys
+	
+	func update_displayed_keys(update_project_sapacial_frames: bool) -> void:
+		displayed_keys = owner_as_media_clip.clip_res.loop_components_animations_keys({&"displayed_keys": [] as Array[int]},
+			func(anim_key: String, key_pos: float, key_val: Variant, info: Dictionary[StringName, Variant]) -> void:
+				var key_pos_int: int = int(key_pos)
+				if not info.displayed_keys.has(key_pos_int):
+					info.displayed_keys.append(key_pos_int)
+		).displayed_keys
+		queue_redraw()
+		if update_project_sapacial_frames:
+			ProjectServer.update_curr_length_and_curr_spacial_frames()
+	
+	func _on_clip_res_comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void: update_displayed_keys(true)
+	func _on_clip_res_comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_displayed_keys(true)
 
 class RollButton extends Button:
 	
@@ -128,7 +173,7 @@ func _ready() -> void:
 		selection_group.add_object(id_key, self, get_metadata())
 	
 	# Focus Panel
-	focus_panel = IS.create_panel_container(Vector2.ZERO, STYLE_SELECT, {visible = false})
+	focus_panel = FocusPanelContainer.new(self)
 	focus_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	focus_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	focus_panel.name = "focus_panel"
@@ -139,6 +184,7 @@ func _ready() -> void:
 	l_expand_button = Button.new()
 	l_expand_button.custom_minimum_size = Vector2(10, layer.size.y)
 	l_expand_button.mouse_filter = Control.MOUSE_FILTER_PASS
+	l_expand_button.mouse_default_cursor_shape = Control.CURSOR_HSIZE
 	IS.set_button_style(l_expand_button, STYLE_BUTTONS_SELECT)
 	r_expand_button = l_expand_button.duplicate()
 	add_child(l_expand_button)
@@ -185,9 +231,9 @@ func _input(event: InputEvent) -> void:
 							var from_delta: int = (press_pos.x - get_global_mouse_position().x) / timeline.display_frame_size
 							var media_from_length: Vector2i = MediaServer.get_media_default_from_and_length(clip_res, 0, +INF)
 							edit_clip_pos = clip_pos
-							edit_from = clamp(clip_res.from + from_delta, media_from_length.x, media_from_length.y - clip_res.length)
+							edit_from = clamp(clip_res.from + from_delta, media_from_length.x if media_from_length.x != -1 else 0, media_from_length.y - clip_res.length)
 							edit_length = clip_res.length
-							clip_control._update_ui(edit_from, edit_length)
+							clip_panel._update_ui(edit_from, edit_length)
 							layer.update()
 				elif is_editing:
 					input_mouse_motion_func = Callable()
@@ -200,7 +246,7 @@ func _input(event: InputEvent) -> void:
 					if is_editing:
 						is_editing = false
 						input_mouse_motion_func = Callable()
-						clip_control._update_ui()
+						clip_panel._update_ui()
 						layer.update()
 					elif is_focus and press_pos.distance_to(event.position) <= min_drag_distance:
 						select(event.ctrl_pressed, event.alt_pressed)
@@ -244,17 +290,11 @@ func _get_dragged_rect() -> Control:
 
 # ---------------------------------------------------
 
-func set_clip_control(new_val: MediaServer.ClipPanel) -> void:
-	clip_control = new_val
+func set_clip_panel(new_val: MediaServer.ClipPanel) -> void:
+	clip_panel = new_val
 
-func get_clip_control() -> MediaServer.ClipPanel:
-	return clip_control
-
-func set_graph_editors_container(new_val: BoxContainer) -> void:
-	graph_editors_container = new_val
-
-func get_graph_editors_container() -> BoxContainer:
-	return graph_editors_container
+func get_clip_panel() -> MediaServer.ClipPanel:
+	return clip_panel
 
 # ---------------------------------------------------
 
@@ -265,7 +305,7 @@ func set_select_style(panel_style: StyleBoxFlat, buttons_style: StyleBoxFlat) ->
 	IS.set_button_style(r_expand_button, buttons_style)
 
 func update_expand_buttons() -> void:
-	var show_expand_buttons:= is_selected and not graph_editors_container
+	var show_expand_buttons:= is_selected and not clip_panel.is_graph_editor_opened
 	if focus_panel:
 		focus_panel.visible = is_selected
 	if l_expand_button:
@@ -275,11 +315,13 @@ func update_expand_buttons() -> void:
 		r_expand_button.visible = show_expand_buttons
 		r_expand_button.size.y = size.y
 
-func open_graph_editors() -> void:
-	layer.open_graph_editors(clip_pos)
+func open_graph_editor() -> void:
+	clip_panel.open_graph_editor()
+	update_expand_buttons()
 
 func close_graph_editors() -> void:
-	layer.close_graph_editors(clip_pos)
+	clip_panel.close_graph_editor()
+	update_expand_buttons()
 
 func request_spawn_r_roll_button() -> void:
 	var neighbor_clip_pos: int = clip_pos + clip_res.length
@@ -337,11 +379,12 @@ func drag_right() -> void:
 	edit_clip_pos = clip_pos
 	edit_from = clip_res.from
 	edit_length = target_length
-	clip_control._update_ui(edit_from, edit_length)
+	clip_panel._update_ui(edit_from, edit_length)
 	
 	if r_roll_button:
 		r_roll_button.global_position = global_position + Vector2(size.x - 20.0, .0)
 	
+	focus_panel.queue_redraw()
 	layer.update()
 
 func drag_left() -> void:
@@ -367,11 +410,12 @@ func drag_left() -> void:
 	edit_clip_pos = target_clip_pos
 	edit_from = target_clip_pos - clip_pos + clip_res.from
 	edit_length = clip_end - edit_clip_pos
-	clip_control._update_ui(edit_from, edit_length)
+	clip_panel._update_ui(edit_from, edit_length)
 	
 	if l_roll_button:
 		l_roll_button.global_position = global_position - Vector2(20.0, .0)
 	
+	focus_panel.queue_redraw()
 	layer.update()
 
 func split(split_right: bool, split_left: bool, split_in = null) -> void:
@@ -380,9 +424,11 @@ func split(split_right: bool, split_left: bool, split_in = null) -> void:
 	if split_in == clip_pos:
 		return
 	ProjectServer.split_media_clip(get_metadata(), split_in, split_right, split_left)
-	clip_control._update_ui()
+	clip_panel._update_ui()
 
 func edit(emit_changes: bool = true, force_layer_index: bool = false) -> void:
+	if not edit_length: return
+	
 	ProjectServer.edit_media_clip(layer_index, clip_pos, {
 		"frame_in": edit_clip_pos,
 		"from": edit_from,

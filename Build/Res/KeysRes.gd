@@ -15,7 +15,6 @@ enum InterpolationType {
 }
 
 
-
 func get_keys() -> Dictionary[float, Dictionary]:
 	return keys
 

@@ -279,7 +279,7 @@ func create_texture_rect(texture: Texture2D, more: Dictionary = {expand_mode = T
 	return texture_rect
 
 func create_panel_container(min_size: Vector2 = Vector2.ZERO, style: StyleBox = STYLE_PANEL, more: Dictionary = {}) -> PanelContainer:
-	var panel = PanelContainer.new()
+	var panel:= PanelContainer.new()
 	set_base_panel_settings(panel, style)
 	panel.custom_minimum_size = min_size
 	ObjectServer.describe(panel, more)
@@ -305,7 +305,7 @@ func create_box_container(separation_scale: int = 16, vertical: bool = false, mo
 
 class EditBoxContainer extends BoxContainer:
 	
-	signal val_changed(new_val: Variant)
+	signal val_changed(usable_res: UsableRes, key: StringName, new_val: Variant)
 	signal keyframe_sended(usable_res: UsableRes, key: StringName, new_val: Variant)
 	
 	enum KeyframeMethod {
@@ -321,8 +321,10 @@ class EditBoxContainer extends BoxContainer:
 		set(val):
 			curr_val = val
 			if emit_change:
-				val_changed.emit(curr_val)
+				val_changed.emit(null, &"", curr_val)
+	
 	var default_val: Variant
+	
 	var keyframable: bool = true
 	
 	var keyframe_method: int:
@@ -337,7 +339,7 @@ class EditBoxContainer extends BoxContainer:
 	
 	var emit_change: bool = true
 	
-	var controller_curr_val_id: Dictionary[StringName, Variant] = {method = null, method_manual = null, vari = null} # Name of curr_val Variable in Controller
+	var controller_set_ids: Dictionary[StringName, Variant] = {method = null, method_manual = null, vari = null} # Name of curr_val Variable in Controller
 	# controller_cur_val_id has 2 keys: method and var, method is a Callable that i can Call to assign new Val
 	# and the var assigned Manually
 	
@@ -378,13 +380,13 @@ class EditBoxContainer extends BoxContainer:
 		update_ui()
 	
 	func set_controller_val(new_val: Variant) -> void:
-		var method = controller_curr_val_id.method
-		var vari = controller_curr_val_id.vari
+		var method = controller_set_ids.method
+		var vari = controller_set_ids.vari
 		if method: controller.call_deferred(method, new_val)
 		elif vari: controller.set(vari, new_val)
 	
 	func set_controller_val_manually(new_val: Variant) -> void:
-		var method = controller_curr_val_id.method_manual
+		var method = controller_set_ids.method_manual
 		if method: controller.call_deferred(method, new_val)
 		else: set_controller_val(new_val)
 	
@@ -770,16 +772,16 @@ func create_color_range_control(color_range_res: ColorRangeRes, more: Dictionary
 
 
 func create_edit_box(name: String, min_size: Vector2, vertical: bool = false, name_alignment: int = 0) -> EditBoxContainer:
-	var box = create_edit_box_container(16, vertical, {custom_minimum_size = min_size})
-	var name_label = create_name_label(name, name_alignment)
+	var box:= create_edit_box_container(8, vertical, {custom_minimum_size = min_size})
+	var name_label:= create_name_label(name, name_alignment)
 	expand(name_label)
 	box.header.add_child(name_label)
 	return box
 
 func create_custom_edit_box(name: String, edits_box_container: BoxContainer, min_size: Vector2 = EDIT_BOX_MIN_SIZE) -> EditBoxContainer:
-	var box = create_edit_box(name, min_size, true)
-	var panel_container = create_panel_container()
-	var margin_container = create_margin_container()
+	var box:= create_edit_box(name, min_size, true)
+	var panel_container:= create_panel_container()
+	var margin_container:= create_margin_container()
 	margin_container.add_child(edits_box_container)
 	panel_container.add_child(margin_container)
 	box.add_child(panel_container)
@@ -788,7 +790,7 @@ func create_custom_edit_box(name: String, edits_box_container: BoxContainer, min
 func connect_controller_to_edit_box(box: EditBoxContainer, controller: Control, connect_signal_func: Callable, set_func_id: StringName = "", set_func_manually_id: StringName = "", vari_id: StringName = "") -> void:
 	connect_signal_func.call()
 	box.controller = controller
-	box.controller_curr_val_id = {
+	box.controller_set_ids = {
 		method = set_func_id,
 		method_manual = set_func_manually_id,
 		vari = vari_id
@@ -1036,7 +1038,7 @@ func create_status_label(text: String, status_type: String = "normal") -> Label:
 
 
 
-func add_childs(parent: Node, childs: Array[Node]) -> void:
+func add_children(parent: Node, childs: Array[Node]) -> void:
 	for node: Node in childs:
 		parent.add_child(node)
 

@@ -87,6 +87,11 @@ func update_focused(new_focused: Dictionary = {}) -> void:
 		new_focused.object.focus_enter()
 	focused = new_focused
 
+func set_default_focused() -> void:
+	if selected_objects:
+		focused = selected_objects.get(selected_objects.keys().back())
+	else: focused = {}
+
 func get_focused() -> Dictionary:
 	return focused
 
@@ -122,4 +127,8 @@ func clear_previously_freed_instances() -> void:
 		var key: String = selected_objects_keys[index]
 		var info: Dictionary = selected_objects.get(key)
 		if not info.object: selected_objects.erase(key)
+	if focused and not focused.object:
+		focused = {}
+
+
 

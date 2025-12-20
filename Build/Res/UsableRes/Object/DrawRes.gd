@@ -16,4 +16,7 @@ func get_drawings_ress() -> Array[GDDrawingRes]:
 func set_drawings_ress(new_drawings_ress: Array[GDDrawingRes]) -> void:
 	drawings_ress = new_drawings_ress
 
-
+static func get_object_info() -> Dictionary[StringName, String]:
+	return {&"title": "Draw",
+		&"description": "Draw has professional vector drawing tools.
+		You can draw, animate, and use an advanced brush building system."}

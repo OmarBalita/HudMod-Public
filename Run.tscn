@@ -159,7 +159,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_8x2kx")
 main_path = &"res://Prototype/PrototypeMain.tscn"
-delay = 2.0
+delay = 0.5
 
 [node name="BGRect" type="TextureRect" parent="."]
 layout_mode = 1
@@ -227,6 +227,7 @@ visible = false
 custom_minimum_size = Vector2(700, 8)
 layout_mode = 2
 size_flags_horizontal = 4
+color = Color(0.94902, 0.619608, 0.227451, 1)
 
 [node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer"]
 unique_name_in_owner = true
@@ -244,3 +245,10 @@ layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxEmpty_0vf8b")
 theme_override_styles/fill = SubResource("StyleBoxFlat_wx0j5")
 show_percentage = false
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+expand_mode = 1
+stretch_mode = 5

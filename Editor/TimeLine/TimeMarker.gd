@@ -96,7 +96,7 @@ func on_selected() -> void:
 			queue_redraw()
 	)
 	
-	IS.add_childs(marker_window, [
+	IS.add_children(marker_window, [
 		name_line, color_menu, description_edit
 	])
 	

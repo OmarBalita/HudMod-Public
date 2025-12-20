@@ -45,7 +45,7 @@ func _ready_editor() -> void:
 	header_menu.focus_index_changed.connect(set_curr_media_box)
 	header.add_child(header_menu)
 	
-	IS.add_childs(body, [
+	IS.add_children(body, [
 		import_box,
 		object_box,
 		transition_box,
@@ -116,8 +116,8 @@ class MediaBox extends Container:
 		search_line.text_changed.connect(on_search_line_text_changed)
 		options_container.add_child(search_line)
 	
-	func add_category(category_name: StringName, has_header: bool = true) -> Category:
-		var category = IS.create_category(has_header, category_name, Color.BLACK, media_explorer.card_display_size)
+	func add_category(category_name: StringName, has_header: bool = true, accent_color: Color = Color.BLACK) -> Category:
+		var category = IS.create_category(has_header, category_name, accent_color, media_explorer.card_display_size)
 		category.has_custom_color = false
 		media_categories_box.add_child(category)
 		categories[category_name] = category
@@ -192,7 +192,7 @@ class ImportBox extends MediaBox:
 		
 		path_controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		
-		IS.add_childs(path_container, [undo_path_button, reload_button, path_controller])
+		IS.add_children(path_container, [undo_path_button, reload_button, path_controller])
 		body_container.add_child(path_container)
 		body_container.move_child(path_container, 1)
 		
@@ -266,7 +266,6 @@ class ImportBox extends MediaBox:
 				"file":
 					# the Key be the file path when the type is "file"
 					var media_type: int = info.media_type
-					var media_cache: Variant = MediaCache.get_from_type(key, media_type)
 					var import_card:= ImportCard.new()
 					import_card.created_card_type = media_type + 1
 					import_card.import_info = {
@@ -288,6 +287,7 @@ class ImportBox extends MediaBox:
 					folder_card.clicked.connect(on_folder_clicked.bind(key))
 					card = folder_card
 			
+			card.import_box = self
 			card.create_date = info.date
 			card.custom_minimum_size = media_explorer.card_display_size
 			import_category.add_content(card)
@@ -414,21 +414,26 @@ class ObjectBox extends MediaBox:
 	
 	func _ready() -> void:
 		super()
-		var cat_object_2d: Category = add_category("Object2D")
-		var cat_object_3d: Category = add_category("Object3D")
+		var cat_object_2d: Category = add_category("Object2D", true, Color("6699ff"))
+		var cat_object_3d: Category = add_category("Object3D (Coming soon)", true, Color.BLACK)
 		
 		var objects: Dictionary[StringName, Dictionary] = TypeServer.objects
 		
 		for object_key: StringName in objects:
 			var object_info: Dictionary = objects[object_key]
+			
+			var category: Category = get_category(object_info.category)
 			var object_card: ObjectCard = ObjectCard.new()
+			
 			object_card.object_info = {
 				&"type": -1,
 				&"name": object_key,
 				&"thumbnail": object_info.icon,
-				&"object_id": object_info.type_id
+				&"object_id": object_info.type_id,
+				&"theme_color": category.category_custom_color
 			}
 			object_card.custom_minimum_size = media_explorer.card_display_size
+			
 			get_category(object_info.category).add_content(object_card)
 
 class TransitionBox extends MediaBox:
@@ -467,6 +472,7 @@ class MediaCard extends DoubleClickControl:
 	
 	func _double_click() -> void:
 		add_media(-1, EditorServer.frame)
+		EditorServer.media_clips_selection_group.selected_objects_changed.emit()
 		super()
 	
 	func _setup_media_card(name: StringName, thumbnail_texture: Texture2D) -> void:
@@ -480,8 +486,8 @@ class MediaCard extends DoubleClickControl:
 		var split_container:= IS.create_split_container(2, true)
 		var split_container2:= IS.create_split_container()
 		
-		IS.add_childs(split_container2, [add_button, name_label])
-		IS.add_childs(split_container, [thumbnail_texture_rect, split_container2])
+		IS.add_children(split_container2, [add_button, name_label])
+		IS.add_children(split_container, [thumbnail_texture_rect, split_container2])
 		margin_container.add_child(split_container)
 		panel_container.add_child(margin_container)
 		add_child(panel_container)
@@ -503,6 +509,7 @@ class MediaCard extends DoubleClickControl:
 	
 	func on_add_button_pressed() -> void:
 		add_media(0, EditorServer.frame)
+		EditorServer.media_clips_selection_group.selected_objects_changed.emit()
 	
 	func on_drag_started() -> void:
 		if not following_drag:
@@ -524,8 +531,33 @@ class CreatedCard extends MediaCard:
 		TYPE_VIDEO = 1,
 		TYPE_AUDIO = 2
 	}
+	
 	@export var created_card_type: CreatedCardType
 	@export var create_date: float
+	
+	var import_box: ImportBox
+	
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				var mouse_pos: Vector2 = get_global_mouse_position()
+				if event.is_pressed():
+					press_pos = mouse_pos
+				else:
+					if press_pos.distance_to(mouse_pos) < min_drag_distance:
+						_popup_created_card_menu()
+						select(false, false)
+	
+	func _popup_created_card_menu() -> void:
+		var options: Array = _get_created_card_menu_options()
+		IS.popup_menu(options)
+	
+	func _get_created_card_menu_options() -> Array:
+		return []
+	
+	func delete(what: String) -> void:
+		import_box.delete_file_or_folder(import_box.curr_display_path, what)
+		import_box.update()
 
 class ImportCard extends CreatedCard:
 	
@@ -537,8 +569,32 @@ class ImportCard extends CreatedCard:
 		_setup_media_card(import_info.path.get_file(), import_info.thumbnail)
 		set_metadata(import_info)
 	
+	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		super(group, remove, is_drag_selection, emit_change)
+		if not is_drag_selection:
+			var imported_info: Dictionary[StringName, String] = MediaServer.get_imported_file_info(import_info.path, import_info.type)
+			EditorServer.properties.update_media_properties(imported_info)
+	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		ProjectServer.add_imported_clip(import_info.type, import_info.path, layer_index, frame_in, true)
+	
+	func _get_created_card_menu_options() -> Array:
+		return [
+			MenuOption.new("Copy Path", null, copy_path),
+			MenuOption.new("Delete", null, delete.bind(import_info.path)),
+			MenuOption.new_line(),
+			MenuOption.new("Open in External Program", null, open_in_external_program),
+			MenuOption.new("Show in File Manager", null, show_in_file_manager)
+		]
+	
+	func copy_path() -> void:
+		DisplayServer.clipboard_set(import_info.path)
+	
+	func open_in_external_program() -> void:
+		OS.shell_open(import_info.path)
+	
+	func show_in_file_manager() -> void:
+		OS.shell_show_in_file_manager(import_info.path)
 
 
 class FolderCard extends CreatedCard:
@@ -564,7 +620,9 @@ class FolderCard extends CreatedCard:
 				var media_type: int = key_info.media_type
 				ProjectServer.add_imported_clip(media_type, key, layer_index, frame_in)
 		ProjectServer.emit_media_clips_change()
-
+	
+	func _get_created_card_menu_options() -> Array:
+		return [MenuOption.new("Delete", null, delete.bind(folder_info.name))]
 
 class ObjectCard extends MediaCard:
 	
@@ -573,8 +631,16 @@ class ObjectCard extends MediaCard:
 	func _ready() -> void:
 		super()
 		selection_group = EditorServer.object_media_cards_selection_group
+		
 		_setup_media_card(object_info.name, object_info.thumbnail)
+		thumbnail_texture_rect.modulate = Color(object_info.theme_color, .75)
+		
 		set_metadata(object_info)
+	
+	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		super(group, remove, is_drag_selection, emit_change)
+		if not is_drag_selection:
+			EditorServer.properties.update_media_properties(object_info.object_id.get_object_info())
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		var object_res: ObjectRes = object_info.object_id.new()
@@ -585,22 +651,3 @@ class TransitionCard extends MediaCard:
 
 class PresetCard extends MediaCard:
 	pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -58,10 +58,19 @@ func instance_audio_stream_player(parent_res: MediaClipRes, imported_res: Import
 	try_play()
 	return audio_player
 
-func instance_object_2d(parent_res: MediaClipRes, media_res: MediaClipRes, object: Node, layer_index: int, frame_in: int, root_layer_index: int) -> void:
+func instance_object_2d(parent_res: MediaClipRes, media_res: MediaClipRes, object: CanvasItem, layer_index: int, frame_in: int, root_layer_index: int) -> void:
 	instance_object(parent_res, media_res, object, layer_index, frame_in, root_layer_index)
 	var object_parent: Node = curr_objects[parent_res]
 	object_parent.move_child(object, min(object_parent.get_child_count(), layer_index))
+	
+	var shader_update_func: Callable = _on_media_res_shader_material_changed.bind(media_res, object)
+	
+	object.set_material(media_res.get_shader_material())
+	media_res.shader_material_changed.connect(shader_update_func)
+	object.tree_exited.connect(func() -> void:
+		media_res.shader_material_changed.disconnect(shader_update_func)
+	)
+	
 	object.visible = not get_layer_from_media_res(parent_res, layer_index).hidden
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, object: Node, layer_index: int, frame_in: int, root_layer_index: int) -> void:
@@ -176,6 +185,7 @@ func on_timeline_curr_frame_stopped_manually() -> void:
 	update_video_viewers_frame = false
 	seek_video_viewers_frame()
 
-
-
+func _on_media_res_shader_material_changed(media_res: MediaClipRes, object_2d: CanvasItem) -> void:
+	var shader_material: ShaderMaterial = media_res.get_shader_material()
+	object_2d.set_material(media_res.get_shader_material())
 

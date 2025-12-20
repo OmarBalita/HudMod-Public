@@ -5,7 +5,7 @@ enum MethodType {
 	ADD,
 	SUB,
 	MULTIPLY,
-	DIVID
+	DIVIDE
 }
 
 @export var owner: MediaClipRes:
@@ -13,7 +13,6 @@ enum MethodType {
 		owner = val
 		if owner:
 			_update()
-			res_changed.connect(func() -> void: print("res_changed emited"))
 			res_changed.connect(_update)
 
 @export var animations: Dictionary[UsableRes, Dictionary]
@@ -24,9 +23,9 @@ enum MethodType {
 
 @export var method_type: MethodType = 1:
 	set(val):
+		method_type = val
 		if owner and method_type != val:
 			_update()
-		method_type = val
 
 var update_animations: bool = true
 
@@ -46,12 +45,23 @@ func get_method_type() -> MethodType:
 func set_method_type(new_method_type: MethodType) -> void:
 	method_type = new_method_type
 
+func duplicate_component_res() -> ComponentRes:
+	var dupl_comp_res: ComponentRes = duplicate(true)
+	var dupl_anims:= animations.duplicate(true)
+	if animations.keys().has(self):
+		var dupl_anims_port = dupl_anims.get(self)
+		for anim_key: StringName in dupl_anims_port.keys():
+			(dupl_anims_port[anim_key] as AnimationRes).duplicate_anim_res()
+			dupl_anims_port[anim_key] = dupl_anims_port[anim_key].duplicate_anim_res()
+		dupl_anims[dupl_comp_res] = dupl_anims_port
+		dupl_anims.erase(self)
+	dupl_comp_res.animations = dupl_anims
+	return dupl_comp_res
+
 func _enter() -> void:
 	pass
 
 func _process(frame: int) -> void:
-	#printt("process frame:", frame)
-	request_push_animations_result(frame)
 	loop_prop(submit_stacked_value)
 
 func _exit() -> void:
@@ -74,22 +84,36 @@ func request_push_animations_result(frame: float) -> void:
 	if update_animations:
 		push_animations_result(frame)
 
-func push_animations_result(frame: float) -> void:
+func loop_animations(frame: float, method: Callable) -> void:
 	for usable_res: UsableRes in animations.keys():
-		var res_section: Dictionary = animations.get(usable_res)
-		for property_key: StringName in res_section.keys():
-			var anim_res: AnimationRes = res_section.get(property_key)
+		var usable_res_section: Dictionary = animations.get(usable_res)
+		for property_key: StringName in usable_res_section.keys():
+			var anim_res: AnimationRes = usable_res_section.get(property_key)
 			var property_anim_val: Variant = anim_res.sample(frame)
-			var property_has_keyframe: bool = has_animation_keyframe(usable_res, property_key, frame)
-			usable_res.set_prop(property_key, property_anim_val)
-			EditorServer.update_usable_res_property_controller(usable_res, property_key, property_anim_val, property_has_keyframe)
+			method.call(usable_res, property_key, property_anim_val, frame)
+
+func push_animation_result_func(usable_res: UsableRes, property_key: StringName, property_anim_val: Variant, frame: int) -> void:
+	usable_res.set_prop(property_key, property_anim_val)
+
+func update_controller_func(usable_res: UsableRes, property_key: StringName, property_anim_val: Variant, frame: int) -> void:
+	var property_has_keyframe: bool = has_animation_keyframe(usable_res, property_key, frame)
+	EditorServer.update_usable_res_property_controller(usable_res, property_key, property_anim_val, property_has_keyframe)
+
+func push_animations_result(frame: float) -> void:
+	loop_animations(frame, push_animation_result_func)
+
+func update_controllers(frame: float) -> void:
+	loop_animations(frame, update_controller_func)
 
 
 func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
 	return animations[usable_res][property_key]
 
-func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: Variant = null) -> bool:
-	frame = owner.get_frame_or_curr_frame(frame)
+func has_animation(usable_res: UsableRes, property_key: StringName) -> bool:
+	return animations.has(usable_res) and animations[usable_res].has(property_key)
+
+func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> bool:
+	if not has_animation(usable_res, property_key): return false
 	return animations[usable_res][property_key].has_key(frame)
 
 func make_animation_absolute(usable_res: UsableRes, property_key: StringName, property_type: int) -> AnimationRes:
@@ -103,26 +127,29 @@ func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) 
 		if res_section.size() == 0:
 			animations.erase(res_section)
 
-func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null) -> void:
+func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
 	frame = owner.get_frame_or_curr_frame(frame)
 	var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, TypeServer.get_type_from_value(property_val))
-	var has_key: bool = anim_res.has_key(frame)
-	if has_key: remove_animation_keyframe(usable_res, property_key, frame)
+	var is_remove_request: bool = can_remove and anim_res.has_key(frame)
+	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame)
 	else: add_animation_keyframe(usable_res, property_key, property_val, frame)
-	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not has_key)
+	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
 
 func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
-	if owner.is_frame_exists(frame): get_animation(usable_res, property_key).add_key(frame, property_val)
+	get_animation(usable_res, property_key).add_key(frame, property_val)
+	owner.comp_keyframe_added.emit(self, usable_res, property_key, property_val, frame)
 
 func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
 	var anim_res: AnimationRes = get_animation(usable_res, property_key)
 	anim_res.remove_key(frame)
 	if anim_res.keys.size() == 0:
 		remove_animation_absolute(usable_res, property_key)
+	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 
+func send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+	if has_animation(usable_res, param_key):
+		request_animation_keyframe(usable_res, param_key, param_new_val, null, false)
 
-
-
-
-
+func send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+	request_animation_keyframe(usable_res, param_key, param_new_val)
 

@@ -152,7 +152,7 @@ func _ready_ui() -> void:
 	time_container.add_child(max_time_label)
 	time_panel.add_child(time_container)
 	
-	IS.add_childs(options_container, [
+	IS.add_children(options_container, [
 		IS.create_empty_control(),
 		play_button,
 		replay_button,

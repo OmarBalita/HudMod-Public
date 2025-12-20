@@ -1,6 +1,7 @@
 class_name PopupedCategoriesMenu extends PopupedControl
 
 signal menu_button_pressed(option: MenuOption)
+signal categories_menu_popuped()
 
 @export var categories_options: Dictionary[MenuOption, Array]
 
@@ -29,6 +30,7 @@ func _ready() -> void:
 	var right_control: SplitContainer = IS.create_split_container(2, true)
 	
 	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.STYLE_ACCENT_LEFT})
+	categories_menu.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	search_line = IS.create_line_edit(search_line_text, "", search_texture)
 	scroll_container = IS.create_scroll_container(0)
 	var right_margin_container: MarginContainer = IS.create_margin_container()
@@ -40,7 +42,7 @@ func _ready() -> void:
 	right_control.add_child(search_line)
 	right_control.add_child(scroll_container)
 	
-	IS.add_childs(split_container, [left_control, right_control])
+	IS.add_children(split_container, [left_control, right_control])
 	margin_container.add_child(split_container)
 	add_child(margin_container)
 	
@@ -52,9 +54,10 @@ func _ready() -> void:
 		var category_box: Category = IS.create_category(true, category_key.text, Color.BLACK, category_size)
 		category_box.is_expanded = true
 		category_box.has_custom_color = false
-		#IS.add_childs(category_box, [IS.create_name_label(category_key.text), IS.create_h_line_panel()])
+		#IS.add_children(category_box, [IS.create_name_label(category_key.text), IS.create_h_line_panel()])
 		for option: MenuOption in category_options:
 			var button: Button = IS.create_button(option.text, option.icon, false, true, {custom_minimum_size = Vector2(category_size.x, 35.0)})
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			button.pressed.connect(on_option_button_pressed.bind(option))
 			category_box.add_content(button)
 		options_control.add_child(category_box)
@@ -78,12 +81,13 @@ func _ready() -> void:
 	
 	left_control.add_child(categories_menu)
 	
-	await super()
 	custom_minimum_size = Vector2(600, 400)
 	
 	IS.expand(right_margin_container)
 	search_line.grab_focus()
-
+	
+	await super()
+	categories_menu_popuped.emit()
 
 func _input(event: InputEvent) -> void:
 	super(event)

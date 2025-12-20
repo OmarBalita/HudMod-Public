@@ -100,31 +100,6 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	
-	#if event is InputEventMouse:
-		#var event_pos: Vector2 = event.position
-		#
-		#var group: bool = multiselect and event.ctrl_pressed
-		#var remove: bool = event.alt_pressed
-		#
-		#if event is InputEventMouseButton:
-			#var is_pressed: bool = event.is_pressed()
-			#if is_pressed: press_pos = event_pos
-			#
-			#match event.button_index:
-				#MOUSE_BUTTON_LEFT:
-					#if is_pressed:
-						#pass
-					#else:
-						#pass
-				#MOUSE_BUTTON_RIGHT:
-					#if is_pressed:
-						#pass
-					#else:
-						#pass
-		#
-		#elif event is InputEventMouseMotion:
-			#pass
-	
 	if event is InputEventMouse:
 		var mouse_pos: Vector2 = event.position
 		var dist: float = press_pos.distance_to(mouse_pos)
@@ -198,13 +173,13 @@ func start_drag(group: bool, remove: bool) -> void:
 	if not is_dragging:
 		
 		is_dragging = true
-		select(group, remove, true)
 		_create_dragged_rect()
 		hide()
 		
 		if following_drag:
 			return
 		
+		select(group, remove, true, false)
 		drag_started.emit()
 		
 		var selected_objects: Dictionary[String, Dictionary] = selection_group.selected_objects

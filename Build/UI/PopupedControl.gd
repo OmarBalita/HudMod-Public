@@ -52,13 +52,13 @@ func _input(event: InputEvent) -> void:
 
 
 func popup(pos = null) -> void:
-	
 	await get_tree().process_frame
 	if pos == null:
 		pos = get_global_mouse_position()
 	
 	var window_size = Vector2(get_window().size / ProjectSettings.get_setting("display/window/stretch/scale"))
 	var dist = pos + custom_minimum_size - window_size
+	
 	if dist.x > 0:
 		pos.x -= dist.x
 	if dist.y > 0:

@@ -39,15 +39,3 @@ func _process(frame: int) -> void:
 	if get_prop(&"enable_y"):
 		submitted_result.y = result
 	submit_stacked_value(&"position", submitted_result)
-
-
-
-
-
-
-
-
-
-
-
-

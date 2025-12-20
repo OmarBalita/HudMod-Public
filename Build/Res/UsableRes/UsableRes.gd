@@ -49,13 +49,13 @@ func set_and_emit_prop(property_key: StringName, property_val: Variant) -> void:
 	set_prop_func.call(property_key, property_val)
 	res_changed.emit()
 
-func register_prop(property_key: StringName, property_val: Variant, set_func: StringName = "_set_prop_default", get_func: StringName = "_get_prop_default") -> void:
+func register_prop(property_key: StringName, property_val: Variant, set_func: StringName = &"_set_prop_default", get_func: StringName = &"_get_prop_default") -> void:
 	properties[property_key] = {"v": property_val, "s": set_func, "g": get_func}
 
-func register_props(_properties: Dictionary[StringName, Variant]) -> void:
+func register_props(_properties: Dictionary[StringName, Variant], set_func: StringName = &"_set_prop_default", get_func: StringName = &"_get_prop_default") -> void:
 	for property_key: StringName in _properties:
 		var property_default_val: Variant = _properties.get(property_key)
-		register_prop(property_key, property_default_val)
+		register_prop(property_key, property_default_val, set_func, get_func)
 
 
 func loop_prop(method: Callable) -> void:
@@ -66,60 +66,66 @@ func loop_prop(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {}
 
-static func create_custom_edit(name: String, usable_res: UsableRes) -> Array[Control]:
-	var exported_parameters = usable_res._get_exported_props()
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = []) -> Array[Control]:
+	if not usable_ress.has(usable_res):
+		usable_ress.append(usable_res)
+	
+	var exported_props: Dictionary[StringName, Dictionary] = usable_res._get_exported_props()
 	
 	var edits_box_container:= IS.create_box_container(12, true)
 	var edit_box_container:= IS.create_custom_edit_box(name, edits_box_container)
 	edits_box_container.set_meta("owner", edit_box_container)
-	#usable_res.res_changed.connect(edit_box_container.emit_signal.bind('val_changed', usable_res))
 	
 	var properties_controllers: Dictionary[StringName, IS.EditBoxContainer] = {}
-	EditorServer.set_usable_res_controllers(usable_res, edit_box_container, properties_controllers)
+	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_box_container, properties_controllers)
 	edit_box_container.tree_exited.connect(EditorServer.clear_usable_res_controllers.bind(usable_res))
 	
 	var ui_profile: UIProfile = UIProfile.new()
 	var ui_conditions: Dictionary[Array, Array]
 	
-	for param_name: String in exported_parameters:
-		var param_info: Dictionary = exported_parameters.get(param_name)
-		var param_val: Variant = param_info.val
+	for prop_name: String in exported_props:
+		var prop_info: Dictionary = exported_props.get(prop_name)
+		var prop_val: Variant = prop_info.val
 		
 		var ui_cond_key: Array
 		# if ui_cond has two elements
 		# one for cond_func and one for needed_result
 		# example: [Callable() -> int, [1, 2]]
-		if param_info.ui_cond.size() == 2:
-			ui_cond_key = param_info.ui_cond
+		if prop_info.ui_cond.size() == 2:
+			ui_cond_key = prop_info.ui_cond
 		
-		if param_info.val is Node:
-			usable_res.res_changed.connect(param_info.update_func)
-			edits_box_container.tree_exiting.connect(usable_res.res_changed.disconnect.bind(param_info.update_func))
-			edits_box_container.add_child(param_info.val)
+		if prop_info.val is Node:
+			usable_res.res_changed.connect(prop_info.update_func)
+			edits_box_container.tree_exiting.connect(usable_res.res_changed.disconnect.bind(prop_info.update_func))
+			edits_box_container.add_child(prop_info.val)
 			continue
 		
-		var controllers = TypeServer.get_type_controllers_from_val(param_name, param_val, param_info)
+		var controllers = TypeServer.get_type_controllers_from_val(prop_name, prop_val, prop_info)
 		if controllers.size():
 			var edit_box: IS.EditBoxContainer = IS.get_edit_box_from(controllers)
-			properties_controllers[param_name] = edit_box
+			edit_box.set_curr_val(prop_val)
+			properties_controllers[prop_name] = edit_box
 			
 			edit_box.val_changed.connect(
-				func(new_val: Variant) -> void:
-					usable_res.set_and_emit_prop(param_name, new_val)
-					#usable_res.res_changed.emit()
+				func(prop_usable_res: UsableRes, prop_key: StringName, new_val: Variant) -> void:
+					if prop_usable_res == null: prop_usable_res = usable_res
+					if prop_key.is_empty(): prop_key = prop_name
+					for curr_usable_res: UsableRes in usable_ress:
+						curr_usable_res.set_and_emit_prop(prop_key, new_val)
+						curr_usable_res.send_new_val(edit_box_container, curr_usable_res, prop_key, new_val)
 					ui_profile.update()
 			)
+			
 			edit_box.keyframe_sended.connect(
-				func(param_usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
-					if param_usable_res == null:
-						param_usable_res = usable_res
-					if param_key.is_empty():
-						param_key = param_name
-					edit_box_container.keyframe_sended.emit(
-						param_usable_res, param_key, param_new_val
-					)
+				func(prop_usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
+					if prop_usable_res == null: prop_usable_res = usable_res
+					if prop_key.is_empty(): prop_key = prop_name
+					#usable_res.send_keyframe(edit_box_container, prop_usable_res, prop_key, prop_new_val)
+					for curr_usable_res: UsableRes in usable_ress:
+						curr_usable_res.send_keyframe(edit_box_container, curr_usable_res, prop_key, prop_new_val)
 			)
 			edits_box_container.add_child(edit_box)
+			
 			if ui_cond_key:
 				if ui_conditions.has(ui_cond_key): ui_conditions[ui_cond_key].append(edit_box)
 				else: ui_conditions[ui_cond_key] = [edit_box]
@@ -130,6 +136,11 @@ static func create_custom_edit(name: String, usable_res: UsableRes) -> Array[Con
 	return [edits_box_container]
 
 
+func send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
+	edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
+
+func send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+	edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
 
 
 

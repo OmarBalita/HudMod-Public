@@ -45,7 +45,7 @@ var player: Player
 var time_line: TimeLine
 var media_explorer: MediaExplorer
 var clip_nodes_explorer: ClipNodesExplorer
-var properties: Properties
+var properties: Properties2
 var drawable_rect: DrawableRect
 
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
@@ -90,15 +90,19 @@ func set_frame(new_frame: int) -> void:
 
 # ---------------------------------------------------
 
-func set_usable_res_controllers(usable_res: UsableRes, edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
-	usable_ress_controllers[usable_res] = {edit_box_container: properties_containers}
+func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
+	usable_ress_controllers[usable_res] = {
+		&"usable_ress": usable_ress,
+		&"edit_box_container": edit_box_container,
+		&"properties_boxes_containers": properties_containers
+	}
 
 func clear_usable_res_controllers(usable_res: UsableRes) -> void:
 	usable_ress_controllers.erase(usable_res)
 
 func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> IS.EditBoxContainer:
 	if usable_ress_controllers.has(usable_res):
-		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].values()[0]
+		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
 		var property_container: IS.EditBoxContainer = curr_properties_containers[property_key]
 		return property_container
 	return null

@@ -20,9 +20,9 @@ func _ready() -> void:
 	var y_label: Label = IS.create_label("Y", IS.LABEL_SETTINGS_BOLD, {modulate = Color.GREEN})
 	
 	y_split.add_child(y_label)
-	IS.add_childs(x_split, [x_label, x_edit])
-	IS.add_childs(y_split, [y_label, y_edit])
-	IS.add_childs(self, [
+	IS.add_children(x_split, [x_label, x_edit])
+	IS.add_children(y_split, [y_label, y_edit])
+	IS.add_children(self, [
 		x_split, IS.create_color_rect(Color(Color.RED, .5), {custom_minimum_size = Vector2(.0,2.0)}),
 		y_split, IS.create_color_rect(Color(Color.GREEN, .5), {custom_minimum_size = Vector2(.0,2.0)})
 	])

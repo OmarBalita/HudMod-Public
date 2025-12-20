@@ -72,7 +72,6 @@ func update() -> void:
 		if index == focus_index:
 			focused_option_button = option_button
 	
-	await get_tree().process_frame
 	set_focus_index(focus_index, false)
 	custom_minimum_size = buttons_container.size
 	

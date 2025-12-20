@@ -46,12 +46,12 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 ] # All resources inherited from UsableRes
 
 @onready var objects: Dictionary[StringName, Dictionary] = {
-	&"EmptyObject2D": {text = "EmptyObject2D", icon = RES_ICON, type_id = EmptyObject2DRes, category = "Object2D"},
-	&"Text2D": {text = "Text2D", icon = RES_ICON, type_id = Text2DRes, category = "Object2D"},
-	&"Camera2D": {text = "Camera2D", icon = RES_ICON, type_id = Camera2DRes, category = "Object2D"},
-	&"Audio2D": {text = "Audio2D", icon = RES_ICON, type_id = Audio2DRes, category = "Object2D"},
-	&"Draw": {text = "Draw", icon = RES_ICON, type_id = DrawRes, category = "Object2D"},
-	&"Particles2D": {text = "Particles2D", icon = RES_ICON, type_id = Particles2DRes, category = "Object2D"},
+	&"Object2DRes": {text = "Object2DRes", icon = preload("uid://cnd2y4daw32sc"), type_id = Object2DRes, category = "Object2D"},
+	&"Text2D": {text = "Text2D", icon = preload("uid://bkmsk4ckmcss1"), type_id = Text2DRes, category = "Object2D"},
+	&"Camera2D": {text = "Camera2D", icon = preload("uid://88e0ti5colmt"), type_id = Camera2DRes, category = "Object2D"},
+	&"Audio2D": {text = "Audio2D", icon = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, category = "Object2D"},
+	&"Draw": {text = "Draw", icon = preload("uid://ln6rgcxtg8e0"), type_id = DrawRes, category = "Object2D"},
+	&"Particles2D": {text = "Particles2D", icon = preload("uid://cj0yrx43un4a8"), type_id = Particles2DRes, category = "Object2D"},
 }
 
 @onready var sections_hint: Dictionary[StringName, Dictionary] = {
@@ -80,7 +80,7 @@ func update_components() -> void:
 	
 	for section_key: StringName in sections_hint:
 		
-		var section: Array = components.get_or_add(section_key, [])
+		var section: Array = components.get_or_add(section_key, [] as Array[Dictionary])
 		var section_folder_path: String = sections_hint[section_key].folder_path
 		var components_files: PackedStringArray = DirAccess.get_files_at(section_folder_path)
 		

@@ -204,7 +204,7 @@ func update_section_properties(media_clips: Array[MediaClip], focused_media_clip
 			drag_button.button_up.connect(on_component_drag_button_button_up)
 			#drag_button.gui_input.connect(func(event: InputEvent) -> void: on_component_drag_button_gui_input.call(event, index))
 			
-			IS.add_childs(edit_box.header, [method_controller, delete_button, drag_button])
+			IS.add_children(edit_box.header, [method_controller, delete_button, drag_button])
 			curr_components_container.add_child(edit_box)
 
 func get_component_index_from_display_pos(comp_container: BoxContainer, pos: float) -> int:

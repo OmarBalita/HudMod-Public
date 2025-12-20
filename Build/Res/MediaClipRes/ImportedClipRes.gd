@@ -1,7 +1,7 @@
 class_name ImportedClipRes extends MediaClipRes
 
 enum ImportedMediaType {
-	MEDIA_TYPE_IMAGE,
+	MEDIA_TYPE_IMAGE = 0,
 	MEDIA_TYPE_VIDEO,
 	MEDIA_TYPE_AUDIO
 }

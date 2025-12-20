@@ -18,7 +18,7 @@ signal expand_changed()
 	set(val):
 		use_flex_container = val
 		if val: content_container = IS.create_grid_container(content_control_size, 12, 12)
-		else: content_container = IS.create_box_container(12, true)
+		else: content_container = IS.create_box_container(0, true)
 		content_container.clip_contents = false
 
 var is_expanded: bool:
@@ -71,6 +71,7 @@ func update_ui() -> void:
 	if use_flex_container:
 		content_container.set_control_size(content_control_size)
 	content_margin_container.set_visible(is_expanded)
+
 
 func get_contents() -> Array[Node]:
 	return content_container.get_children()

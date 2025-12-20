@@ -259,6 +259,8 @@ func _ready_editor() -> void:
 	shortcut_node.create_key_shortcut(0, KEY_BACKSPACE, ProjectServer.exit_media_clip_children.bind(1))
 	
 	# Start Connections
+	
+	
 	ProjectServer.media_clip_entered.connect(on_project_server_media_clip_entered)
 	ProjectServer.media_clip_exited.connect(on_project_server_media_clip_exited)
 	ProjectServer.layer_added.connect(on_project_server_layer_added)
@@ -270,6 +272,8 @@ func _ready_editor() -> void:
 	ProjectServer.curr_layers_changed.connect(on_project_server_curr_layers_changed)
 	
 	EditorServer.player.curr_frame_changed.connect(on_player_curr_frame_changed)
+	
+	media_clips_selection_group.selected_objects_changed.connect(on_media_clips_selection_group_changed)
 	
 	resized.connect(on_resized)
 	l_button_downed.connect(on_l_button_downed)
@@ -931,6 +935,7 @@ func select_all_media_clips() -> void:
 		func(layer: Layer) -> void:
 			layer.displayed_media_clips_select_all()
 	)
+	media_clips_selection_group.selected_objects_changed.emit()
 
 func deselect_all_media_clips() -> void:
 	media_clips_selection_group.clear_objects()
@@ -990,7 +995,7 @@ func extract_audio() -> void:
 func open_graph_editor() -> void:
 	loop_selected_media_clips({},
 		func(media_clip: MediaClip, info: Dictionary[StringName, Variant]) -> void:
-			media_clip.open_graph_editors(), Callable(), true
+			media_clip.open_graph_editor(), Callable(), true
 	)
 
 func close_graph_editor() -> void:
@@ -1194,14 +1199,17 @@ func clips_end_move() -> void:
 					clips_moved_target_layers_indeces,
 					clips_moved_target_frames_indeces
 				)
+		
+		media_clips_selection_group.set_default_focused()
+		media_clips_selection_group.selected_objects_changed.emit()
 	
 	clips_moved_clips_ress.clear()
 	
 	set_timeline_state(0)
+	
 	await get_tree().process_frame
 	clear_layers_drawn_entities()
 	EditorServer.drawable_rect.clear_drawn_entities()
-	
 	set_layers_clips_modulate_white()
 
 func drag(delta: float, horizontally: bool = true, vertically: bool = true) -> void:
@@ -1299,13 +1307,19 @@ func on_project_server_curr_layers_changed() -> void:
 	 
 	media_clips_selection_group.clear_objects()
 
-
-# ---------------------------------------------------
-
 func on_player_curr_frame_changed(new_frame: int) -> void:
 	emit_frame_changed = false
 	set_curr_frame_manually(new_frame)
 	emit_frame_changed = true
+
+# ---------------------------------------------------
+
+func on_media_clips_selection_group_changed() -> void:
+	#media_clips_selection_group.loop_selected_objects(
+		#func(media_clip: MediaClip, metadata: Dictionary) -> void:
+			#media_clip.focus_panel.update_displayed_keys()
+	#)
+	ProjectServer.update_curr_length_and_curr_spacial_frames()
 
 func on_resized() -> void:
 	calculate_select_rect()

@@ -11,6 +11,50 @@ enum MediaTypes {
 	CAMERA_2D,
 	AUDIO_2D
 }
+
+const IMAGE_FORMAT_INDEXER: Dictionary[int, String] = {
+	Image.FORMAT_L8: "FORMAT_L8",
+	Image.FORMAT_LA8: "FORMAT_LA8",
+	Image.FORMAT_R8: "FORMAT_R8",
+	Image.FORMAT_RG8: "FORMAT_RG8",
+	Image.FORMAT_RGB8: "FORMAT_RGB8",
+	Image.FORMAT_RGBA8: "FORMAT_RGBA8",
+	Image.FORMAT_RGBA4444: "FORMAT_RGBA4444",
+	Image.FORMAT_RGB565: "FORMAT_RGB565",
+	Image.FORMAT_RF: "FORMAT_RF",
+	Image.FORMAT_RGF: "FORMAT_RGF",
+	Image.FORMAT_RGBF: "FORMAT_RGBF",
+	Image.FORMAT_RGBAF: "FORMAT_RGBAF",
+	Image.FORMAT_RH: "FORMAT_RH",
+	Image.FORMAT_RGH: "FORMAT_RGH",
+	Image.FORMAT_RGBH: "FORMAT_RGBH",
+	Image.FORMAT_RGBAH: "FORMAT_RGBAH",
+	Image.FORMAT_RGBE9995: "FORMAT_RGBE9995",
+	Image.FORMAT_DXT1: "FORMAT_DXT1",
+	Image.FORMAT_DXT3: "FORMAT_DXT3",
+	Image.FORMAT_DXT5: "FORMAT_DXT5",
+	Image.FORMAT_RGTC_R: "FORMAT_RGTC_R",
+	Image.FORMAT_RGTC_RG: "FORMAT_RGTC_RG",
+	Image.FORMAT_BPTC_RGBA: "FORMAT_BPTC_RGBA",
+	Image.FORMAT_BPTC_RGBF: "FORMAT_BPTC_RGBF",
+	Image.FORMAT_BPTC_RGBFU: "FORMAT_BPTC_RGBFU",
+	Image.FORMAT_ETC: "FORMAT_ETC",
+	Image.FORMAT_ETC2_R11: "FORMAT_ETC2_R11",
+	Image.FORMAT_ETC2_R11S: "FORMAT_ETC2_R11S",
+	Image.FORMAT_ETC2_RG11: "FORMAT_ETC2_RG11",
+	Image.FORMAT_ETC2_RG11S: "FORMAT_ETC2_RG11S",
+	Image.FORMAT_ETC2_RGB8: "FORMAT_ETC2_RGB8",
+	Image.FORMAT_ETC2_RGBA8: "FORMAT_ETC2_RGBA8",
+	Image.FORMAT_ETC2_RGB8A1: "FORMAT_ETC2_RGB8A1",
+	Image.FORMAT_ETC2_RA_AS_RG: "FORMAT_ETC2_RA_AS_RG",
+	Image.FORMAT_DXT5_RA_AS_RG: "FORMAT_DXT5_RA_AS_RG",
+	Image.FORMAT_ASTC_4x4: "FORMAT_ASTC_4x4",
+	Image.FORMAT_ASTC_4x4_HDR: "FORMAT_ASTC_4x4_HDR",
+	Image.FORMAT_ASTC_8x8: "FORMAT_ASTC_8x8",
+	Image.FORMAT_ASTC_8x8_HDR: "FORMAT_ASTC_8x8_HDR",
+	Image.FORMAT_MAX: "FORMAT_MAX"
+}
+
 const IMAGE_EXTENSIONS: PackedStringArray = [
 	"png", "jpg", "jpeg", "bmp", "webp", "tga", "tif", "tiff",
 	"svg", "hdr", "exr", "dds"
@@ -26,20 +70,19 @@ const MEDIA_EXTENSIONS: PackedStringArray = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS 
 const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS]
 
 var imported_clip_info: Dictionary[int, Dictionary] = {
-	0: {default_name = "Image", sections = ["Display2D", "Image", "Color", "Transition"], clip_panel = ImageClipPanel},
-	1: {default_name = "Video", sections = ["Display2D", "Image", "Color", "Transition", "Sound"], clip_panel = VideoClipPanel},
-	2: {default_name = "Audio", sections = ["Sound"], clip_panel = AudioClipPanel},
+	0: {default_name = "Image", sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
+	1: {default_name = "Video", sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
+	2: {default_name = "Audio", sections = [&"Sound"], clip_panel = AudioClipPanel},
 }
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
-	&"EmptyObject2D": {sections = ["Display2D"]},
-	&"Text2D": {sections = ["Display2D", "Transition", "Text"], },
-	&"Draw": {sections = ["Display2D", "Color", "Draw"]},
-	&"Particles2D": {sections = ["Display2D", "Particles"]},
-	&"Camera2D": {sections = ["Display2D", "Camera"]},
-	&"Audio2D": {sections = ["Display2D", "Sound"]},
+	&"EmptyObject2D": {sections = [&"Display2D"]},
+	&"Text2D": {sections = [&"Display2D", &"Transition", &"Text"], },
+	&"Draw": {sections = [&"Display2D", &"Color", &"Draw"]},
+	&"Particles2D": {sections = [&"Display2D", &"Particles"]},
+	&"Camera2D": {sections = [&"Display2D", &"Camera"]},
+	&"Audio2D": {sections = [&"Display2D", &"Sound"]},
 }
-
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
 const TIMELINE_VIDEO_IMAGE_WIDTH: int = 64
@@ -259,16 +302,21 @@ func draw_waveform_line_timeline(image: Image, width: int, height: int, line_wid
 		Color(Color.BLACK, .6)
 	)
 
-
 class ClipPanel extends Panel:
 	
 	var owner_as_media_clip: MediaClip
+	var is_graph_editor_opened: bool = false
 	var has_clips: bool
 	
 	var curr_frame_in: int
 	var curr_length: int
+	var custom_height: float
 	
+	var margin_container: MarginContainer
+	var box_container: BoxContainer
 	var info_container: BoxContainer
+	var thumbnail_rect: TextureRect
+	var graph_editors: Dictionary[UsableRes, Dictionary]
 	
 	func _init(_owner_as_media_clip: MediaClip) -> void:
 		set_owner_as_media_clip(_owner_as_media_clip)
@@ -287,12 +335,15 @@ class ClipPanel extends Panel:
 			]), PackedColorArray([Color(.0,.0,.0,.6)]))
 	
 	func _ready_ui() -> void:
-		var margin_container: MarginContainer = IS.create_margin_container(8, 8, 4, 4)
+		margin_container = IS.create_margin_container(8, 8, 8, 8)
+		box_container = IS.create_box_container(0, true, {})
 		info_container = IS.create_box_container(8, false, {})
+		
+		info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		
 		var thumbnail: Texture2D = _get_ui_thumbnail()
 		if thumbnail:
-			var thumbnail_rect: TextureRect = IS.create_texture_rect(thumbnail, {})
+			thumbnail_rect = IS.create_texture_rect(thumbnail, {})
 			thumbnail_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			thumbnail_rect.custom_minimum_size.x = MediaServer.THUMBNAIL_TARGET_WIDTH
@@ -308,7 +359,8 @@ class ClipPanel extends Panel:
 			IS.expand(name_label, true, true)
 			info_container.add_child(name_label)
 		
-		margin_container.add_child(info_container)
+		box_container.add_child(info_container)
+		margin_container.add_child(box_container)
 		add_child(margin_container)
 	
 	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
@@ -330,6 +382,79 @@ class ClipPanel extends Panel:
 		return owner_as_media_clip
 	func set_owner_as_media_clip(new_val: MediaClip) -> void:
 		owner_as_media_clip = new_val
+	
+	func open_graph_editor() -> void:
+		close_graph_editor()
+		
+		margin_container.add_theme_constant_override(&"margin_left", 0)
+		margin_container.add_theme_constant_override(&"margin_right", 0)
+		
+		var media_res: MediaClipRes = owner_as_media_clip.clip_res
+		var comps: Dictionary[String, Array] = media_res.components
+		
+		for section_key: String in comps.keys():
+			var section_comps: Array = comps[section_key]
+			
+			for comp_res: ComponentRes in section_comps:
+				var anims: Dictionary[UsableRes, Dictionary] = comp_res.animations
+				
+				for usable_res: UsableRes in anims:
+					var animated_props: Dictionary = anims[usable_res]
+					var usable_res_port: Dictionary[StringName, Category] = graph_editors.get_or_add(usable_res, {} as Dictionary[StringName, Category])
+					
+					for prop_key: StringName in animated_props:
+						var anim_res: AnimationRes = animated_props[prop_key]
+						
+						var graph_category:= IS.create_category(true, str(comp_res.get_res_id(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 150.0), false)
+						var graph_editor:= IS.create_color_rect(Color.RED)
+						
+						graph_category.add_content(graph_editor)
+						box_container.add_child(graph_category)
+						
+						IS.expand(graph_editor, true, true)
+						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+						graph_category.expand_changed.connect(update_custom_height)
+						
+						usable_res_port[prop_key] = graph_category
+		
+		is_graph_editor_opened = true
+		update_custom_height()
+	
+	func close_graph_editor() -> void:
+		margin_container.add_theme_constant_override(&"margin_left", 8)
+		margin_container.add_theme_constant_override(&"margin_right", 8)
+		
+		for usable_res: UsableRes in graph_editors:
+			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
+			for prop_key: StringName in usable_res_port:
+				usable_res_port[prop_key].queue_free()
+		
+		graph_editors.clear()
+		is_graph_editor_opened = false
+		update_custom_height()
+	
+	func update_custom_height() -> void:
+		custom_height = ProjectServer.get_layer_customization(owner_as_media_clip.layer_index).size + 16
+		var any_graph_opened: bool
+		
+		for usable_res: UsableRes in graph_editors:
+			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
+			for prop_key: StringName in usable_res_port:
+				var category: Category = usable_res_port[prop_key]
+				custom_height += 20.0
+				if category.is_expanded:
+					category.size_flags_vertical = Control.SIZE_EXPAND_FILL
+					custom_height += 150.0
+					any_graph_opened = true
+				else: category.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		
+		if any_graph_opened: info_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		else: info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		
+		owner_as_media_clip.layer.update()
+		await get_tree().process_frame
+		owner_as_media_clip.focus_panel.update_displayed_keys(false)
+
 
 class ImageClipPanel extends ClipPanel:
 	
@@ -441,15 +566,98 @@ class AudioClipPanel extends ClipPanel:
 class ObjectClipPanel extends ClipPanel:
 	func _ready() -> void:
 		super()
+		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		thumbnail_rect.custom_minimum_size.x = 50.0
 		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
 	
 	func _get_ui_name() -> String:
 		return owner_as_media_clip.clip_res.object_res.get_res_id()
 	
 	func _get_ui_thumbnail() -> Texture2D:
-		#var res_id: StringName = owner_as_media_clip.clip_res.object_res.get_res_id()
-		#return TypeServer.objects[res_id].icon
-		return null
+		var res_id: StringName = owner_as_media_clip.clip_res.object_res.get_res_id()
+		return TypeServer.objects[res_id].icon
+
+
+func get_file_main_info(path: StringName, get_more_meta_func: Callable = Callable()) -> Dictionary[StringName, String]:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	var file_size_as_kb: float = snappedf(file.get_length() / 1024.0, .001)
+	
+	var meta: Dictionary[StringName, String] = {
+		&"file_name": path.get_file(),
+		&"file_path": path,
+		&"file_size": str(file_size_as_kb, " KB"),
+	}
+	if get_more_meta_func.is_valid():
+		meta.merge(get_more_meta_func.call(file))
+	
+	file.close()
+	return meta
+
+func get_imported_file_info(key_as_path: StringName, type: int) -> Dictionary[StringName, String]:
+	var result: Dictionary[StringName, String]
+	match type:
+		0: result = get_image_file_info(key_as_path)
+		1: result = get_video_file_info(key_as_path)
+		2: result = get_audio_file_info(key_as_path)
+	return result
+
+func get_image_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
+	var image: Image = MediaCache.get_image(key_as_path)
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var format_int: Image.Format = image.get_format()
+	
+	return get_file_main_info(key_as_path).merged({
+		&"title": "Image",
+		&"extension": key_as_path.get_extension(),
+		&"resolution": "(%s x %s)" % [width, height],
+		&"total_pixels": str(width * height),
+		&"image_format": IMAGE_FORMAT_INDEXER.get(format_int),
+		&"memory_size": str(image.get_data().size() / 1024.0, " KB"),
+		&"has_mipmaps": str(image.has_mipmaps()),
+		&"is_empty": str(image.is_empty())
+	})
+
+func get_audio_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
+	var audio_stream: AudioStreamWAV = MediaCache.get_audio(key_as_path)
+	
+	var duration: float = snapped(audio_stream.get_length(), .001)
+	var sample_rate: int = audio_stream.mix_rate
+	var channels_str: String
+	var channels_int: int
+	
+	if audio_stream.stereo:
+		channels_str = "Stereo"
+		channels_int = 2
+	else:
+		channels_str = "Mono"
+		channels_int = 1
+	
+	var bitrate: int = int(sample_rate * channels_int * 16 / 1000)
+	
+	return get_file_main_info(key_as_path).merged({
+		&"title": "Audio",
+		&"duration": "%s s" % duration,
+		&"sample_rate": "%s Hz" % sample_rate,
+		&"channels": channels_str,
+		&"bitrate": "%s Kbps" % bitrate,
+	})
+
+func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
+	return get_file_main_info(key_as_path).merged({
+		&"title": "Video"
+	})
+
+
+func get_clip_sections(media_res: MediaClipRes) -> Array:
+	if media_res is ImportedClipRes:
+		return imported_clip_info[media_res.type].sections
+	elif media_res is ObjectClipRes:
+		return object_clip_info[media_res.object_res.get_res_id()].sections
+	return []
+
+
+
 
 
 
@@ -580,33 +788,4 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 		if extension in i:
 			return media_type
 	return -1
-
-func get_types_intersection_properties_sections(types: Array[int]) -> Array:
-	var types_sections: Array[Array]
-	
-	for type: int in types:
-		var type_sections: Array = imported_clip_info.get(type).sections
-		types_sections.append(type_sections)
-	
-	if types_sections.is_empty():
-		return []
-	
-	var result: Array = types_sections[0]
-	for index: int in range(0, types_sections.size()):
-		result = result.filter(func(element: String) -> bool: return element in types_sections[index])
-	
-	return result
-
-
-
-
-
-
-
-
-
-
-
-
-
 

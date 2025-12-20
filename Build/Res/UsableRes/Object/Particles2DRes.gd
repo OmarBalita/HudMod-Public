@@ -7,3 +7,7 @@ func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_in
 	var particles_2d:= Particles2D.new()
 	Scene2.instance_object_2d(parent_res, media_res, particles_2d, layer_index, frame_in, root_layer_index)
 	return particles_2d
+
+static func get_object_info() -> Dictionary[StringName, String]:
+	return {&"title": "Particles2D",
+		&"description": "Particles2D is used to create diverse visual effects using the Particle System."}

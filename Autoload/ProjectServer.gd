@@ -292,6 +292,7 @@ func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emi
 	return object_clip_res
 
 func add_media_clip(media_res: MediaClipRes, media_length: int, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> void:
+	media_res.clip_pos = frame_in
 	media_res.id = generate_clip_id()
 	media_res.length = media_length
 	
@@ -321,6 +322,8 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 	if true_arrangement:
 		displacement_frame = get_media_clips_min_layer_index_and_frame_in(copied_media_clips).y
 	
+	var layers_updated: Array[Layer]
+	
 	for index: int in copied_media_clips.size():
 		
 		var info: Dictionary = copied_media_clips[index]
@@ -328,10 +331,8 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		var from_layer_index: int = info.layer_index
 		var from_frame_in: int = info.clip_pos
 		var media_res: MediaClipRes
-		if generate_new_id:
-			media_res = info.clip_res.duplicate_media_res()
-		else:
-			media_res = info.clip_res.duplicate(true)
+		
+		media_res = info.clip_res.duplicate_media_res()
 		
 		var true_index: int = min(index, target_frames_in.size() - 1)
 		var target_frame_in: int = target_frames_in[true_index]
@@ -345,15 +346,19 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		if not pasted_layers.has(absolute_target_layer_index):
 			pasted_layers[absolute_target_layer_index] = {}
 		pasted_layers[absolute_target_layer_index][absolute_target_frame_in] = media_res
+		media_res.clip_pos = absolute_target_frame_in
+		
+		var layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
+		layer.request_remove_media_clip(from_frame_in)
+		if not layers_updated.has(layer):
+			layers_updated.append(layer)
 	
 	if emit_changes:
 		media_clips_pasted.emit()
 		request_delete_layers()
 	
-	for layer_index: int in pasted_layers:
-		var layer: Layer = EditorServer.time_line.get_layer(layer_index)
-		layer.displayed_media_clips_clear()
-		layer.update(false)
+	for layer: Layer in layers_updated:
+		layer.update()
 	
 	return pasted_layers
 
@@ -372,6 +377,7 @@ func edit_media_clip(layer_index: int, frame_in: int, edit_info: Dictionary[Stri
 		target_layer_index = check_layer(layer_index, target_frame_in, edit_info.length, media_ignored)
 	
 	curr_layers[target_layer_index].media_clips[target_frame_in] = media_res
+	media_res.clip_pos = target_frame_in
 	
 	if emit_changes:
 		request_delete_layers()
@@ -496,7 +502,7 @@ func create_media_clips_parent(focused_clip_info: Dictionary, clips_info: Array[
 	EditorServer.media_clips_selection_group.remove_object(focused_clip_info.clip_res.id)
 	
 	layer_index = check_layer(layer_index, clip_pos, focused_clip_info.clip_res.length)
-	var empty_object_res:= EmptyObject2DRes.new()
+	var empty_object_res:= Object2DRes.new()
 	var parent_clip_res: ObjectClipRes = add_object_clip(empty_object_res, layer_index, clip_pos, false, true)
 	layers_changed.emit()
 	
@@ -531,6 +537,7 @@ func reparent_media_clips(parent_clip_info: Dictionary, clips_info: Array[Dictio
 		var target_layer: int = check_layer(info.layer_index - layer_index_begin, target_clip_pos, clip_res.length)
 		just_place_clip(target_layer, target_clip_pos, clip_res, false)
 		curr_layers[target_layer].media_clips[target_clip_pos] = clip_res
+		clip_res.clip_pos = target_clip_pos
 		frame_ends.append(target_clip_pos + clip_res.length)
 	
 	exit_media_clip_children(1, false)
@@ -871,7 +878,7 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 		if curr_clips.has(index) and new_clip_id == curr_clips[index]: pass
 		else: instance_object(parent_res, media_res, index, new_clip_id, root_layer_index)
 		
-		parent_res.process(TimeServer.localize_frame(curr_frame, new_clip_id))
+		media_res.process(curr_frame - new_clip_id)
 		update_media_res_children(media_res, curr_frame, root_layer_index)
 		added_clips[index] = new_clip_id
 	
@@ -900,7 +907,7 @@ func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_in
 func free_object(media_res: MediaClipRes) -> void:
 	var object: Node = Scene2.get_object(media_res)
 	if object:
-		object.get_meta(&"media_res").exit(object)
+		media_res.exit(object)
 		Scene2.free_object(media_res)
 
 func generate_clip_id(id_length: int = 12) -> String:
@@ -910,7 +917,6 @@ func generate_clip_id(id_length: int = 12) -> String:
 # ---------------------------------------------------
 
 func get_start_and_end_frame() -> Array[int]:
-	
 	var frame_start_in: int
 	var frame_end_in: int
 	
@@ -926,8 +932,14 @@ func get_start_and_end_frame() -> Array[int]:
 	
 	return [frame_start_in, frame_end_in]
 
+func append_spacial_frame(pos: int) -> void:
+	curr_spacial_frames.append(pos)
+
+func erase_spacial_frame(pos: int) -> void:
+	curr_spacial_frames.erase(pos)
+
 func update_curr_length_and_curr_spacial_frames() -> void:
-	var result:= loop_media_clips({"length_needed": 0 as int, "new_frame_poss": [] as Array[int]},
+	var clips_result:= loop_media_clips({"length_needed": 0 as int, "new_frame_poss": [] as Array[int]},
 		func(l: int, f: int, m: MediaClipRes, i: Dictionary[StringName, Variant]) -> void:
 			var curr_result_needed: int = f + m.length
 			if curr_result_needed > i.length_needed:
@@ -936,9 +948,21 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 			i.new_frame_poss.append(f)
 	)
 	
-	curr_length = max(default_length, result.length_needed)
+	var clips_keyframes_result:= loop_layers({"new_frame_poss": [] as Array[int]},
+		func(layer_index: int, layer_port: Dictionary, info: Dictionary) -> void:
+			var layer: Layer = EditorServer.time_line.get_layer(layer_index)
+			var displayed_clips: Dictionary[int, Dictionary] = layer.displayed_media_clips
+			for frame_in: int in displayed_clips.keys():
+				var clip_info: Dictionary = displayed_clips[frame_in]
+				var clip: MediaClip = clip_info.clip
+				if clip.focus_panel.visible:
+					for key: int in clip.focus_panel.displayed_keys:
+						info.new_frame_poss.append(key + frame_in))
+	
 	var start_and_end: Array[int] = get_start_and_end_frame()
-	curr_spacial_frames = start_and_end + result.new_frame_poss + time_markers.keys()
+	
+	curr_length = max(default_length, clips_result.length_needed)
+	curr_spacial_frames = start_and_end + clips_result.new_frame_poss + clips_keyframes_result.new_frame_poss + time_markers.keys()
 
 
 # Files and Saving Part
@@ -955,8 +979,8 @@ func get_res_file(path: String, as_file: Resource) -> Resource:
 # Generating
 # ---------------------------------------------------
 
-func generate_new_id(used_id: PackedStringArray, id_length: int = 12) -> String:
-	var id_keys: String = "abcdefghijklmnopqrstuvwxyz"
+func generate_new_id(used_id: PackedStringArray, id_length: int = 12, append_new_id: bool = false) -> String:
+	var id_keys: String = "_abcdefghijklmnopqrstuvwxyz"
 	var keys_length: int = id_keys.length() - 1
 	
 	var result_id: String
@@ -965,6 +989,9 @@ func generate_new_id(used_id: PackedStringArray, id_length: int = 12) -> String:
 		result_id = ""
 		for time in id_length:
 			result_id += id_keys[randi_range(0, keys_length)]
+	
+	if append_new_id:
+		used_id.append(result_id)
 	
 	return result_id
 

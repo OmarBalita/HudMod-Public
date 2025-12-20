@@ -186,7 +186,7 @@ func _ready_ui() -> void:
 	mouse_pos_label = IS.create_label('')
 	selected_count_label = IS.create_label('')
 	edit_label = IS.create_label('')
-	IS.add_childs(bottom_bar, [
+	IS.add_children(bottom_bar, [
 		mouse_pos_label, IS.create_v_line_panel(),
 		selected_count_label, IS.create_v_line_panel(), edit_label
 	])
@@ -228,7 +228,7 @@ func _ready_draw_ui() -> void:
 	circle_subdv_controller = IS.create_float_edit("Circle Subdvision", false, true, draw_edit.circle_subdv, 3, 4096, 1, 1, 10, true, null, null, min_size, 1)[1]
 	drawings_button = IS.create_button("Drawings", IS.TEXTURE_DOWN)
 	
-	IS.add_childs(draw_ui_box, [
+	IS.add_children(draw_ui_box, [
 		brush_options_button,
 		custom_properties_check_button.get_parent(),
 		custom_color_button.get_parent(),
@@ -299,7 +299,7 @@ func _ready_edit_ui() -> void:
 	proportional_edit_scale_controller = IS.create_float_controller(1.0, .01, 1000.0, .01, .01, 10.0, false, {custom_minimum_size = Vector2(120.0, .0)})
 	proportional_edit_connected_only_button = IS.create_bool_edit("Connected Only", false, Vector2(200.0, .0), 1)[0]
 	
-	IS.add_childs(edit_ui_box, [
+	IS.add_children(edit_ui_box, [
 		center_point_button,
 		basic_options_button,
 		select_options_button,

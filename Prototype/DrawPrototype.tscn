@@ -1,8 +1,38 @@
-[gd_scene load_steps=4 format=3 uid="uid://oridk17j24yo"]
+[gd_scene load_steps=7 format=3 uid="uid://oridk17j24yo"]
 
 [ext_resource type="Script" uid="uid://c2ejkss1jnbne" path="res://Build/Object/Draw.gd" id="1_es7rl"]
 [ext_resource type="Script" uid="uid://0ls4kucvr2wj" path="res://Editor/Player/DrawEditor.gd" id="2_es7rl"]
+[ext_resource type="Script" uid="uid://cjh0ymaritsa6" path="res://Build/Res/UsableRes/DrawnEntityRes.gd" id="3_ux5do"]
+[ext_resource type="Script" uid="uid://cv1f6q4sf0u7v" path="res://Build/Res/UsableRes/DrawingRes.gd" id="4_8jr6f"]
 [ext_resource type="Script" uid="uid://t8jg61bvq0k0" path="res://Editor/Player/DrawEditorControl.gd" id="5_7sxuu"]
+
+[sub_resource type="Resource" id="Resource_7xka8"]
+script = ExtResource("4_8jr6f")
+points = PackedVector2Array()
+drawn_entities = Array[ExtResource("3_ux5do")]([])
+draw_line = true
+draw_fill = false
+antialised = true
+color_line = Color(1, 1, 1, 1)
+color_fill = Color(0.745098, 0.745098, 0.745098, 1)
+use_color_range = false
+strength = 1.0
+main_width = 5.0
+width_curve_range_type = 0
+baked_width = Array[float]([])
+is_width_free = false
+width_begin_dist = 60.0
+width_end_dist = 60.0
+cap_begin_type = 0
+cap_end_type = 0
+cap_begin_scale = 1.0
+cap_end_scale = 1.0
+is_brush = true
+brush_name = ""
+res_id = &""
+properties = Dictionary[StringName, Dictionary]({})
+use_global_variables_as_properties = true
+metadata/_custom_type_script = "uid://cv1f6q4sf0u7v"
 
 [node name="DrawPrototype" type="Node"]
 
@@ -27,7 +57,7 @@ metadata/_custom_type_script = "uid://c2ejkss1jnbne"
 rotation = 0.00124382
 script = ExtResource("2_es7rl")
 draw_node = NodePath("../GDDraw")
-brushes = Array[Object]([])
+brushes = Array[Object]([SubResource("Resource_7xka8")])
 
 [node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport"]
 anchor_mode = 0

@@ -2,8 +2,8 @@
 
 - TimeLine Edit:
 	
-	Fix the SelectionGroup System
-	Fix Snapping
+	Fix the SelectionGroup System [+]
+	Fix Snapping [-->]
 	
 	Nested Sequences/Objects/Clips: [+]
 		Parent and Reparent Clips [+]
@@ -21,8 +21,8 @@
 	
 	Edit Media Clip:
 		
-		Fix Copy, Past, Move, and Edit problems
-		Insert Clip betweeen 2 Layers
+		Fix Copy, Past, Move, and Edit problems [-->]
+		Insert Clip betweeen 2 Layers [-->]
 		
 		media clips intersections methods: [+]
 			Find an other layer to place [+]
@@ -53,8 +53,8 @@
 
 - Properties:
 	
-	Add MultiEdit Properties
-	Fix the Spawing of the Components UI Errors
-	Fix Keyframing UI View
+	Add MultiEdit Properties [=]
+	Fix the Spawning of the Components UI Errors [+]
+	Fix Keyframing UI View [+]
 	
-	Basic Shaders merge
+	Basic Shaders merge [+]

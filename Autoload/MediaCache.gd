@@ -1,11 +1,5 @@
 extends Node
 
-var type_get_indexer: Dictionary[int, Callable] = {
-	0: get_image,
-	1: get_video_info,
-	2: get_audio
-}
-
 # images and audio stored one time and reused
 @export var images: Dictionary[StringName, Image]
 @export var textures: Dictionary[StringName, ImageTexture]
@@ -13,7 +7,6 @@ var type_get_indexer: Dictionary[int, Callable] = {
 @export var audio_stream_waves: Dictionary[StringName, AudioStreamWAV]
 # videos and objects_ress stored many times for each MediaClipRes be on the timeline
 @export var videos: Dictionary[MediaClipRes, Video]
-#@export var objects_ress: Dictionary[MediaClipRes, UsableRes]
 
 func get_images() -> Dictionary[StringName, Image]:
 	return images
@@ -29,9 +22,6 @@ func get_videos_info() -> Dictionary[StringName, Dictionary]:
 
 func get_videos() -> Dictionary[MediaClipRes, Video]:
 	return videos
-
-#func get_objects_ress() -> Dictionary[MediaClipRes, UsableRes]:
-	#return objects_ress
 
 func register_from_path(path: StringName) -> int:
 	var type: int = MediaServer.get_media_type_from_path(path)
@@ -69,9 +59,6 @@ func push_video(media_res: MediaClipRes, path: StringName) -> void:
 	video.open(path)
 	videos[media_res] = video
 
-func get_from_type(key_as_path: StringName, type: int) -> Variant:
-	return type_get_indexer[type].call(key_as_path)
-
 func get_image(key_as_path: StringName) -> Image:
 	return images[key_as_path]
 
@@ -86,10 +73,6 @@ func get_audio(key_as_path: StringName) -> AudioStreamWAV:
 
 func get_video(media_res: MediaClipRes) -> Video:
 	return videos[media_res]
-
-
-
-
 
 
 

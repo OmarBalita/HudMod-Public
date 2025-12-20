@@ -62,6 +62,11 @@ func remove_key(frame: float) -> void:
 func get_key(frame: float) -> Variant:
 	return keys[frame]
 
+func duplicate_anim_res() -> AnimationRes:
+	var dupl_anim_res:= AnimationRes.new(value_type)
+	dupl_anim_res.interpolation_type = interpolation_type
+	dupl_anim_res.keys = keys
+	return dupl_anim_res
 
 func get_possible_interpolation_types() -> Array[int]:
 	var possible_types: Array[int]
