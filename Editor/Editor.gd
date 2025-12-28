@@ -31,7 +31,7 @@ var l_button_down: bool
 var r_button_down: bool
 
 # RealTime Nodes
-var shortcut_node: ShortcutNode
+var shortcut_node: OldShortcutNode
 var container: SplitContainer
 var header: MarginContainer
 var body: MarginContainer
@@ -44,7 +44,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	# Start Connections
-	shortcut_node = ShortcutNode.new()
+	shortcut_node = OldShortcutNode.new()
 	shortcut_node.focus_control = self
 	add_child(shortcut_node)
 	

@@ -3,8 +3,9 @@ class_name PopupedMenu extends PopupedControl
 signal menu_button_pressed(index: int)
 signal global_menu_button_pressed(id: Array)
 
-
 @export var options: Array
+
+@export var texture_forward: Texture2D = IS.TEXTURE_RIGHT
 
 var curr_pos: int:
 	set(val):
@@ -14,9 +15,9 @@ var curr_pos: int:
 			val = 0
 		while options[val].is_separation_line:
 			val += 1 if val > curr_pos else -1
-		curr_pos = val
-		update_cursor()
-
+		if curr_pos != val:
+			curr_pos = val
+			update_cursor()
 
 var options_box:= IS.create_box_container(0, true)
 var cursor_rect: Panel
@@ -24,16 +25,14 @@ var cursor_rect: Panel
 var forwarded: PopupedMenu
 
 
-
 func _ready() -> void:
 	super()
 	_setup()
 
 func _input(event: InputEvent) -> void:
-	if forwarded:
-		return
-	
 	if event is InputEventKey:
+		if forwarded:
+			return
 		if event.is_pressed():
 			match event.keycode:
 				KEY_UP:
@@ -41,7 +40,7 @@ func _input(event: InputEvent) -> void:
 				KEY_DOWN:
 					curr_pos += 1
 				KEY_RIGHT:
-					pass
+					on_button_forward(curr_pos)
 				KEY_LEFT:
 					popdown()
 				KEY_ENTER:
@@ -64,24 +63,30 @@ func _setup() -> void:
 	var margin_container = IS.create_margin_container()
 	
 	for index: int in options.size():
-		var option = options[index]
+		var option: MenuOption = options[index]
 		
 		if option == null:
 			continue
 		
 		if option.is_separation_line:
-			var separation_line = IS.create_h_line_panel(1)
+			var separation_line:= IS.create_h_line_panel(1)
 			options_box.add_child(separation_line)
+		
 		else:
-			
-			var check_group = option.check_group
-			var option_box = IS.create_box_container()
-			var button = IS.create_button(option.text, option.icon)
+			var check_group:= option.check_group
+			var option_box:= IS.create_box_container()
+			var button:= IS.create_button(option.text, option.icon)
 			
 			if check_group and check_group.checked_index == index:
-				var color_rect = IS.create_color_rect(Color.RED)
+				var color_rect:= IS.create_color_rect(Color.RED)
 				color_rect.custom_minimum_size.x = 10.0
 				option_box.add_child(color_rect)
+			
+			if option.forward:
+				var forward_texture_rect:= IS.create_texture_rect(texture_forward)
+				forward_texture_rect.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
+				forward_texture_rect.position.x = size.x - texture_forward.get_width() - 10.
+				button.add_child(forward_texture_rect)
 			
 			button.flat = true
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -130,49 +135,35 @@ func on_button_pressed(index: int) -> void:
 		if not group.save_path.is_empty():
 			ResourceSaver.save(group, group.save_path)
 	
-	if forward.size():
-		
-		if forwarded:
-			forwarded.queue_free()
-		
-		var popuped_menu = PopupedMenu.new()
-		popuped_menu.options = forward
-		popuped_menu.savable = false
-		get_parent().add_child(popuped_menu)
-		popuped_menu.popup(Vector2(size.x, button.global_position.y))
-		
-		forwarded = popuped_menu
-		popuped_menu.global_menu_button_pressed.connect(on_global_menu_button_pressed)
-		popuped_menu.tree_exited.connect(func() -> void: forwarded = null)
-	
+	if forward:
+		on_button_forward(index)
 	else:
 		popdown()
 	
 	menu_button_pressed.emit(index)
 	global_menu_button_pressed.emit([index])
 
+func on_button_forward(index: int) -> void:
+	var option: MenuOption = options[index]
+	var forward: Array[MenuOption] = option.forward
+	
+	if not forward:
+		return
+	
+	if forwarded:
+		forwarded.queue_free()
+	
+	var popuped_menu:= IS.create_popuped_menu(forward)
+	get_parent().add_child(popuped_menu)
+	popuped_menu.popup(Vector2(position.x + size.x, options_box.get_child(index).global_position.y))
+	
+	forwarded = popuped_menu
+	popuped_menu.global_menu_button_pressed.connect(on_global_menu_button_pressed)
+	popuped_menu.tree_exited.connect(func() -> void: forwarded = null)
+
 
 func on_global_menu_button_pressed(id: Array) -> void:
 	id.append(curr_pos)
 	global_menu_button_pressed.emit(id)
 	popdown()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

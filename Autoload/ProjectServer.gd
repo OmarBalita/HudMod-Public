@@ -950,7 +950,8 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 	
 	var clips_keyframes_result:= loop_layers({"new_frame_poss": [] as Array[int]},
 		func(layer_index: int, layer_port: Dictionary, info: Dictionary) -> void:
-			var layer: Layer = EditorServer.time_line.get_layer(layer_index)
+			var layer: Variant = EditorServer.time_line.get_layer(layer_index)
+			if layer is not Layer: return
 			var displayed_clips: Dictionary[int, Dictionary] = layer.displayed_media_clips
 			for frame_in: int in displayed_clips.keys():
 				var clip_info: Dictionary = displayed_clips[frame_in]

@@ -85,7 +85,7 @@ func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, object: 
 
 func free_object(media_res: MediaClipRes) -> void:
 	var children: Dictionary[int, Dictionary] = media_res.get_children()
-	for layer_index: int in children.keys():
+	for layer_index: int in children:
 		var media_ress: Dictionary = children[layer_index].media_clips
 		for frame_in: int in media_ress:
 			var child_media_res: MediaClipRes = media_ress.get(frame_in)
@@ -100,9 +100,7 @@ func get_layer_from_media_res(media_res: MediaClipRes, layer_index: int) -> Dict
 	return media_res.get_children()[layer_index]
 
 func loop_objects(method: Callable) -> void:
-	var curr_objects_keys: Array[MediaClipRes] = curr_objects.keys()
-	for index: int in range(1, curr_objects.size()):
-		var media_res: MediaClipRes = curr_objects_keys[index]
+	for media_res: MediaClipRes in curr_objects:
 		var object: Node = curr_objects[media_res]
 		await method.call(media_res, object)
 

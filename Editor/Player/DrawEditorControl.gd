@@ -35,8 +35,8 @@ var edit_value_code: String:
 var ui_profile: UIProfile = UIProfile.new()
 
 # RealTime Nodes
-var draw_shortcut_node:= ShortcutNode.new()
-var edit_shortcut_node:= ShortcutNode.new()
+var draw_shortcut_node:= OldShortcutNode.new()
+var edit_shortcut_node:= OldShortcutNode.new()
 
 @onready var top_bar_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_CORNERLESS)
 var top_bar_margin = IS.create_margin_container(4,4,4,4)

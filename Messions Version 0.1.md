@@ -38,7 +38,7 @@
 	
 	Keyframing:
 		Support Bezier Curves
-		create a new AnimationResController as contains the following:
+		create a new CurveController as contains the following:
 			embeded multiselection system
 			adding and remove keyframes
 			move keyframes using y to change the value and x to change the time (frame)
@@ -53,7 +53,7 @@
 
 - Properties:
 	
-	Add MultiEdit Properties [=]
+	Add MultiEdit Properties [+]
 	Fix the Spawning of the Components UI Errors [+]
 	Fix Keyframing UI View [+]
 	

@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://clqh4uu3cbsck"]
+[gd_scene load_steps=12 format=3 uid="uid://clqh4uu3cbsck"]
 
 [ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
 [ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://m3nuhukc6hqg" path="res://Build/UI/Control/ColorRangeControl.gd" id="6_kahc7"]
 [ext_resource type="Script" uid="uid://b35nbh45vdmu1" path="res://Build/UI/Control/ListController.gd" id="7_ltaws"]
 [ext_resource type="Script" uid="uid://lr52jy0j74xg" path="res://Build/UI/Control/CurveController.gd" id="9_3nnli"]
+[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Asset/Fonts/Cascadia.ttf" id="9_sssav"]
 [ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="10_3nnli"]
 
 [sub_resource type="GDScript" id="GDScript_3nnli"]
@@ -91,6 +92,24 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("9_3nnli")
 keys_type = 2
+min_val = null
+max_val = null
+min_domain = null
+max_domain = null
+domain_step = null
+draw_cursor = null
+draw_val_step = null
+draw_domain_step = null
+draw_x_snap_step = null
+draw_y_snap_step = null
+draw_select_color = null
+focus_close_dist = null
+navigate_dist = null
+navigate_speed = null
+font = ExtResource("9_sssav")
+control_close_distance = null
+control_drag_distance = null
+control_use_selection_box = null
 metadata/_custom_type_script = "uid://dkisgy4jpo1fo"
 
 [node name="DrawableRect" type="ColorRect" parent="." groups=["drawable_rect"]]

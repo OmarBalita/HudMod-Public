@@ -37,7 +37,7 @@ func update() -> void:
 		
 		for ui_object: Node in ui_objects:
 			if ui_object is Control: ui_object.visible = is_accepted
-			elif ui_object is ShortcutNode: ui_object.enabled = is_accepted
+			elif ui_object is OldShortcutNode: ui_object.enabled = is_accepted
 
 
 

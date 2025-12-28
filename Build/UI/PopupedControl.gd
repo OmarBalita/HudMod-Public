@@ -39,7 +39,8 @@ func _input(event: InputEvent) -> void:
 		var mouse_in: bool = get_global_rect().has_point(get_global_mouse_position())
 		
 		if event is InputEventMouseButton:
-			if event.is_pressed() and not mouse_in:
+			if event.is_released() and not mouse_in:
+				await get_tree().process_frame
 				popdown()
 		
 		elif event is InputEventMouseMotion:

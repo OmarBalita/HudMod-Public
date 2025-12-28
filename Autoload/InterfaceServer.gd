@@ -17,7 +17,6 @@ const COLOR_TEXT_DISABLED = Color(0.4, 0.4, 0.4, 1.0)     # #666666
 const COLOR_BORDER = Color(0.2, 0.2, 0.22, 1.0)           # #333338
 const COLOR_SELECTION = Color(0.2, 0.6, 1.0, 0.3)         # #3399ff with alpha
 
-
 const RAINBOW_COLORS: Array[Color] = [
 	Color(0.6, 0.6, 0.6), # Gray
 	Color(0.672, 0.384, 0.96), # Violet
@@ -30,7 +29,6 @@ const RAINBOW_COLORS: Array[Color] = [
 ]
 
 const EDIT_BOX_MIN_SIZE: Vector2 = Vector2(32, 32)
-
 
 # Load resources
 const LABEL_SETTINGS_HEADER = preload("res://UI&UX/LabelSettingsHeader.tres")
@@ -67,7 +65,6 @@ var STYLE_V_LINE: StyleBoxLine
 var STYLE_TIMELINE: StyleBoxFlat
 var STYLE_CLIP_CONTAINER: StyleBoxFlat
 var STYLE_WHITE = load("res://UI&UX/StyleWhite.tres")
-
 
 
 
@@ -569,8 +566,11 @@ func create_category(has_header: bool, category_name: StringName, custom_color: 
 	return category
 
 
-
-
+func create_shortcut_node(shortcut_node_group: StringName, shortcuts: Dictionary[Shortcut, ShortcutInfo] = {}) -> ShortcutNode:
+	var shortcut_node:= ShortcutNode.new()
+	shortcut_node.add_to_group(shortcut_node_group)
+	shortcut_node.shortcuts = shortcuts
+	return shortcut_node
 
 
 
@@ -926,6 +926,7 @@ func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0))
 	graph_node.add_theme_stylebox_override("titlebar_selected", STYLE_GRAPH_NODE_BASE_HEADER)
 	graph_node.add_theme_stylebox_override("panel_focus", StyleBoxFlat.new())
 	return graph_node
+
 
 
 #func create_clip_base_control(style: StyleBox, child_control: Control = null) -> Control:

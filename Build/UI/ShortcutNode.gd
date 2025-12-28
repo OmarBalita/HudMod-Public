@@ -1,78 +1,47 @@
-class_name ShortcutNode extends Node
+class_name ShortcutNode extends Control
 
-signal shortcut_key_pressed(key: Array)
-signal shortcut_key_released(key: Array)
-signal shortcut_button_pressed(key: Array)
-signal shortcut_button_released(key: Array)
+@export var shortcuts: Dictionary[Shortcut, ShortcutInfo]
 
+static func new_event_key(key_code: Key, ctrl_pressed: bool = false, shift_pressed: bool = false, alt_pressed: bool = false) -> InputEventKey:
+	var event_key:= InputEventKey.new()
+	event_key.keycode = key_code
+	event_key.ctrl_pressed = ctrl_pressed
+	event_key.shift_pressed = shift_pressed
+	event_key.alt_pressed = alt_pressed
+	return event_key
 
-@export var enabled:= true
+static func new_shortcut(events: Array) -> Shortcut:
+	var shortcut:= Shortcut.new()
+	shortcut.events = events
+	return shortcut
 
-func set_enabled(val: bool) -> void:
-	enabled = val
-func get_enabled() -> bool:
-	return enabled
+func get_shortcuts() -> Dictionary[Shortcut, ShortcutInfo]:
+	return shortcuts
 
-@export var focus_control: FocusControl
+func set_shortcuts(new_val: Dictionary[Shortcut, ShortcutInfo]) -> void:
+	shortcuts = new_val
 
+func register_shortcut_quickly(name: StringName, function: Callable, events: Array) -> void:
+	register_shortcut(new_shortcut(events), ShortcutInfo.new(name, function))
 
-var key_shortcuts: Dictionary[Array, Callable]
-var key_release_shortcuts: Dictionary[Array, Callable]
-var button_shortcuts: Dictionary[Array, Callable]
-var button_release_shortcuts: Dictionary[Array, Callable]
+func register_shortcut(key_as_shortcut: Shortcut, val_as_shortcut_info: ShortcutInfo) -> void:
+	shortcuts[key_as_shortcut] = val_as_shortcut_info
 
+func register_shortcuts(new_shortcuts: Dictionary[Shortcut, ShortcutInfo]) -> void:
+	shortcuts.merge(new_shortcuts)
 
-var events_pressed: Array
-
-
+func _init() -> void:
+	set_process_input(get_global_rect().has_point(get_global_mouse_position()) and visible)
+	mouse_entered.connect(set_process_input.bind(true))
+	mouse_exited.connect(set_process_input.bind(false))
+	
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	IS.expand(self, true, true)
 
 func _input(event: InputEvent) -> void:
-	
-	if not enabled or not focus_control.is_focus:
-		return
-	
-	var is_pressed = event.is_pressed()
-	
-	if event is InputEventMouseButton:
-		var key = event.button_index
-		var result_key = [event.get_modifiers_mask(), key]
-		call_method_from_shortcut(button_shortcuts if is_pressed else button_release_shortcuts, result_key)
-		if is_pressed: events_pressed.append(key)
-		else: events_pressed.erase(key)
-	elif event is InputEventKey:
-		var key = event.keycode
-		var result_key = [event.get_modifiers_mask(), key]
-		call_method_from_shortcut(key_shortcuts if is_pressed else key_release_shortcuts, result_key)
-		if is_pressed: events_pressed.append(key)
-		else: events_pressed.erase(key)
-
-
-func call_method_from_shortcut(shortcut_lib: Dictionary[Array, Callable], key: Array) -> void:
-	if key in shortcut_lib:
-		var callable = shortcut_lib[key]
-		if callable:
-			callable.call()
-		match shortcut_lib:
-			key_shortcuts: shortcut_key_pressed.emit(key)
-			key_release_shortcuts: shortcut_key_released.emit(key)
-			button_shortcuts: shortcut_button_pressed.emit(key)
-			button_release_shortcuts: shortcut_button_released.emit(key)
-
-
-func create_key_shortcut(key_mask: int, key: int, callable: Callable) -> void:
-	key_shortcuts[[key_mask, key]] = callable
-
-func create_key_release_shortcut(key_mask: int, key: int, callable: Callable) -> void:
-	key_release_shortcuts[[key_mask, key]] = callable
-
-func create_button_shortcut(key_mask: int, key: int, callable: Callable) -> void:
-	button_shortcuts[[key_mask, key]] = callable
-
-func create_button_release_shortcut(key_mask: int, key: int, callable: Callable) -> void:
-	button_release_shortcuts[[key_mask, key]] = callable
-
-
-
-
-
+	if event is InputEventKey:
+		if event.is_pressed():
+			for shortcut: Shortcut in shortcuts:
+				if shortcut.matches_event(event):
+					shortcuts[shortcut].function.call()
 

@@ -405,8 +405,10 @@ class ClipPanel extends Panel:
 					for prop_key: StringName in animated_props:
 						var anim_res: AnimationRes = animated_props[prop_key]
 						
-						var graph_category:= IS.create_category(true, str(comp_res.get_res_id(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 150.0), false)
-						var graph_editor:= IS.create_color_rect(Color.RED)
+						var graph_category:= IS.create_category(true, str(comp_res.get_res_id(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.0), false)
+						var graph_editor:= CurveController.new()
+						graph_editor.min_domain = media_res.from
+						graph_editor.max_domain = media_res.from + media_res.length
 						
 						graph_category.add_content(graph_editor)
 						box_container.add_child(graph_category)
@@ -444,7 +446,7 @@ class ClipPanel extends Panel:
 				custom_height += 20.0
 				if category.is_expanded:
 					category.size_flags_vertical = Control.SIZE_EXPAND_FILL
-					custom_height += 150.0
+					custom_height += 250.0
 					any_graph_opened = true
 				else: category.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		

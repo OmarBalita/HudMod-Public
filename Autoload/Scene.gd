@@ -157,7 +157,7 @@ func try_play(curr_frame = null) -> void:
 
 
 func loop_nodes(function: Callable) -> void:
-	for layer in curr_nodes.keys():
+	for layer in curr_nodes:
 		var node = curr_nodes[layer].scene_node
 		var frames_delay = await function.call(layer, node)
 
