@@ -365,6 +365,7 @@ func on_point_delete(object: Variant, key: float) -> void:
 
 func on_delete_ended() -> void:
 	update_curve_profiles_keys()
+	keys_editing.emit()
 
 func on_point_past(object: Variant, key: float) -> void:
 	var new_key: float = format_x(cursor_pos + key - start_copied_point)
@@ -374,6 +375,7 @@ func on_point_past(object: Variant, key: float) -> void:
 
 func on_past_ended() -> void:
 	update_curve_profiles_keys()
+	keys_editing.emit()
 
 func get_menu_options() -> Array:
 	var super_options: Array = super()

@@ -960,9 +960,10 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 			for frame_in: int in displayed_clips.keys():
 				var clip_info: Dictionary = displayed_clips[frame_in]
 				var clip: MediaClip = clip_info.clip
+				var from: int = clip.clip_res.from
 				if clip.focus_panel.visible:
 					for key: int in clip.focus_panel.displayed_keys:
-						info.new_frame_poss.append(key + frame_in))
+						info.new_frame_poss.append(key + frame_in - from))
 	
 	var start_and_end: Array[int] = get_start_and_end_frame()
 	

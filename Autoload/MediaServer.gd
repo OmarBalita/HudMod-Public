@@ -475,7 +475,7 @@ class ClipPanel extends Panel:
 		owner_as_media_clip.focus_panel.update_displayed_keys(false)
 	
 	func _on_editor_server_frame_changed(new_frame: int) -> void:
-		var new_local_frame: int = new_frame - owner_as_media_clip.clip_pos
+		var new_local_frame: int = new_frame - owner_as_media_clip.clip_pos + owner_as_media_clip.clip_res.from
 		for usable_res: UsableRes in graph_editors:
 			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
 			for prop_key: StringName in usable_res_port:
