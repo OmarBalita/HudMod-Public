@@ -13,7 +13,8 @@ enum MethodType {
 		owner = val
 		if owner:
 			_update()
-			res_changed.connect(_update)
+			if not res_changed.is_connected(_update):
+				res_changed.connect(_update)
 
 @export var animations: Dictionary[UsableRes, Dictionary]
 # Animating Resources for each value stored like that {
@@ -47,15 +48,17 @@ func set_method_type(new_method_type: MethodType) -> void:
 
 func duplicate_component_res() -> ComponentRes:
 	var dupl_comp_res: ComponentRes = duplicate(true)
+	
 	var dupl_anims:= animations.duplicate(true)
-	if animations.keys().has(self):
-		var dupl_anims_port = dupl_anims.get(self)
-		for anim_key: StringName in dupl_anims_port.keys():
-			(dupl_anims_port[anim_key] as AnimationRes).duplicate_anim_res()
+	if animations.has(self):
+		var dupl_anims_port: Dictionary = animations.get(self)
+		for anim_key: StringName in dupl_anims_port:
+			#print(dupl_anims_port[anim_key].duplicate_anim_res() is AnimationRes)
 			dupl_anims_port[anim_key] = dupl_anims_port[anim_key].duplicate_anim_res()
 		dupl_anims[dupl_comp_res] = dupl_anims_port
 		dupl_anims.erase(self)
 	dupl_comp_res.animations = dupl_anims
+	
 	return dupl_comp_res
 
 func _enter() -> void:
@@ -72,6 +75,9 @@ func _update() -> void:
 	owner.process(owner.curr_frame)
 	update_animations = true
 
+func _update_and_animate() -> void:
+	owner.process(owner.curr_frame)
+
 
 func submit_stacked_value(key: StringName, value: Variant) -> void:
 	owner.add_stacked_value(key, value, method_type)
@@ -79,12 +85,12 @@ func submit_stacked_value(key: StringName, value: Variant) -> void:
 func receive_stacked_values_key_result(key: StringName) -> Variant:
 	return owner.get_stacked_values_key_result(key)
 
-
 func request_push_animations_result(frame: float) -> void:
 	if update_animations:
 		push_animations_result(frame)
 
 func loop_animations(frame: float, method: Callable) -> void:
+	frame += owner.from
 	for usable_res: UsableRes in animations.keys():
 		var usable_res_section: Dictionary = animations.get(usable_res)
 		for property_key: StringName in usable_res_section.keys():
@@ -118,12 +124,19 @@ func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, fra
 
 func make_animation_absolute(usable_res: UsableRes, property_key: StringName, property_type: int) -> AnimationRes:
 	var res_section: Dictionary = animations.get_or_add(usable_res, {})
-	return res_section.get_or_add(property_key, AnimationRes.new(property_type))
+	if not res_section.has(property_key):
+		var anim_res: AnimationRes = AnimationRes.new(property_type)
+		res_section[property_key] = anim_res
+		for profile: CurveSampler.Profile in anim_res.profiles:
+			profile.profile_updated.connect(_update_and_animate)
+		owner.comp_animation_res_added.emit(self, usable_res, property_key, anim_res)
+	return res_section.get(property_key)
 
 func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) -> void:
 	var res_section: Variant = animations.get(usable_res)
 	if res_section is Dictionary:
 		res_section.erase(property_key)
+		owner.comp_animation_res_removed.emit(self, usable_res, property_key)
 		if res_section.size() == 0:
 			animations.erase(res_section)
 
@@ -142,7 +155,7 @@ func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, pro
 func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
 	var anim_res: AnimationRes = get_animation(usable_res, property_key)
 	anim_res.remove_key(frame)
-	if anim_res.keys.size() == 0:
+	if not anim_res.has_any_key():
 		remove_animation_absolute(usable_res, property_key)
 	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 

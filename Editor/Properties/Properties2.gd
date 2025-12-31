@@ -93,8 +93,6 @@ func update_properties(section_key: StringName = &"") -> void:
 	clips_selection_group.clear_previously_freed_instances()
 	
 	var update_info: Dictionary[StringName, Variant] = _update_displayed_components()
-	if not update_info:
-		return
 	
 	var new_media_ress: Array[MediaClipRes] = update_info.new_media_ress
 	var new_focused_media_res: MediaClipRes = update_info.new_focused_media_res
@@ -104,8 +102,7 @@ func update_properties(section_key: StringName = &"") -> void:
 			curr_media_ress = new_media_ress
 			curr_focused_media_res = new_focused_media_res
 			_display_components_by_sections()
-	else:
-		_display_section_components(section_key, true)
+	else: _display_section_components(section_key, true)
 	
 	
 	_update_margin()
@@ -169,7 +166,10 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	curr_displayed_components.clear()
 	
 	if not selected_objects:
-		return {}
+		return {
+			&"new_media_ress": [] as Array[MediaClipRes],
+			&"new_focused_media_res": null
+		}
 	
 	if clips_selection_group.focused.is_empty():
 		clips_selection_group.set_default_focused()
@@ -397,8 +397,7 @@ func _on_panel_mouse_entered(panel: PanelContainer) -> void:
 	panel.self_modulate.a = 1.0
 
 func _on_panel_mouse_exited(panel: PanelContainer) -> void:
-	var tween: Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(panel, "self_modulate:a", .0, .2)
+	panel.self_modulate.a = .0
 
 
 

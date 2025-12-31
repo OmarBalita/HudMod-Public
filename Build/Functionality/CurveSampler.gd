@@ -2,8 +2,8 @@ class_name CurveSampler extends Object
 
 static var curve_profiles: Array[Profile]
 
-static func create_profile(val_type: int, keys: Dictionary[float, CurveKey], ) -> Profile:
-	var profile:= Profile.new(val_type, keys)
+static func create_profile(keys: Dictionary[float, CurveKey], ) -> Profile:
+	var profile:= Profile.new(keys)
 	curve_profiles.append(profile)
 	return profile
 
@@ -12,7 +12,11 @@ static func free_profile(profile: Profile) -> void:
 	profile.free()
 
 # Curve Sampler Profile, only for get output, this Resource not for editing.
-class Profile extends RefCounted:
+class Profile extends Resource:
+	
+	signal key_added(x: float, curve_key: CurveKey)
+	signal key_removed(x: float)
+	signal profile_updated()
 	
 	static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringName] = {
 		CurveKey.InterpolationMode.INTERPOLATION_MODE_CONSTANT: &"_interpolate_constant",
@@ -30,8 +34,6 @@ class Profile extends RefCounted:
 		CurveKey.InterpolationMode.INTERPOLATION_MODE_BOUNCE: &"_interpolate_bounce"
 	}
 	
-	@export var val_type: int
-	
 	@export var keys: Dictionary[float, CurveKey]
 	
 	@export var bakeable: bool:
@@ -48,16 +50,29 @@ class Profile extends RefCounted:
 	
 	var sample_func: Callable
 	
-	func _init(_val_type: int, _keys: Dictionary[float, CurveKey], _interpolation_type: int = -1, _bakeable: bool = false) -> void:
-		val_type = _val_type
+	func _init(_keys: Dictionary[float, CurveKey], _bakeable: bool = false) -> void:
 		keys = _keys
 		bakeable = _bakeable
 		update_profile()
 	
-	func get_key(frame: float) -> CurveKey:
-		return keys[frame]
+	func get_key(x: float) -> CurveKey:
+		return keys[x]
 	
-	func sample(x: float) -> Variant:
+	func add_key(x: float, curve_key: CurveKey) -> void:
+		if keys.has(x):
+			var same_curve_key: CurveKey = keys[x]
+			same_curve_key.value = curve_key.value
+			curve_key = same_curve_key
+		keys[x] = curve_key
+		key_added.emit(x, curve_key)
+		update_profile()
+	
+	func remove_key(x: float) -> void:
+		keys.erase(x)
+		key_removed.emit(x)
+		update_profile()
+	
+	func sample(x: float) -> float:
 		if not keys: return .0
 		var min_xpos: float = keys_keys[0]
 		var max_xpos: float = keys_keys[-1]
@@ -76,6 +91,11 @@ class Profile extends RefCounted:
 		return baked[x]
 	
 	func _find_domain(x: float) -> Vector2:
+		var index: int = _find_domain_index(x)
+		# نرجع Vector2 يحتوي على (زمن_البداية، زمن_النهاية)
+		return Vector2(keys_keys[index], keys_keys[index + 1])
+	
+	func _find_domain_index(x: float) -> int:
 		# مصفوفة مفاتيح الزمن
 		var low: int = 0
 		var high: int = keys_keys.size() - 2 # نبحث عن النقطة "أ" بحيث تكون "ب" هي التالية لها
@@ -91,8 +111,7 @@ class Profile extends RefCounted:
 			else:
 				high = mid - 1
 		
-		# نرجع Vector2 يحتوي على (زمن_البداية، زمن_النهاية)
-		return Vector2(keys_keys[best_index], keys_keys[best_index + 1])
+		return best_index
 	
 	func _solve_for_t(target_x: float, p0x: float, p1x: float, p2x: float, p3x: float) -> float:
 		var t_min: float = .0
@@ -228,4 +247,19 @@ class Profile extends RefCounted:
 			if keys:
 				for x: int in range(keys_keys[0], keys_keys[-1] + 1):
 					baked[x] = sample(x)
+		
+		profile_updated.emit()
+	
+	func duplicate_profile() -> Profile:
+		var new_keys: Dictionary[float, CurveKey] = keys.duplicate()
+		for key: float in keys:
+			var a: CurveKey = keys[key]
+			var b: CurveKey = CurveKey.new(a.value, a.left_control, a.right_control, a.control_mode, a.interpolation_mode)
+			new_keys[key] = b
+		var new_profile: Profile = Profile.new(new_keys, bakeable)
+		return new_profile
+
+
+
+
 

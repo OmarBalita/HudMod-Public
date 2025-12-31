@@ -348,10 +348,14 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		pasted_layers[absolute_target_layer_index][absolute_target_frame_in] = media_res
 		media_res.clip_pos = absolute_target_frame_in
 		
-		var layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
-		layer.request_remove_media_clip(from_frame_in)
-		if not layers_updated.has(layer):
-			layers_updated.append(layer)
+		var old_layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
+		var new_layer: Layer = EditorServer.time_line.get_layer(absolute_target_layer_index)
+		var old_clip_panel: MediaServer.ClipPanel = old_layer.get_media_clip(from_frame_in).clip_panel
+		if old_clip_panel.is_graph_editor_opened:
+			new_layer.send_media_clip_expanded_graph_editors(target_frame_in, old_clip_panel.graph_editors_expanded)
+			old_layer.request_remove_media_clip(from_frame_in)
+		if not layers_updated.has(old_layer):
+			layers_updated.append(old_layer)
 	
 	if emit_changes:
 		media_clips_pasted.emit()
@@ -964,17 +968,6 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 	
 	curr_length = max(default_length, clips_result.length_needed)
 	curr_spacial_frames = start_and_end + clips_result.new_frame_poss + clips_keyframes_result.new_frame_poss + time_markers.keys()
-
-
-# Files and Saving Part
-# ---------------------------------------------------
-
-func get_res_file(path: String, as_file: Resource) -> Resource:
-	var full_path = project_path + path
-	DirAccess.make_dir_absolute(full_path.get_base_dir())
-	if not FileAccess.file_exists(full_path):
-		ResourceSaver.save(as_file, full_path)
-	return ResourceLoader.load(full_path)
 
 
 # Generating

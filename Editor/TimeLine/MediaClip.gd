@@ -52,6 +52,13 @@ var l_roll_button: RollButton:
 
 class FocusPanelContainer extends PanelContainer:
 	
+	static var key_size: Vector2 = Vector2(24., 24.):
+		set(val):
+			key_size = val
+			key_size_half = key_size / 2.
+	static var key_size_half: Vector2 = key_size / 2.
+	static var texture_keyframe: Texture2D = preload("res://Asset/Icons/keyframe.png")
+	
 	@export var owner_as_media_clip: MediaClip
 	
 	var displayed_keys: Array[int]
@@ -69,8 +76,6 @@ class FocusPanelContainer extends PanelContainer:
 	func _draw() -> void:
 		
 		var size_half: Vector2 = owner_as_media_clip.clip_panel.box_container.get_child(0).size / 2.0
-		var key_rect_size: Vector2 = Vector2(10., 10.)
-		var key_rect_size_half: Vector2 = key_rect_size / 2.0
 		
 		var media_res: MediaClipRes = owner_as_media_clip.clip_res
 		
@@ -85,11 +90,12 @@ class FocusPanelContainer extends PanelContainer:
 		
 		for key_pos: int in displayed_keys:
 			var key_display_pos: float = (key_pos - from) / float(length) * size.x
-			var key_rect_pos:= Vector2(key_display_pos, size_half.y + 8) - key_rect_size_half
-			var key_rect: Rect2 = Rect2(key_rect_pos, key_rect_size)
+			var key_rect_pos:= Vector2(key_display_pos, size_half.y + 8) - key_size_half
+			var key_rect: Rect2 = Rect2(key_rect_pos, key_size)
 			
-			draw_rect(key_rect, Color.WHITE)
-			draw_rect(key_rect, Color.BLACK, false, 2.0)
+			draw_texture_rect(texture_keyframe, key_rect, false)
+			#draw_rect(key_rect, Color.WHITE)
+			#draw_rect(key_rect, Color.BLACK, false, 2.0)
 	
 	func get_displayed_keys() -> Array[int]:
 		return displayed_keys
@@ -193,6 +199,9 @@ func _ready() -> void:
 	r_expand_button.position.x -= 10.0
 	
 	# Connections
+	clip_res.comp_animation_res_added.connect(on_media_res_animation_res_added)
+	clip_res.comp_animation_res_removed.connect(on_media_res_animation_res_removed)
+	
 	focus_changed.connect(on_focus_changed)
 	drag_started.connect(on_drag_started)
 	drag_finished.connect(on_drag_finished)
@@ -250,7 +259,8 @@ func _input(event: InputEvent) -> void:
 						layer.update()
 					elif is_focus and press_pos.distance_to(event.position) <= min_drag_distance:
 						select(event.ctrl_pressed, event.alt_pressed)
-						timeline.popup_media_clips_menu()
+						if EditorServer.graph_editors_focused.is_empty():
+							timeline.popup_media_clips_menu()
 	
 	elif event is InputEventMouseMotion:
 		var local_mouse_pos: Vector2 = get_local_mouse_position()
@@ -452,6 +462,12 @@ func edit(emit_changes: bool = true, force_layer_index: bool = false) -> void:
 		new_right_clip.set_meta(&"left_neighbor_clip", get_meta(&"left_neighbor_clip"))
 
 # ---------------------------------------------------
+
+func on_media_res_animation_res_added(comp_res: ComponentRes, usable_res: UsableRes, property_key: StringName, anim_res: AnimationRes) -> void:
+	if clip_panel.is_graph_editor_opened: open_graph_editor()
+
+func on_media_res_animation_res_removed(comp_res: ComponentRes, usable_res: UsableRes, property_key: StringName) -> void:
+	if clip_panel.is_graph_editor_opened: open_graph_editor()
 
 func on_focus_changed(new_val: bool) -> void:
 	if new_val: EditorServer.media_clips_focused.append(self)

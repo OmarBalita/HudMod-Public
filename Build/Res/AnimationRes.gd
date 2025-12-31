@@ -1,117 +1,194 @@
 class_name AnimationRes extends Resource
 
-enum InterpolationType {
-	INTERMITTENT,
-	LINEAR,
-	CUBIC_BEZIER_CURVE,
-	LINEAR_INT,
-	CUBIC_BEZIER_CURVE_INT
-}
-
-var interpolation_indexer: Dictionary[int, Dictionary] = {
-	1: {"t": [4, 5, 6, 7], "m": lerp},
-	2: {"t": [4, 5, 6, 7], "m": _interpolate_cubic_bezier_curve},
-	3: {"t": [3], "m": _interpolate_linear_integer},
-	4: {"t": [3], "m": _interpolate_cubic_bezier_curve_integer},
-	0: {"t": [1, 2, 3, 4, 5, 6, 7, 8], "m": _interpolate_intermittent}
+static var funcs_indexer: Dictionary[int, Dictionary] = {
+	3: {s=&"sample_int", a=&"add_key_int", g=&"get_key_int", p=1},
+	4: {s=&"sample_float", a=&"add_key_float", g=&"get_key_float", p=1},
+	5: {s=&"sample_vec2", a=&"add_key_vec2", g=&"get_key_vec2", p=2},
+	6: {s=&"sample_vec3", a=&"add_key_vec3", g=&"get_key_vec3", p=3},
+	7: {s=&"sample_color", a=&"add_key_color", g=&"get_key_color", p=4},
+	8: {s=&"sample_vec4", a=&"add_key_vec4", g=&"get_key_vec4", p=4},
 }
 
 @export var value_type: int = -1:
 	set(val):
 		value_type = val
-		var possible_types: Array[int] = get_possible_interpolation_types()
-		if not possible_types.is_empty():
-			interpolation_type = possible_types[0]
+		var profiles_size: int = 1
+		if funcs_indexer.has(val):
+			var index_info: Dictionary = funcs_indexer[val]
+			sample_func = Callable(self, index_info.s)
+			add_key_func = Callable(self, index_info.a)
+			get_key_func = Callable(self, index_info.g)
+			profiles_size = index_info.p
+		else:
+			sample_func = sample_constant
+			add_key_func = add_key_constant
+			get_key_func = get_key_constant
+		
+		for index: int in profiles_size:
+			profiles.append(CurveSampler.Profile.new({} as Dictionary[float, CurveKey]))
 
-@export var interpolation_type: InterpolationType = 1:
-	set(val):
-		if val not in get_possible_interpolation_types(): return
-		interpolation_type = val
-		interpolation_func = interpolation_indexer[val].m
-@export var keys: Dictionary[float, Variant] # Key as frame: int, Val: Variant
-# Values should be: bool, int, float, Vector2, Vector3, Color
+@export var profiles: Array[CurveSampler.Profile]
 
-var interpolation_func: Callable = _interpolate_linear
+@export var sample_func: Callable
+@export var add_key_func: Callable
+@export var get_key_func: Callable
 
 func _init(_value_type: int) -> void:
 	value_type = _value_type
 
-func get_interpolation_type() -> InterpolationType:
-	return interpolation_type
 
-func set_interpolation_type(new_val: InterpolationType) -> void:
-	interpolation_type = new_val
+func get_profiles() -> Array[CurveSampler.Profile]:
+	return profiles
 
-func get_keys() -> Dictionary[float, Variant]:
-	return keys
+func set_profiles(new_val: Array[CurveSampler.Profile]) -> void:
+	profiles = new_val
 
-func set_keys(new_keys: Dictionary[float, Variant]) -> void:
-	keys = new_keys
-	keys.sort()
-
-func has_key(frame: float) -> bool:
-	return keys.has(frame)
-
-func add_key(frame: float, val: Variant) -> void:
-	keys[frame] = val
-	keys.sort()
-
-func remove_key(frame: float) -> void:
-	keys.erase(frame)
-
-func get_key(frame: float) -> Variant:
-	return keys[frame]
 
 func duplicate_anim_res() -> AnimationRes:
 	var dupl_anim_res:= AnimationRes.new(value_type)
-	dupl_anim_res.interpolation_type = interpolation_type
-	dupl_anim_res.keys = keys
+	var new_profiles: Array[CurveSampler.Profile]
+	for profile: CurveSampler.Profile in profiles:
+		var new_profile: CurveSampler.Profile = profile.duplicate_profile()
+		new_profiles.append(new_profile)
+	dupl_anim_res.profiles = new_profiles
 	return dupl_anim_res
 
-func get_possible_interpolation_types() -> Array[int]:
-	var possible_types: Array[int]
-	for type: int in interpolation_indexer:
-		if interpolation_indexer[type].t.has(value_type):
-			possible_types.append(type)
-	return possible_types
 
-func sample(frame: float) -> Variant:
-	var min_xpos: float = keys.keys().min()
-	var max_xpos: float = keys.keys().max()
-	if frame < min_xpos:
-		return get_key(min_xpos)
-	elif frame >= max_xpos:
-		return get_key(max_xpos)
-	else:
-		var domain: Variant = _get_domain(frame)
-		var a: Variant = get_key(domain.x)
-		var b: Variant = get_key(domain.y)
-		var t: float = (frame - domain.x) / (domain.y - domain.x)
-		return interpolation_func.call(a, b, t)
+func get_profile(index: int) -> CurveSampler.Profile:
+	return profiles[index]
 
-## Returns the domain as Vector2 if it possible, else return null
-func _get_domain(frame: float) -> Variant:
-	if frame > -1:
-		var frames: Array[float] = keys.keys()
-		for index: int in keys.size() - 1:
-			var key1_xpos: float = frames.get(index)
-			var key2_xpos: float = frames.get(index + 1)
-			if frame >= key1_xpos and frame < key2_xpos:
-				return Vector2(key1_xpos, key2_xpos) # x: key_from; y: key_to
+func profile_sample(index: int, x: float) -> float:
+	return profiles[index].sample_func.call(x)
+
+func profile_add_key(index: int, x: float, value: float) -> void:
+	profiles[index].add_key(x, CurveKey.new(value))
+
+func profile_remove_key(index: int, x: float) -> void:
+	profiles[index].remove_key(x)
+
+func profile_get_curve_key(index: int, x: float) -> CurveKey:
+	return profiles[index].keys[x]
+
+func profile_get_key(index: int, x: float) -> float:
+	return profile_get_curve_key(index, x).value
+
+func profile_has_key(index: int, x: float) -> bool:
+	return profiles[index].keys.has(x)
+
+
+func sample(x: float) -> Variant:
+	return sample_func.call(x)
+
+func add_key(x: float, value: Variant) -> void:
+	add_key_func.call(x, value)
+
+func remove_key(x: float) -> void:
+	for profile: CurveSampler.Profile in profiles:
+		profile.remove_key(x)
+
+func get_key(x: float) -> Variant:
+	return get_key_func.call(x)
+
+func has_key(x: float) -> bool:
+	for profile: CurveSampler.Profile in profiles:
+		if profile.keys.has(x): return true
+	return false
+
+func has_any_key() -> bool:
+	for profile: CurveSampler.Profile in profiles:
+		if profile.keys.size(): return true
+	return false
+
+func sample_constant(x: float) -> Variant:
 	return null
 
-func _interpolate_intermittent(a: Variant, b: Variant, t: float) -> Variant:
-	return a
+func sample_int(x: float) -> int:
+	return round(profile_sample(0, x))
 
-func _interpolate_linear(a: Variant, b: Variant, t: float) -> Variant:
-	return a + (b - a) * t
+func sample_float(x: float) -> float:
+	return profile_sample(0, x)
 
-func _interpolate_linear_integer(a: int, b: int, t: float) -> int:
-	return roundi(lerp(a, b, t))
+func sample_vec2(x: float) -> Vector2:
+	return Vector2(profile_sample(0, x), profile_sample(1, x))
 
-func _interpolate_cubic_bezier_curve(a: Variant, b: Variant, t: float) -> Variant:
+func sample_vec3(x: float) -> Vector3:
+	return Vector3(profile_sample(0, x), profile_sample(1, x), profile_sample(2, x))
+
+func sample_color(x: float) -> Color:
+	return Color(
+		profile_sample(0, x),
+		profile_sample(1, x),
+		profile_sample(2, x),
+		profile_sample(3, x)
+	)
+
+func sample_vec4(x: float) -> Vector4:
+	return Vector4(
+		profile_sample(0, x),
+		profile_sample(1, x),
+		profile_sample(2, x),
+		profile_sample(3, x)
+	)
+
+
+func add_key_constant(x: float, value: Variant) -> void:
+	pass
+
+func add_key_int(x: float, value: int) -> void:
+	profile_add_key(0, x, value)
+
+func add_key_float(x: float, value: float) -> void:
+	profile_add_key(0, x, value)
+
+func add_key_vec2(x: float, value: Vector2) -> void:
+	profile_add_key(0, x, value.x)
+	profile_add_key(1, x, value.y)
+
+func add_key_vec3(x: float, value: Vector3) -> void:
+	profile_add_key(0, x, value.x)
+	profile_add_key(1, x, value.y)
+	profile_add_key(2, x, value.z)
+
+func add_key_color(x: float, value: Color) -> void:
+	profile_add_key(0, x, value.r)
+	profile_add_key(1, x, value.g)
+	profile_add_key(2, x, value.b)
+	profile_add_key(3, x, value.a)
+
+func add_key_vec4(x: float, value: Vector4) -> void:
+	profile_add_key(0, x, value.x)
+	profile_add_key(1, x, value.y)
+	profile_add_key(2, x, value.z)
+	profile_add_key(3, x, value.w)
+
+
+func get_key_constant(x: float) -> Variant:
 	return null
 
-func _interpolate_cubic_bezier_curve_integer(a: Variant, b: Variant, t: float) -> int:
-	return 0
+func get_key_int(x: float) -> int:
+	return round(profile_get_key(0, x))
 
+func get_key_float(x: float) -> float:
+	return profile_get_key(0, x)
+
+func get_key_vec2(x: float) -> Vector2:
+	return Vector2(profile_get_key(0, x), profile_get_key(1, x))
+
+func get_key_vec3(x: float) -> Vector3:
+	return Vector3(profile_get_key(0, x), profile_get_key(1, x), profile_get_key(2, x))
+
+func get_key_color(x: float) -> Color:
+	return Color(
+		profile_get_key(0, x),
+		profile_get_key(1, x),
+		profile_get_key(2, x),
+		profile_get_key(3, x)
+	)
+
+func get_key_vec4(x: float) -> Vector4:
+	return Vector4(
+		profile_get_key(0, x),
+		profile_get_key(1, x),
+		profile_get_key(2, x),
+		profile_get_key(3, x)
+	)

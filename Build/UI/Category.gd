@@ -25,7 +25,8 @@ var is_expanded: bool:
 	set(val):
 		is_expanded = val;
 		update_ui()
-		expand_changed.emit()
+		if is_node_ready():
+			expand_changed.emit()
 
 @onready var header_button: Button
 @onready var custom_color_rect: ColorRect

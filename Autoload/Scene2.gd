@@ -112,7 +112,7 @@ func try_play(curr_frame: Variant = null) -> void:
 func try_play_func(media_res: MediaClipRes, object: Node) -> void:
 	var curr_frame: int = EditorServer.frame
 	
-	var frame_in: int = object.get_meta(&"frame_in")
+	var frame_in: int = media_res.clip_pos
 	var start_from: int = media_res.from
 	var local_frame: int = TimeServer.localize_frame(curr_frame, frame_in)
 	

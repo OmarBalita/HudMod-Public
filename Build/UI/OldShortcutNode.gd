@@ -21,14 +21,17 @@ var key_release_shortcuts: Dictionary[Array, Callable]
 var button_shortcuts: Dictionary[Array, Callable]
 var button_release_shortcuts: Dictionary[Array, Callable]
 
-
 var events_pressed: Array
 
+var cond_func: Callable
 
 
 func _input(event: InputEvent) -> void:
 	
 	if not enabled or not focus_control.is_focus:
+		return
+	
+	if cond_func.is_valid() and not cond_func.call():
 		return
 	
 	var is_pressed = event.is_pressed()

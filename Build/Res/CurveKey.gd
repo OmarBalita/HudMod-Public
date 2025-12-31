@@ -3,7 +3,8 @@ class_name CurveKey extends Resource
 enum ControlMode {
 	CONTROL_MODE_FREE,
 	CONTROL_MODE_ALIGNED,
-	CONTROL_MODE_VECTOR
+	CONTROL_MODE_VECTOR,
+	CONTROL_MODE_NONE
 }
 
 enum InterpolationMode {
@@ -35,7 +36,7 @@ enum InterpolationMode {
 var interpolation_func: Callable
 
 
-func _init(_value: float, _left_control:= Vector2(-10., .0), _right_control:= Vector2(10., .0), _control_mode: ControlMode = 1, _interpolation_mode: InterpolationMode = 2) -> void:
+func _init(_value: float, _left_control:= Vector2(-2.5, .0), _right_control:= Vector2(2.5, .0), _control_mode: ControlMode = 0, _interpolation_mode: InterpolationMode = 2) -> void:
 	value = _value
 	left_control = _left_control
 	right_control = _right_control
@@ -52,18 +53,20 @@ func get_left_control() -> Vector2:
 	return left_control
 
 func set_left_control(new_val: Vector2, left_reset_dir: Vector2 = Vector2.LEFT) -> void:
+	if control_mode == ControlMode.CONTROL_MODE_NONE: return
 	left_control = new_val
 	match control_mode:
-		1: right_control = -left_control.normalized() * right_control.length()
+		1: right_control = -left_control
 		2: set_left_control_vector(left_reset_dir)
 
 func get_right_control() -> Vector2:
 	return right_control
 
 func set_right_control(new_val: Vector2, right_reset_dir: Vector2 = Vector2.RIGHT) -> void:
+	if control_mode == ControlMode.CONTROL_MODE_NONE: return
 	right_control = new_val
 	match control_mode:
-		1: left_control = -right_control.normalized() * left_control.length()
+		1: left_control = -right_control
 		2: set_right_control_vector(right_reset_dir)
 
 func set_left_control_vector(left_reset_dir: Vector2) -> void:
@@ -84,11 +87,13 @@ func set_control_mode(new_val: ControlMode, left_reset_dir:= Vector2.LEFT, right
 		0:
 			pass
 		1:
-			left_control = left_control.length() * Vector2.LEFT
 			right_control = -left_control
 		2:
 			set_left_control_vector(left_reset_dir)
 			set_right_control_vector(right_reset_dir)
+		3:
+			left_control = Vector2.ZERO
+			right_control = Vector2.ZERO
 
 func move_control_mode(left_reset_dir: Vector2 = Vector2.LEFT, right_reset_dir:= Vector2.RIGHT) -> void:
 	var new_control_mode: ControlMode = control_mode + 1

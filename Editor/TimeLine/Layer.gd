@@ -142,19 +142,23 @@ func request_remove_media_clip(clip_pos: int) -> void:
 		remove_media_clip(clip_pos)
 
 func remove_media_clip(clip_pos: int) -> void:
-	get_media_clip(clip_pos).queue_free()
+	var media_clip: MediaClip = get_media_clip(clip_pos)
+	media_clip.queue_free()
 	displayed_media_clips.erase(clip_pos)
+
+func send_media_clip_expanded_graph_editors(clip_pos: int, expanded_graph_editors: Array[bool]) -> void:
+	set_meta(str("f", clip_pos), expanded_graph_editors)
 
 func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: bool = true) -> MediaClip:
 	var clip: MediaClip
+	
 	if clip_res is ImportedClipRes:
 		clip = ImportedClip.new()
 		var clip_type: int = clip_res.type
 		clip.type = clip_type
 		# Interface Setup
 		var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
-		var clip_panel: MediaServer.ClipPanel = clip_panel_id.new(clip)
-		clip.set_clip_panel(clip_panel)
+		clip.set_clip_panel(clip_panel_id.new(clip))
 	
 	elif clip_res is ObjectClipRes:
 		clip = ObjectClip.new()
@@ -168,6 +172,12 @@ func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: b
 		"clip_pos" = clip_pos,
 		"clip_res" = clip_res
 	})
+	
+	var clip_pos_str = str("f", clip_pos)
+	if has_meta(clip_pos_str):
+		clip.clip_panel.graph_editors_expanded = get_meta(clip_pos_str)
+		clip.open_graph_editor.call_deferred()
+		remove_meta(clip_pos_str)
 	
 	# Connections
 	clip.selected.connect(on_clip_selected)

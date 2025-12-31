@@ -107,31 +107,31 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_fucdc")
 
-[node name="Split" type="HSplitContainer" parent="Margin/Box"]
+[node name="Split" type="VSplitContainer" parent="Margin/Box"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 0
+split_offset = 50
 
-[node name="Split" type="VSplitContainer" parent="Margin/Box/Split"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="Split2" type="HSplitContainer" parent="Margin/Box/Split/Split"]
+[node name="Split" type="HSplitContainer" parent="Margin/Box/Split"]
 layout_mode = 2
 size_flags_vertical = 3
+size_flags_stretch_ratio = 1.1
 theme_override_constants/separation = 0
-split_offset = 300
 
-[node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split/Split2" groups=["media_explorer"]]
+[node name="MediaExplorer" type="Control" parent="Margin/Box/Split/Split" groups=["media_explorer"]]
 clip_contents = true
 custom_minimum_size = Vector2(550, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("1_7i47x")
 
-[node name="Player" type="Control" parent="Margin/Box/Split/Split/Split2" groups=["player"]]
+[node name="Split" type="HSplitContainer" parent="Margin/Box/Split/Split"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Player" type="Control" parent="Margin/Box/Split/Split/Split" groups=["player"]]
 clip_contents = true
 custom_minimum_size = Vector2(540, 200)
 layout_mode = 2
@@ -140,19 +140,19 @@ size_flags_vertical = 3
 size_flags_stretch_ratio = 1.5
 script = ExtResource("2_7i47x")
 
-[node name="Split" type="HSplitContainer" parent="Margin/Box/Split/Split"]
+[node name="Properties" type="Control" parent="Margin/Box/Split/Split/Split" groups=["properties"]]
+clip_contents = true
+custom_minimum_size = Vector2(450, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.7
-theme_override_constants/separation = 0
-split_offset = 300
+script = ExtResource("23_pajpo")
+texture_add = ExtResource("24_sruw6")
+texture_search = ExtResource("25_gck3f")
+texture_delete = ExtResource("26_s30d6")
+texture_drag = ExtResource("27_30lmd")
 
-[node name="ClipNodesExplorer" type="Control" parent="Margin/Box/Split/Split/Split" groups=["clip_nodes_explorer"]]
-visible = false
-layout_mode = 2
-script = ExtResource("11_30pfl")
-
-[node name="TimeLine" parent="Margin/Box/Split/Split/Split" groups=["time_line"] instance=ExtResource("1_n2wvd")]
+[node name="TimeLine" parent="Margin/Box/Split" groups=["time_line"] instance=ExtResource("1_n2wvd")]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -176,17 +176,6 @@ texture_fit_to_fill = ExtResource("17_pajpo")
 texture_replace = ExtResource("21_s30d6")
 color_layer = Color(0.196078, 0.196078, 0.207843, 1)
 font_header = ExtResource("20_2kogo")
-
-[node name="Properties" type="Control" parent="Margin/Box/Split" groups=["properties"]]
-clip_contents = true
-custom_minimum_size = Vector2(450, 0)
-layout_mode = 2
-size_flags_vertical = 3
-script = ExtResource("23_pajpo")
-texture_add = ExtResource("24_sruw6")
-texture_search = ExtResource("25_gck3f")
-texture_delete = ExtResource("26_s30d6")
-texture_drag = ExtResource("27_30lmd")
 
 [node name="Bottom" type="PanelContainer" parent="Margin/Box"]
 visible = false
@@ -229,6 +218,16 @@ vertical_alignment = 1
 script = ExtResource("7_pln24")
 progress_bar = NodePath("..")
 metadata/_custom_type_script = "uid://bci4vqikuv2cq"
+
+[node name="ClipNodesExplorer" type="Control" parent="." groups=["clip_nodes_explorer"]]
+visible = false
+layout_mode = 2
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 8.0
+offset_bottom = 8.0
+script = ExtResource("11_30pfl")
 
 [node name="FocusControl" type="Control" parent="."]
 layout_mode = 1

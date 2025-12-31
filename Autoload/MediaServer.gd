@@ -312,11 +312,12 @@ class ClipPanel extends Panel:
 	var curr_length: int
 	var custom_height: float
 	
-	var margin_container: MarginContainer
-	var box_container: BoxContainer
-	var info_container: BoxContainer
+	var margin_container: MarginContainer = IS.create_margin_container(8, 8, 8, 8)
+	var box_container: BoxContainer = IS.create_box_container(0, true, {})
+	var info_container: BoxContainer = IS.create_box_container(8, false, {})
 	var thumbnail_rect: TextureRect
 	var graph_editors: Dictionary[UsableRes, Dictionary]
+	var graph_editors_expanded: Array[bool]
 	
 	func _init(_owner_as_media_clip: MediaClip) -> void:
 		set_owner_as_media_clip(_owner_as_media_clip)
@@ -335,10 +336,6 @@ class ClipPanel extends Panel:
 			]), PackedColorArray([Color(.0,.0,.0,.6)]))
 	
 	func _ready_ui() -> void:
-		margin_container = IS.create_margin_container(8, 8, 8, 8)
-		box_container = IS.create_box_container(0, true, {})
-		info_container = IS.create_box_container(8, false, {})
-		
 		info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		
 		var thumbnail: Texture2D = _get_ui_thumbnail()
@@ -392,6 +389,8 @@ class ClipPanel extends Panel:
 		var media_res: MediaClipRes = owner_as_media_clip.clip_res
 		var comps: Dictionary[String, Array] = media_res.components
 		
+		var index: int
+		
 		for section_key: String in comps.keys():
 			var section_comps: Array = comps[section_key]
 			
@@ -407,20 +406,28 @@ class ClipPanel extends Panel:
 						
 						var graph_category:= IS.create_category(true, str(comp_res.get_res_id(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.0), false)
 						var graph_editor:= CurveController.new()
+						
+						graph_editor.curves_profiles = anim_res.profiles
 						graph_editor.min_domain = media_res.from
 						graph_editor.max_domain = media_res.from + media_res.length
+						graph_editor.keys_editing.connect(owner_as_media_clip.focus_panel.update_displayed_keys.bind(true))
 						
 						graph_category.add_content(graph_editor)
 						box_container.add_child(graph_category)
 						
 						IS.expand(graph_editor, true, true)
 						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+						graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
 						graph_category.expand_changed.connect(update_custom_height)
 						
 						usable_res_port[prop_key] = graph_category
+						
+						index += 1
 		
 		is_graph_editor_opened = true
 		update_custom_height()
+		
+		EditorServer.frame_changed.connect(_on_editor_server_frame_changed)
 	
 	func close_graph_editor() -> void:
 		margin_container.add_theme_constant_override(&"margin_left", 8)
@@ -433,22 +440,32 @@ class ClipPanel extends Panel:
 		
 		graph_editors.clear()
 		is_graph_editor_opened = false
-		update_custom_height()
+		update_custom_height(false)
+		_on_editor_server_frame_changed(EditorServer.frame)
+		
+		EditorServer.frame_changed.disconnect(_on_editor_server_frame_changed)
 	
-	func update_custom_height() -> void:
+	func update_custom_height(update_graph_editors_expanded: bool = true) -> void:
+		if update_graph_editors_expanded:
+			graph_editors_expanded.clear()
+		
 		custom_height = ProjectServer.get_layer_customization(owner_as_media_clip.layer_index).size + 16
 		var any_graph_opened: bool
 		
 		for usable_res: UsableRes in graph_editors:
 			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
+			
 			for prop_key: StringName in usable_res_port:
 				var category: Category = usable_res_port[prop_key]
+				var category_is_expanded: bool = category.is_expanded
 				custom_height += 20.0
-				if category.is_expanded:
+				if category_is_expanded:
 					category.size_flags_vertical = Control.SIZE_EXPAND_FILL
 					custom_height += 250.0
 					any_graph_opened = true
 				else: category.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+				if update_graph_editors_expanded:
+					graph_editors_expanded.append(category_is_expanded)
 		
 		if any_graph_opened: info_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		else: info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -456,6 +473,13 @@ class ClipPanel extends Panel:
 		owner_as_media_clip.layer.update()
 		await get_tree().process_frame
 		owner_as_media_clip.focus_panel.update_displayed_keys(false)
+	
+	func _on_editor_server_frame_changed(new_frame: int) -> void:
+		var new_local_frame: int = new_frame - owner_as_media_clip.clip_pos
+		for usable_res: UsableRes in graph_editors:
+			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
+			for prop_key: StringName in usable_res_port:
+				usable_res_port[prop_key].content_container.get_child(0).set_cursor_pos(new_local_frame)
 
 
 class ImageClipPanel extends ClipPanel:
@@ -490,7 +514,7 @@ class AudioClipPanel extends ClipPanel:
 		super()
 	
 	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		
+		print()
 		var clip_res: MediaClipRes = owner_as_media_clip.clip_res
 		if frame_in == -1: frame_in = clip_res.from
 		if length == -1: length = clip_res.length

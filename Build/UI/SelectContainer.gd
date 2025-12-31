@@ -52,6 +52,9 @@ var draw_step: Vector2:
 			draw_step = val
 			queue_redraw()
 
+var shortcut_node: ShortcutNode = IS.create_shortcut_node(&"select_container_shortcut")
+
+
 
 func add_selectable_object(object: Variant, selectable_points: Dictionary[float, LocalPointInfo] = {}) -> void:
 	selectable_points_objects[object] = selectable_points
@@ -150,6 +153,8 @@ func copy_selected_points(cut: bool) -> void:
 	var all_keys: Array
 	for object: Variant in copied_points:
 		all_keys.append_array(copied_points[object].keys())
+	if all_keys.is_empty():
+		return
 	start_copied_point = all_keys.min()
 	if cut: delete_selected_points()
 
@@ -200,9 +205,14 @@ func get_menu_options() -> Array:
 func popup_options_menu() -> void:
 	IS.popup_menu(get_menu_options())
 
+func _init() -> void:
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	visibility_changed.connect(_on_visibility_changed)
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+
 
 func _ready() -> void:
-	var shortcut_node: ShortcutNode = IS.create_shortcut_node(&"select_container_shortcut")
 	shortcut_node.register_shortcut_quickly(&"delete", delete_selected_points, [ShortcutNode.new_event_key(Key.KEY_DELETE)])
 	shortcut_node.register_shortcut_quickly(&"cut", copy_selected_points.bind(true), [ShortcutNode.new_event_key(Key.KEY_X, true)])
 	shortcut_node.register_shortcut_quickly(&"copy", copy_selected_points.bind(false), [ShortcutNode.new_event_key(Key.KEY_C, true)])
@@ -220,10 +230,11 @@ func _input(event: InputEvent) -> void:
 		var action_big_step:= event.is_action("big_snap")
 		is_snapped = event.is_pressed()
 		if event.is_pressed():
-			if action_small_step:
-				draw_step = Vector2(draw_x_small_step, draw_y_small_step)
-			elif action_big_step:
-				draw_step = Vector2(draw_x_big_step, draw_y_big_step)
+			if get_global_rect().has_point(get_global_mouse_position()):
+				if action_small_step:
+					draw_step = Vector2(draw_x_small_step, draw_y_small_step)
+				elif action_big_step:
+					draw_step = Vector2(draw_x_big_step, draw_y_big_step)
 		elif action_small_step or action_big_step:
 			draw_step = Vector2.ZERO
 
@@ -335,9 +346,22 @@ func get_points_inside_rect_cond_func(object: Variant, point_key: float, point_i
 	return rect.has_point(point_info.point_display_pos)
 
 
-func udpate_selectable_points_display_poss(method: Callable) -> void:
+func update_selectable_points_display_poss(method: Callable = update_selectable_points_display_poss_func) -> void:
 	for object: Variant in selectable_points_objects:
 		var selectable_points: Dictionary[float, LocalPointInfo] = selectable_points_objects[object]
 		for point_key: float in selectable_points:
 			var point_info: LocalPointInfo = selectable_points[point_key]
 			point_info.point_display_pos = method.call(point_key, point_info)
+
+func update_selectable_points_display_poss_func(point_key: float, point_info: LocalPointInfo) -> Vector2:
+	return Vector2.ZERO
+
+
+func _on_visibility_changed() -> void:
+	set_process_input(is_visible_in_tree())
+
+func _on_mouse_entered() -> void:
+	pass
+
+func _on_mouse_exited() -> void:
+	pass

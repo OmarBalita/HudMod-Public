@@ -257,9 +257,12 @@ func _ready_editor() -> void:
 	)
 	shortcut_node.create_key_shortcut(0, KEY_ENTER, enter_media_clip)
 	shortcut_node.create_key_shortcut(0, KEY_BACKSPACE, ProjectServer.exit_media_clip_children.bind(1))
+	shortcut_node.create_key_shortcut(CTRL_MASK, KEY_G, open_graph_editor)
+	shortcut_node.create_key_shortcut(ALT_MASK, KEY_G, close_graph_editor)
+	shortcut_node.cond_func = func() -> bool:
+		return EditorServer.graph_editors_focused.is_empty()
 	
 	# Start Connections
-	
 	
 	ProjectServer.media_clip_entered.connect(on_project_server_media_clip_entered)
 	ProjectServer.media_clip_exited.connect(on_project_server_media_clip_exited)
@@ -278,8 +281,6 @@ func _ready_editor() -> void:
 	resized.connect(on_resized)
 	l_button_downed.connect(on_l_button_downed)
 	l_button_upped.connect(on_l_button_upped)
-	wheel_downed.connect(on_wheel_downed)
-	wheel_upped.connect(on_wheel_upped)
 	
 	press_functions = {
 		KEY_LEFT: on_key_left_pressed,
@@ -316,7 +317,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		if right_button_down:
 			displacement_pos -= Vector2(event.relative.x / display_snap_dist, .0)
-			if KEY_SHIFT in pressed_keys: layers_scroll_container.scroll_vertical -= event.relative.y
+			if KEY_SHIFT in pressed_keys and not EditorServer.graph_editors_focused:
+				layers_scroll_container.scroll_vertical -= event.relative.y
 		
 		elif is_focus and timeline_selection_mode != 0:
 			var media_clips_focused: Array[MediaClip] = EditorServer.media_clips_focused
@@ -340,6 +342,13 @@ func _input(event: InputEvent) -> void:
 			MOUSE_BUTTON_RIGHT:
 				if event.is_pressed(): right_button_down = is_focus
 				else: right_button_down = false
+			
+			_ when is_focus:
+				if not event.shift_pressed:
+					if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+						zoom -= zoom_step * zoom
+					elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+						zoom += zoom_step * zoom
 
 func _draw() -> void:
 	
@@ -563,15 +572,14 @@ func is_inside_rect_has_point(point: Vector2) -> bool:
 func request_selection_box_selection() -> bool:
 	# Approximate numbers for the required Rect
 	var cond1: bool = is_inside_rect_has_point(get_local_mouse_position())
-	var cond2: bool = EditorServer.media_clips_focused.size() == 0
-	var cond3: bool = EditorServer.roll_buttons_spawned.size() == 0
-	var cond4: bool = timeline_selection_mode == 0
-	return cond1 and cond2 and cond3 and cond4
+	var cond2: bool = timeline_selection_mode == 0
+	var cond3: bool = EditorServer.is_timeline_selection_enabled()
+	return cond1 and cond2 and cond3
 
 func request_media_clip_selection() -> bool:
 	var cond1: bool = is_inside_rect_has_point(get_local_mouse_position())
-	var cond2: bool = EditorServer.roll_buttons_spawned.size() == 0
-	var cond3: bool = timeline_selection_mode == 0
+	var cond2: bool = timeline_selection_mode == 0
+	var cond3: bool = EditorServer.is_media_clip_selection_enabled()
 	return cond1 and cond2 and cond3
 
 
@@ -904,7 +912,7 @@ func popup_media_clips_menu() -> void:
 		MenuOption.new("Cut", null, copy_media_clips.bind(true)),
 		MenuOption.new("Copy", null, copy_media_clips.bind(false)),
 		MenuOption.new("Duplicate", null, duplicate_media_clips),
-		MenuOption.new("Remove", null, remove_media_clips),
+		MenuOption.new("Delete", null, remove_media_clips),
 		MenuOption.new("Split", null, split_media_clips.bind(true, true)),
 		MenuOption.new_line(),
 		MenuOption.new("Group", null, group_media_clips),
@@ -1215,7 +1223,7 @@ func clips_end_move() -> void:
 func drag(delta: float, horizontally: bool = true, vertically: bool = true) -> void:
 	var mouse_pos: Vector2 = get_local_mouse_position()
 	
-	if mouse_pos.y >= position.y and mouse_pos.y < position.y + size.y:
+	if mouse_pos.y >= .0 and mouse_pos.y < position.y + size.y:
 		
 		var speed: float = 8.0
 		var half_size: Vector2 = size / 2.0
@@ -1336,11 +1344,6 @@ func on_l_button_upped(pos: Vector2) -> void:
 		timeline_state = 0
 		curr_frame_stopped_manually.emit()
 
-func on_wheel_downed(pos: Vector2) -> void:
-	zoom -= zoom_step * zoom
-
-func on_wheel_upped(pos: Vector2) -> void:
-	zoom += zoom_step * zoom
 
 func on_key_right_pressed() -> void:
 	set_curr_frame_manually(get_next_spacial_frame() if KEY_CTRL in pressed_keys else curr_frame + 1)

@@ -4,6 +4,8 @@ signal component_property_changed(property_key: StringName, property_new_val: Va
 signal shader_code_compiled_successfully()
 signal shader_material_changed()
 
+signal comp_animation_res_added(comp: ComponentRes, usable_res: UsableRes, property_key: StringName, animation_res: AnimationRes)
+signal comp_animation_res_removed(comp: ComponentRes, usable_res: UsableRes, property_key: StringName)
 signal comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int)
 signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int)
 
@@ -210,15 +212,18 @@ func loop_components_animations_keys(info: Dictionary[StringName, Variant], meth
 				
 				for anim_key: String in res_anims:
 					var anim_res: AnimationRes = res_anims[anim_key]
-					var anim_keys: Dictionary[float, Variant] = anim_res.get_keys()
 					
-					for key_pos: float in anim_keys:
-						method.call(
-							anim_key,
-							key_pos,
-							anim_keys[key_pos],
-							info
-						)
+					for channel_index: int in anim_res.profiles.size():
+						var channel_profile: CurveSampler.Profile = anim_res.profiles[channel_index]
+						var anim_keys: Dictionary[float, CurveKey] = channel_profile.keys
+						
+						for key_pos: float in anim_keys:
+							method.call(
+								anim_key,
+								key_pos,
+								anim_keys[key_pos],
+								info
+							)
 	return info
 
 func _emit_component_property_changed(property_key: StringName, property_new_val: Variant) -> void:

@@ -51,6 +51,7 @@ var drawable_rect: DrawableRect
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
 
 var media_clips_focused: Array[MediaClip]
+var graph_editors_focused: Array[CurveController]
 var roll_buttons_spawned: Array[Button]
 
 # Background Called Functions
@@ -120,8 +121,14 @@ func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, p
 # Media Clips
 # ---------------------------------------------------
 
-func is_any_media_clip_focused() -> bool:
-	return media_clips_focused.size() > 0
+func is_timeline_selection_enabled() -> bool:
+	return media_clips_focused.is_empty() and\
+	graph_editors_focused.is_empty() and\
+	roll_buttons_spawned.is_empty()
+
+func is_media_clip_selection_enabled() -> bool:
+	return graph_editors_focused.is_empty() and\
+	roll_buttons_spawned.is_empty()
 
 # Guides Functions
 # ---------------------------------------------------
