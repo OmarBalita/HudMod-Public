@@ -1,6 +1,9 @@
 class_name ShortcutNode extends Control
 
 @export var shortcuts: Dictionary[Shortcut, ShortcutInfo]
+@export var enabled: bool = true
+
+var cond_func: Callable
 
 static func new_event_key(key_code: Key, ctrl_pressed: bool = false, shift_pressed: bool = false, alt_pressed: bool = false) -> InputEventKey:
 	var event_key:= InputEventKey.new()
@@ -31,7 +34,7 @@ func register_shortcuts(new_shortcuts: Dictionary[Shortcut, ShortcutInfo]) -> vo
 	shortcuts.merge(new_shortcuts)
 
 func _init() -> void:
-	set_process_input(get_global_rect().has_point(get_global_mouse_position()) and visible)
+	set_process_input(false)
 	mouse_entered.connect(set_process_input.bind(true))
 	mouse_exited.connect(set_process_input.bind(false))
 	
@@ -39,6 +42,9 @@ func _init() -> void:
 	IS.expand(self, true, true)
 
 func _input(event: InputEvent) -> void:
+	if cond_func.is_valid() and not cond_func.call():
+		return
+	
 	if event is InputEventKey:
 		if event.is_pressed():
 			for shortcut: Shortcut in shortcuts:

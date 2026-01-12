@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://clqh4uu3cbsck"]
+[gd_scene load_steps=12 format=3 uid="uid://clqh4uu3cbsck"]
 
 [ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
 [ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://dmyeub87vo8t3" path="res://Asset/Icons/toggle-button2.png" id="5_kahc7"]
 [ext_resource type="Script" uid="uid://m3nuhukc6hqg" path="res://Build/UI/Control/ColorRangeControl.gd" id="6_kahc7"]
 [ext_resource type="Script" uid="uid://b35nbh45vdmu1" path="res://Build/UI/Control/ListController.gd" id="7_ltaws"]
+[ext_resource type="Script" uid="uid://cf831w52f08q4" path="res://Build/UI/VolumeControl.gd" id="8_3nnli"]
 [ext_resource type="Script" uid="uid://lr52jy0j74xg" path="res://Build/UI/Control/CurveController.gd" id="9_3nnli"]
 [ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="10_3nnli"]
 
@@ -81,7 +82,13 @@ layout_mode = 2
 script = ExtResource("7_ltaws")
 metadata/_custom_type_script = "uid://b35nbh45vdmu1"
 
+[node name="VolumeControl" type="Control" parent="CenterContainer"]
+custom_minimum_size = Vector2(350, 30)
+layout_mode = 2
+script = ExtResource("8_3nnli")
+
 [node name="CurveController" type="PanelContainer" parent="."]
+visible = false
 clip_contents = true
 layout_mode = 1
 anchors_preset = 15

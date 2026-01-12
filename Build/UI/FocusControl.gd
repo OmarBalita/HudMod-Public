@@ -57,8 +57,6 @@ var is_focus: bool:
 		if draw_focus:
 			var tween = create_tween()
 			tween.tween_property(self, "focus_alpha", float(is_focus) * .5, .15)
-			if is_focus:
-				EditorServer.push_guides(editor_guides)
 		focus_changed.emit(is_focus)
 
 var is_selected: bool: set = set_is_selected
@@ -240,10 +238,4 @@ func calculate_metadata(metadata_keys: Array[String]) -> Dictionary:
 		result[key] = get(key)
 	metadata = result
 	return result
-
-
-
-
-
-
 

@@ -27,6 +27,9 @@ position = Vector2(0, 0)
 rotation = 0.0
 scale = Vector2(0, 0)
 skew = 0.0
+res_id = &""
+properties = Dictionary[StringName, Dictionary]({})
+use_global_variables_as_properties = true
 metadata/_custom_type_script = "uid://cjh0ymaritsa6"
 
 [sub_resource type="Curve" id="Curve_7sxuu"]
@@ -58,4 +61,7 @@ cap_begin_scale = 1.0
 cap_end_scale = 1.0
 is_brush = true
 brush_name = "Main Brush"
+res_id = &""
+properties = Dictionary[StringName, Dictionary]({})
+use_global_variables_as_properties = true
 metadata/_custom_type_script = "uid://cv1f6q4sf0u7v"

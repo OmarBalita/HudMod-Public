@@ -1,4 +1,4 @@
-class_name Properties extends EditorRect
+class_name Properties extends EditorControl
 
 var media_clips_selection_group:= EditorServer.media_clips_selection_group
 

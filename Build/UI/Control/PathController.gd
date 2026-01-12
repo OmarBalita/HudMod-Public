@@ -1,17 +1,22 @@
 class_name PathController extends HBoxContainer
 
+signal root_requested()
 signal undo_requested(undo_times: int)
 
-@export var root_name: String = "Project"
+@export var path: Array
+@export var root_name: StringName = &"Project"
 
-func get_root_name() -> String:
+func get_root_name() -> StringName:
 	return root_name
 
-func set_root_name(new_val: String) -> void:
+func set_root_name(new_val: StringName) -> void:
 	root_name = new_val
 
-func update(path: Array) -> void:
-	for node: Node in get_children(): node.queue_free()
+func update(_path: Array) -> void:
+	path = _path
+	
+	for node: Node in get_children():
+		node.queue_free()
 	
 	for time: int in path.size() + 1:
 		time -= 1
@@ -26,7 +31,7 @@ func update(path: Array) -> void:
 		
 		button.mouse_entered.connect(change_button_text.bind(button, underline_text(folder_name)))
 		button.mouse_exited.connect(change_button_text.bind(button, folder_name))
-		button.pressed.connect(emit_signal.bind("undo_requested", undo_times))
+		button.pressed.connect(on_button_pressed.bind(undo_times))
 		
 		button.text = folder_name
 		add_child(button)
@@ -41,4 +46,14 @@ func underline_text(text: String) -> String:
 
 func change_button_text(button: Button, new_text: String) -> void:
 	button.set_text(new_text)
+
+func on_button_pressed(undo_times: int) -> void:
+	if path.size() == 0:
+		open_root_menu()
+		root_requested.emit()
+	else:
+		undo_requested.emit(undo_times)
+
+func open_root_menu() -> void:
+	pass
 

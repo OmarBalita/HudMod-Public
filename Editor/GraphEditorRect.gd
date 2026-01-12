@@ -1,4 +1,4 @@
-class_name GraphEditorRect extends EditorRect
+class_name GraphEditorControl extends EditorControl
 
 signal graph_node_options_opened()
 signal graph_node_option_button_pressed(option: MenuOption)
@@ -13,7 +13,7 @@ var picked_graph_node: GraphNode
 
 
 func _ready() -> void:
-	# EditorRect
+	# EditorControl
 	super()
 	# GraphEdit
 	body.add_child(graph_edit)

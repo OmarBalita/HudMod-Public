@@ -24,7 +24,7 @@ func _ready_scene() -> void:
 func start_scene() -> void:
 	viewport = EditorServer.player.viewport
 	root = Node.new()
-	curr_objects[ProjectServer.root_clip_res] = root
+	curr_objects[ProjectServer.project_res.root_clip_res] = root
 	camera = Camera2D.new()
 	root.add_child(camera)
 	viewport.add_child(root)

@@ -14,19 +14,19 @@ const ERR_STRENGTH_COLORS:= [
 	Color.INDIAN_RED
 ]
 
-# Save Info
+# Directory Info
 # ---------------------------------------------------
 
-var app_data_dir = OS.get_data_dir() + "/Edit App"
-var editor_path = app_data_dir + "/editor/"
+static var app_data_dir: String = OS.get_data_dir() + "/HudMod Video Editor/"
+
+static var editor_path: String = app_data_dir + "editor/"
+static var editor_layout_path: String = editor_path + "layout/"
 
 # Resources
 # ---------------------------------------------------
 
 var editor_settings:= AppEditorSettings.new()
 
-var import_media_cards_selection_group:= SelectionGroupRes.new()
-var object_media_cards_selection_group:= SelectionGroupRes.new()
 var media_clips_selection_group:= SelectionGroupRes.new()
 var time_markers_selection_group:= SelectionGroupRes.new()
 
@@ -34,19 +34,27 @@ var time_markers_selection_group:= SelectionGroupRes.new()
 # ---------------------------------------------------
 
 var frame: int:
-	set(val): frame = val; frame_changed.emit(val)
+	set(val):
+		if frame != val:
+			frame = val
+			frame_changed.emit(val)
 
 var message_history: Array[Dictionary]
 
 # RealTime Nodes
 # ---------------------------------------------------
 
+var main: Control
+
 var player: Player
 var time_line: TimeLine
 var media_explorer: MediaExplorer
-var clip_nodes_explorer: ClipNodesExplorer
 var properties: Properties2
+var color_correction_editor: ColorCorrectionEditor
+var color_scope_editor: ColorScopeEditor
+
 var drawable_rect: DrawableRect
+var global_controls: Dictionary[Window, Control]
 
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
 
@@ -57,30 +65,31 @@ var roll_buttons_spawned: Array[Button]
 # Background Called Functions
 # ---------------------------------------------------
 
-func _ready_editor_server() -> void:
+func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> void:
 	DirAccess.make_dir_absolute(app_data_dir)
-	DirAccess.make_dir_absolute(editor_path)
 	
-	player = get_tree().get_first_node_in_group("player")
-	time_line = get_tree().get_first_node_in_group("time_line")
-	media_explorer = get_tree().get_first_node_in_group("media_explorer")
-	clip_nodes_explorer = get_tree().get_first_node_in_group("clip_nodes_explorer")
-	properties = get_tree().get_first_node_in_group("properties")
+	main = get_tree().get_current_scene()
+	
+	player = editors.player
+	time_line = editors.time_line
+	media_explorer = editors.media_explorer
+	properties = editors.properties
+	color_correction_editor = editors.color_correction
+	color_scope_editor = editors.color_scope
+	
 	drawable_rect = get_tree().get_first_node_in_group("drawable_rect")
 	
 	player._ready_editor()
 	time_line._ready_editor()
 	media_explorer._ready_editor()
-	clip_nodes_explorer._ready_editor()
 	properties._ready_editor()
+	color_correction_editor._ready_editor()
+	color_scope_editor._ready_editor()
 	
 	get_window().files_dropped.connect(on_files_dropped)
-	
-	push_guides()
 
 
-
-# Frame
+# Frame Get Set
 # ---------------------------------------------------
 
 func get_frame() -> int:
@@ -89,6 +98,7 @@ func get_frame() -> int:
 func set_frame(new_frame: int) -> void:
 	frame = new_frame
 
+# Controllers Handling
 # ---------------------------------------------------
 
 func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
@@ -130,46 +140,88 @@ func is_media_clip_selection_enabled() -> bool:
 	return graph_editors_focused.is_empty() and\
 	roll_buttons_spawned.is_empty()
 
-# Guides Functions
+# Directories: Save Load Handling
 # ---------------------------------------------------
 
-func push_guides(guides: Array[Dictionary] = []) -> void:
-	if not guides:
-		guides = [
-			{"": "Lazy-Edit is a very simple and lightweight video editing program."}
-		]
-	var result_guide: String
-	var guide_labels = get_tree().get_nodes_in_group("guide_label")
-	for index in guides.size():
-		var guide = guides[index]
-		var guide_key = guide.keys()[0]
-		var guide_val = guide.values()[0]
-		if index:
-			result_guide += "   |   "
-		if guide_key:
-			result_guide += str(guide_key, " : ")
-		result_guide += guide_val
-	set_labels_text(guide_labels, result_guide, 0)
+func make_dir_abs(path: String) -> Error:
+	return DirAccess.make_dir_recursive_absolute(path)
 
-func push_notification(message: String, error_strength: int = 0) -> void:
-	var notification_labels = get_tree().get_nodes_in_group("notification_label")
-	message_history.append({
-		"message": message,
-		"error_strength": error_strength
-	})
-	set_labels_text(notification_labels, message, error_strength)
+func make_dirs_abs(paths: PackedStringArray) -> Array[Error]:
+	var errors: Array[Error]
+	for path: String in paths:
+		errors.append(DirAccess.make_dir_recursive_absolute(path))
+	return errors
 
+func remove_abs(path: String) -> Error:
+	return DirAccess.remove_absolute(path)
 
-func set_labels_text(labels: Array, text: String, color_index: int, while_loop = null) -> void:
-	for label: Label in labels:
-		if label is NotificationLabel:
-			label.set_notification_text(text)
+func load_custom_layouts() -> Array[LayoutRootInfo]:
+	make_dir_abs(editor_layout_path)
+	
+	var result: Array[LayoutRootInfo]
+	for file_name: StringName in DirAccess.get_files_at(editor_layout_path):
+		var layout: LayoutRootInfo = ResourceLoader.load(editor_layout_path + file_name)
+		layout.set_meta(&"id", file_name.get_file().trim_suffix(&".res"))
+		result.append(layout)
+	return result
+
+func save_custom_layouts(custom_layouts: Array[LayoutRootInfo], clear_old: bool = false, generate_ids: bool = true) -> void:
+	make_dir_abs(editor_layout_path)
+	
+	var used_ids: PackedStringArray
+	if clear_old: clear_custom_layouts()
+	else: used_ids = DirAccess.get_files_at(editor_layout_path)
+	
+	for layout: LayoutRootInfo in custom_layouts:
+		var id: String
+		if generate_ids:
+			id = ProjectServer.generate_new_id(used_ids, 12)
 		else:
-			label.set_text(text)
-		label.add_theme_color_override("font_color", ERR_STRENGTH_COLORS[color_index])
-		if while_loop:
-			while_loop.call(label)
+			id = layout.get_meta(&"id")
+		ResourceSaver.save(layout, str(editor_layout_path, id, ".res"), ResourceSaver.FLAG_COMPRESS)
+		layout.set_meta(&"id", id)
+		used_ids.append(id)
 
+func remove_custom_layouts(custom_layouts: Array[LayoutRootInfo]) -> void:
+	for layout: LayoutRootInfo in custom_layouts:
+		var file_name: String = layout.get_meta(&"id") + ".res"
+		remove_abs(editor_layout_path + file_name)
+
+func clear_custom_layouts() -> void:
+	for file_name: StringName in DirAccess.get_files_at(editor_layout_path):
+		remove_abs(editor_layout_path + file_name)
+
+func load_presets(global: bool = false) -> Array[MediaClipRes]:
+	var target_dir: String = get_presets_path(global)
+	make_dir_abs(target_dir)
+	var result: Array[MediaClipRes]
+	for file_name: StringName in DirAccess.get_files_at(target_dir):
+		var media_res: Resource = ResourceLoader.load(editor_layout_path + file_name)
+		if media_res is MediaClipRes:
+			result.append(media_res)
+	return result
+
+func save_presets(presets: Array[MediaClipRes], global: bool = false) -> PackedStringArray:
+	var target_path: String = get_presets_path(global)
+	make_dir_abs(target_path)
+	var used_ids: PackedStringArray = DirAccess.get_files_at(target_path)
+	var save_pathes: PackedStringArray
+	for preset_media_res: MediaClipRes in presets:
+		var id: String = ProjectServer.generate_new_id(used_ids, 12)
+		var save_path: String = str(target_path, id, ".res")
+		ResourceSaver.save(preset_media_res, save_path, ResourceSaver.FLAG_COMPRESS)
+		used_ids.append(id)
+		save_pathes.append(save_path)
+	return save_pathes
+
+func get_presets_path(global: bool) -> String:
+	return GlobalServer.global_preset_path if global else ProjectServer.project_preset_path
+
+func get_ids_from_pathes(pathes: PackedStringArray) -> PackedStringArray:
+	var used_ids: PackedStringArray
+	for path: String in pathes:
+		used_ids.append(path.get_file().split(".")[0])
+	return used_ids
 
 # Connections
 # ---------------------------------------------------
@@ -199,7 +251,6 @@ func on_files_dropped(files_pathes: Array[String]) -> void:
 	
 	media_explorer.update()
 	ProjectServer.emit_media_clips_change()
-
 
 
 

@@ -1,4 +1,4 @@
-class_name MediaExplorer extends EditorRect
+class_name MediaExplorer extends EditorControl
 
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
@@ -55,11 +55,6 @@ func _ready_editor() -> void:
 func set_curr_media_box(new_media_box: int) -> void:
 	curr_media_box = new_media_box
 
-
-
-
-
-
 func import_media(file_path: String, update: bool = true) -> void:
 	import_box.create_file(import_box.curr_display_path, file_path)
 	if update: update()
@@ -73,8 +68,6 @@ func update() -> void:
 
 
 class MediaBox extends Container:
-	
-	var selection_group: SelectionGroupRes = EditorServer.import_media_cards_selection_group
 	
 	var categories: Dictionary[String, Category]
 	
@@ -145,47 +138,77 @@ class MediaBox extends Container:
 	func on_search_line_text_changed(new_text: String) -> void:
 		filter_and_sort()
 
-
-class ImportBox extends MediaBox:
+class CreatedBox extends MediaBox:
 	
-	@export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
-	@export var texture_check: Texture2D = preload("res://Asset/Icons/check.png")
-	@export var texture_wait: Texture2D = preload("res://Asset/Icons/hourglass.png")
+	var selection_group:= SelectionGroupRes.new()
 	
-	var display_file_system: DisplayFileSystemRes = DisplayFileSystemRes.new()
+	var project_file_system: DisplayFileSystemRes
+	var global_file_system: DisplayFileSystemRes
+	
+	var display_file_system: DisplayFileSystemRes:
+		set(val):
+			display_file_system = val
+			if path_controller:
+				var root_name: String
+				match val:
+					project_file_system: root_name = &"Project"
+					global_file_system: root_name = &"Global"
+				path_controller.set_root_name(root_name)
+	
+	# Backround FileSystem
 	var curr_display_path: Array
 	
-	var curr_filter: int
-	var curr_sort: int
-	
+	# Filter and Sort
 	var filter_button: OptionController
 	var sort_button: OptionController
-	var import_button: Button
 	var folder_button: Button
 	
+	# Path Handling Nodes
+	var path_container: BoxContainer
 	var undo_path_button: TextureButton
 	var reload_button: TextureButton
 	var path_controller: PathController
 	
-	var import_category: Category
+	# filter and sort in RealTime
+	var curr_filter: int
+	var curr_sort: int
 	
-	var progress_window: Window
-	var progress_list: ItemList
-	var progress_bar: ProgressBar
+	func get_display_file_system() -> DisplayFileSystemRes:
+		return display_file_system
 	
+	func set_display_file_system(new_val: DisplayFileSystemRes, _update: bool = true) -> void:
+		display_file_system = new_val
+		if _update: update()
 	
-	func _ready() -> void:
-		super()
-		on_file_dialog_files_selected(PackedStringArray([
-			"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/icon.svg",
-			"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/App/logo2_512.png",
-			"C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
-		]))
-		update()
+	func get_true_file_system(global: bool) -> DisplayFileSystemRes:
+		return global_file_system if global else project_file_system
+	
+	func get_image_paths(global: bool) -> Array[String]:
+		var thumbnail_path: String; var waveform_path: String
+		if global: thumbnail_path = GlobalServer.global_thumbnail_path; waveform_path = GlobalServer.global_waveform_path
+		else: thumbnail_path = ProjectServer.project_thumbnail_path; waveform_path = ProjectServer.project_waveform_path
+		return [thumbnail_path, waveform_path]
+	
+	func _init(_media_explorer: MediaExplorer) -> void:
+		display_file_system = project_file_system
+		super(_media_explorer)
 	
 	func _ready_options() -> void:
-		var path_container = IS.create_box_container()
 		
+		var filter_options: Array[Dictionary] = _get_filter_options()
+		var sort_options: Array[Dictionary] = _get_sort_options()
+		
+		if filter_options:
+			filter_button = IS.create_option_controller(filter_options)
+			filter_button.selected_option_changed.connect(on_filter_button_selected_option_changed)
+			options_container.add_child(filter_button)
+		
+		if sort_options:
+			sort_button = IS.create_option_controller(sort_options)
+			sort_button.selected_option_changed.connect(on_sort_button_selected_option_changed)
+			options_container.add_child(sort_button)
+		
+		path_container = IS.create_box_container(8)
 		undo_path_button = IS.create_texture_button(media_explorer.texture_undo_path)
 		reload_button = IS.create_texture_button(media_explorer.texture_reload)
 		path_controller = PathController.new()
@@ -198,47 +221,22 @@ class ImportBox extends MediaBox:
 		
 		undo_path_button.pressed.connect(undo.bind(1))
 		reload_button.pressed.connect(update)
+		path_controller.root_requested.connect(popup_root_menu)
 		path_controller.undo_requested.connect(undo)
-		
-		import_category = add_category("Import", false)
-		
-		filter_button = IS.create_option_controller([
-			{text = "All"},
-			{text = "Image"},
-			{text = "Video"},
-			{text = "Audio"},
-		], "")
-		filter_button.selected_option_changed.connect(on_filter_button_selected_option_changed)
-		options_container.add_child(filter_button)
-		
-		sort_button = IS.create_option_controller([
-			{text = "Name"},
-			{text = "Type"},
-			{text = "Latest to Earliest"},
-			{text = "Earliest to Latest"},
-		], "")
-		sort_button.selected_option_changed.connect(on_sort_button_selected_option_changed)
-		options_container.add_child(sort_button)
 		
 		super()
 		
-		import_button = IS.create_button("", media_explorer.texture_file, true)
-		import_button.pressed.connect(on_import_button_pressed)
-		options_container.add_child(import_button)
-		
 		folder_button = IS.create_button("", media_explorer.texture_folder)
-		folder_button.pressed.connect(on_folder_button_pressed)
+		folder_button.pressed.connect(_on_folder_button_pressed)
 		options_container.add_child(folder_button)
 	
-	func create_folder(display_path: Array, folder_name: String) -> void:
-		display_file_system.create_folder(display_path, folder_name)
-		update()
+	func on_filter_button_selected_option_changed(index: int, option: MenuOption) -> void:
+		curr_filter = index
+		filter_and_sort()
 	
-	func create_file(display_path: Array, file_path: String) -> void:
-		display_file_system.create_file(display_path, file_path)
-	
-	func delete_file_or_folder(display_path: Array, path_or_name: String) -> void:
-		display_file_system.delete(display_path, path_or_name)
+	func on_sort_button_selected_option_changed(index: int, option: MenuOption) -> void:
+		curr_sort = index
+		filter_and_sort()
 	
 	func undo(times: int) -> void:
 		for time: int in times:
@@ -246,13 +244,15 @@ class ImportBox extends MediaBox:
 		update()
 	
 	func update() -> void:
-		
 		selection_group.clear_objects()
-		path_controller.update(curr_display_path)
-		import_category.remove_all_contents()
 		
+		path_controller.update(curr_display_path)
 		if display_file_system == null: return
 		var files_and_folders: Dictionary = display_file_system.get_files_and_folders_at(curr_display_path)
+		
+		var created_box_cat: Category = _get_created_box_category()
+		if created_box_cat == null: return
+		created_box_cat.remove_all_contents()
 		
 		for index: int in files_and_folders.size():
 			
@@ -260,39 +260,143 @@ class ImportBox extends MediaBox:
 			var info: Dictionary = files_and_folders.values()[index]
 			var type: String = info.type
 			
-			var card: CreatedCard = null
+			var card: CreatedCard
+			if type == "folder":
+				# the key be the folder name when the type is "folder"
+				var folder_card:= FolderCard.new()
+				folder_card.created_card_type = -1
+				folder_card.folder_info = {
+					&"type": -1,
+					&"name": key,
+					&"forward": info.forward
+				}
+				folder_card.clicked.connect(_on_folder_clicked.bind(key))
+				card = folder_card
+			else:
+				card = _init_card(key, info, type)
 			
-			match type:
-				"file":
-					# the Key be the file path when the type is "file"
-					var media_type: int = info.media_type
-					var import_card:= ImportCard.new()
-					import_card.created_card_type = media_type + 1
-					import_card.import_info = {
-						&"type": media_type,
-						&"path": key,
-						&"thumbnail": MediaServer.get_thumbnail(key).texture
-					}
-					card = import_card
-				
-				"folder":
-					# the key be the folder name when the type is "folder"
-					var folder_card:= FolderCard.new()
-					folder_card.created_card_type = -1
-					folder_card.folder_info = {
-						&"type": -1,
-						&"name": key,
-						&"forward": info.forward
-					}
-					folder_card.clicked.connect(on_folder_clicked.bind(key))
-					card = folder_card
-			
-			card.import_box = self
+			card.created_box = self
 			card.create_date = info.date
 			card.custom_minimum_size = media_explorer.card_display_size
-			import_category.add_content(card)
+			card.selection_group = selection_group
+			created_box_cat.add_content(card)
 		
 		filter_and_sort()
+	
+	func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
+		return null
+	
+	func popup_root_menu() -> void:
+		var root_button: Button = path_controller.get_child(0)
+		IS.popup_menu([
+			MenuOption.new("Project", null, set_display_file_system.bind(project_file_system)),
+			MenuOption.new("Global", null, set_display_file_system.bind(global_file_system))
+		], root_button)
+	
+	func _get_filter_options() -> Array[Dictionary]:
+		return []
+	
+	func _get_sort_options() -> Array[Dictionary]:
+		return [
+			{text = "Name"},
+			{text = "Type"},
+			{text = "Latest to Earliest"},
+			{text = "Earliest to Latest"},
+		]
+	
+	func _get_created_box_category() -> Category:
+		return null
+	
+	func create_folder(display_path: Array, folder_name: String) -> void: display_file_system.create_folder(display_path, folder_name)
+	func create_folders(display_path: Array, folders_names: PackedStringArray) -> void: display_file_system.create_folders(display_path, folders_names)
+	
+	func create_file(display_path: Array, file_path: String) -> void:
+		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
+		display_file_system.create_file(display_path, file_path, image_paths[0], image_paths[1])
+	
+	func create_files(display_path: Array, files_pathes: PackedStringArray) -> void:
+		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
+		display_file_system.create_files(display_path, files_pathes, image_paths[0], image_paths[1])
+	
+	func delete_file_or_folder(display_path: Array, path_or_name: String) -> void: display_file_system.delete(display_path, path_or_name)
+	func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray) -> void: display_file_system.delete_packed(display_path, pathes_or_names)
+	
+	func delete_selected() -> void:
+		var pathes_or_names: PackedStringArray
+		var cards: Array[Node] = _get_created_box_category().get_contents()
+		for card: CreatedCard in cards:
+			if card.is_selected:
+				pathes_or_names.append(card._get_created_card_name_or_path())
+		delete_files_or_folders(curr_display_path, pathes_or_names)
+	
+	func _on_folder_clicked(folder_name: String) -> void:
+		curr_display_path.append(folder_name)
+		update()
+	
+	func _on_folder_button_pressed() -> void:
+		var name_line: LineEdit = IS.create_line_edit("Type Folder Name", "New Folder")
+		var box: BoxContainer = WindowManager.popup_accept_window(
+			get_tree().current_scene,
+			Vector2(400, 150),
+			"Create Folder",
+			func():
+				create_folder(curr_display_path, name_line.text)
+				update()
+		)
+		box.add_child(name_line)
+		box.move_child(name_line, 0)
+		name_line.select()
+		name_line.grab_focus()
+
+
+class ImportBox extends CreatedBox:
+	
+	@export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
+	@export var texture_check: Texture2D = preload("res://Asset/Icons/check.png")
+	@export var texture_wait: Texture2D = preload("res://Asset/Icons/hourglass.png")
+	
+	var import_button: Button
+	
+	var import_category: Category
+	
+	var progress_window: Window
+	var progress_list: ItemList
+	var progress_bar: ProgressBar
+	
+	func _init(_media_explorer: MediaExplorer) -> void:
+		project_file_system = ProjectServer.project_res.import_file_system
+		global_file_system = GlobalServer.import_file_system
+		super(_media_explorer)
+	
+	func _ready() -> void:
+		super()
+		#load_files(PackedStringArray([
+			#"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/icon.svg",
+			#"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/App/logo2_512.png",
+			#"C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
+		#]))
+		update()
+	
+	func _ready_options() -> void:
+		super()
+		
+		import_category = add_category("Import", false)
+		
+		import_button = IS.create_button("", media_explorer.texture_file, true)
+		import_button.pressed.connect(on_import_button_pressed)
+		options_container.add_child(import_button)
+	
+	func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
+		# the Key be the file path when the type is "file"
+		var media_type: int = info.media_type
+		var import_card:= ImportCard.new()
+		import_card.created_card_type = media_type + 1
+		import_card.import_info = {
+			&"type": media_type,
+			&"path": key,
+			&"thumbnail": MediaServer.get_thumbnail(key).texture
+		}
+		return import_card
 	
 	func filter_and_sort() -> void:
 		
@@ -324,28 +428,6 @@ class ImportBox extends MediaBox:
 			card.visible = filter_func.call(card.created_card_type) and (search_text.is_empty() or contains_search_text)
 			import_category.move_content(card, index)
 	
-	
-	func on_filter_button_selected_option_changed(index: int, option: MenuOption) -> void:
-		curr_filter = index
-		filter_and_sort()
-	
-	func on_sort_button_selected_option_changed(index: int, option: MenuOption) -> void:
-		curr_sort = index
-		filter_and_sort()
-	
-	func on_folder_button_pressed() -> void:
-		var name_line: LineEdit = IS.create_line_edit("Type Folder Name", "New Folder")
-		var box: BoxContainer = WindowManager.popup_accept_window(
-			get_tree().current_scene,
-			Vector2(400, 150),
-			"Create Folder",
-			func(): create_folder(curr_display_path, name_line.text)
-		)
-		box.add_child(name_line)
-		box.move_child(name_line, 0)
-		name_line.select()
-		name_line.grab_focus()
-	
 	func on_import_button_pressed() -> void:
 		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
 			get_tree().current_scene,
@@ -355,13 +437,10 @@ class ImportBox extends MediaBox:
 		file_dialog.files_selected.connect(on_file_dialog_files_selected)
 		file_dialog.popup_centered()
 	
-	func on_folder_clicked(folder_name: String) -> void:
-		curr_display_path.append(folder_name)
-		update()
-	
-	
 	func on_file_dialog_files_selected(paths: PackedStringArray) -> void:
-		
+		load_files(paths)
+	
+	func load_files(paths: PackedStringArray) -> void:
 		var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(600, 400))
 		var box_container: BoxContainer = IS.create_box_container(12, true)
 		
@@ -409,13 +488,24 @@ class ImportBox extends MediaBox:
 		await get_tree().process_frame
 		var scroll_bar: VScrollBar = progress_list.get_v_scroll_bar()
 		scroll_bar.value = scroll_bar.max_value
+	
+	func _get_filter_options() -> Array[Dictionary]:
+		return [
+			{text = "All"},
+			{text = "Image"},
+			{text = "Video"},
+			{text = "Audio"},
+		]
+	
+	func _get_created_box_category() -> Category:
+		return import_category
 
 class ObjectBox extends MediaBox:
 	
 	func _ready() -> void:
 		super()
-		var cat_object_2d: Category = add_category("Object2D", true, Color("6699ff"))
-		var cat_object_3d: Category = add_category("Object3D (Coming soon)", true, Color.BLACK)
+		var cat_object_2d: Category = add_category(&"Object2D", true, Color("6699ff"))
+		var cat_object_3d: Category = add_category(&"Object3D (Coming soon)", true, Color.BLACK)
 		
 		var objects: Dictionary[StringName, Dictionary] = TypeServer.objects
 		
@@ -430,18 +520,44 @@ class ObjectBox extends MediaBox:
 				&"name": object_key,
 				&"thumbnail": object_info.icon,
 				&"object_id": object_info.type_id,
-				&"theme_color": category.category_custom_color
 			}
 			object_card.custom_minimum_size = media_explorer.card_display_size
 			
 			get_category(object_info.category).add_content(object_card)
+			object_card.thumbnail_texture_rect.modulate = Color(category.category_custom_color, .75)
 
 class TransitionBox extends MediaBox:
 	pass
 
-class PresetBox extends MediaBox:
-	pass
-
+class PresetBox extends CreatedBox:
+	
+	var preset_category: Category
+	
+	func _init(_media_explorer: MediaExplorer) -> void:
+		project_file_system = ProjectServer.project_res.preset_file_system
+		global_file_system = GlobalServer.preset_file_system
+		super(_media_explorer)
+	
+	func _ready() -> void:
+		super()
+		update()
+	
+	func _ready_options() -> void:
+		super()
+		preset_category = add_category(&"Preset", false)
+	
+	func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
+		var preset_card:= PresetCard.new()
+		return preset_card
+	
+	func _get_created_box_category() -> Category:
+		return preset_category
+	
+	func create_presets(preset_media_ress: Array[MediaClipRes], global: bool) -> void:
+		var preset_files_pathes: PackedStringArray = EditorServer.save_presets(preset_media_ress, global)
+		set_display_file_system(get_true_file_system(global))
+		create_files(curr_display_path, preset_files_pathes)
+		update()
 
 
 
@@ -452,7 +568,7 @@ class MediaCard extends DoubleClickControl:
 	@onready var thumbnail_texture_rect: TextureRect
 	
 	@export var display_name: StringName = &"Media Card"
-	@export var display_texture: Texture2D = preload("res://Asset/icons/icon.svg")
+	@export var display_texture: Texture2D
 	@export var add_texture: Texture2D = preload("res://Asset/Icons/plus.png")
 	
 	func _init() -> void:
@@ -535,7 +651,7 @@ class CreatedCard extends MediaCard:
 	@export var created_card_type: CreatedCardType
 	@export var create_date: float
 	
-	var import_box: ImportBox
+	var created_box: CreatedBox
 	
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton:
@@ -545,19 +661,22 @@ class CreatedCard extends MediaCard:
 					press_pos = mouse_pos
 				else:
 					if press_pos.distance_to(mouse_pos) < min_drag_distance:
+						select(event.ctrl_pressed, false)
 						_popup_created_card_menu()
-						select(false, false)
 	
 	func _popup_created_card_menu() -> void:
 		var options: Array = _get_created_card_menu_options()
-		IS.popup_menu(options)
+		var menu:= IS.popup_menu(options)
 	
 	func _get_created_card_menu_options() -> Array:
 		return []
 	
-	func delete(what: String) -> void:
-		import_box.delete_file_or_folder(import_box.curr_display_path, what)
-		import_box.update()
+	func _get_created_card_name_or_path() -> String:
+		return ""
+	
+	func delete() -> void:
+		created_box.delete_selected()
+		created_box.update()
 
 class ImportCard extends CreatedCard:
 	
@@ -565,7 +684,6 @@ class ImportCard extends CreatedCard:
 	
 	func _ready() -> void:
 		super()
-		selection_group = EditorServer.object_media_cards_selection_group
 		_setup_media_card(import_info.path.get_file(), import_info.thumbnail)
 		set_metadata(import_info)
 	
@@ -581,11 +699,14 @@ class ImportCard extends CreatedCard:
 	func _get_created_card_menu_options() -> Array:
 		return [
 			MenuOption.new("Copy Path", null, copy_path),
-			MenuOption.new("Delete", null, delete.bind(import_info.path)),
+			MenuOption.new("Delete", null, delete),
 			MenuOption.new_line(),
 			MenuOption.new("Open in External Program", null, open_in_external_program),
 			MenuOption.new("Show in File Manager", null, show_in_file_manager)
 		]
+	
+	func _get_created_card_name_or_path() -> String:
+		return import_info.path
 	
 	func copy_path() -> void:
 		DisplayServer.clipboard_set(import_info.path)
@@ -599,13 +720,12 @@ class ImportCard extends CreatedCard:
 
 class FolderCard extends CreatedCard:
 	
-	@export var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
+	static var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
 	
 	var folder_info: Dictionary[StringName, Variant]
 	
 	func _ready() -> void:
 		super()
-		selection_group = EditorServer.import_media_cards_selection_group
 		_setup_media_card(folder_info.name, folder_texture)
 		set_metadata({&"type": 0})
 	
@@ -621,8 +741,11 @@ class FolderCard extends CreatedCard:
 				ProjectServer.add_imported_clip(media_type, key, layer_index, frame_in)
 		ProjectServer.emit_media_clips_change()
 	
+	func _get_created_card_name_or_path() -> String:
+		return folder_info.name
+	
 	func _get_created_card_menu_options() -> Array:
-		return [MenuOption.new("Delete", null, delete.bind(folder_info.name))]
+		return [MenuOption.new("Delete", null, delete)]
 
 class ObjectCard extends MediaCard:
 	
@@ -630,11 +753,7 @@ class ObjectCard extends MediaCard:
 	
 	func _ready() -> void:
 		super()
-		selection_group = EditorServer.object_media_cards_selection_group
-		
 		_setup_media_card(object_info.name, object_info.thumbnail)
-		thumbnail_texture_rect.modulate = Color(object_info.theme_color, .75)
-		
 		set_metadata(object_info)
 	
 	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
@@ -649,5 +768,19 @@ class ObjectCard extends MediaCard:
 class TransitionCard extends MediaCard:
 	pass
 
-class PresetCard extends MediaCard:
-	pass
+class PresetCard extends CreatedCard:
+	
+	var preset_media_res: MediaClipRes
+	
+	func _ready() -> void:
+		super()
+		_setup_media_card(&"", null)
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		ProjectServer.add_preset_clip(preset_media_res, layer_index, frame_in, true)
+
+
+
+
+
+

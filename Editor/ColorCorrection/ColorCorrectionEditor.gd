@@ -1,0 +1,2 @@
+class_name ColorCorrectionEditor extends EditorControl
+

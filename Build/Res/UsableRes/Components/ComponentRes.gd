@@ -53,7 +53,6 @@ func duplicate_component_res() -> ComponentRes:
 	if animations.has(self):
 		var dupl_anims_port: Dictionary = animations.get(self)
 		for anim_key: StringName in dupl_anims_port:
-			#print(dupl_anims_port[anim_key].duplicate_anim_res() is AnimationRes)
 			dupl_anims_port[anim_key] = dupl_anims_port[anim_key].duplicate_anim_res()
 		dupl_anims[dupl_comp_res] = dupl_anims_port
 		dupl_anims.erase(self)
@@ -95,15 +94,14 @@ func loop_animations(frame: float, method: Callable) -> void:
 		var usable_res_section: Dictionary = animations.get(usable_res)
 		for property_key: StringName in usable_res_section.keys():
 			var anim_res: AnimationRes = usable_res_section.get(property_key)
-			var property_anim_val: Variant = anim_res.sample(frame)
-			method.call(usable_res, property_key, property_anim_val, frame)
+			method.call(usable_res, anim_res, property_key, frame)
 
-func push_animation_result_func(usable_res: UsableRes, property_key: StringName, property_anim_val: Variant, frame: int) -> void:
-	usable_res.set_prop(property_key, property_anim_val)
+func push_animation_result_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
+	usable_res.set_prop(property_key, anim_res.sample(frame))
 
-func update_controller_func(usable_res: UsableRes, property_key: StringName, property_anim_val: Variant, frame: int) -> void:
+func update_controller_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
 	var property_has_keyframe: bool = has_animation_keyframe(usable_res, property_key, frame)
-	EditorServer.update_usable_res_property_controller(usable_res, property_key, property_anim_val, property_has_keyframe)
+	EditorServer.update_usable_res_property_controller(usable_res, property_key, anim_res.sample(frame), property_has_keyframe)
 
 func push_animations_result(frame: float) -> void:
 	loop_animations(frame, push_animation_result_func)
@@ -125,9 +123,11 @@ func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, fra
 func make_animation_absolute(usable_res: UsableRes, property_key: StringName, property_type: int) -> AnimationRes:
 	var res_section: Dictionary = animations.get_or_add(usable_res, {})
 	if not res_section.has(property_key):
-		var anim_res: AnimationRes = AnimationRes.new(property_type)
+		var anim_res: AnimationRes = AnimationRes.new()
+		anim_res.set_value_type(property_type)
+		anim_res.update_profiles()
 		res_section[property_key] = anim_res
-		for profile: CurveSampler.Profile in anim_res.profiles:
+		for profile: CurveProfile in anim_res.profiles:
 			profile.profile_updated.connect(_update_and_animate)
 		owner.comp_animation_res_added.emit(self, usable_res, property_key, anim_res)
 	return res_section.get(property_key)

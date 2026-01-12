@@ -15,17 +15,19 @@ signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key
 
 @export var from: int = 0:
 	set(val):
-		var min_from: int = MediaServer.get_media_default_from_and_length(self).x
-		if min_from == -1: from = max(0, val)
-		else: from = val
-		update()
+		if MediaServer:
+			var min_from: int = MediaServer.get_media_default_from_and_length(self).x
+			if min_from == -1: from = max(0, val)
+			else: from = val
+			update()
 
 @export var length: int = 10: # as frames
 	set(val):
-		var max_length: int = MediaServer.get_media_default_from_and_length(self).y
-		if max_length == 0: length = val
-		else: length = clamp(val, 1, max_length - from)
-		update()
+		if MediaServer:
+			var max_length: int = MediaServer.get_media_default_from_and_length(self).y
+			if max_length == 0: length = val
+			else: length = clamp(val, 1, max_length - from)
+			update()
 
 @export var children: Dictionary[int, Dictionary]
 #{
@@ -88,7 +90,7 @@ func is_frame_exists(frame: Variant = null) -> bool:
 	return frame >= 0 and frame <= length
 
 func get_frame_or_curr_frame(frame: Variant = null) -> int:
-	return curr_frame if frame == null else frame
+	return curr_frame + from if frame == null else frame
 
 func get_display_name() -> String:
 	return "MediaClip"
@@ -214,7 +216,7 @@ func loop_components_animations_keys(info: Dictionary[StringName, Variant], meth
 					var anim_res: AnimationRes = res_anims[anim_key]
 					
 					for channel_index: int in anim_res.profiles.size():
-						var channel_profile: CurveSampler.Profile = anim_res.profiles[channel_index]
+						var channel_profile: CurveProfile = anim_res.profiles[channel_index]
 						var anim_keys: Dictionary[float, CurveKey] = channel_profile.keys
 						
 						for key_pos: float in anim_keys:
@@ -356,6 +358,5 @@ func loop_stacked_values(method: Callable) -> void:
 	for key: StringName in stacked_values:
 		var key_result: Variant = get_stacked_values_key_result(key)
 		method.call(key, key_result)
-
 
 

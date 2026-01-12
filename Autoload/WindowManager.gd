@@ -1,5 +1,9 @@
 extends Node
 
+@export var editor_windows_folder: Node = Node.new()
+
+func _ready() -> void:
+	add_child(editor_windows_folder)
 
 func popup_window_base(processing_node: Node, window_size: Vector2, window_title: String, is_processing_rect_hidden: bool = false) -> MarginContainer:
 	var window: Window = Window.new()
@@ -94,9 +98,9 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	file_dialog.close_requested.connect(close_func)
 	file_dialog.canceled.connect(close_func)
 	file_dialog.confirmed.connect(close_func)
-	file_dialog.dir_selected.connect(func(selected): close_func.call())
-	file_dialog.file_selected.connect(func(selected): close_func.call())
-	file_dialog.files_selected.connect(func(selected): close_func.call())
+	file_dialog.dir_selected.connect(func(selected) -> void: close_func.call())
+	file_dialog.file_selected.connect(func(selected) -> void: close_func.call())
+	file_dialog.files_selected.connect(func(selected) -> void: close_func.call())
 	
 	processing_node.add_child(processing_rect)
 	add_child(file_dialog)

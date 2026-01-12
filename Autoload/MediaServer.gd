@@ -92,10 +92,52 @@ var thumbnails: Dictionary[StringName, Dictionary]
 var timeline_video_textures: Dictionary[StringName, Dictionary]
 var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
-@onready var editor_settings: AppEditorSettings = EditorServer.editor_settings
+var editor_settings: AppEditorSettings = EditorServer.editor_settings
 
 
-func create_thumbnail_from_image(key_as_path: StringName, image: Image) -> Dictionary:
+func server_register_image(path: String, image: Image, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
+	if ids_exists.has(id):
+		load_thumbnail(path, thumbnail_path, id)
+	else:
+		create_thumbnail_from_image(path, image, thumbnail_path, id)
+
+func server_register_video(path: String, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	if ids_exists.has(id):
+		load_thumbnail(path, thumbnail_path, id)
+		load_waveform(path, waveform_path, id)
+	else:
+		create_thumbnail_from_video_path(path, thumbnail_path, id)
+		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
+
+func server_register_audio(path: String, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	if ids_exists.has(id):
+		load_thumbnail(path, thumbnail_path, id)
+		load_waveform(path, waveform_path, id)
+	else:
+		create_thumbnail_from_audio(path, audio_stream, thumbnail_path, id)
+		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
+
+func load_thumbnail(media_path: String, thumbnail_path: String, id: String) -> void:
+	var thumb_image: Image = Image.load_from_file(str(thumbnail_path, id, ".png"))
+	var thumb_texture: ImageTexture = ImageTexture.create_from_image(thumb_image)
+	thumbnails[StringName(media_path)] = {&"image": thumb_image, &"texture": thumb_texture}
+
+func load_waveform(media_path: String, thumbnail_path: String, id: String) -> void:
+	var waveform_port_path: String = str(thumbnail_path, id, "/")
+	
+	var waveform_images: Array[Image]
+	var waveform_textures: Array[ImageTexture]
+	var total_width: int
+	
+	for file_name: String in DirAccess.get_files_at(waveform_port_path):
+		var waveform_image: Image = Image.load_from_file(str(waveform_port_path, file_name))
+		waveform_images.append(waveform_image)
+		waveform_textures.append(ImageTexture.create_from_image(waveform_image))
+		total_width += waveform_image.get_width()
+	
+	timeline_waveform_textures[StringName(media_path)] = {&"textures": waveform_textures, &"total_width": total_width}
+
+func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnail_path: String, id: String) -> Dictionary:
 	var result_image: Image
 	var result_texture: ImageTexture
 	
@@ -106,6 +148,8 @@ func create_thumbnail_from_image(key_as_path: StringName, image: Image) -> Dicti
 		result_image = image.duplicate(true)
 		result_image.resize(THUMBNAIL_TARGET_WIDTH, target_height, Image.INTERPOLATE_LANCZOS)
 		result_texture = ImageTexture.create_from_image(result_image)
+		
+		save_thumbnail(result_image, thumbnail_path, id)
 	
 	else:
 		result_image = image
@@ -114,14 +158,21 @@ func create_thumbnail_from_image(key_as_path: StringName, image: Image) -> Dicti
 	thumbnails[key_as_path] = {&"image": result_image, &"texture": result_texture}
 	return thumbnails[key_as_path]
 
-func create_thumbnail_from_video_path(video_path: StringName) -> Dictionary:
+func create_thumbnail_from_video_path(video_path: StringName, thumbnail_path: String, id: String) -> Dictionary:
 	return {}
 
-func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV) -> Dictionary:
+func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV, thumbnail_path: String, id: String) -> Dictionary:
 	var thumbnail_image: Image = generate_waveform_image(audio, .0, INF, draw_waveform_line_thumbnail, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, Color.TRANSPARENT)
 	var thumbnail_texture: ImageTexture = ImageTexture.create_from_image(thumbnail_image)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": thumbnail_texture}
+	
+	save_thumbnail(thumbnail_image, thumbnail_path, id)
+	
 	return thumbnails[key_as_path]
+
+func save_thumbnail(image: Image, thumbnail_path: String, id: String) -> void:
+	print(thumbnail_path + id + ".png")
+	image.save_png(str(thumbnail_path, id, ".png"))
 
 func get_thumbnail(key_as_path: StringName) -> Dictionary:
 	return thumbnails[key_as_path]
@@ -135,11 +186,17 @@ func get_timeline_video_textures() -> Array[Image]:
 func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Array[int]:
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
-func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV) -> Array[Image]:
+func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV, waveform_path: String, id: String) -> Array[Image]:
 	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
 	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
 	var total_width: int
-	for image: Image in waveform_images:
+	var waveform_port_path: String = str(waveform_path, id, "/")
+	DirAccess.make_dir_recursive_absolute(waveform_port_path)
+	for index: int in waveform_images.size():
+		var image: Image = waveform_images[index]
+		var image_path: String = str(waveform_port_path, index, ".png")
+		print(image_path)
+		image.save_png(image_path)
 		total_width += image.get_width()
 	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
 	return waveform_images
@@ -188,14 +245,12 @@ func generate_waveform_images(stream: AudioStreamWAV, draw_func: Callable, pixel
 	
 	var pixels_remained: int = pixels_per_length % width
 	
-	# إنشاء الصور الكاملة
 	for time: int in images_count:
 		var second_from: float = time * chunk_length
 		var second_to: float = second_from + chunk_length
 		var image: Image = generate_waveform_image(stream, second_from, second_to, draw_func, Image.FORMAT_RGBA8, width, height, space_width, line_width, bg_color)
 		images.append(image)
 	
-	# إضافة الصورة الأخيرة فقط إذا كان هناك بكسلات متبقية
 	if pixels_remained > 0:
 		var length_remained: float = pixels_remained / float(pixels_per_second)
 		images.append(generate_waveform_image(stream, length - length_remained, INF, draw_func, Image.FORMAT_RGBA8, pixels_remained, height, space_width, line_width, bg_color))
@@ -206,7 +261,6 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 	var image: Image = Image.create_empty(width, height, false, image_format)
 	image.fill(bg_color)
 	
-	# تحقق من أن التنسيق هو 16-bit
 	if stream.format != AudioStreamWAV.FORMAT_16_BITS:
 		push_error("Only 16-bit format is supported")
 		return image
@@ -215,15 +269,13 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 	var data: PackedByteArray = stream.data
 	var data_size: int = data.size()
 	
-	var bytes_per_sample: int = 2 # 16-bit = 2 bytes
+	var bytes_per_sample: int = 2
 	var channels: int = 2 if stream.stereo else 1
 	var sample_rate: int = stream.mix_rate
 	
-	# حساب موقع البداية في البيانات
 	var start_sample: int = int(second_from * sample_rate)
 	var start_byte: int = start_sample * bytes_per_sample * channels
 	
-	# حساب عدد العينات للفترة المطلوبة
 	second_to = min(length, second_to)
 	var duration: float = second_to - second_from
 	var total_samples: int = int(duration * sample_rate)
@@ -243,10 +295,8 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 	for x: int in lines_count:
 		var pixel_x: int = x * space_width
 		
-		# حساب موقع البداية لهذا البكسل
 		var sample_start: int = start_byte + (pixel_x * samples_per_pixel * bytes_per_sample * channels)
 		
-		# إيجاد القيمة القصوى من العينات المخصصة لهذا البكسل
 		var max_amplitude: float = 0.0
 		
 		for s: int in samples_per_pixel / samples_step:
@@ -256,7 +306,6 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 			
 			var sample_value: float = abs(data.decode_s16(index) / 32768.0)
 			
-			# إذا كان ستيريو، خذ متوسط القناتين
 			if channels == 2 and index + 3 < data_size:
 				var sample_value2: float = abs(data.decode_s16(index + 2) / 32768.0)
 				sample_value = (sample_value + sample_value2) / 2.0
@@ -343,7 +392,7 @@ class ClipPanel extends Panel:
 			thumbnail_rect = IS.create_texture_rect(thumbnail, {})
 			thumbnail_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			thumbnail_rect.custom_minimum_size.x = MediaServer.THUMBNAIL_TARGET_WIDTH
+			thumbnail_rect.custom_minimum_size.x = THUMBNAIL_TARGET_WIDTH
 			info_container.add_child(thumbnail_rect)
 		
 		var name: String = _get_ui_name()
@@ -514,7 +563,6 @@ class AudioClipPanel extends ClipPanel:
 		super()
 	
 	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		print()
 		var clip_res: MediaClipRes = owner_as_media_clip.clip_res
 		if frame_in == -1: frame_in = clip_res.from
 		if length == -1: length = clip_res.length
@@ -543,7 +591,7 @@ class AudioClipPanel extends ClipPanel:
 			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
 			curr_total_width += last_waveform_texture.get_width()
 		
-		var texture_ratio: float = MediaServer.TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH / curr_total_width
+		var texture_ratio: float = TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH / curr_total_width
 		for index: int in range(waveform_start_index.x, waveform_end_index.x):
 			var texture: ImageTexture = waveform_textures[index]
 			if not texture_rects.has(index):
@@ -674,109 +722,10 @@ func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 		&"title": "Video"
 	})
 
-
 func get_clip_sections(media_res: MediaClipRes) -> Array:
-	if media_res is ImportedClipRes:
-		return imported_clip_info[media_res.type].sections
-	elif media_res is ObjectClipRes:
-		return object_clip_info[media_res.object_res.get_res_id()].sections
+	if media_res is ImportedClipRes: return imported_clip_info[media_res.type].sections
+	elif media_res is ObjectClipRes: return object_clip_info[media_res.object_res.get_res_id()].sections
 	return []
-
-
-
-
-
-
-
-#var media_preloaded: Dictionary[String, Variant] = {}
-#var audio_durations: Dictionary[String, float] # as Seconds
-
-func _ready() -> void:
-	#await get_tree().create_timer(1.0).timeout
-	#var audio_path = "res://untitled.mp3"
-	#var audio_dur = get_audio_duration_with_ffprobe(audio_path)
-	#generate_waveform_dynamic(audio_path, audio_path + ".png", audio_dur)
-	pass
-
-# Image Services
-
-#func get_image_texture_from_path(path: String) -> ImageTexture:
-	#if media_preloaded.has(path):
-		#return media_preloaded[path]
-	#var image: Image = Image.load_from_file(path)
-	#var image_texture: ImageTexture = ImageTexture.create_from_image(image)
-	#media_preloaded[path] = image_texture
-	#return image_texture
-
-# Video Services
-
-#func get_video_display_texture_from_path(path: String, thumbnails_folder_path: String) -> ImageTexture:
-	#var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".jpg"]
-	#if not FileAccess.file_exists(output_path):
-		#extract_video_thumbnail(path, output_path)
-	#return get_image_texture_from_path(output_path)
-
-#func extract_video_thumbnail(video_path: String, output_path: String) -> void:
-	#var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
-	#var abs_video_path = ProjectSettings.globalize_path(video_path)
-	#var abs_output_path = ProjectSettings.globalize_path(output_path)
-	#
-	#var args = [
-		#"-i", abs_video_path,
-		#"-ss", "00:00:01.000",
-		#"-vframes", "1",
-		#"-s", "320x180",
-		#"-q:v", "10",
-		#abs_output_path
-	#]
-	#
-	#var err = OS.execute(ffmpeg_path, args, [], true)
-	#if err != OK:
-		#printerr("Failed to start ffmpeg:", err)
-
-#func is_stream_has_audio(file_path: String) -> bool:
-	#var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")
-	#var abs_path = ProjectSettings.globalize_path(file_path)
-	#var args = ["-i", abs_path]
-	#var output = []
-	#var code = OS.execute(ffmpeg_path, args, output, true)
-	#
-	#for line in output:
-		#if "Stream #" in line and "Audio" in line:
-			#return true
-	#return false
-
-# Audio Services
-
-#func get_audio_stream_from_path(audio_path: String) -> AudioStreamWAV:
-	#var preload_key = audio_path + "_audio"
-	#if not media_preloaded.has(preload_key):
-		#media_preloaded[preload_key] = AudioStreamHelper.create_stream_from_path(audio_path)
-	#return media_preloaded[preload_key]
-
-#func get_audio_display_texture_from_path(path: String, thumbnails_folder_path: String, color_key: String = "bfbfbf", fixed_size: bool = true, size:= Vector2i(320, 180)) -> ImageTexture:
-	#var output_path = "%s/%s%s" % [thumbnails_folder_path, path.get_file(), ".png"]
-	#if not FileAccess.file_exists(output_path):
-		#generate_waveform_dynamic(path, output_path, get_audio_duration_with_ffprobe(path), color_key, fixed_size, size)
-	#return get_image_texture_from_path(output_path)
-
-#func get_audio_duration_with_ffprobe(audio_path: String) -> float:
-	#
-	#if audio_durations.has(audio_path):
-		#return audio_durations[audio_path]
-	#
-	#var ffprobe_path = ProjectSettings.globalize_path("res://FFmpeg/ffprobe.exe")
-	#var abs_audio_path = ProjectSettings.globalize_path(audio_path)
-	#var args = ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", abs_audio_path]
-	#var output = []
-	#var err = OS.execute(ffprobe_path, args, output)
-	#if err == OK:
-		#var result_dur = output[0].to_float()
-		#audio_durations[audio_path] = result_dur
-		#return result_dur
-	#else:
-		#printerr("Failed to get duration")
-		#return .0
 
 func generate_waveform_dynamic(audio_path: String, output_path: String, duration_seconds: float, color_key: String, fixed_size:= false, size:= Vector2i.ONE) -> void:
 	var ffmpeg_path = ProjectSettings.globalize_path("res://FFmpeg/ffmpeg.exe")

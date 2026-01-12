@@ -24,24 +24,21 @@ enum InterpolationMode {
 }
 
 @export var value: float
-
 @export var left_control: Vector2
-
 @export var right_control: Vector2
-
 @export var control_mode: ControlMode
-
 @export var interpolation_mode: InterpolationMode
 
 var interpolation_func: Callable
 
-
-func _init(_value: float, _left_control:= Vector2(-2.5, .0), _right_control:= Vector2(2.5, .0), _control_mode: ControlMode = 0, _interpolation_mode: InterpolationMode = 2) -> void:
-	value = _value
-	left_control = _left_control
-	right_control = _right_control
-	control_mode = _control_mode
-	interpolation_mode = _interpolation_mode
+static func new_curve_key(_value: float, _left_control:= Vector2(-2.5, .0), _right_control:= Vector2(2.5, .0), _control_mode: ControlMode = 0, _interpolation_mode: InterpolationMode = 2) -> CurveKey:
+	var curve_key:= CurveKey.new()
+	curve_key.value = _value
+	curve_key.left_control = _left_control
+	curve_key.right_control = _right_control
+	curve_key.control_mode = _control_mode
+	curve_key.interpolation_mode = _interpolation_mode
+	return curve_key
 
 func get_value() -> float:
 	return value

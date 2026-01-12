@@ -12,56 +12,56 @@ static var funcs_indexer: Dictionary[int, Dictionary] = {
 @export var value_type: int = -1:
 	set(val):
 		value_type = val
-		var profiles_size: int = 1
-		if funcs_indexer.has(val):
-			var index_info: Dictionary = funcs_indexer[val]
-			sample_func = Callable(self, index_info.s)
-			add_key_func = Callable(self, index_info.a)
-			get_key_func = Callable(self, index_info.g)
-			profiles_size = index_info.p
-		else:
-			sample_func = sample_constant
-			add_key_func = add_key_constant
-			get_key_func = get_key_constant
-		
-		for index: int in profiles_size:
-			profiles.append(CurveSampler.Profile.new({} as Dictionary[float, CurveKey]))
+		update_funcs()
+@export var profiles: Array[CurveProfile]
 
-@export var profiles: Array[CurveSampler.Profile]
+var sample_func: Callable
+var add_key_func: Callable
+var get_key_func: Callable
 
-@export var sample_func: Callable
-@export var add_key_func: Callable
-@export var get_key_func: Callable
+func get_value_type() -> int: return value_type
+func set_value_type(new_val: int) -> void: value_type = new_val
 
-func _init(_value_type: int) -> void:
-	value_type = _value_type
+func get_profiles() -> Array[CurveProfile]: return profiles
+func set_profiles(new_val: Array[CurveProfile]) -> void: profiles = new_val
 
+func update_funcs() -> void:
+	if funcs_indexer.has(value_type):
+		var index_info: Dictionary = funcs_indexer[value_type]
+		sample_func = Callable(self, index_info.s)
+		add_key_func = Callable(self, index_info.a)
+		get_key_func = Callable(self, index_info.g)
+	else:
+		sample_func = sample_constant
+		add_key_func = add_key_constant
+		get_key_func = get_key_constant
 
-func get_profiles() -> Array[CurveSampler.Profile]:
-	return profiles
-
-func set_profiles(new_val: Array[CurveSampler.Profile]) -> void:
-	profiles = new_val
+func update_profiles() -> void:
+	var profiles_size: int = 1
+	if funcs_indexer.has(value_type):
+		profiles_size = funcs_indexer[value_type].p
+	for index: int in profiles_size:
+		profiles.append(CurveProfile.new_profile_curve({} as Dictionary[float, CurveKey]))
 
 
 func duplicate_anim_res() -> AnimationRes:
-	var dupl_anim_res:= AnimationRes.new(value_type)
-	var new_profiles: Array[CurveSampler.Profile]
-	for profile: CurveSampler.Profile in profiles:
-		var new_profile: CurveSampler.Profile = profile.duplicate_profile()
+	var dupl_anim_res:= duplicate()
+	var new_profiles: Array[CurveProfile]
+	for profile: CurveProfile in profiles:
+		var new_profile: CurveProfile = profile.duplicate_profile()
 		new_profiles.append(new_profile)
 	dupl_anim_res.profiles = new_profiles
 	return dupl_anim_res
 
 
-func get_profile(index: int) -> CurveSampler.Profile:
+func get_profile(index: int) -> CurveProfile:
 	return profiles[index]
 
 func profile_sample(index: int, x: float) -> float:
 	return profiles[index].sample_func.call(x)
 
 func profile_add_key(index: int, x: float, value: float) -> void:
-	profiles[index].add_key(x, CurveKey.new(value))
+	profiles[index].add_key(x, CurveKey.new_curve_key(value))
 
 func profile_remove_key(index: int, x: float) -> void:
 	profiles[index].remove_key(x)
@@ -83,19 +83,19 @@ func add_key(x: float, value: Variant) -> void:
 	add_key_func.call(x, value)
 
 func remove_key(x: float) -> void:
-	for profile: CurveSampler.Profile in profiles:
+	for profile: CurveProfile in profiles:
 		profile.remove_key(x)
 
 func get_key(x: float) -> Variant:
 	return get_key_func.call(x)
 
 func has_key(x: float) -> bool:
-	for profile: CurveSampler.Profile in profiles:
+	for profile: CurveProfile in profiles:
 		if profile.keys.has(x): return true
 	return false
 
 func has_any_key() -> bool:
-	for profile: CurveSampler.Profile in profiles:
+	for profile: CurveProfile in profiles:
 		if profile.keys.size(): return true
 	return false
 
@@ -192,3 +192,4 @@ func get_key_vec4(x: float) -> Vector4:
 		profile_get_key(2, x),
 		profile_get_key(3, x)
 	)
+

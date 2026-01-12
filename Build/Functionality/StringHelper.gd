@@ -6,5 +6,6 @@ static func extract_placeholders(text: String, regex_pattern: String = "\\{([a-z
 	
 	var results:= PackedStringArray()
 	for regex_match: RegExMatch in regex.search_all(text):
-		results.append(regex_match.get_string(1)) # المجموعة داخل ()
+		results.append(regex_match.get_string(1))
 	return results
+

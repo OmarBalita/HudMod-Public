@@ -9,6 +9,8 @@ enum ImportedMediaType {
 @export var type: ImportedMediaType
 @export_file() var key_as_path: String
 
-func get_display_name() -> String:
-	return key_as_path.get_file()
+func get_type() -> ImportedMediaType: return type
+func get_key_as_path() -> String: return key_as_path
+
+func get_display_name() -> String: return key_as_path.get_file()
 

@@ -24,32 +24,35 @@ signal curr_layers_changed()
 
 signal time_markers_changed()
 
-
 const EXAMPLE_PATH: String = "res://ExampleProject/"
 
-var project_path: String = EXAMPLE_PATH
-var objects_path: String = project_path + "objects"
-var explorer_thumbnails_path: String = project_path + "thumbnails/explorer"
-var brush_thumbnails_path: String = project_path + "thumbnails/brushes"
-var timeline_thumbnails_path: String = project_path + "timeline"
-
-var aspect_ratio: Vector2
-var resolution: Vector2i = Vector2i(1920, 1080)
-var default_length: int = 900 # as Frames
-var curr_length: int = default_length:
+var project_path: String:
 	set(val):
-		curr_length = val
-		curr_length_changed.emit(val)
-var fps: int = 30:
+		project_path = val
+		project_editor_path = project_path + "editor/"
+		project_thumbnail_path = project_path + "image/thumbnail/"
+		project_waveform_path = project_path + "image/waveform/"
+		project_media_path = project_path + "media/"
+		project_preset_path = project_path + "preset/"
+var project_editor_path: String
+var project_thumbnail_path: String
+var project_waveform_path: String
+var project_media_path: String
+var project_preset_path: String
+
+var project_res: ProjectRes:
 	set(val):
-		fps = val
-		delta = 1.0 / fps
-var delta: float = 1.0 / fps
+		project_res = val
+		curr_length = project_res.curr_length
+		fps = project_res.fps
+		delta = project_res.delta
+		curr_layers = project_res.root_clip_res.get_children()
 
-var project_length: int
+var curr_length: int
+var fps: int
+var delta: float
 
-var root_clip_res: MediaClipRes = MediaClipRes.new()
-var root_layers: Dictionary[int, Dictionary] = {}
+var curr_layers: Dictionary[int, Dictionary]
 # layers = {
 	# layer_index: {
 		# media_clips: {time_x: MediaClipRes.new(), time_y: MediaClipRes.new()},
@@ -59,30 +62,49 @@ var root_layers: Dictionary[int, Dictionary] = {}
 		# more: {}
 	#}
 #}
-
-var time_markers: Dictionary[int, TimeMarkerRes]
-
 var curr_layers_path: Array[Dictionary]
 var curr_layers_string_path: Array[String]
-var curr_layers: Dictionary[int, Dictionary] = root_layers
-
+# ---------------------------------------------------
+var time_markers: Dictionary[int, TimeMarkerRes]
+# ---------------------------------------------------
 var curr_spacial_frames: Array[int]
-
+# ---------------------------------------------------
 var copied_media_clips: Array[Dictionary]
-
 
 # Background Called Functions
 # ---------------------------------------------------
 
 func _ready() -> void:
-	DirAccess.make_dir_recursive_absolute(objects_path)
-	DirAccess.make_dir_recursive_absolute(explorer_thumbnails_path)
-	DirAccess.make_dir_recursive_absolute(brush_thumbnails_path)
-	DirAccess.make_dir_recursive_absolute(timeline_thumbnails_path)
-	
-	root_clip_res.set_children(curr_layers)
-	
-	update_curr_length_and_curr_spacial_frames()
+	open_project(EXAMPLE_PATH)
+	#update_curr_length_and_curr_spacial_frames()
+
+func open_project(_project_path: String) -> void:
+	var project_res_path: String = _project_path + "project.res"
+	if not FileAccess.file_exists(project_res_path):
+		printerr("The project file 'project.res' was not found in the correct path.")
+		return
+	var _project_res: Resource = ResourceLoader.load(project_res_path)
+	if _project_res is not ProjectRes:
+		printerr("The project could not be opened.")
+		return
+	project_path = _project_path
+	project_res = _project_res
+	make_layers_absolute(PackedInt32Array(range(project_res.root_clip_res.children.size())))
+	loop_media_clips({},
+		func(layer_index: int, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
+			media_res.loop_components(func(comp: ComponentRes) -> void:
+				comp.set_owner(media_res)
+				comp.loop_animations(frame_in,
+					func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
+						anim_res.update_funcs()
+				)
+			)
+	)
+	MediaCache.load_media_cache_from_file_system(project_res.import_file_system, project_thumbnail_path, project_waveform_path)
+
+
+func save_project() -> void:
+	ResourceSaver.save(project_res, project_path + "/project.res")
 
 
 # Media Clips
@@ -281,15 +303,20 @@ func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index:
 	imported_clip_res.type = imported_type
 	imported_clip_res.key_as_path = key_as_path
 	
-	var media_length: int = int(MediaServer.get_media_default_length(imported_type, key_as_path) * fps)
+	var media_length: int = int(MediaServer.get_media_default_length(imported_type, key_as_path) * project_res.fps)
 	add_media_clip(imported_clip_res, media_length, layer_index, frame_in, emit_changes)
 	return imported_clip_res
 
 func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> ObjectClipRes:
 	var object_clip_res: ObjectClipRes = ObjectClipRes.new()
 	object_clip_res.object_res = object_res
-	add_media_clip(object_clip_res, EditorServer.editor_settings.media_clip_default_length * fps, layer_index, frame_in, emit_changes, force_layer_index)
+	add_media_clip(object_clip_res, EditorServer.editor_settings.media_clip_default_length * project_res.fps, layer_index, frame_in, emit_changes, force_layer_index)
 	return object_clip_res
+
+func add_preset_clip(preset_media_res: MediaClipRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> MediaClipRes:
+	var new_media_res: MediaClipRes = preset_media_res.duplicate_media_res()
+	add_media_clip(new_media_res, new_media_res.length, layer_index, frame_in, emit_changes, force_layer_index)
+	return new_media_res
 
 func add_media_clip(media_res: MediaClipRes, media_length: int, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> void:
 	media_res.clip_pos = frame_in
@@ -350,10 +377,11 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		
 		var old_layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
 		var new_layer: Layer = EditorServer.time_line.get_layer(absolute_target_layer_index)
-		var old_clip_panel: MediaServer.ClipPanel = old_layer.get_media_clip(from_frame_in).clip_panel
-		if old_clip_panel.is_graph_editor_opened:
-			new_layer.send_media_clip_expanded_graph_editors(target_frame_in, old_clip_panel.graph_editors_expanded)
-			old_layer.request_remove_media_clip(from_frame_in)
+		if old_layer.has_media_clip(from_frame_in):
+			var old_clip_panel: MediaServer.ClipPanel = old_layer.get_media_clip(from_frame_in).clip_panel
+			if old_clip_panel.is_graph_editor_opened:
+				new_layer.send_media_clip_expanded_graph_editors(target_frame_in, old_clip_panel.graph_editors_expanded)
+				old_layer.request_remove_media_clip(from_frame_in)
 		if not layers_updated.has(old_layer):
 			layers_updated.append(old_layer)
 	
@@ -563,7 +591,7 @@ func clear_media_clips_parents(clips_info: Array[Dictionary]) -> void:
 	parent_up_media_clips(clips_info, curr_layers_path.size())
 
 func update_curr_layers() -> void:
-	if curr_layers_path.is_empty(): curr_layers = root_layers
+	if curr_layers_path.is_empty(): curr_layers = project_res.root_clip_res.get_children()
 	else: curr_layers = curr_layers_path.back().res.get_children()
 
 func emit_curr_layers_change() -> void:
@@ -583,7 +611,7 @@ func emit_media_clips_change() -> void:
 	curr_layers.sort()
 	media_clips_changed.emit()
 
-func loop_media_clips(info: Dictionary[StringName, Variant], method) -> Dictionary[StringName, Variant]:
+func loop_media_clips(info: Dictionary[StringName, Variant], method: Callable) -> Dictionary[StringName, Variant]:
 	for layer_index: int in curr_layers.keys():
 		var media_clips: Dictionary = curr_layers[layer_index].media_clips
 		for frame_in: int in media_clips.keys():
@@ -701,7 +729,7 @@ func clear_layer_media_clips(layer_index: int) -> void:
 	curr_layers[layer_index].media_clips = {}
 
 func replace_layer(index_from: int, index_to: int) -> void:
-	curr_layers[index_to] = root_layers[index_from]
+	curr_layers[index_to] = curr_layers[index_from]
 	clear_layer(index_from)
 
 func move_layers(from: int, to: int, steps: int, emit_changes: bool = true) -> void:
@@ -726,7 +754,7 @@ func set_layer_customization(layer_index: int, name: StringName, color: Color, s
 		&"name": name, &"color": color, &"size": size
 	} as Dictionary[StringName, Variant]
 
-func get_layer_customization(layer_index: int) -> Dictionary[StringName, Variant]:
+func get_layer_customization(layer_index: int) -> Dictionary:
 	return get_layer(layer_index).customization
 
 func get_default_layer_customization() -> Dictionary[StringName, Variant]:
@@ -844,7 +872,7 @@ func is_frame_on_media(curr_frame: int, time_begin: int, clip_length: int) -> bo
 
 func update_scene_objects(curr_frame: int = -1) -> void:
 	if curr_frame < 0: curr_frame = EditorServer.frame
-	update_media_res_children(root_clip_res, curr_frame)
+	update_media_res_children(project_res.root_clip_res, curr_frame)
 
 func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_layer_index: int = -1) -> void:
 	var children: Dictionary[int, Dictionary] = parent_res.get_children()
@@ -932,7 +960,7 @@ func get_start_and_end_frame() -> Array[int]:
 		frame_end_in = frame_start_in + curr_info.res.length
 	else:
 		frame_start_in = 0
-		frame_end_in = ProjectServer.curr_length
+		frame_end_in = project_res.curr_length
 	
 	return [frame_start_in, frame_end_in]
 
@@ -967,7 +995,7 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 	
 	var start_and_end: Array[int] = get_start_and_end_frame()
 	
-	curr_length = max(default_length, clips_result.length_needed)
+	project_res.curr_length = clips_result.length_needed
 	curr_spacial_frames = start_and_end + clips_result.new_frame_poss + clips_keyframes_result.new_frame_poss + time_markers.keys()
 
 
@@ -989,5 +1017,3 @@ func generate_new_id(used_id: PackedStringArray, id_length: int = 12, append_new
 		used_id.append(result_id)
 	
 	return result_id
-
-

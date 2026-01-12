@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="LayoutRootInfo" load_steps=4 format=3 uid="uid://bbwxn0hatvia6"]
+
+[ext_resource type="Texture2D" uid="uid://66np8pil0oy2" path="res://Asset/Icons/player.png" id="1_bdwii"]
+[ext_resource type="Script" uid="uid://defvdj348ta82" path="res://Build/Res/Layout/LayoutRootInfo.gd" id="1_d1ven"]
+[ext_resource type="Script" uid="uid://jia12pi2rx50" path="res://Build/Res/Layout/WindowedInfo.gd" id="3_erlk2"]
+
+[resource]
+script = ExtResource("1_d1ven")
+layout_name = &"Player"
+layout_image = ExtResource("1_bdwii")
+windowed_infos = Array[ExtResource("3_erlk2")]([])
+editor_1_name = &"player"
+editor_2_name = &""
+vertical = false
+split_offset = 0
+metadata/_custom_type_script = "uid://cis86m6ws6jio"

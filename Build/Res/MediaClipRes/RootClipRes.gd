@@ -1,0 +1,1 @@
+class_name RootClipRes extends MediaClipRes

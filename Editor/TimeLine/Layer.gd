@@ -133,6 +133,9 @@ func _draw() -> void:
 func get_media_clip(clip_pos: int) -> MediaClip:
 	return displayed_media_clips[clip_pos].clip
 
+func has_media_clip(clip_pos: int) -> bool:
+	return displayed_media_clips.has(clip_pos)
+
 func reset_media_clip(clip_pos: int, select: bool = true) -> void:
 	remove_media_clip(clip_pos)
 	spawn_media_clip(clip_pos, ProjectServer.get_layer(index).media_clips[clip_pos], select)

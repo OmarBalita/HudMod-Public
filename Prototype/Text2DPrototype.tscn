@@ -1,13 +1,14 @@
-[gd_scene load_steps=9 format=3 uid="uid://b0pvk6jssf1wk"]
+[gd_scene load_steps=15 format=3 uid="uid://cu5n7tjm54qo5"]
 
-[ext_resource type="Script" uid="uid://d2ov0cvertnkk" path="res://Build/Object/Text2D.gd" id="1_rujx6"]
-[ext_resource type="Script" path="res://Build/Res/UsableRes/TextSliceRes.gd" id="2_0kso0"]
-[ext_resource type="Script" path="res://Build/Res/UsableRes/TextOutlineRes.gd" id="4_6fa8k"]
+[ext_resource type="Script" uid="uid://q5fmchn8ilol" path="res://Build/Object/Text2D.gd" id="1_rujx6"]
+[ext_resource type="Script" uid="uid://byucfd5bttffj" path="res://Build/Res/UsableRes/Object/Text2D/TextSliceRes.gd" id="2_ychtf"]
+[ext_resource type="Script" uid="uid://b4i27gcpk3406" path="res://Build/Res/UsableRes/Object/Text2D/TextOutlineRes.gd" id="3_0kso0"]
+[ext_resource type="Script" uid="uid://chbcpe5k77s86" path="res://Build/Res/UsableRes/Object/Text2D/LineData.gd" id="4_cyckk"]
 
 [sub_resource type="FontVariation" id="FontVariation_b5up1"]
 
-[sub_resource type="Resource" id="Resource_rujx6"]
-script = ExtResource("2_0kso0")
+[sub_resource type="Resource" id="Resource_b5up1"]
+script = ExtResource("2_ychtf")
 start_char_index = 0
 font = SubResource("FontVariation_b5up1")
 font_size = 16
@@ -15,62 +16,65 @@ font_color = Color(1, 1, 1, 1)
 font_variation = 0
 outline_size = 0
 outline_color = Color(1, 1, 1, 1)
-outlines = Array[ExtResource("4_6fa8k")]([])
+outlines = Array[ExtResource("3_0kso0")]([])
 shadow_size = 1
 shadow_color = Color(0, 0, 0, 0)
 shadow_offset = Vector2(0, 0)
+metadata/_custom_type_script = "uid://byucfd5bttffj"
 
-[sub_resource type="Resource" id="Resource_b5up1"]
-script = ExtResource("4_6fa8k")
-size = 9
-color = Color(0.243754, 0.611084, 0.996252, 1)
-offset = Vector2(0, 0)
-metadata/_custom_type_script = "uid://bkgrlpfaq41p6"
+[sub_resource type="Resource" id="Resource_rujx6"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
 [sub_resource type="Resource" id="Resource_ychtf"]
-script = ExtResource("4_6fa8k")
-size = 3
-color = Color(0, 0, 0, 1)
-offset = Vector2(0, 0)
-metadata/_custom_type_script = "uid://bkgrlpfaq41p6"
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
 [sub_resource type="Resource" id="Resource_0kso0"]
-script = ExtResource("2_0kso0")
-start_char_index = 40
-font = SubResource("FontVariation_b5up1")
-font_size = 16
-font_color = Color(1, 1, 1, 1)
-font_variation = 0
-outline_size = 0
-outline_color = Color(1, 1, 1, 1)
-outlines = Array[ExtResource("4_6fa8k")]([SubResource("Resource_b5up1"), SubResource("Resource_ychtf")])
-shadow_size = 1
-shadow_color = Color(0, 0, 0, 0)
-shadow_offset = Vector2(0, 0)
-metadata/_custom_type_script = "uid://i1m3v2j0kks"
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
-[node name="Control" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[sub_resource type="Resource" id="Resource_cyckk"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[sub_resource type="Resource" id="Resource_6fa8k"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
-[node name="Control" type="Control" parent="CenterContainer"]
-layout_mode = 2
+[sub_resource type="Resource" id="Resource_rlrhs"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
 
-[node name="Text2D" type="Node2D" parent="CenterContainer/Control"]
+[sub_resource type="Resource" id="Resource_v8gbm"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
+
+[sub_resource type="Resource" id="Resource_jnakn"]
+script = ExtResource("4_cyckk")
+line_align = -1
+line_offset = Vector2(1, 1)
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Text2D" type="Node2D" parent="."]
 script = ExtResource("1_rujx6")
-text_slices = Array[ExtResource("2_0kso0")]([SubResource("Resource_rujx6"), SubResource("Resource_0kso0")])
-text = "السلام عليكم، هذا برنامج مونتاج خطير جدا
-تم تصميمه بالكامل على Godot"
-metadata/_custom_type_script = "uid://d2ov0cvertnkk"
+text = "بسم الله الرحمن الرحيم
+الحمد لله رب العالمين
+الرحمن الرحيم
+مالك يوم الدين
+إياك نعبد وإياك نستعين
+اهدنا الصراط المستقيم
+صراط الذين أنعمت عليهم
+غير المغضوب عليهم ولا الضالين"
+text_slices = Array[ExtResource("2_ychtf")]([SubResource("Resource_b5up1")])
+lines_data = Array[ExtResource("4_cyckk")]([SubResource("Resource_rujx6"), SubResource("Resource_ychtf"), SubResource("Resource_0kso0"), SubResource("Resource_cyckk"), SubResource("Resource_6fa8k"), SubResource("Resource_rlrhs"), SubResource("Resource_v8gbm"), SubResource("Resource_jnakn")])
+text_alignment = 1
+metadata/_custom_type_script = "uid://q5fmchn8ilol"

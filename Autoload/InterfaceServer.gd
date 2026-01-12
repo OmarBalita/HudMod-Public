@@ -1,5 +1,6 @@
 extends Node
 
+
 # Modern Color Palette for Video Editor
 const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
 const COLOR_DARK_BG = Color(0.118, 0.118, 0.129)        # #141417
@@ -48,6 +49,7 @@ var STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres"
 var STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
 var STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
 const STYLE_CORNERLESS_DARK: StyleBoxFlat = preload("res://UI&UX/CornerlessDarkStyle.tres")
+const STYLE_CORNERLESS_BLACK: StyleBoxFlat = preload("res://UI&UX/CornerlessBlackStyle.tres")
 
 # Create modern styles programmatically
 var STYLE_BOX_EMPTY: StyleBoxEmpty
@@ -572,7 +574,6 @@ func create_shortcut_node(shortcut_node_group: StringName, shortcuts: Dictionary
 	shortcut_node.add_to_group(shortcut_node_group)
 	shortcut_node.shortcuts = shortcuts
 	return shortcut_node
-
 
 
 func create_menu(options: Array, is_vertical: bool = false, is_expanded: bool = true, more: Dictionary = {}) -> Menu:

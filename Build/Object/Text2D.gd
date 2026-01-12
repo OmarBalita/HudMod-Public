@@ -3,44 +3,6 @@ class_name Text2D extends Node2D
 
 signal text_changed(new_text: String)
 
-class LineData extends Resource:
-	var segments: Array[Segment]
-	var max_height: float
-	var max_ascent: float
-	var max_descent: float
-	var text_align: int
-	var line_text: String
-	var position: Vector2
-
-class Segment extends Resource:
-	var glyphs: Array[Dictionary]
-	var slice: TextSliceRes
-	var width: float
-	var height: float
-	var max_ascent: float
-	var max_descent: float
-
-@export_tool_button("Redraw") var redraw_tool_button = update_data
-@export var text_slices: Array[TextSliceRes] = [TextSliceRes.new()]
-
-@export_group("Text")
-@export_multiline var text: String:
-	set(val):
-		text = val
-		update_data()
-		text_changed.emit(text)
-
-@export var line_spacing: float = 1.0:
-	set(val):
-		line_spacing = val
-		update_data()
-
-@export var tracking: float = 0.0:
-	set(val):
-		tracking = val
-		update_data()
-
-@export_group("Pivot")
 enum PivotPosition {
 	TOP_LEFT,
 	TOP_CENTER,
@@ -53,90 +15,132 @@ enum PivotPosition {
 	BOTTOM_RIGHT
 }
 
+enum TextAlignment {
+	LEFT,
+	CENTER,
+	RIGHT
+}
+
+@export_group("Tools")
+@export_tool_button("Redraw") var redraw_tool_button = update_data
+
+@export_group("Text")
+@export_multiline var text: String:
+	set(val):
+		text = val
+		update_data()
+		text_changed.emit(text)
+
+@export var text_slices: Array[TextSliceRes] = [TextSliceRes.new()]
+@export var lines_data: Array[LineData] = []
+
+@export_group("Layout")
+@export var lines_spacing: float = 1.0:
+	set(val):
+		lines_spacing = val
+		update_lines_positions()
+
+@export var tracking: float = 0.0:
+	set(val):
+		tracking = val
+		update_characters()
+
+@export var text_alignment: TextAlignment:
+	set(val):
+		text_alignment = val
+		update_lines_positions()
+
+@export_group("Pivot")
 @export var pivot_position: PivotPosition = PivotPosition.CENTER:
 	set(val):
 		pivot_position = val
-		update_data()
+		update_lines_positions()
 
 var ts: TextServer
 var total_text_size: Vector2 = Vector2.ZERO
-var chars_data: Array[CharacterData] = []
-var shaped_texts: Array[RID] = []
-var _non_space_map: PackedInt32Array
+var chars_data: Array = []
+var shaped_texts: Array = []
+var non_space_map: PackedInt32Array
 
+
+# ===== Initialization =====
 func _init() -> void:
 	ts = TextServerManager.get_primary_interface()
-	chars_data = []
-	shaped_texts = []
 
 func _ready() -> void:
 	update_data()
 
-func _add_new_text_slice() -> void:
+
+
+# ===== Utility Functions =====
+func add_new_text_slice() -> void:
 	var new_text_slice: TextSliceRes = TextSliceRes.new()
-	new_text_slice.text_slice_property_changed.connect(update_data)
+	new_text_slice.text_slice_property_changed.connect(_on_text_slice_property_changed)
 	text_slices.append(new_text_slice)
 
+
+
+# ===== Data Building =====
 func update_data() -> void:
+	var saved_lines_settings: Array[Dictionary] = []
+	for line: LineData in lines_data:
+		saved_lines_settings.append({
+			"line_align": line.line_align,
+			"line_offset": line.line_offset,
+		})
+	
 	chars_data.clear()
+	lines_data.clear()
 	_clear_shaped_textes()
 	_build_non_space_map()
 	
 	var curr_char_index: int = 0
 	var lines: PackedStringArray = text.split("\n", true)
-	var line_heights: Array = []
 	
-	var max_line_width: float = 0.0
-	var total_height: float = 0.0
-	
-	for line_index: int in range(lines.size()):
+	for line_index: int in lines.size():
 		var raw_line: String = lines[line_index]
 		var line_text: String = raw_line
 		if line_text.strip_edges().is_empty():
 			line_text = "\n"
 		
-		var line_data: LineData = _build_line_data(line_text, curr_char_index, line_index, line_heights)
-		line_heights.append(line_data.max_height)
+		var line_data: LineData = _prepare_line_data(line_text, curr_char_index)
+		line_data.line_data_changed.connect(_on_line_data_changed)
 		
-		var line_width: float = _calculate_total_line_width(line_data.segments)
-		max_line_width = max(max_line_width, line_width)
-		total_height += line_data.max_height * line_spacing
+		if line_index < saved_lines_settings.size():
+			var saved: Dictionary = saved_lines_settings[line_index]
+			line_data.line_align = saved.line_align
+			line_data.line_offset = saved.line_offset
 		
-		_build_chars_from_line(line_data, line_text, curr_char_index)
+		lines_data.append(line_data)
+		
+		_build_characters(line_data, line_text, curr_char_index)
 		curr_char_index += line_text.length()
 	
-	total_text_size = Vector2(max_line_width, total_height)
-	
-	_apply_pivot_offset()
-	
-	queue_redraw()
+	update_lines_positions()
 
-func _build_line_data(line_text: String, line_start_index: int, line_index: int, line_heights: Array) -> LineData:
-	var line_data: LineData = _prepare_line_data(line_text, line_start_index)
-	var segments: Array[Segment] = line_data.segments
-	var line_align: int = line_data.text_align
+func _build_non_space_map() -> void:
+	non_space_map.clear()
+	non_space_map.resize(text.length())
 	
-	var max_ascent: float = line_data.max_ascent
-	var max_descent: float = line_data.max_descent
-	
-	var y_offset: float = 0.0
-	for i in range(line_index):
-		if i < line_heights.size():
-			y_offset += line_heights[i] * line_spacing
-	
-	line_data.position = Vector2(_calculate_x_offset(line_align, _calculate_total_line_width(segments)), y_offset + max_ascent)
-	return line_data
+	var count: int = 0
+	for index in text.length():
+		var ch = text[index]
+		if ch != ' ' and ch != '\t' and ch != '\n':
+			non_space_map[index] = count
+			count += 1
+		else:
+			non_space_map[index] = count
 
-func _build_chars_from_line(line_data: LineData, line_text: String, line_start_index: int) -> void:
-	var segments: Array[Segment] = line_data.segments
+func _build_characters(line_data: LineData, line_text: String, line_start_index: int) -> void:
+	var segments: Array[TextSegmentRes] = line_data.segments
 	var current_position: Vector2 = line_data.position
 	
-	for segment in segments:
+	for segment: TextSegmentRes in segments:
 		var glyphs: Array = segment.glyphs
 		var slice: TextSliceRes = segment.slice
 		var slice_font_size: int = slice.font_size if slice != null else 16
 		
-		for glyph in glyphs:
+		for glyph: Dictionary in glyphs:
 			var char_start: int = glyph.start
 			var char_end: int = glyph.end
 			var character: String = ""
@@ -164,7 +168,6 @@ func _build_chars_from_line(line_data: LineData, line_text: String, line_start_i
 			chars_data.append(character_data)
 			current_position.x += advance + tracking * slice.font_size
 
-
 func _prepare_line_data(line_text: String, line_start_index: int) -> LineData:
 	# --- Single-slice ---
 	if text_slices.is_empty() or text_slices.size() == 1:
@@ -182,8 +185,8 @@ func _prepare_line_data(line_text: String, line_start_index: int) -> LineData:
 		var descent: float = font.get_descent(font_size)
 		var height: float = ascent + descent
 		
-		var segment: Segment = _create_new_segment(glyphs, slice, line_width, height, ascent, descent)
-		return _create_new_line_data([segment], height, ascent, descent, 1, line_text, Vector2.ZERO)
+		var segment: TextSegmentRes = _create_new_segment(glyphs, slice, line_width, height, ascent, descent)
+		return _create_new_line_data([segment], height, ascent, descent, LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
 	
 	# --- Multi-slice ---
 	var line_shape: Dictionary = _shape_multislice_line(line_text, line_start_index)
@@ -194,15 +197,15 @@ func _prepare_line_data(line_text: String, line_start_index: int) -> LineData:
 	if bidi_rid.is_valid():
 		ts.free_rid(bidi_rid)
 	
-	return _create_new_line_data(segments_data.segments, segments_data.max_line_height, segments_data.max_ascent, segments_data.max_descent, 1, line_text, Vector2.ZERO)
+	return _create_new_line_data(segments_data.segments, segments_data.max_line_height, segments_data.max_ascent, segments_data.max_descent,LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
 
 func _shape_multislice_line(line_text: String, line_start_index: int) -> Dictionary:
 	var char_to_slice_map: Array[TextSliceRes] = []
 	char_to_slice_map.resize(line_text.length())
 	
-	for i in range(line_text.length()):
-		var global_index: int = line_start_index + i
-		char_to_slice_map[i] = _get_slice_at_position(global_index)
+	for index: int in line_text.length():
+		var global_index: int = line_start_index + index
+		char_to_slice_map[index] = _get_slice_at_position_non_space(global_index)
 	
 	var main_shaped: RID = ts.create_shaped_text()
 	
@@ -210,15 +213,15 @@ func _shape_multislice_line(line_text: String, line_start_index: int) -> Diction
 	var current_segment_start: int = 0
 	var current_slice: TextSliceRes = char_to_slice_map[0]
 	
-	for i in range(1, line_text.length()):
-		if char_to_slice_map[i] != current_slice:
+	for index in range(1, line_text.length()):
+		if char_to_slice_map[index] != current_slice:
 			slice_segments.append({
 				"start": current_segment_start,
-				"end": i,
+				"end": index,
 				"slice": current_slice
 			})
-			current_segment_start = i
-			current_slice = char_to_slice_map[i]
+			current_segment_start = index
+			current_slice = char_to_slice_map[index]
 	
 	slice_segments.append({
 		"start": current_segment_start,
@@ -226,7 +229,7 @@ func _shape_multislice_line(line_text: String, line_start_index: int) -> Diction
 		"slice": current_slice
 	})
 	
-	for segment in slice_segments:
+	for segment: Dictionary in slice_segments:
 		var slice: TextSliceRes = segment.slice
 		var segment_start: int = segment.start
 		var segment_end: int = segment.end
@@ -245,7 +248,7 @@ func _shape_multislice_line(line_text: String, line_start_index: int) -> Diction
 	var ordered_glyphs: Array[Dictionary] = []
 	var glyphs: Array = ts.shaped_text_get_glyphs(main_shaped)
 	
-	for glyph in glyphs:
+	for glyph: Dictionary in glyphs:
 		ordered_glyphs.append(glyph.duplicate())
 	
 	return {
@@ -254,7 +257,7 @@ func _shape_multislice_line(line_text: String, line_start_index: int) -> Diction
 	}
 
 func _compose_segments_from_glyphs(ordered_glyphs: Array, line_text: String, line_start_index: int) -> Dictionary:
-	var segments: Array[Segment] = []
+	var segments: Array[TextSegmentRes] = []
 	var max_line_height: float = 0.0
 	var max_ascent: float = 0.0
 	var max_descent: float = 0.0
@@ -267,12 +270,12 @@ func _compose_segments_from_glyphs(ordered_glyphs: Array, line_text: String, lin
 			"max_descent": max_descent
 		}
 	
-	var current_segment: Segment = _create_new_segment()
+	var current_segment: TextSegmentRes = _create_new_segment()
 	var last_slice: TextSliceRes = null
 	
-	for glyph in ordered_glyphs:
+	for glyph: Dictionary in ordered_glyphs:
 		var char_index: int = line_start_index + glyph.start
-		var current_slice: TextSliceRes = _get_slice_at_position(char_index)
+		var current_slice: TextSliceRes = _get_slice_at_position_non_space(char_index)
 		
 		if last_slice != null and last_slice != current_slice:
 			if current_segment.glyphs.size() > 0:
@@ -284,14 +287,9 @@ func _compose_segments_from_glyphs(ordered_glyphs: Array, line_text: String, lin
 		
 		if current_segment.slice != current_slice:
 			current_segment.slice = current_slice
-			var font: Font = current_slice.font
-			var font_size: int = current_slice.font_size
-			current_segment.height = font.get_height(font_size)
-			current_segment.max_ascent = font.get_ascent(font_size)
-			current_segment.max_descent = font.get_descent(font_size)
+			current_segment.update_metrics_from_font()
 		
-		current_segment.glyphs.append(glyph.duplicate())
-		current_segment.width += glyph.advance
+		current_segment.add_glyph(glyph)
 		last_slice = current_slice
 	
 	if current_segment.glyphs.size() > 0:
@@ -303,43 +301,47 @@ func _compose_segments_from_glyphs(ordered_glyphs: Array, line_text: String, lin
 	return { "segments": segments, "max_line_height": max_line_height, "max_ascent": max_ascent,"max_descent": max_descent }
 
 
-func _build_non_space_map() -> void:
-	_non_space_map.clear()
-	_non_space_map.resize(text.length())
+
+# ===== Updating Data =====
+func update_characters() -> void:
+	chars_data.clear()
 	
-	var count: int = 0
-	for i in range(text.length()):
-		var ch = text[i]
-		if ch != ' ' and ch != '\t' and ch != '\n':
-			_non_space_map[i] = count
-			count += 1
-		else:
-			_non_space_map[i] = count
-
-func _apply_pivot_offset() -> void:
-	var offset: Vector2 = _get_pivot_offset()
+	var curr_char_index: int = 0
+	var lines: PackedStringArray = text.split("\n", true)
 	
-	for char_data: CharacterData in chars_data:
-		char_data.position += offset
+	for line_index: int in lines.size():
+		if line_index >= lines_data.size():
+			break
+		
+		var raw_line: String = lines[line_index]
+		var line_text: String = raw_line
+		if line_text.strip_edges().is_empty():
+			line_text = "\n"
+		
+		_build_characters(lines_data[line_index], line_text, curr_char_index)
+		curr_char_index += line_text.length()
+	
+	_update_chars_positions()
+	queue_redraw()
 
 
-# create new line data
-func _create_new_line_data(p_segments: Array[Segment], p_max_height: float, p_max_ascent: float, p_max_descent: float, p_text_align: int, p_line_text: String, p_position: Vector2) -> LineData:
+
+# ===== Line & Segment Creation =====
+func _create_new_line_data(p_segments: Array[TextSegmentRes], p_max_height: float, p_max_ascent: float, p_max_descent: float, p_line_align: int, p_line_text: String, p_position: Vector2) -> LineData:
 	var new_line_data: LineData = LineData.new()
 	
 	new_line_data.segments = p_segments
 	new_line_data.max_height = p_max_height
 	new_line_data.max_ascent = p_max_ascent
 	new_line_data.max_descent = p_max_descent
-	new_line_data.text_align = p_text_align
+	new_line_data.line_align = p_line_align
 	new_line_data.line_text = p_line_text
 	new_line_data.position = p_position
 	
 	return new_line_data
 
-# create new segment
-func _create_new_segment(p_glyphs: Array[Dictionary] = [], p_slice: TextSliceRes = null, p_width: float = 0.0, p_height: float = 0.0, p_max_ascent: float = 0.0, p_max_descent: float = 0.0) -> Segment:
-	var new_segment: Segment = Segment.new()
+func _create_new_segment(p_glyphs: Array[Dictionary] = [], p_slice: TextSliceRes = null, p_width: float = 0.0, p_height: float = 0.0, p_max_ascent: float = 0.0, p_max_descent: float = 0.0) -> TextSegmentRes:
+	var new_segment: TextSegmentRes = TextSegmentRes.new()
 	
 	new_segment.glyphs = p_glyphs
 	new_segment.slice = p_slice
@@ -356,88 +358,9 @@ func _create_shaped_line(line: String, fonts: Array, size: int) -> RID:
 	ts.shaped_text_shape(shaped)
 	return shaped
 
-func _calculate_x_offset(align: int, width: float) -> float:
-	match align:
-		0: # Left
-			return 0.0
-		1: # Center
-			return -width / 2.0
-		2: # Right
-			return -width
-	return 0.0
-
-func _calculate_total_line_width(segments: Array[Segment]) -> float:
-	var total_width: float = 0.0
-	for segment in segments:
-		total_width += segment.width
-	return total_width
-
-var offset_func_indexer: Array[Callable] = [
-	pivot_top_left_func,
-	pivot_top_center_func,
-	pivot_top_right_func,
-	pivot_center_left_func,
-	pivot_center_func,
-	pivot_center_right_func,
-	pivot_bottom_left_func,
-	pivot_bottom_center_func,
-	pivot_bottom_right_func
-]
-
-func pivot_top_left_func() -> Vector2:
-	return Vector2(total_text_size.x / 2.0, 0)
-
-func pivot_top_center_func() -> Vector2:
-	return Vector2.ZERO
-
-func pivot_top_right_func() -> Vector2:
-	return Vector2(-total_text_size.x / 2.0, 0)
-
-func pivot_center_left_func() -> Vector2:
-	return Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
-
-func pivot_center_func() -> Vector2:
-	return Vector2(0, -total_text_size.y / 2.0)
-
-func pivot_center_right_func() -> Vector2:
-	return Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
-
-func pivot_bottom_left_func() -> Vector2:
-	return Vector2(-total_text_size.x / 2.0, -total_text_size.y)
-
-func pivot_bottom_center_func() -> Vector2:
-	return Vector2(0, -total_text_size.y)
-
-func pivot_bottom_right_func() -> Vector2:
-	return Vector2(total_text_size.x / 2.0, -total_text_size.y)
 
 
-func _get_pivot_offset() -> Vector2:
-	
-	var offset:= Vector2.ZERO
-	match pivot_position:
-		PivotPosition.TOP_LEFT:
-			offset = Vector2(-total_text_size.x / 2.0, 0)
-		PivotPosition.TOP_CENTER:
-			offset = Vector2.ZERO
-		PivotPosition.TOP_RIGHT:
-			offset = Vector2(total_text_size.x / 2.0, 0)
-		PivotPosition.CENTER_LEFT:
-			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
-		PivotPosition.CENTER:
-			offset = Vector2(0, -total_text_size.y / 2.0)
-		PivotPosition.CENTER_RIGHT:
-			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
-		PivotPosition.BOTTOM_LEFT:
-			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y)
-		PivotPosition.BOTTOM_CENTER:
-			offset = Vector2(0, -total_text_size.y)
-		PivotPosition.BOTTOM_RIGHT:
-			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y)
-	
-	return offset
-
-
+# ===== Slice & Font Helpers =====
 func _get_font_variation_rids(font: Font, text_slice: TextSliceRes) -> Array[RID]:
 	var fonts = font.get_rids()
 	var index: int = clampi(text_slice.font_variation, 0, fonts.size() - 1)
@@ -449,17 +372,17 @@ func _get_slice_at_position(pos: int) -> TextSliceRes:
 			return text_slices[index]
 	return text_slices[0]
 
-func _get_slice_at_position_real(real_index: int) -> TextSliceRes:
-	var non_space_index: int = _get_non_space_index(real_index)
-	for i in range(text_slices.size() - 1, -1, -1):
-		if non_space_index >= text_slices[i].start_char_index:
-			return text_slices[i]
+func _get_slice_at_position_non_space(global_index: int) -> TextSliceRes:
+	var non_space_index: int = _get_non_space_index(global_index)
+	for index in range(text_slices.size() - 1, -1, -1):
+		if non_space_index >= text_slices[index].start_char_index:
+			return text_slices[index]
 	return text_slices[0] if text_slices.size() > 0 else TextSliceRes.new()
 
 func _get_non_space_index(global_index: int) -> int:
-	if global_index >= _non_space_map.size():
-		return _non_space_map[_non_space_map.size() - 1] if _non_space_map.size() > 0 else 0
-	return _non_space_map[global_index]
+	if global_index >= non_space_map.size():
+		return non_space_map[non_space_map.size() - 1] if non_space_map.size() > 0 else 0
+	return non_space_map[global_index]
 
 func _get_global_index(index: int) -> int:
 	var count: int = 0
@@ -473,6 +396,96 @@ func _get_global_index(index: int) -> int:
 
 
 
+# ===== Pivot & Position =====
+func update_lines_positions() -> void:
+	if lines_data.is_empty():
+		return
+	
+	var max_line_width: float = 0.0
+	var total_height: float = 0.0
+	
+	for line: LineData in lines_data:
+		var line_width: float = line.calculate_total_width()
+		max_line_width = max(max_line_width, line_width)
+		total_height += line.max_height * lines_spacing
+	
+	total_text_size = Vector2(max_line_width, total_height)
+	
+	var y_offset: float = 0.0
+	for line_index in lines_data.size():
+		var line: LineData = lines_data[line_index]
+		
+		var effective_align: int = line.line_align
+		if effective_align == LineData.LineAlignment.NONE:
+			effective_align = int(text_alignment)
+		
+		line.set_position_with_y_offset(effective_align, y_offset)
+		y_offset += line.max_height * lines_spacing
+	
+	_update_chars_positions()
+	queue_redraw()
+
+func _update_chars_positions() -> void:
+	var pivot_offset: Vector2 = _get_pivot_offset()
+	
+	var char_index: int = 0
+	for line: LineData in lines_data:
+		var line_start_pos: Vector2 = line.position
+		
+		var effective_align: int = line.line_align
+		if effective_align == LineData.LineAlignment.NONE:
+			effective_align = int(text_alignment)
+		
+		var total_tracking_offset: float = 0.0
+		for segment: TextSegmentRes in line.segments:
+			total_tracking_offset += segment.glyphs.size() * tracking * segment.slice.font_size
+		
+		var tracking_center_offset: float = total_tracking_offset / 2.0
+		
+		var alignment_x: float = line.calculate_x_offset(effective_align) - tracking_center_offset
+		var current_x: float = alignment_x
+		
+		for segment: TextSegmentRes in line.segments:
+			for glyph: Dictionary in segment.glyphs:
+				if char_index >= chars_data.size():
+					break
+				
+				var char_data: CharacterData = chars_data[char_index]
+				var glyph_offset: Vector2 = glyph.offset
+				
+				char_data.global_position = Vector2(current_x + line.line_offset.x, line_start_pos.y) + glyph_offset + pivot_offset
+				
+				current_x += glyph.advance + tracking * segment.slice.font_size
+				char_index += 1
+
+func _get_pivot_offset() -> Vector2:
+	var offset: Vector2 = Vector2.ZERO
+	
+	match pivot_position:
+		PivotPosition.TOP_LEFT:
+			offset = Vector2(total_text_size.x / 2.0, 0)
+		PivotPosition.TOP_CENTER:
+			offset = Vector2.ZERO
+		PivotPosition.TOP_RIGHT:
+			offset = Vector2(-total_text_size.x / 2.0, 0)
+		PivotPosition.CENTER_LEFT:
+			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y / 2.0)
+		PivotPosition.CENTER:
+			offset = Vector2(0, -total_text_size.y / 2.0)
+		PivotPosition.CENTER_RIGHT:
+			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y / 2.0)
+		PivotPosition.BOTTOM_LEFT:
+			offset = Vector2(-total_text_size.x / 2.0, -total_text_size.y)
+		PivotPosition.BOTTOM_CENTER:
+			offset = Vector2(0, -total_text_size.y)
+		PivotPosition.BOTTOM_RIGHT:
+			offset = Vector2(total_text_size.x / 2.0, -total_text_size.y)
+	
+	return offset
+
+
+
+# ===== Draw =====
 func _draw() -> void:
 	var slice_groups: Dictionary = {}
 	
@@ -480,15 +493,16 @@ func _draw() -> void:
 		var slice: TextSliceRes = char_data.text_slice
 		if slice == null:
 			continue
-			
+		
 		if not slice_groups.has(slice):
 			slice_groups[slice] = []
 		slice_groups[slice].append(char_data)
 	
+	# Shadow
 	for slice in slice_groups.keys():
+		var chars_in_slice: Array = slice_groups[slice]
+		
 		if slice.shadow_color.a > 0:
-			var chars_in_slice: Array = slice_groups[slice]
-			
 			if slice.shadow_size > 0:
 				for char_data: CharacterData in chars_in_slice:
 					var xf: Transform2D = char_data.get_transform()
@@ -504,20 +518,6 @@ func _draw() -> void:
 							char_data.code,
 							slice.shadow_color
 						)
-			
-			for char_data: CharacterData in chars_in_slice:
-				var xf: Transform2D = char_data.get_transform()
-				draw_set_transform_matrix(xf)
-				
-				if char_data.font_rid.is_valid():
-					ts.font_draw_glyph(
-						char_data.font_rid,
-						get_canvas_item(),
-						slice.font_size,
-						slice.shadow_offset,
-						char_data.code,
-						slice.shadow_color
-					)
 	
 	for char_data: CharacterData in chars_data:
 		var xf: Transform2D = char_data.get_transform()
@@ -525,30 +525,32 @@ func _draw() -> void:
 		
 		if char_data.font_rid.is_valid():
 			var slice: TextSliceRes = char_data.text_slice
+			if slice == null: continue
 			
-			# Multi outlines
-			if slice != null and !slice.outlines.is_empty():
+			if !slice.outlines.is_empty():
 				for outline: TextOutlineRes in slice.outlines:
-					ts.font_draw_glyph_outline(
-						char_data.font_rid,
-						get_canvas_item(),
-						slice.font_size,
-						outline.size,
-						outline.offset,
-						char_data.code,
-						outline.color
-					)
+					if outline.color.a > 0.01 and outline.size > 0:
+						ts.font_draw_glyph_outline(
+							char_data.font_rid,
+							get_canvas_item(),
+							slice.font_size,
+							outline.size,
+							outline.offset,
+							char_data.code,
+							outline.color
+						)
 			
 			# Main outline
-			ts.font_draw_glyph_outline(
-				char_data.font_rid,
-				get_canvas_item(),
-				slice.font_size,
-				slice.outline_size,
-				Vector2.ZERO,
-				char_data.code,
-				slice.outline_color
-			)
+			if slice.outline_color.a > 0.01 and slice.outline_size > 0:
+				ts.font_draw_glyph_outline(
+					char_data.font_rid,
+					get_canvas_item(),
+					slice.font_size,
+					slice.outline_size,
+					Vector2.ZERO,
+					char_data.code,
+					slice.outline_color
+				)
 			
 			# Fill
 			ts.font_draw_glyph(
@@ -557,13 +559,26 @@ func _draw() -> void:
 				slice.font_size,
 				Vector2.ZERO,
 				char_data.code,
-				slice.font_color
+				slice.font_color * char_data.color
 			)
 	
 	draw_set_transform_matrix(Transform2D())
 
 
 
+# ===== Signels Connetions =====
+func _on_text_slice_property_changed() -> void:
+	update_data()
+
+func _on_character_property_changed() -> void:
+	queue_redraw()
+
+func _on_line_data_changed() -> void:
+	update_lines_positions()
+
+
+
+# ===== Clean Up =====
 func _clear_shaped_textes() -> void:
 	for shaped in shaped_texts:
 		if shaped.is_valid():
@@ -572,6 +587,3 @@ func _clear_shaped_textes() -> void:
 
 func _exit_tree() -> void:
 	_clear_shaped_textes()
-
-func _on_character_property_changed() -> void:
-	queue_redraw()

@@ -1,0 +1,276 @@
+[gd_scene load_steps=38 format=3 uid="uid://c5j8uwlpcdbkb"]
+
+[ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
+[ext_resource type="Script" uid="uid://d2qybm5ehn5ha" path="res://Editor/Main.gd" id="1_30lmd"]
+[ext_resource type="Script" uid="uid://cis86m6ws6jio" path="res://Build/Res/LayoutInfo.gd" id="1_gck3f"]
+[ext_resource type="PackedScene" uid="uid://42fbjb04onq6" path="res://Prototype/TimeLine.tscn" id="1_n2wvd"]
+[ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Editor/Player/Player.gd" id="2_7i47x"]
+[ext_resource type="Resource" uid="uid://datjbm6cb0um7" path="res://Resources/Layout/LayoutDefault.tres" id="2_s30d6"]
+[ext_resource type="Resource" uid="uid://6qv1nryowska" path="res://Resources/Layout/LayoutColorCorrection.tres" id="4_t7s5e"]
+[ext_resource type="Resource" uid="uid://bbwxn0hatvia6" path="res://Resources/Layout/LayoutPlayer.tres" id="5_cd0xf"]
+[ext_resource type="Texture2D" uid="uid://drrpumpojwc7y" path="res://Asset/Icons/add.png" id="6_t7s5e"]
+[ext_resource type="Texture2D" uid="uid://csoln2s11vr3e" path="res://Asset/Icons/horizontal.png" id="7_k2li5"]
+[ext_resource type="Script" uid="uid://cxhg0wsinlupc" path="res://Editor/ColorCorrection/ColorCorrectionEditor.gd" id="10_x7e6b"]
+[ext_resource type="Texture2D" uid="uid://6jj5fxul1n5v" path="res://Asset/Icons/cursor.png" id="12_13ga7"]
+[ext_resource type="Texture2D" uid="uid://dkjcas8n8sra0" path="res://Asset/Icons/split-clip.png" id="13_kg1lx"]
+[ext_resource type="Texture2D" uid="uid://cq7tqrosc2nx3" path="res://Asset/Icons/right-split-clip.png" id="14_2kogo"]
+[ext_resource type="Texture2D" uid="uid://blfyk8dqdjqa0" path="res://Asset/Icons/location-marker.png" id="14_k2li5"]
+[ext_resource type="Texture2D" uid="uid://ba4hea5saqvlq" path="res://Asset/Icons/snap (1).png" id="15_ig1nw"]
+[ext_resource type="Texture2D" uid="uid://b8rxo816n0cnf" path="res://Asset/Icons/left-split-clip.png" id="15_pu2bm"]
+[ext_resource type="Texture2D" uid="uid://du588acsbuu58" path="res://Asset/Icons/snap (2).png" id="16_2kogo"]
+[ext_resource type="Texture2D" uid="uid://bwo2mxeu17gjw" path="res://Asset/Icons/AddClipMethods/icon4.png" id="17_pajpo"]
+[ext_resource type="Texture2D" uid="uid://i6e0sd1tev1o" path="res://Asset/Icons/snap.png" id="17_pu2bm"]
+[ext_resource type="Texture2D" uid="uid://n88yf18v4s47" path="res://Asset/Icons/paperclip.png" id="18_52oax"]
+[ext_resource type="Texture2D" uid="uid://3xyfwyb34va" path="res://Asset/Icons/AddClipMethods/icon1.png" id="18_nh1mg"]
+[ext_resource type="Texture2D" uid="uid://wdwchq2hkx31" path="res://Asset/Icons/zoom-in.png" id="19_k2li5"]
+[ext_resource type="Texture2D" uid="uid://dx7vdixisdhou" path="res://Asset/Icons/AddClipMethods/icon5.png" id="19_sruw6"]
+[ext_resource type="Texture2D" uid="uid://b6l02k5lq0kmq" path="res://Asset/Icons/AddClipMethods/icon3.png" id="20_gck3f"]
+[ext_resource type="Texture2D" uid="uid://df12acsow1u4v" path="res://Asset/Icons/zoom-out.png" id="20_ig1nw"]
+[ext_resource type="Texture2D" uid="uid://c7wn4rjr5qi7q" path="res://Asset/Icons/AddClipMethods/icon2.png" id="21_s30d6"]
+[ext_resource type="Script" uid="uid://4jnese7xpyxa" path="res://Editor/Properties/Properties2.gd" id="23_pajpo"]
+[ext_resource type="Texture2D" uid="uid://dno5kf805dotb" path="res://Asset/Icons/plus.png" id="24_sruw6"]
+[ext_resource type="Texture2D" uid="uid://cqat0ylr2kw0w" path="res://Asset/Icons/magnifying-glass.png" id="25_gck3f"]
+[ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="25_ig1nw"]
+[ext_resource type="Texture2D" uid="uid://dmxkq6igt7fh" path="res://Asset/Icons/trash-can.png" id="26_s30d6"]
+[ext_resource type="Texture2D" uid="uid://bmt4dqj1kocsw" path="res://Asset/Icons/drag.png" id="27_30lmd"]
+[ext_resource type="Script" uid="uid://bnu877glq6rrg" path="res://Editor/GlobalControl.gd" id="30_sruw6"]
+[ext_resource type="Script" uid="uid://uupil02s5ia4" path="res://Editor/ColorCorrection/ColorScopeEditor.gd" id="37_t8vbk"]
+
+[sub_resource type="GDScript" id="GDScript_sruw6"]
+script/source = "extends HBoxContainer
+"
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bn3x6"]
+
+[node name="PrototypeMain" type="Control" node_paths=PackedStringArray("editors")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_30lmd")
+editors = {
+&"color_correction": NodePath("EditorsFolder/ColorCorrectionEditor"),
+&"color_scope": NodePath("EditorsFolder/ColorScopeEditor"),
+&"media_explorer": NodePath("EditorsFolder/MediaExplorer"),
+&"player": NodePath("EditorsFolder/Player"),
+&"properties": NodePath("EditorsFolder/Properties"),
+&"time_line": NodePath("EditorsFolder/TimeLine")
+}
+preset_layouts = Array[ExtResource("1_gck3f")]([ExtResource("2_s30d6"), ExtResource("5_cd0xf"), ExtResource("4_t7s5e")])
+
+[node name="BG" type="ColorRect" parent="."]
+z_index = -2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0666667, 0.0666667, 0.0745098, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Box" type="VBoxContainer" parent="Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="PanelContainer" parent="Margin/Box"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="Bottom" type="PanelContainer" parent="Margin/Box"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Margin/Box/Bottom"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Margin/Box/Bottom/MarginContainer"]
+layout_mode = 2
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
+
+[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="LayoutButtonContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+alignment = 1
+script = SubResource("GDScript_sruw6")
+
+[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 0.588235)
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
+icon = ExtResource("6_t7s5e")
+flat = true
+
+[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+focus_mode = 0
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 0.588235)
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
+icon = ExtResource("26_s30d6")
+flat = true
+
+[node name="GlobalControl" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("30_sruw6")
+metadata/_custom_type_script = "uid://dhcmxesxndwle"
+
+[node name="DrawableRect" type="ColorRect" parent="." groups=["drawable_rect"]]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.000588235
+anchor_right = 0.999412
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+script = ExtResource("25_ig1nw")
+metadata/_custom_type_script = "uid://d1jx0qooyty3l"
+metadata/_edit_use_anchors_ = true
+
+[node name="EditorsFolder" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("10_x7e6b")
+
+[node name="TimeLine" parent="EditorsFolder" instance=ExtResource("1_n2wvd")]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture_select_mode = ExtResource("12_13ga7")
+texture_split_mode = ExtResource("13_kg1lx")
+texture_slip_mode = ExtResource("7_k2li5")
+texture_split = ExtResource("13_kg1lx")
+texture_split_right = ExtResource("14_2kogo")
+texture_split_left = ExtResource("15_pu2bm")
+texture_marker = ExtResource("14_k2li5")
+texture_snap_cursor = ExtResource("15_ig1nw")
+texture_snap_markers = ExtResource("16_2kogo")
+texture_magnet_clips = ExtResource("17_pu2bm")
+texture_link = ExtResource("18_52oax")
+texture_zoom_in = ExtResource("19_k2li5")
+texture_zoom_out = ExtResource("20_ig1nw")
+texture_place_on_top = ExtResource("20_gck3f")
+texture_insert = ExtResource("18_nh1mg")
+texture_overwrite = ExtResource("19_sruw6")
+texture_fit_to_fill = ExtResource("17_pajpo")
+texture_replace = ExtResource("21_s30d6")
+color_layer = Color(0.196078, 0.196078, 0.207843, 1)
+
+[node name="Properties" type="Control" parent="EditorsFolder"]
+clip_contents = true
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("23_pajpo")
+texture_add = ExtResource("24_sruw6")
+texture_search = ExtResource("25_gck3f")
+texture_delete = ExtResource("26_s30d6")
+texture_drag = ExtResource("27_30lmd")
+
+[node name="Player" type="Control" parent="EditorsFolder" groups=["clip_nodes_explorer"]]
+clip_contents = true
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.7
+script = ExtResource("2_7i47x")
+
+[node name="MediaExplorer" type="Control" parent="EditorsFolder"]
+clip_contents = true
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+script = ExtResource("1_7i47x")
+
+[node name="ColorCorrectionEditor" type="Control" parent="EditorsFolder"]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("10_x7e6b")
+metadata/_custom_type_script = "uid://cxhg0wsinlupc"
+
+[node name="ColorScopeEditor" type="Control" parent="EditorsFolder"]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("37_t8vbk")
+metadata/_custom_type_script = "uid://uupil02s5ia4"

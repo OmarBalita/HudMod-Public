@@ -1,4 +1,4 @@
-class_name ShaderGraphEditor extends GraphEditorRect
+class_name ShaderGraphEditor extends GraphEditorControl
 
 
 func _ready() -> void:

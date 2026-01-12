@@ -23,13 +23,13 @@ var keys_info: Array[Dictionary] = [
 	{v=true}
 ]
 
-@export var curves_profiles: Array[CurveSampler.Profile]:
+@export var curves_profiles: Array[CurveProfile]:
 	set(val):
 		curves_profiles = val
 		for index: int in curves_profiles.size():
 			add_selectable_object(index, {})
 			
-			var profile: CurveSampler.Profile = curves_profiles[index]
+			var profile: CurveProfile = curves_profiles[index]
 			
 			var keys: Dictionary[float, CurveKey] = profile.keys
 			var values: Array[float]
@@ -64,8 +64,8 @@ var keys_info: Array[Dictionary] = [
 
 @export_group("Draw", "draw")
 @export var draw_cursor: bool = false
-@export var draw_val_step: int = 50
-@export var draw_domain_step: int = 50
+@export var draw_val_step: int = 100
+@export var draw_domain_step: int = 100
 @export var draw_select_color: Color = Color.ORANGE
 
 @export_group("Theme")
@@ -75,7 +75,7 @@ var keys_info: Array[Dictionary] = [
 @export var unlock_texture: Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
 @export_subgroup("Constant")
 @export var navigate_dist: float = 30.0
-@export var navigate_speed: float = 200.0
+@export var navigate_speed: float = 100.0
 @export_group("Font")
 @export var font: Font = preload("res://Asset/Fonts/Cascadia.ttf")
 
@@ -120,7 +120,7 @@ func keys_add(keys_index: int, x: float, curve_key: CurveKey, sort_keys: bool, r
 	if keys_index < 0: return
 	x = format_x(x)
 	curve_key.value = curve_key.value
-	var profile: CurveSampler.Profile = curves_profiles[keys_index]
+	var profile: CurveProfile = curves_profiles[keys_index]
 	var keys:= profile.keys
 	keys[x] = curve_key
 	if sort_keys:
@@ -163,7 +163,7 @@ func keys_merge(keys_index: int, new_keys: Dictionary[float, CurveKey]) -> void:
 	queue_redraw()
 
 #func keys_change_control_mode(keys_index: int, x: float, target_control_mode: CurveKey.ControlMode = -1) -> void:
-	#var curve_profile: CurveSampler.Profile = curves_profiles.get(keys_index)
+	#var curve_profile: CurveProfile = curves_profiles.get(keys_index)
 	#var keys_keys: Array = curve_profile.keys_keys
 	#
 	#var curve_key: CurveKey = curve_profile.keys[x]
@@ -178,7 +178,7 @@ func keys_merge(keys_index: int, new_keys: Dictionary[float, CurveKey]) -> void:
 		#curve_key.set_control_mode(target_control_mode, left_reset_dir, right_reset_dir)
 	#curve_profile.update_profile()
 
-#func get_control_vector_left_dir(key_coord: Vector2, profile: CurveSampler.Profile) -> Vector2:
+#func get_control_vector_left_dir(key_coord: Vector2, profile: CurveProfile) -> Vector2:
 	#var result: Vector2
 	#var key_index: int = profile.keys_keys.find(key_coord.x)
 	#if key_index > 0:
@@ -188,7 +188,7 @@ func keys_merge(keys_index: int, new_keys: Dictionary[float, CurveKey]) -> void:
 		#result = Vector2.LEFT
 	#return result
 #
-#func get_control_vector_right_dir(key_coord: Vector2, profile: CurveSampler.Profile) -> Vector2:
+#func get_control_vector_right_dir(key_coord: Vector2, profile: CurveProfile) -> Vector2:
 	#var result: Vector2
 	#var key_index = profile.keys_keys.find(key_coord.x)
 	#if key_index < profile.keys.size() - 1:
@@ -203,7 +203,7 @@ func curve_key_move_control_mode(keys_index: int, key: float) -> void:
 	curves_profiles[keys_index].update_profile()
 
 func update_curve_profiles_keys() -> void:
-	for curve_profile: CurveSampler.Profile in curves_profiles:
+	for curve_profile: CurveProfile in curves_profiles:
 		curve_profile.update_profile()
 
 func keys_find_key(keys_index: int, mouse_pos: Vector2, ignored_keys: Dictionary) -> Variant:
@@ -244,7 +244,7 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 				if not keys_info[object].v:
 					return false
 				
-				var curve_profile: CurveSampler.Profile = curves_profiles[object]
+				var curve_profile: CurveProfile = curves_profiles[object]
 				var key_index: int = curve_profile.keys_keys.find(key)
 				
 				var curve_key: CurveKey = curve_profile.keys[key]
@@ -288,7 +288,7 @@ func find_focused_keys_index(coord: Vector2, mouse_pos: Vector2) -> int:
 	for keys_index: int in curves_profiles.size():
 		if not keys_info[keys_index].v:
 			continue
-		var profile: CurveSampler.Profile = curves_profiles[keys_index]
+		var profile: CurveProfile = curves_profiles[keys_index]
 		var x1: float = coord.x
 		var x2: float = coord.x + .01
 		var y1: float = profile.sample_func.call(x1)
@@ -370,7 +370,7 @@ func on_delete_ended() -> void:
 func on_point_past(object: Variant, key: float) -> void:
 	var new_key: float = format_x(cursor_pos + key - start_copied_point)
 	var copied_k: CurveKey = copied_points[object][key].point_val
-	var pasted_k: CurveKey = CurveKey.new(copied_k.value, copied_k.left_control, copied_k.right_control, copied_k.control_mode)
+	var pasted_k: CurveKey = CurveKey.new_curve_key(copied_k.value, copied_k.left_control, copied_k.right_control, copied_k.control_mode)
 	keys_add(object, new_key, pasted_k, false, false)
 
 func on_past_ended() -> void:
@@ -528,7 +528,7 @@ func _gui_input(event: InputEvent) -> void:
 						if event.button_index == MOUSE_BUTTON_RIGHT:
 							pass
 						else:
-							keys_add(curr_focused_keys_index, coord.x, CurveKey.new(value), true)
+							keys_add(curr_focused_keys_index, coord.x, CurveKey.new_curve_key(value), true)
 					select_point(curr_focused_keys_index, coord.x, not has_key_already)
 					set_meta(&"keys_index", curr_focused_keys_index)
 					set_meta(&"point_coord", Vector2(coord.x, value))
@@ -563,7 +563,7 @@ func _gui_input(event: InputEvent) -> void:
 					var control_type: int = get_meta(&"control_type")
 					var key_coord: Vector2 = get_meta(&"point_coord")
 					var control_target_coord: Vector2 = coord - key_coord
-					var profile: CurveSampler.Profile = curves_profiles[focused_keys_index]
+					var profile: CurveProfile = curves_profiles[focused_keys_index]
 					if curve_key.control_mode != CurveKey.ControlMode.CONTROL_MODE_VECTOR:
 						var set_control_func: Callable
 						if control_type == 1:
@@ -615,7 +615,7 @@ func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
 		for object: Variant in selected_points:
 			var object_selected_points: Dictionary = selected_points[object]
 			
-			var profile: CurveSampler.Profile = curves_profiles[object]
+			var profile: CurveProfile = curves_profiles[object]
 			var point_new_coord: Vector2
 			
 			var replaced_keys: Dictionary[float, float]
@@ -705,7 +705,7 @@ func _draw() -> void:
 		if not keys_info[keys_index].v:
 			continue
 		
-		var profile: CurveSampler.Profile = curves_profiles[keys_index]
+		var profile: CurveProfile = curves_profiles[keys_index]
 		var keys: Dictionary[float, CurveKey] = profile.keys
 		var keys_keys: Array[float] = profile.keys_keys
 		var color_alpha: float

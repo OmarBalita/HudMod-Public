@@ -1,0 +1,78 @@
+[gd_scene load_steps=3 format=3 uid="uid://ccl0mp3ci3cpv"]
+
+[ext_resource type="Texture2D" uid="uid://drodbed2flhi5" path="res://Asset/Images/run_image.png" id="1_0fbet"]
+
+[sub_resource type="GDScript" id="GDScript_uchyk"]
+script/source = "extends Control
+
+@export var source_texture: Texture2D
+var red_points = []
+var green_points = []
+var blue_points = []
+
+func _ready():
+	if source_texture:
+		calculate_rgb_parade()
+
+func calculate_rgb_parade():
+	var img = source_texture.get_image()
+	var img_w = img.get_width()
+	var img_h = img.get_height()
+	var step = 1
+	
+	red_points.clear()
+	green_points.clear()
+	blue_points.clear()
+
+	# تقسيم العرض المتاح لثلاثة أقسام
+	var section_width = size.x / 3.0
+
+	for x in range(0, img_w, step):
+		# حساب الموقع الأفقي النسبي داخل كل قسم
+		var relative_x = (float(x) / img_w) * section_width
+		
+		for y in range(0, img_h, step):
+			var color = img.get_pixel(x, y)
+			
+			# قناة الأحمر - القسم الأول (يسار)
+			var r_pos = Vector2(relative_x, (1.0 - color.r) * size.y)
+			red_points.append(r_pos)
+			
+			# قناة الأخضر - القسم الثاني (منتصف)
+			var g_pos = Vector2(relative_x + section_width, (1.0 - color.g) * size.y)
+			green_points.append(g_pos)
+			
+			# قناة الأزرق - القسم الثالث (يمين)
+			var b_pos = Vector2(relative_x + (section_width * 2), (1.0 - color.b) * size.y)
+			blue_points.append(b_pos)
+	
+	queue_redraw()
+
+func _draw():
+	# خلفية سوداء
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.8))
+	
+	# رسم خطوط فاصلة بين الأقسام
+	draw_line(Vector2(size.x/3, 0), Vector2(size.x/3, size.y), Color.GRAY, 1.0)
+	draw_line(Vector2(2*size.x/3, 0), Vector2(2*size.x/3, size.y), Color.GRAY, 1.0)
+	
+	# رسم النقاط بألوانها مع شفافية Density
+	for p in red_points:
+		draw_primitive([p], [Color(1, 0, 0, 0.1)], [])
+	
+	for p in green_points:
+		draw_primitive([p], [Color(0, 1, 0, 0.1)], [])
+	
+	for p in blue_points:
+		draw_primitive([p], [Color(0, 0, 1, 0.1)], []) # أزرق فاتح قليلاً للوضوح
+"
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_uchyk")
+source_texture = ExtResource("1_0fbet")

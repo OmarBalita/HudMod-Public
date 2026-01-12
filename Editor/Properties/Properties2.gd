@@ -1,4 +1,6 @@
-class_name Properties2 extends EditorRect
+class_name Properties2 extends EditorControl
+
+signal property_changed()
 
 @export_group("Theme")
 @export_subgroup("Texture", "texture")
@@ -104,7 +106,6 @@ func update_properties(section_key: StringName = &"") -> void:
 			_display_components_by_sections()
 	else: _display_section_components(section_key, true)
 	
-	
 	_update_margin()
 
 func update_media_properties(info: Dictionary[StringName, String]) -> void:
@@ -153,10 +154,12 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	
 	margin_container.add_child(box_container)
 	panel_container.add_child(margin_container)
-	body.add_child(panel_container)
+	components_body.add_child(panel_container)
 	
 	panel_container.custom_minimum_size.y = 650
 	panel_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
+	_update_margin()
 	
 	media_properties_panel_container = panel_container
 
@@ -314,6 +317,7 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
 	var comp_res_owner: ComponentRes = comp_info.component_res_owner
+	comp_res_owner.res_changed.connect(func() -> void: property_changed.emit())
 	
 	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress)
 	var comp_editor: IS.EditBoxContainer = IS.get_edit_box_from(comp_controllers)

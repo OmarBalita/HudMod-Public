@@ -4,7 +4,6 @@ signal color_range_changed()
 
 @export var keys: Dictionary = {}
 
-
 func _init() -> void:
 	set_res_id("ColorRangeRes")
 	add_key(.0, Color.WHITE)
@@ -88,3 +87,5 @@ func sample(offset: float) -> Color:
 				return color1.lerp(color2, local_offset)
 	
 	return Color.BLACK
+
+

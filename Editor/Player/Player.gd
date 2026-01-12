@@ -1,14 +1,9 @@
-class_name Player extends EditorRect
-
+class_name Player extends EditorControl
 
 signal curr_frame_changed(new_frame: int)
 
-
 # ---------------------------------------------------
 # Editor Global Variables
-
-@export var draw_editor: DrawEdit = DrawEdit.new()
-@export var draw_editor_control: DrawEditControl = DrawEditControl.new()
 
 @export_group("Theme")
 @export_subgroup("Texture")
@@ -36,6 +31,8 @@ var is_full_screen: bool:
 		is_full_screen = val
 		
 		if val:
+			if header_panel.windowed:
+				header_panel.target_to_layout()
 			flex_view_control.reparent(get_tree().get_current_scene())
 			flex_view_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			get_window().mode = Window.MODE_FULLSCREEN
@@ -60,6 +57,9 @@ var play_button: TextureButton
 var replay_button: TextureButton
 var time_code_label: Label
 var max_time_label: Label
+
+var volume_control: VolumeControl = VolumeControl.new()
+
 var full_screen_button: TextureButton
 var ratio_button: TextureButton
 var more_button: TextureButton
@@ -92,6 +92,7 @@ func _ready_editor() -> void:
 	
 	EditorServer.media_clips_selection_group.selected_objects_changed.connect(on_media_clips_selection_selected_objects_changed)
 	EditorServer.time_line.curr_frame_changed.connect(on_timeline_curr_frame_changed)
+	EditorServer.time_line.timeline_stoped.connect(on_timeline_stopped)
 	
 	play_button.pressed.connect(on_play_button_pressed)
 	replay_button.pressed.connect(on_replay_button_pressed)
@@ -113,8 +114,7 @@ func _ready_ui() -> void:
 	add_child(tweener)
 	
 	var header_box_container: BoxContainer = IS.create_box_container(12, false, {})
-	var official_logo_button: Button = IS.create_button("HudMod", load("res://Asset/Icons/App/logo2_bg.png"), false, false,
-	{expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	var official_logo_button: Button = IS.create_button("HudMod", load("res://Asset/Icons/App/logo2_bg.png"), false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
 	header_box_container.add_child(official_logo_button)
 	header.add_child(header_box_container)
 	
@@ -135,7 +135,7 @@ func _ready_ui() -> void:
 	viewport = SubViewport.new()
 	view_container.add_child(viewport)
 	flex_view_control.add_child(view_container)
-	viewport.size = ProjectServer.resolution
+	viewport.size = ProjectServer.project_res.resolution
 	flex_view_control.viewport_container = view_container
 	
 	play_button = IS.create_texture_button(texture_play, null, texture_pause, true)
@@ -143,6 +143,7 @@ func _ready_ui() -> void:
 	replay_button = IS.create_texture_button(texture_replay, null, null, true)
 	time_code_label = IS.create_label("", IS.LABEL_SETTINGS_BOLD)
 	max_time_label = IS.create_label("")
+	
 	ratio_button = IS.create_texture_button(texture_ratio)
 	full_screen_button = IS.create_texture_button(texture_full_screen)
 	more_button = IS.create_texture_button(texture_more)
@@ -158,7 +159,7 @@ func _ready_ui() -> void:
 		replay_button,
 		IS.create_v_line_panel(),
 		time_panel,
-		IS.create_empty_control(10, 10, {size_flags_horizontal = Control.SIZE_EXPAND_FILL}),
+		volume_control,
 		full_screen_button,
 		IS.create_v_line_panel(),
 		ratio_button,
@@ -170,22 +171,13 @@ func _ready_ui() -> void:
 	screen_options_parent.add_child(options_container)
 	body.add_child(screen_options_parent)
 	
-	# Objects Editors
-	draw_editor_control.draw_edit = draw_editor
-	
-	viewport.add_child(draw_editor)
-	flex_view_control.add_child(draw_editor_control)
-	
-	draw_editor_control.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	draw_editor_control.set_enabling(false)
-	
 	# Time Slider
 	slider_panel = IS.create_panel_container(Vector2(.0, 60.0), load("res://UI&UX/RangeBlack.tres"))
 	var slider_margin = IS.create_margin_container(20,20,20,20)
 	var slider_box = IS.create_box_container()
 	
 	slider_time_code_label = IS.create_label("")
-	time_slider = IS.create_slider_control(curr_frame, 0, ProjectServer.default_length, 1)
+	time_slider = IS.create_slider_control(curr_frame, 0, ProjectServer.curr_length, 1)
 	IS.expand(time_slider)
 	ObjectServer.describe(time_slider.slider_controller, {
 		rounded_corners = false,
@@ -278,7 +270,11 @@ func on_media_clips_selection_selected_objects_changed() -> void:
 	update_object_editor()
 
 func on_timeline_curr_frame_changed(new_frame: int) -> void:
+	volume_control.update()
 	set_curr_frame(new_frame)
+
+func on_timeline_stopped() -> void:
+	volume_control.stop()
 
 func on_play_button_pressed() -> void:
 	var timeline: TimeLine = EditorServer.time_line
