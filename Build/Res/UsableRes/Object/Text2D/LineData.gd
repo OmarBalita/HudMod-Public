@@ -1,4 +1,4 @@
-class_name LineData extends Resource
+class_name LineData extends UsableRes
 
 signal line_data_changed()
 
@@ -81,3 +81,6 @@ func get_total_glyph_count() -> int:
 func set_position_with_y_offset(x_align: int, y_offset: float) -> void:
 	var y_pos = (y_offset + max_ascent) + line_offset.y
 	position = Vector2(0, y_pos)
+
+func _init() -> void:
+	set_res_id(&"LineData")

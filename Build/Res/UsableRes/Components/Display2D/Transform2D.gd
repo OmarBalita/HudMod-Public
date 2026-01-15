@@ -30,12 +30,3 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		#scale_expression = CtrlrHelper.get_string_controller_args(expr_cond, get_prop(&"scale_expression", frame)),
 		#skew_expression = CtrlrHelper.get_string_controller_args(expr_cond, get_prop(&"skew_expression", frame))
 	}
-
-
-
-
-
-
-
-
-

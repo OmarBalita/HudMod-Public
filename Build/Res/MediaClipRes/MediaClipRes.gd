@@ -363,4 +363,21 @@ func loop_stacked_values(method: Callable) -> void:
 		var key_result: Variant = get_stacked_values_key_result(key)
 		method.call(key, key_result)
 
+func loop_children_deep(info: Dictionary[StringName, Variant], media_res_method: Callable, media_ress_pre_method: Callable = Callable(), media_ress_post_method: Callable = Callable()) -> void:
+	var curr_info: Dictionary[StringName, Variant] = info.duplicate(true)
+	for layer_index: int in children:
+		var media_clips: Dictionary = children[layer_index].media_clips
+		media_ress_pre_method.call(layer_index, media_clips, curr_info)
+		for frame_in: int in media_clips:
+			var media_res: MediaClipRes = media_clips[frame_in]
+			media_res_method.call(layer_index, media_clips, frame_in, media_res, curr_info)
+			media_res.loop_children_deep(info, media_res_method, media_ress_post_method)
+		media_ress_post_method.call(layer_index, media_clips, curr_info)
 
+func move_children_deep(offset: int) -> void:
+	loop_children_deep({&"media_clips": {} as Dictionary[int, Dictionary]},
+		func(layer_index: int, media_clips: Dictionary, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
+			info.media_clips[layer_index][frame_in + offset] = media_res,
+		func(layer_index: int, media_clips: Dictionary, info: Dictionary[StringName, Variant]) -> void: info.media_clips[layer_index] = {} as Dictionary,
+		func(layer_index: int, media_clips: Dictionary, info: Dictionary[StringName, Variant]) -> void: children[layer_index].media_clips = info.media_clips[layer_index]
+	)

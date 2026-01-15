@@ -1,4 +1,4 @@
-class_name TextSliceRes extends Resource
+class_name TextSliceRes extends UsableRes
 
 signal text_slice_property_changed()
 
@@ -57,3 +57,6 @@ signal text_slice_property_changed()
 	set(val):
 		shadow_offset = val
 		text_slice_property_changed.emit()
+
+func _init() -> void:
+	set_res_id(&"TextSliceRes")

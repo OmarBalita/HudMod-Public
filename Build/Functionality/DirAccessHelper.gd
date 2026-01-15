@@ -23,4 +23,3 @@ static func remove_directory_recursive(path: String) -> void:
 		print("Removed directory: {path}")
 	else:
 		print("An error occurred when trying to access the path: {path}")
-

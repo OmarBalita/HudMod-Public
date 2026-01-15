@@ -69,6 +69,8 @@ func update() -> void:
 
 class MediaBox extends Container:
 	
+	var selection_group:= SelectionGroupRes.new()
+	
 	var categories: Dictionary[String, Category]
 	
 	var media_explorer: MediaExplorer
@@ -79,6 +81,10 @@ class MediaBox extends Container:
 	var media_categories_box: BoxContainer
 	
 	var search_line: LineEdit
+	
+	# filter and sort in RealTime
+	var curr_filter: int
+	var curr_sort: int
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
 		media_explorer = _media_explorer
@@ -124,23 +130,59 @@ class MediaBox extends Container:
 		categories.erase(category_name)
 	
 	func filter_and_sort() -> void:
-		var search_text = search_line.text.strip_edges().to_lower()
-		#var filter_func: Callable = func(path: String) -> bool:
-			#return not curr_filter or MediaServer.get_media_type_from_path(path) == curr_filter - 1
 		
-		#for index in sorted_media_clips.size():
-			#var media_card = sorted_media_clips[index]
-			#var contains_search_text = media_card.display_name.to_lower().contains(search_text)
-			#var resource_path = media_card.resource_path
-			#media_card.visible = (search_text.is_empty() or contains_search_text) and filter_func.call(resource_path)
-			#media_container.move_child(media_card, index)
+		var search_query: String = search_line.text.strip_edges().to_lower()
+		var filter_func: Callable = _get_filter_func()
+		var sort_func: Callable = _get_sort_func()
+		
+		for cat_name: StringName in categories:
+			
+			var category: Category = categories[cat_name]
+			var cat_sorted_cards:= category.get_contents()
+			cat_sorted_cards.sort_custom(sort_func)
+			
+			for index: int in cat_sorted_cards.size():
+				var card: MediaCard = cat_sorted_cards[index]
+				var is_finded: bool = StringHelper.fuzzy_search(search_query, card.display_name.to_lower())
+				card.visible = filter_func.call(card) and (search_query.is_empty() or is_finded)
+				category.move_content(card, index)
 	
 	func on_search_line_text_changed(new_text: String) -> void:
 		filter_and_sort()
+	
+	func _get_filter_options() -> Array[Dictionary]:
+		return []
+	
+	func _get_filter_func() -> Callable:
+		return func(card: MediaCard) -> bool: return true
+	
+	func _get_sort_options() -> Array[Dictionary]:
+		return [
+			{text = "Name"},
+			{text = "Type"},
+			{text = "Latest to Earliest"},
+			{text = "Earliest to Latest"},
+		]
+	
+	func _get_sort_func() -> Callable:
+		match curr_sort:
+			0:
+				return func(a: CreatedCard, b: CreatedCard) -> bool:
+					return a.display_name.to_lower() < b.display_name.to_lower()
+			1:
+				return func(a: CreatedCard, b:CreatedCard) -> bool:
+					if a.created_card_type and not b.created_card_type: return true
+					elif not a.created_card_type and b.created_card_type: return false
+					else: return a.created_card_type < b.created_card_type
+			2:
+				return func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date > b.create_date
+			3:
+				return func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date < b.create_date
+			_:
+				return Callable()
+
 
 class CreatedBox extends MediaBox:
-	
-	var selection_group:= SelectionGroupRes.new()
 	
 	var project_file_system: DisplayFileSystemRes
 	var global_file_system: DisplayFileSystemRes
@@ -168,10 +210,6 @@ class CreatedBox extends MediaBox:
 	var undo_path_button: TextureButton
 	var reload_button: TextureButton
 	var path_controller: PathController
-	
-	# filter and sort in RealTime
-	var curr_filter: int
-	var curr_sort: int
 	
 	func get_display_file_system() -> DisplayFileSystemRes:
 		return display_file_system
@@ -294,17 +332,6 @@ class CreatedBox extends MediaBox:
 			MenuOption.new("Global", null, set_display_file_system.bind(global_file_system))
 		], root_button)
 	
-	func _get_filter_options() -> Array[Dictionary]:
-		return []
-	
-	func _get_sort_options() -> Array[Dictionary]:
-		return [
-			{text = "Name"},
-			{text = "Type"},
-			{text = "Latest to Earliest"},
-			{text = "Earliest to Latest"},
-		]
-	
 	func _get_created_box_category() -> Category:
 		return null
 	
@@ -357,7 +384,6 @@ class CreatedBox extends MediaBox:
 		name_line.select()
 		name_line.grab_focus()
 
-
 class ImportBox extends CreatedBox:
 	
 	@export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
@@ -407,36 +433,6 @@ class ImportBox extends CreatedBox:
 			&"thumbnail": MediaServer.get_thumbnail(key).texture
 		}
 		return import_card
-	
-	func filter_and_sort() -> void:
-		
-		var search_query: String = search_line.text.strip_edges().to_lower()
-		var filter_func: Callable = func(type: int) -> bool:
-			return not curr_filter or type == curr_filter or type == -1
-		
-		var sorted_media_clips: Array[Node] = import_category.get_contents()
-		var sort_func: Callable
-		match curr_sort:
-			0:
-				sort_func = func(a: CreatedCard, b: CreatedCard) -> bool:
-					return a.display_name.to_lower() < b.display_name.to_lower()
-			
-			1:
-				sort_func = func(a: CreatedCard, b:CreatedCard) -> bool:
-					if a.created_card_type and not b.created_card_type: return true
-					elif not a.created_card_type and b.created_card_type: return false
-					else: return a.created_card_type < b.created_card_type
-			
-			2: sort_func = func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date > b.create_date
-			3: sort_func = func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date < b.create_date
-		
-		sorted_media_clips.sort_custom(sort_func)
-		
-		for index: int in sorted_media_clips.size():
-			var card: CreatedCard = sorted_media_clips[index]
-			var is_finded: bool = StringHelper.fuzzy_search(search_query, card.display_name.to_lower())
-			card.visible = filter_func.call(card.created_card_type) and (search_query.is_empty() or is_finded)
-			import_category.move_content(card, index)
 	
 	func on_import_button_pressed() -> void:
 		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
@@ -507,6 +503,10 @@ class ImportBox extends CreatedBox:
 			{text = "Audio"},
 		]
 	
+	func _get_filter_func() -> Callable:
+		return func(card: MediaCard) -> bool:
+			return not curr_filter or card.created_card_type == curr_filter or card.created_card_type == -1
+	
 	func _get_created_box_category() -> Category:
 		return import_category
 
@@ -536,6 +536,8 @@ class ObjectBox extends MediaBox:
 			
 			get_category(object_info.category).add_content(object_card)
 			object_card.thumbnail_texture_rect.modulate = Color(category.category_custom_color, .75)
+			
+			object_card.selection_group = selection_group
 
 class TransitionBox extends MediaBox:
 	pass
@@ -566,7 +568,6 @@ class PresetBox extends CreatedBox:
 			&"length": preset_media_res.length,
 		}
 		return preset_card
-	
 	
 	func _get_created_box_category() -> Category:
 		return preset_category
@@ -787,4 +788,3 @@ class PresetCard extends CreatedCard:
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
-

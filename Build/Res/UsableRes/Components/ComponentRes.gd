@@ -165,4 +165,3 @@ func send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes
 
 func send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	request_animation_keyframe(usable_res, param_key, param_new_val)
-

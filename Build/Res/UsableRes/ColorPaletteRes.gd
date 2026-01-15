@@ -38,16 +38,3 @@ static func new_res(_palette_name: String, _colors: Array, _built_in: bool = tru
 	res.colors = _colors
 	res.built_in = _built_in
 	return res
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -20,4 +20,3 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		top_level = CtrlrHelper.get_bool_controller_args([], get_prop(&"top_level")),
 		clip_children = CtrlrHelper.get_option_controller_args([], ["Disabled", "Clip Only", "Clip and Draw"], get_prop(&"clip_children"))
 	}
-

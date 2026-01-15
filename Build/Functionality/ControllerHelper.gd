@@ -11,7 +11,7 @@ static func get_bool_controller_args(ui_cond: Array, is_checked: bool = false) -
 static func get_string_controller_args(ui_cond: Array, text: String = "", placeholder: String = "") -> Dictionary[String, Variant]:
 	return {'placeholder': placeholder, 'val': text, 'ui_cond': ui_cond}
 
-static func get_float_controller_args(ui_cond: Array, is_int: bool = false, curr_val: float = .0, min_val: float = -INF, max_val: float = INF, step: float = .001, spin_scale: float = .01, spin_magnet_step: float = 10.0) -> Dictionary[String, Variant]:
+static func get_float_controller_args(ui_cond: Array, is_int: bool = false, curr_val: float = .0, min_val: float = -INF, max_val: float = INF, step: float = .01, spin_scale: float = .01, spin_magnet_step: float = 10.0) -> Dictionary[String, Variant]:
 	return {'slider': false, 'spin_box': true, 'val': curr_val, 'min_val': min_val, 'max_val': max_val, 'step': step, 'spin_scale': spin_scale, 'spin_magnet_step': spin_magnet_step, "is_int": is_int, 'ui_cond': ui_cond}
 
 static func get_vec2_controller_args(ui_cond: Array, curr_val: Vector2) -> Dictionary[String, Variant]:
@@ -43,7 +43,3 @@ static func get_options_info_from_keys(keys: Array) -> Array[Dictionary]:
 
 static func get_ui_cond(cond_func: Callable = Callable(), needed_result: Array = []) -> Dictionary[String, Variant]:
 	return {'ui_cond': [cond_func, needed_result]}
-
-
-
-

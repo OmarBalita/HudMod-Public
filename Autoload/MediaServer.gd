@@ -776,5 +776,3 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 
 func is_media_type_preset(path: String) -> bool:
 	return path.get_extension() in ["res", "tres"]
-
-

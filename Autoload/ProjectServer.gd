@@ -1006,21 +1006,21 @@ func update_curr_length_and_curr_spacial_frames() -> void:
 # Generating
 # ---------------------------------------------------
 
-func generate_new_id(used_id: PackedStringArray, id_length: int = 12, append_new_id: bool = false) -> String:
+func generate_new_id(used_ids: PackedStringArray, id_length: int = 12, append_new_id: bool = false) -> String:
 	var id_keys: String = "_abcdefghijklmnopqrstuvwxyz"
-	var keys_length: int = id_keys.length() - 1
+	var keys_max: int = id_keys.length() - 1
 	
 	var result_id: String
 	
-	while not result_id or result_id in used_id:
+	while not result_id or result_id in used_ids:
 		result_id = ""
 		for time in id_length:
-			var rand_char: String = id_keys[randi_range(0, keys_length)]
-			if randf_range(0, 1):
-				result_id = result_id.to_upper()
+			var rand_char: String = id_keys[randi_range(0, keys_max)]
+			if randi_range(0, 1):
+				rand_char = rand_char.to_upper()
 			result_id += rand_char
 	
 	if append_new_id:
-		used_id.append(result_id)
+		used_ids.append(result_id)
 	
 	return result_id

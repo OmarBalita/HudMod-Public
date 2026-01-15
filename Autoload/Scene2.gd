@@ -186,4 +186,3 @@ func on_timeline_curr_frame_stopped_manually() -> void:
 func _on_media_res_shader_material_changed(media_res: MediaClipRes, object_2d: CanvasItem) -> void:
 	var shader_material: ShaderMaterial = media_res.get_shader_material()
 	object_2d.set_material(media_res.get_shader_material())
-

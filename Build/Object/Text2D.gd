@@ -1,60 +1,32 @@
-@tool
 class_name Text2D extends Node2D
 
-signal text_changed(new_text: String)
 
-enum PivotPosition {
-	TOP_LEFT,
-	TOP_CENTER,
-	TOP_RIGHT,
-	CENTER_LEFT,
-	CENTER,
-	CENTER_RIGHT,
-	BOTTOM_LEFT,
-	BOTTOM_CENTER,
-	BOTTOM_RIGHT
-}
-
-enum TextAlignment {
-	LEFT,
-	CENTER,
-	RIGHT
-}
-
-@export_group("Tools")
-@export_tool_button("Redraw") var redraw_tool_button = update_data
-
-@export_group("Text")
-@export_multiline var text: String:
+var text_res: Text2DRes:
 	set(val):
-		text = val
-		update_data()
-		text_changed.emit(text)
+		text_res = val
+		
+		self.text           = text_res.get_prop(&"text")
+		self.text_slices    = text_res.get_prop(&"text_slices")
+		self.lines_data     = text_res.get_prop(&"lines_data")
+		self.tracking       = text_res.get_prop(&"tracking")
+		self.lines_spacing  = text_res.get_prop(&"lines_spacing")
+		self.text_alignment = text_res.get_prop(&"text_alignment")
+		self.pivot_position = text_res.get_prop(&"pivot_position")
+		
+		text_res.on_update_data.connect(update_data)
+		text_res.on_update_lines_positions.connect(update_lines_positions)
+		text_res.on_update_characters.connect(update_characters)
 
-@export var text_slices: Array[TextSliceRes] = [TextSliceRes.new()]
-@export var lines_data: Array[LineData] = []
+const TextAlignment = Text2DRes.TextAlignment
+const PivotPosition = Text2DRes.PivotPosition
 
-@export_group("Layout")
-@export var lines_spacing: float = 1.0:
-	set(val):
-		lines_spacing = val
-		update_lines_positions()
-
-@export var tracking: float = 0.0:
-	set(val):
-		tracking = val
-		update_characters()
-
-@export var text_alignment: TextAlignment:
-	set(val):
-		text_alignment = val
-		update_lines_positions()
-
-@export_group("Pivot")
-@export var pivot_position: PivotPosition = PivotPosition.CENTER:
-	set(val):
-		pivot_position = val
-		update_lines_positions()
+var text: String = ""
+var text_slices: Array[TextSliceRes] = []
+var lines_data: Array[LineData] = []
+var tracking: float = .0
+var lines_spacing: float = .0
+var text_alignment: TextAlignment = TextAlignment.LEFT
+var pivot_position: PivotPosition = PivotPosition.CENTER
 
 var ts: TextServer
 var total_text_size: Vector2 = Vector2.ZERO
@@ -62,10 +34,12 @@ var chars_data: Array = []
 var shaped_texts: Array = []
 var non_space_map: PackedInt32Array
 
-
 # ===== Initialization =====
-func _init() -> void:
+
+func _init(_text_res) -> void:
+	text_res = _text_res
 	ts = TextServerManager.get_primary_interface()
+
 
 func _ready() -> void:
 	update_data()

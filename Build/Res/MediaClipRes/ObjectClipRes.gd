@@ -1,6 +1,9 @@
 class_name ObjectClipRes extends MediaClipRes
 
-@export var object_res: ObjectRes
+@export var object_res: ObjectRes:
+	set(val):
+		object_res = val
+		add_component(&"Text", object_res)
 
 func get_object_res() -> ObjectRes:
 	return object_res

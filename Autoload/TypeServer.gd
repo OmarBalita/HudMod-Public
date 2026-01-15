@@ -47,7 +47,7 @@ const RES_ICON: Texture2D = preload("uid://bxr7lodry7wjb")
 
 @onready var objects: Dictionary[StringName, Dictionary] = {
 	&"Object2DRes": {text = "Object2DRes", icon = preload("uid://cnd2y4daw32sc"), type_id = Object2DRes, category = "Object2D"},
-	#&"Text2D": {text = "Text2D", icon = preload("uid://bkmsk4ckmcss1"), type_id = Text2D, category = "Object2D"},
+	&"Text2D": {text = "Text2D", icon = preload("uid://bkmsk4ckmcss1"), type_id = Text2DRes, category = "Object2D"},
 	&"Camera2D": {text = "Camera2D", icon = preload("uid://88e0ti5colmt"), type_id = Camera2DRes, category = "Object2D"},
 	&"Audio2D": {text = "Audio2D", icon = preload("uid://bodxdwiaqu416"), type_id = Audio2DRes, category = "Object2D"},
 	#&"Draw": {text = "Draw", icon = preload("uid://ln6rgcxtg8e0"), type_id = DrawRes, category = "Object2D"},
@@ -194,4 +194,3 @@ func get_sections_info(sections_keys: Array) -> Array[Dictionary]:
 	for section_key: String in sections_keys:
 		result.append(get_section_info(section_key))
 	return result
-

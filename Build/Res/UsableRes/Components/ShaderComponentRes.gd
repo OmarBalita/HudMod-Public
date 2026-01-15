@@ -169,4 +169,3 @@ func _get_shader_blend_snip(a_arg: String, b_arg: String, blend_method: ShaderBl
 	result = "	%s = %s" % [a_arg, r_side]
 	
 	return result
-

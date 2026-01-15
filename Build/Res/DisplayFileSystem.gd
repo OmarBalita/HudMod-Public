@@ -81,5 +81,3 @@ func _loop_files_at(info: Dictionary[StringName, Variant], method: Callable, cur
 		method.call(path_or_name, file_info, info)
 		if file_info.type == "folder":
 			_loop_files_at(info, method, file_info.forward)
-
-

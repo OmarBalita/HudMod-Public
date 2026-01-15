@@ -643,7 +643,6 @@ func free_layers(layers_count: int) -> void:
 	arrange_layers()
 
 func arrange_layers() -> void:
-	await get_tree().process_frame
 	curr_layers.sort()
 	var layers_count: int = curr_layers.size()
 	for layer_index: int in curr_layers.keys():
@@ -980,6 +979,7 @@ func save_presets(global: bool) -> void:
 			var name_edit: LineEdit = IS.create_line_edit_edit("Preset Name", "", "Preset")[0]
 			var box_container: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(500, 600), "Create Preset", func() -> void:
 				var preset_media_res: MediaClipRes = media_clip.clip_res.duplicate_media_res()
+				preset_media_res.move_children_deep(-media_clip.clip_pos)
 				preset_media_res.id = name_edit.text
 				info.preset_media_ress.append(preset_media_res)
 			)

@@ -238,4 +238,3 @@ func calculate_metadata(metadata_keys: Array[String]) -> Dictionary:
 		result[key] = get(key)
 	metadata = result
 	return result
-
