@@ -5,16 +5,18 @@
 	Manage AppData and global files
 
 - Media Explorer:
-	Global, Projects files
-	Move any Imported Media to GlobalMedia directory, with copy option
-	Activate Presets: Global, Project, and Built-in
+	Global, Projects files [+]
+	Activate Presets: Global, Project [+]
+	Move to Global, Move to Project Options
+	Insert a Strong Search system
+	Fix Selection System [->]
+	Error management when required media are unavailable [->]
 	Activate all 2D Objects:
 		Object2D
 		Camera2D
 		Audio2D
 		Text2D
 		Particles2D
-	Insert a Strong Search system
 
 - Properties:
 	same Search System in Media Explorer
@@ -29,7 +31,8 @@
 - Player:
 	Display Audio [+]
 	create Header Menu Bar (just UI)
-	Draw HitBox for Displayed Media (Image, Video, Object2D ...)
+	Draw HurtBox for Displayed Media (Image, Video, Object2D ...)
+	Select and Interact with Player Viewport
 
 - Controllers:
 	Fix float Controllers

@@ -5,7 +5,8 @@ extends Node
 @export var textures: Dictionary[StringName, ImageTexture]
 @export var videos_info: Dictionary[StringName, Dictionary]
 @export var audio_stream_waves: Dictionary[StringName, AudioStreamWAV]
-# videos and objects_ress stored many times for each MediaClipRes be on the timeline
+@export var preset_media_ress: Dictionary[StringName, MediaClipRes]
+# videos stored many times for each MediaClipRes be on the timeline
 @export var videos: Dictionary[MediaClipRes, Video]
 
 func load_media_cache_from_file_system(file_system: DisplayFileSystemRes, thumbnail_path: String, waveform_path: String) -> void:
@@ -15,20 +16,19 @@ func load_media_cache_from_file_system(file_system: DisplayFileSystemRes, thumbn
 			register_from_path(path_or_name, ids_exists, file_info.id, thumbnail_path, waveform_path)
 	)
 
-func get_images() -> Dictionary[StringName, Image]:
-	return images
+func get_images() -> Dictionary[StringName, Image]: return images
+func get_textures() -> Dictionary[StringName, ImageTexture]: return textures
+func get_audio_stream_waves() -> Dictionary[StringName, AudioStreamWAV]: return audio_stream_waves
+func get_videos_info() -> Dictionary[StringName, Dictionary]: return videos_info
+func get_videos() -> Dictionary[MediaClipRes, Video]: return videos
+func get_preset_media_ress() -> Dictionary[StringName, MediaClipRes]: return preset_media_ress
 
-func get_textures() -> Dictionary[StringName, ImageTexture]:
-	return textures
-
-func get_audio_stream_waves() -> Dictionary[StringName, AudioStreamWAV]:
-	return audio_stream_waves
-
-func get_videos_info() -> Dictionary[StringName, Dictionary]:
-	return videos_info
-
-func get_videos() -> Dictionary[MediaClipRes, Video]:
-	return videos
+func get_image(key_as_path: StringName) -> Image: return images[key_as_path]
+func get_texture(key_as_path: StringName) -> ImageTexture: return textures[key_as_path]
+func get_video_info(path: StringName) -> Dictionary: return videos_info[path]
+func get_audio(key_as_path: StringName) -> AudioStreamWAV: return audio_stream_waves[key_as_path]
+func get_preset_media_res(key_as_path: StringName) -> MediaClipRes: return preset_media_ress[key_as_path]
+func get_video(media_res: MediaClipRes) -> Video: return videos[media_res]
 
 func register_from_path(path: StringName, ids_exists: PackedStringArray, id: String = "", thumbnail_path: String = "", waveform_path: String = "") -> int:
 	var type: int = MediaServer.get_media_type_from_path(path)
@@ -36,6 +36,8 @@ func register_from_path(path: StringName, ids_exists: PackedStringArray, id: Str
 		0: register_image(path, ids_exists, id, thumbnail_path)
 		1: register_video_info(path, ids_exists, id, thumbnail_path, waveform_path)
 		2: register_audio(path, ids_exists, id, thumbnail_path, waveform_path)
+		_ when MediaServer.is_media_type_preset(path):
+			register_preset_media_res(path, ids_exists, thumbnail_path, waveform_path)
 	return type
 
 func register_image(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
@@ -59,22 +61,12 @@ func register_audio(path: StringName, ids_exists: PackedStringArray, id: String,
 	audio_stream_waves[path] = audio_stream
 	MediaServer.server_register_audio(path, audio_stream, ids_exists, id, thumbnail_path, waveform_path)
 
+func register_preset_media_res(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
+	var preset_media_res: MediaClipRes = ResourceLoader.load(path)
+	preset_media_ress[path] = preset_media_res
+	#MediaServer.server_register_preset_media_res(path, preset_media_res, ids_exists, id, thumbnail_path)
+
 func push_video(media_res: MediaClipRes, path: StringName) -> void:
 	var video: Video = Video.new()
 	video.open(path)
 	videos[media_res] = video
-
-func get_image(key_as_path: StringName) -> Image:
-	return images[key_as_path]
-
-func get_texture(key_as_path: StringName) -> ImageTexture:
-	return textures[key_as_path]
-
-func get_video_info(path: StringName) -> Dictionary:
-	return videos_info[path]
-
-func get_audio(key_as_path: StringName) -> AudioStreamWAV:
-	return audio_stream_waves[key_as_path]
-
-func get_video(media_res: MediaClipRes) -> Video:
-	return videos[media_res]

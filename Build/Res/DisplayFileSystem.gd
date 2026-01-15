@@ -42,14 +42,22 @@ func create_file_at(dir: Dictionary, file_path: String, used_ids: PackedStringAr
 		&"id": file_id # ID used to find any file information in RealFileSystem
 	}
 
-func delete(display_path: Array, path_or_name: String) -> void:
+func delete(display_path: Array, path_or_name: String, thumbnail_path: String, waveform_path: String) -> void:
 	var curr_dir: Dictionary = get_dir(display_path)
+	delete_file_images(curr_dir, path_or_name, thumbnail_path, waveform_path)
 	curr_dir.erase(path_or_name)
 
-func delete_packed(display_path: Array, pathes_or_names: PackedStringArray) -> void:
+func delete_packed(display_path: Array, pathes_or_names: PackedStringArray, thumbnail_path: String, waveform_path: String) -> void:
 	var curr_dir: Dictionary = get_dir(display_path)
 	for path_or_name: String in pathes_or_names:
+		delete_file_images(curr_dir, path_or_name, thumbnail_path, waveform_path)
 		curr_dir.erase(path_or_name)
+
+func delete_file_images(dir: Dictionary, media_path: String, thumbnail_path: String, waveform_path: String) -> void:
+	var info: Dictionary = dir[media_path]
+	if info.type == "file":
+		DirAccess.remove_absolute(str(thumbnail_path, info.id, ".png"))
+		DirAccessHelper.remove_directory_recursive(str(waveform_path, info.id))
 
 func get_files_and_folders_at(display_path: Array) -> Dictionary:
 	return get_dir(display_path)

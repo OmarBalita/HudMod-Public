@@ -6,7 +6,7 @@ func _ready() -> void:
 	add_child(editor_windows_folder)
 
 func popup_window_base(processing_node: Node, window_size: Vector2, window_title: String, is_processing_rect_hidden: bool = false) -> MarginContainer:
-	var window: Window = Window.new()
+	var window: Window = AcceptWindow.new()
 	var margin: MarginContainer = IS.create_margin_container()
 	
 	ObjectServer.describe(window, {
@@ -42,9 +42,10 @@ func popup_borderless_window(processing_node: Node, window_size:= Vector2(400, 2
 	margin.get_window().borderless = true
 	return margin
 
-func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window", accept_pressed = null, cancel_pressed = null) -> BoxContainer:
+func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window", accept_pressed: Callable = Callable(), cancel_pressed: Callable = Callable()) -> BoxContainer:
 	
 	var window_container: MarginContainer = WindowManager.popup_window(processing_node, window_size, window_title)
+	var window: AcceptWindow = window_container.get_window()
 	
 	var box: BoxContainer = IS.create_box_container(10, true)
 	var accept_box: BoxContainer = IS.create_box_container()
@@ -52,8 +53,8 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	var cancel_button: Button = IS.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	if accept_pressed != null: accept_button.pressed.connect(accept_pressed)
 	if cancel_pressed != null: cancel_button.pressed.connect(cancel_pressed)
-	accept_button.pressed.connect(emit_close_window.bind(window_container.get_window()))
-	cancel_button.pressed.connect(emit_close_window.bind(window_container.get_window()))
+	accept_button.pressed.connect(window.emit_accept)
+	cancel_button.pressed.connect(window.emit_cancel)
 	
 	var on_child_changed: Callable = func(node: Node):
 		#await get_tree().process_frame
@@ -121,9 +122,27 @@ func create_processing_rect(is_hidden: bool = false) -> ColorRect:
 	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	return rect
 
-func emit_close_window(window: Window) -> void:
-	window.close_requested.emit()
-
 func on_window_close_request(window: Window, processing_rect: Node) -> void:
 	window.queue_free()
 	processing_rect.queue_free()
+
+
+
+class AcceptWindow extends Window:
+	
+	signal accepted()
+	signal canceled()
+	
+	func emit_accept() -> void:
+		accepted.emit()
+		close_requested.emit()
+	
+	func emit_cancel() -> void:
+		canceled.emit()
+		close_requested.emit()
+
+
+
+
+
+

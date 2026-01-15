@@ -265,8 +265,9 @@ class CreatedBox extends MediaBox:
 				# the key be the folder name when the type is "folder"
 				var folder_card:= FolderCard.new()
 				folder_card.created_card_type = -1
-				folder_card.folder_info = {
+				folder_card.info = {
 					&"type": -1,
+					&"length": int(EditorServer.editor_settings.media_clip_default_length * ProjectServer.fps),
 					&"name": key,
 					&"forward": info.forward
 				}
@@ -307,8 +308,11 @@ class CreatedBox extends MediaBox:
 	func _get_created_box_category() -> Category:
 		return null
 	
-	func create_folder(display_path: Array, folder_name: String) -> void: display_file_system.create_folder(display_path, folder_name)
-	func create_folders(display_path: Array, folders_names: PackedStringArray) -> void: display_file_system.create_folders(display_path, folders_names)
+	func create_folder(display_path: Array, folder_name: String) -> void:
+		display_file_system.create_folder(display_path, folder_name)
+	
+	func create_folders(display_path: Array, folders_names: PackedStringArray) -> void:
+		display_file_system.create_folders(display_path, folders_names)
 	
 	func create_file(display_path: Array, file_path: String) -> void:
 		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
@@ -318,8 +322,13 @@ class CreatedBox extends MediaBox:
 		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
 		display_file_system.create_files(display_path, files_pathes, image_paths[0], image_paths[1])
 	
-	func delete_file_or_folder(display_path: Array, path_or_name: String) -> void: display_file_system.delete(display_path, path_or_name)
-	func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray) -> void: display_file_system.delete_packed(display_path, pathes_or_names)
+	func delete_file_or_folder(display_path: Array, path_or_name: String) -> void:
+		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
+		display_file_system.delete(display_path, path_or_name, image_paths[0], image_paths[1])
+	
+	func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray) -> void:
+		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
+		display_file_system.delete_packed(display_path, pathes_or_names, image_paths[0], image_paths[1])
 	
 	func delete_selected() -> void:
 		var pathes_or_names: PackedStringArray
@@ -391,8 +400,9 @@ class ImportBox extends CreatedBox:
 		var media_type: int = info.media_type
 		var import_card:= ImportCard.new()
 		import_card.created_card_type = media_type + 1
-		import_card.import_info = {
+		import_card.info = {
 			&"type": media_type,
+			&"length": int(MediaServer.get_media_default_length(media_type, key) * ProjectServer.fps),
 			&"path": key,
 			&"thumbnail": MediaServer.get_thumbnail(key).texture
 		}
@@ -400,7 +410,7 @@ class ImportBox extends CreatedBox:
 	
 	func filter_and_sort() -> void:
 		
-		var search_text: String = search_line.text.strip_edges().to_lower()
+		var search_query: String = search_line.text.strip_edges().to_lower()
 		var filter_func: Callable = func(type: int) -> bool:
 			return not curr_filter or type == curr_filter or type == -1
 		
@@ -424,8 +434,8 @@ class ImportBox extends CreatedBox:
 		
 		for index: int in sorted_media_clips.size():
 			var card: CreatedCard = sorted_media_clips[index]
-			var contains_search_text: bool = card.display_name.to_lower().contains(search_text)
-			card.visible = filter_func.call(card.created_card_type) and (search_text.is_empty() or contains_search_text)
+			var is_finded: bool = StringHelper.fuzzy_search(search_query, card.display_name.to_lower())
+			card.visible = filter_func.call(card.created_card_type) and (search_query.is_empty() or is_finded)
 			import_category.move_content(card, index)
 	
 	func on_import_button_pressed() -> void:
@@ -515,8 +525,9 @@ class ObjectBox extends MediaBox:
 			var category: Category = get_category(object_info.category)
 			var object_card: ObjectCard = ObjectCard.new()
 			
-			object_card.object_info = {
+			object_card.info = {
 				&"type": -1,
+				&"length": int(EditorServer.editor_settings.media_clip_default_length * ProjectServer.fps),
 				&"name": object_key,
 				&"thumbnail": object_info.icon,
 				&"object_id": object_info.type_id,
@@ -548,7 +559,14 @@ class PresetBox extends CreatedBox:
 	
 	func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
 		var preset_card:= PresetCard.new()
+		var preset_media_res: MediaClipRes = MediaCache.get_preset_media_res(key)
+		preset_card.info = {
+			&"path": key,
+			&"preset_media_res": preset_media_res,
+			&"length": preset_media_res.length,
+		}
 		return preset_card
+	
 	
 	func _get_created_box_category() -> Category:
 		return preset_category
@@ -570,6 +588,8 @@ class MediaCard extends DoubleClickControl:
 	@export var display_name: StringName = &"Media Card"
 	@export var display_texture: Texture2D
 	@export var add_texture: Texture2D = preload("res://Asset/Icons/plus.png")
+	
+	@export var info: Dictionary[StringName, Variant]
 	
 	func _init() -> void:
 		selectable = true
@@ -669,34 +689,6 @@ class CreatedCard extends MediaCard:
 		var menu:= IS.popup_menu(options)
 	
 	func _get_created_card_menu_options() -> Array:
-		return []
-	
-	func _get_created_card_name_or_path() -> String:
-		return ""
-	
-	func delete() -> void:
-		created_box.delete_selected()
-		created_box.update()
-
-class ImportCard extends CreatedCard:
-	
-	@export var import_info: Dictionary[StringName, Variant]
-	
-	func _ready() -> void:
-		super()
-		_setup_media_card(import_info.path.get_file(), import_info.thumbnail)
-		set_metadata(import_info)
-	
-	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
-		super(group, remove, is_drag_selection, emit_change)
-		if not is_drag_selection:
-			var imported_info: Dictionary[StringName, String] = MediaServer.get_imported_file_info(import_info.path, import_info.type)
-			EditorServer.properties.update_media_properties(imported_info)
-	
-	func add_media(layer_index: int, frame_in: int) -> void:
-		ProjectServer.add_imported_clip(import_info.type, import_info.path, layer_index, frame_in, true)
-	
-	func _get_created_card_menu_options() -> Array:
 		return [
 			MenuOption.new("Copy Path", null, copy_path),
 			MenuOption.new("Delete", null, delete),
@@ -705,35 +697,53 @@ class ImportCard extends CreatedCard:
 			MenuOption.new("Show in File Manager", null, show_in_file_manager)
 		]
 	
-	func _get_created_card_name_or_path() -> String:
-		return import_info.path
-	
 	func copy_path() -> void:
-		DisplayServer.clipboard_set(import_info.path)
+		DisplayServer.clipboard_set(info.path)
+	
+	func delete() -> void:
+		created_box.delete_selected()
+		created_box.update()
 	
 	func open_in_external_program() -> void:
-		OS.shell_open(import_info.path)
+		OS.shell_open(info.path)
 	
 	func show_in_file_manager() -> void:
-		OS.shell_show_in_file_manager(import_info.path)
+		OS.shell_show_in_file_manager(info.path)
+	
+	func _get_created_card_name_or_path() -> String:
+		return info.path
+
+class ImportCard extends CreatedCard:
+	
+	func _ready() -> void:
+		super()
+		_setup_media_card(info.path.get_file(), info.thumbnail)
+		set_metadata(info)
+	
+	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		super(group, remove, is_drag_selection, emit_change)
+		if not is_drag_selection:
+			var imported_info: Dictionary[StringName, String] = MediaServer.get_imported_file_info(info.path, info.type)
+			EditorServer.properties.update_media_properties(imported_info)
+	
+	func add_media(layer_index: int, frame_in: int) -> void:
+		ProjectServer.add_imported_clip(info.type, info.path, layer_index, frame_in, true)
 
 
 class FolderCard extends CreatedCard:
 	
 	static var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
 	
-	var folder_info: Dictionary[StringName, Variant]
-	
 	func _ready() -> void:
 		super()
-		_setup_media_card(folder_info.name, folder_texture)
+		_setup_media_card(info.name, folder_texture)
 		set_metadata({&"type": 0})
 	
 	func _double_click() -> void:
 		clicked.emit()
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		var forward: Dictionary = folder_info.forward
+		var forward: Dictionary = info.forward
 		for key: String in forward:
 			var key_info: Dictionary = forward.get(key)
 			if key_info.type == "file":
@@ -742,27 +752,25 @@ class FolderCard extends CreatedCard:
 		ProjectServer.emit_media_clips_change()
 	
 	func _get_created_card_name_or_path() -> String:
-		return folder_info.name
+		return info.name
 	
 	func _get_created_card_menu_options() -> Array:
 		return [MenuOption.new("Delete", null, delete)]
 
 class ObjectCard extends MediaCard:
 	
-	@export var object_info: Dictionary[StringName, Variant]
-	
 	func _ready() -> void:
 		super()
-		_setup_media_card(object_info.name, object_info.thumbnail)
-		set_metadata(object_info)
+		_setup_media_card(info.name, info.thumbnail)
+		set_metadata(info)
 	
 	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
 		super(group, remove, is_drag_selection, emit_change)
 		if not is_drag_selection:
-			EditorServer.properties.update_media_properties(object_info.object_id.get_object_info())
+			EditorServer.properties.update_media_properties(info.object_id.get_object_info())
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		var object_res: ObjectRes = object_info.object_id.new()
+		var object_res: ObjectRes = info.object_id.new()
 		ProjectServer.add_object_clip(object_res, layer_index, frame_in, true)
 
 class TransitionCard extends MediaCard:
@@ -770,17 +778,13 @@ class TransitionCard extends MediaCard:
 
 class PresetCard extends CreatedCard:
 	
-	var preset_media_res: MediaClipRes
+	static var preset_thumbnail: Texture2D = preload("res://Asset/Icons/preset.png")
 	
 	func _ready() -> void:
 		super()
-		_setup_media_card(&"", null)
+		_setup_media_card(info.preset_media_res.id, preset_thumbnail)
+		set_metadata(info)
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		ProjectServer.add_preset_clip(preset_media_res, layer_index, frame_in, true)
-
-
-
-
-
+		ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
 

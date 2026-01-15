@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwg3esfdv0bkq"
-path="res://.godot/imported/14.png-c1ad79df2c65c8b81d913f8ebc2f98b2.ctex"
+uid="uid://b6b7xrbkfmtv7"
+path="res://.godot/imported/preset.png-6ea3f961276a04fe8d50081e11d7251c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ExampleProject/image/waveform/jehycdzw/14.png"
-dest_files=["res://.godot/imported/14.png-c1ad79df2c65c8b81d913f8ebc2f98b2.ctex"]
+source_file="res://Asset/Icons/preset.png"
+dest_files=["res://.godot/imported/preset.png-6ea3f961276a04fe8d50081e11d7251c.ctex"]
 
 [params]
 

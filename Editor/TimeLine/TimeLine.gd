@@ -626,8 +626,9 @@ func spawn_layer(index: int, is_root_layer: bool) -> Layer:
 
 func spawn_layers(indeces: PackedInt32Array) -> void:
 	var root_layers: bool = ProjectServer.curr_layers_path.size() == 0
-	for index: int in indeces: spawn_layer(index, root_layers)
-	arrange_layers()
+	for index: int in indeces:
+		spawn_layer(index, root_layers)
+	await arrange_layers()
 	await get_tree().process_frame
 	layers_scroll_container.scroll_vertical = layers_container.size.y
 
@@ -642,6 +643,7 @@ func free_layers(layers_count: int) -> void:
 	arrange_layers()
 
 func arrange_layers() -> void:
+	await get_tree().process_frame
 	curr_layers.sort()
 	var layers_count: int = curr_layers.size()
 	for layer_index: int in curr_layers.keys():
@@ -974,7 +976,20 @@ func close_graph_editor() -> void:
 func save_presets(global: bool) -> void:
 	var result:= await loop_selected_media_clips({&"preset_media_ress": [] as Array[MediaClipRes]},
 		func(media_clip: MediaClip, info: Dictionary[StringName, Variant]) -> void:
-			info.preset_media_ress.append(media_clip.clip_res.duplicate_media_res())
+			var preset_tree: Tree = MediaServer.create_media_res_tree(media_clip.clip_res)
+			var name_edit: LineEdit = IS.create_line_edit_edit("Preset Name", "", "Preset")[0]
+			var box_container: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(500, 600), "Create Preset", func() -> void:
+				var preset_media_res: MediaClipRes = media_clip.clip_res.duplicate_media_res()
+				preset_media_res.id = name_edit.text
+				info.preset_media_ress.append(preset_media_res)
+			)
+			IS.expand(preset_tree, true, true)
+			box_container.add_child(preset_tree)
+			box_container.add_child(name_edit.get_parent())
+			name_edit.grab_focus(); name_edit.select_all()
+			
+			var window: WindowManager.AcceptWindow = box_container.get_window()
+			await window.close_requested
 	)
 	EditorServer.media_explorer.preset_box.create_presets(result.preset_media_ress, global)
 
@@ -986,7 +1001,7 @@ func loop_selected_media_clips(info: Dictionary[StringName, Variant], instance_v
 		var media_clip: Variant = selected_objects[key].object
 		if media_clip:
 			if is_instance_valid(media_clip):
-				instance_valid_method.call(media_clip, info)
+				await instance_valid_method.call(media_clip, info)
 			elif else_method.is_valid(): else_method.call(info)
 			
 			if update_media_clips_layers:
@@ -1040,8 +1055,8 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 				
 				var layer_index: int = main_layer_index + object_index
 				var frame: int = get_frame_from_display_pos(mouse_pos.x).keys()[0]
-				var length: int = int(MediaServer.get_media_default_length(metadata.type, key_as_path) * ProjectServer.fps)
-				return [layer_index, frame, length]
+				
+				return [layer_index, frame, metadata.length]
 		1:
 			clips_moved_get_target_func = func(object_index: int, info: Dictionary, mouse_pos: Vector2,
 			main_layer_index: int, layer_delta: int, frame_delta: int) -> Array[int]:

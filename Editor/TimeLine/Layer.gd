@@ -363,7 +363,7 @@ func popup_audio_settings() -> void:
 func popup_customization_settings() -> void:
 	
 	var popup_title: Label = IS.create_label(layer_label.text, IS.LABEL_SETTINGS_HEADER)
-	var main_custom: Dictionary[StringName, Variant] = ProjectServer.get_layer_customization(index).duplicate(true)
+	var main_custom: Dictionary = ProjectServer.get_layer_customization(index).duplicate(true)
 	var custom_name_controller: LineEdit = IS.create_line_edit_edit("Name", "", main_custom.name)[0]
 	var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custom.color)[0]
 	var custom_size_controller: FloatController = IS.create_float_edit("Size", false, true, main_custom.size, 35.0, 200.0, 5.0, .1)[1]

@@ -15,19 +15,23 @@ signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key
 
 @export var from: int = 0:
 	set(val):
-		if MediaServer:
+		if GlobalServer.is_global_cache_loaded:
 			var min_from: int = MediaServer.get_media_default_from_and_length(self).x
 			if min_from == -1: from = max(0, val)
 			else: from = val
 			update()
+		else:
+			from = val
 
 @export var length: int = 10: # as frames
 	set(val):
-		if MediaServer:
+		if GlobalServer.is_global_cache_loaded:
 			var max_length: int = MediaServer.get_media_default_from_and_length(self).y
 			if max_length == 0: length = val
 			else: length = clamp(val, 1, max_length - from)
 			update()
+		else:
+			length = val
 
 @export var children: Dictionary[int, Dictionary]
 #{
@@ -92,8 +96,8 @@ func is_frame_exists(frame: Variant = null) -> bool:
 func get_frame_or_curr_frame(frame: Variant = null) -> int:
 	return curr_frame + from if frame == null else frame
 
-func get_display_name() -> String:
-	return "MediaClip"
+func get_display_name() -> String: return "MediaClip"
+func get_thumbnail() -> Texture2D: return null
 
 func get_children() -> Dictionary[int, Dictionary]:
 	return children

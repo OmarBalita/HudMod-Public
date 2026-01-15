@@ -89,6 +89,7 @@ func open_project(_project_path: String) -> void:
 		return
 	project_path = _project_path
 	project_res = _project_res
+	
 	make_layers_absolute(PackedInt32Array(range(project_res.root_clip_res.children.size())))
 	loop_media_clips({},
 		func(layer_index: int, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
@@ -100,7 +101,9 @@ func open_project(_project_path: String) -> void:
 				)
 			)
 	)
+	
 	MediaCache.load_media_cache_from_file_system(project_res.import_file_system, project_thumbnail_path, project_waveform_path)
+	MediaCache.load_media_cache_from_file_system(project_res.preset_file_system, project_thumbnail_path, project_waveform_path)
 
 
 func save_project() -> void:
@@ -463,6 +466,7 @@ func duplicate_media_clips(clips_info: Array[Dictionary], target_frame_in: int, 
 	return pasted_layers
 
 func move_media_clips(clips_info: Array[Dictionary], target_layers_indeces: Array, target_frames_in: Array, place_method: Callable = Callable(), emit_changes: bool = true, update_scene: bool = true) -> Dictionary[int, Dictionary]:
+	
 	for index: int in clips_info.size():
 		var info: Dictionary = clips_info[index]
 		var frame_in_delta: int = target_frames_in[index] - info.clip_pos
@@ -1011,7 +1015,10 @@ func generate_new_id(used_id: PackedStringArray, id_length: int = 12, append_new
 	while not result_id or result_id in used_id:
 		result_id = ""
 		for time in id_length:
-			result_id += id_keys[randi_range(0, keys_length)]
+			var rand_char: String = id_keys[randi_range(0, keys_length)]
+			if randf_range(0, 1):
+				result_id = result_id.to_upper()
+			result_id += rand_char
 	
 	if append_new_id:
 		used_id.append(result_id)
