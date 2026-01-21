@@ -6,7 +6,6 @@ var color_range_controller: ColorRangeController = ColorRangeController.new()
 var xpos_edit: FloatController
 var color_edit: ColorButton
 
-
 func _ready() -> void:
 	
 	var margin = IS.create_margin_container()
@@ -138,7 +137,6 @@ class ColorRangeController extends FocusControl:
 			elif event is InputEventMouseMotion:
 				if is_dragged:
 					move_selected_key(x_pos)
-	
 	
 	func get_color_range_res() -> ColorRangeRes:
 		return color_range_res

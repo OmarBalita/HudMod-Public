@@ -45,16 +45,17 @@ func _ready_editor() -> void:
 	clips_selection_group = EditorServer.media_clips_selection_group
 	clips_selection_group.selected_objects_changed.connect(_on_clips_selection_group_selected_objects_changed)
 
-func popup_sections_components(section_key: StringName, pop_from: Control = null) -> void:
+func popup_section_components(section_key: StringName, pop_from: Control = null) -> void:
 	var part_option: MenuOption = MenuOption.new("Part")
 	var options: Dictionary[MenuOption, Array] = {part_option: []}
-	var section_components: Array[Dictionary] = TypeServer.components.get(section_key)
-	for component_info: Dictionary in section_components:
-		var component_script: Script = component_info.script
+	var section_components: Dictionary[StringName, Dictionary] = ClassServer.comps_get_section_comps(section_key)
+	for comp_classname: StringName in section_components:
+		var comp_info: Dictionary[StringName, Variant] = section_components[comp_classname]
+		var comp_script: Script = comp_info.script
 		options[part_option].append(MenuOption.new(
-			component_info.text,
-			component_info.icon,
-			add_component.bind(section_key, component_script)
+			comp_classname,
+			comp_info.icon,
+			add_component.bind(section_key, comp_script)
 		))
 	var components_popuped_menu: PopupedCategoriesMenu = IS.create_popuped_categories_menu(options)
 	get_tree().current_scene.add_child(components_popuped_menu)
@@ -90,6 +91,7 @@ func update_component_method(section_key: StringName, comp_info: ComponentInfo, 
 func navigate_to_section(section_key: StringName) -> void:
 	for _section_key: StringName in sections_controls:
 		sections_controls.get(_section_key).root.visible = section_key == _section_key
+	_update_margin()
 
 func update_properties(section_key: StringName = &"") -> void:
 	clips_selection_group.clear_previously_freed_instances()
@@ -184,7 +186,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	var new_media_ress: Array[MediaClipRes]
 	var new_displayed_components: Dictionary[StringName, Array]
 	
-	for section_key: StringName in TypeServer.sections_hint.keys():
+	for section_key: StringName in ClassServer.comps_sections_infos:
 		
 		var new_section_components: Array[ComponentInfo]
 		new_displayed_components[section_key] = new_section_components
@@ -216,7 +218,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 					var finded_comps_by_ids: Dictionary[StringName, Array]
 					
 					for component_res: ComponentRes in section_components:
-						finded_comps_by_ids.get_or_add(component_res.get_res_id(), []).append(component_res)
+						finded_comps_by_ids.get_or_add(component_res.get_classname(), []).append(component_res)
 					
 					for component_info: ComponentInfo in new_displayed_components[section_key]:
 						var target_comp_res_id: StringName = component_info.component_res_id
@@ -294,7 +296,7 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	var add_component_button: Button = IS.create_button("", texture_add, true)
 	var search_line_edit: LineEdit = IS.create_line_edit("Search for %s Component" % section_key.capitalize(), "", texture_search)
 	
-	add_component_button.pressed.connect(popup_sections_components.bind(section_key, add_component_button))
+	add_component_button.pressed.connect(popup_section_components.bind(section_key, add_component_button))
 	search_line_edit.text_changed.connect(_on_search_line_edit_text_changed)
 	
 	add_and_search_split_container.add_child(add_component_button)
@@ -413,7 +415,7 @@ class ComponentInfo extends Resource:
 	
 	func _init(_index: int, _component_res_owner: ComponentRes) -> void:
 		index = _index
-		component_res_id = _component_res_owner.get_res_id()
+		component_res_id = _component_res_owner.get_classname()
 		component_res_owner = _component_res_owner
 	
 	func append_component_res(value: ComponentRes) -> void:

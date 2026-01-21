@@ -1,7 +1,7 @@
 [gd_scene load_steps=15 format=3 uid="uid://cu5n7tjm54qo5"]
 
 [ext_resource type="Script" uid="uid://q5fmchn8ilol" path="res://Build/Object/Text2D.gd" id="1_rujx6"]
-[ext_resource type="Script" uid="uid://byucfd5bttffj" path="res://Build/Res/UsableRes/Object/Text2D/TextSliceRes.gd" id="2_ychtf"]
+[ext_resource type="Script" uid="uid://byucfd5bttffj" path="res://Build/Res/UsableRes/Object/Text2D/TextThemeRes.gd" id="2_ychtf"]
 [ext_resource type="Script" uid="uid://b4i27gcpk3406" path="res://Build/Res/UsableRes/Object/Text2D/TextOutlineRes.gd" id="3_0kso0"]
 [ext_resource type="Script" uid="uid://chbcpe5k77s86" path="res://Build/Res/UsableRes/Object/Text2D/LineData.gd" id="4_cyckk"]
 

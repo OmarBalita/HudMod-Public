@@ -7,9 +7,15 @@ signal focus_index_changed(index: int)
 
 signal list_button_pressed(index: int)
 
+@export var list: Array:
+	set(val):
+		list = val
+		if not on_element_entered.is_valid():
+			return
+		for index: int in list:
+			on_element_entered.call(index, list[index])
 
-@export var list: Array
-@export var types: Array[String]
+@export var types: Array[StringName]
 
 @export_group("Properties")
 @export var min_elements_count: int:
@@ -38,19 +44,20 @@ signal list_button_pressed(index: int)
 		display_icon_func = val
 		update_display_ui()
 
+var on_element_entered: Callable
 
 # RealTime Variables
 var focus_index: int = -1:
 	set(val):
 		focus_index = val
-		update_type_edit(focus_index)
 		
 		if list.size() > 0 and val != -1:
 			await get_tree().process_frame
 			focus_button = list_box_container.get_child(val).get_child(0)
 			focus_button.button_pressed = true
 		
-		focus_index_changed.emit(focus_index)
+		update_type_edit(focus_index)
+		focus_index_changed.emit(val)
 
 # RealTime Nodes
 var focus_button: Button
@@ -68,15 +75,15 @@ func _ready() -> void:
 func _ready_ui() -> void:
 	IS.set_base_panel_settings(self, IS.STYLE_BODY)
 	
-	var margin_container = IS.create_margin_container()
-	var vbox_container = IS.create_box_container(12, true)
-	var hsplit_container = IS.create_split_container()
+	var margin_container: MarginContainer = IS.create_margin_container(8,8,8,8)
+	var vbox_container: BoxContainer = IS.create_box_container(12, true)
+	var hsplit_container: SplitContainer = IS.create_split_container()
 	controller_container = IS.create_margin_container(0,0,0,0)
 	
-	var scroll_box_container = IS.create_scroll_container(0)
+	var scroll_box_container: ScrollContainer = IS.create_scroll_container(0, 1, {custom_minimum_size = Vector2(.0, 120.)})
 	list_box_container = IS.create_box_container(4, true, {})
-	var margin2_container = IS.create_margin_container(0,0,0,0)
-	var options_box_container = IS.create_box_container(12, true, {})
+	var margin2_container: MarginContainer = IS.create_margin_container(0,0,0,0)
+	var options_box_container: BoxContainer = IS.create_box_container(12, true, {})
 	
 	if can_add_element:
 		var append_button = IS.create_texture_button(texture_add)
@@ -122,7 +129,6 @@ func _ready_ui() -> void:
 	update_display_ui()
 
 
-
 func get_display_name_func() -> Callable:
 	return display_name_func
 
@@ -136,22 +142,20 @@ func set_display_icon_func(new_func: Callable) -> void:
 	display_icon_func = new_func
 
 
-
 func update_display_ui() -> void:
 	if not is_node_ready():
 		return
 	
-	var is_dynamic = types.size() != 1
+	var is_dynamic: bool = types.size() != 1
 	
 	for button: SplitContainer in list_box_container.get_children():
 		button.queue_free()
 	
-	var button_group = ButtonGroup.new()
+	var button_group:= ButtonGroup.new()
 	
 	for index: int in list.size():
 		
-		var element = list[index]
-		var element_type_index = TypeServer.get_type_from_value(element)
+		var element: Variant = list[index]
 		
 		var split: SplitContainer = IS.create_split_container()
 		var button: Button = IS.create_button('', null, false, false, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
@@ -182,11 +186,11 @@ func update_type_edit(index: int) -> void:
 	if index == -1:
 		return
 	
-	var curr_val = list[index]
-	var controllers = TypeServer.get_type_controllers_from_val("index %s" % index, curr_val)
+	var curr_val: Variant = list[index]
+	var controllers: Array[Control] = ClassServer.create_prop_editor(&"index %s" % index, curr_val)
 	
 	if controllers.size():
-		var edit_box = IS.get_edit_box_from(controllers)
+		var edit_box:= IS.get_edit_box_from(controllers)
 		edit_box.set_curr_val(curr_val, true)
 		edit_box.val_changed.connect(on_type_controller_val_changed)
 		controller_container.add_child(edit_box)
@@ -196,17 +200,16 @@ func update_type_edit(index: int) -> void:
 
 func get_main_display_name(index: int, element: Variant, ready_update: bool) -> String:
 	if element is UsableRes:
-		return "%s %s" % [element.get_res_id(), index]
+		return "%s %s" % [element.get_classname(), index]
 	return str(element)
 
 func get_absolute_index(index_from: int) -> int:
 	return clamp(index_from, 0, list.size())
 
 func get_main_val() -> Variant:
-	var types_count = types.size()
+	var types_count: int = types.size()
 	if types_count >= 1:
-		var main_type_index = TypeServer.get_type_from_name(types[0])
-		return TypeServer.get_type_default_val(main_type_index)
+		return ClassServer.classname_new(types[0])
 	else:
 		return null
 
@@ -232,7 +235,7 @@ func set_button_display(index: int, value: Variant, button: Button, ready_update
 		display_name = str(value)
 	
 	if is_dynamic:
-		display_icon = TypeServer.get_type_icon(TypeServer.get_type_from_value(value))
+		display_icon = ClassServer.classname_get_icon(ClassServer.value_get_classname(value))
 	elif not display_icon_func.is_null():
 		display_icon = await display_icon_func.call(index, value, ready_update)
 	
@@ -243,9 +246,10 @@ func set_button_display(index: int, value: Variant, button: Button, ready_update
 		button.set_text(display_name)
 		button.icon = display_icon
 
-
 func add_element(element: Variant, index: int, emit_changes: bool = true) -> void:
-	var absolute_new_index = get_absolute_index(index)
+	var absolute_new_index: int = get_absolute_index(index)
+	if on_element_entered.is_valid():
+		on_element_entered.call(absolute_new_index, element)
 	list.insert(absolute_new_index, element)
 	focus_index = index
 	if emit_changes:
@@ -292,16 +296,18 @@ func edit_element(index: int, new_val: Variant) -> void:
 	set_button_display(index, new_val, button, false)
 
 
-
-
 func on_list_changed() -> void:
 	update_display_ui()
 	update_type_edit(focus_index)
 
 
 func on_list_button_pressed(index: int) -> void:
-	focus_index = index
-	list_button_pressed.emit(index)
+	if focus_index == index:
+		var button: Button = list_box_container.get_child(index).get_child(0)
+		button.button_pressed = false
+		focus_index = -1
+	else:
+		focus_index = index
 
 func on_list_button_mouse_entered(index: int, button: Button) -> void:
 	var type_button = IS.create_texture_button(texture_settings, null, null, false)
@@ -315,16 +321,17 @@ func on_list_button_mouse_exited(index: int, button: Button) -> void:
 	type_button.queue_free()
 
 func on_type_button_pressed(index: int, type_button: TextureButton) -> void:
-	var types = TypeServer.get_types(types)
-	var main_type_index = TypeServer.get_type_from_name(TypeServer.get_name_from_val(list[index]), types)
-	var types_menu = IS.popup_menu(MenuOption.new_options_with_check_group(types, "", main_type_index), type_button)
-	types_menu.menu_button_pressed.connect(
-		func(menu_index: int) -> void:
-			var type_name = types_menu.options[menu_index].text
-			var new_type_index = TypeServer.get_type_from_name(type_name)
-			var default_val = TypeServer.get_type_default_val(new_type_index)
-			replace_element(index, default_val)
-	)
+	#var types:= TypeServer.get_types(types)
+	#var main_type_index:= ClassServer.get_type_from_name(ClassServer.value_get_classname(list[index]), types)
+	#var types_menu = IS.popup_menu(MenuOption.new_options_with_check_group(types, "", main_type_index), type_button)
+	#types_menu.menu_button_pressed.connect(
+		#func(menu_index: int) -> void:
+			#var type_name = types_menu.options[menu_index].text
+			#var new_type_index = TypeServer.get_type_from_name(type_name)
+			#var default_val = TypeServer.get_type_default_val(new_type_index)
+			#replace_element(index, default_val)
+	#)
+	pass
 
 
 func on_append_button_pressed() -> void:
@@ -343,12 +350,8 @@ func on_move_down_button_pressed() -> void:
 	move_element(focus_index, focus_index + 1)
 
 
-func on_type_controller_val_changed(new_val: Variant) -> void:
-	edit_element(focus_index, new_val)
+func on_type_controller_val_changed(usable_res: UsableRes, prop_key: StringName, new_val: Variant) -> void:
+	if prop_key.is_empty():
+		edit_element(focus_index, new_val)
 	list_val_changed.emit(focus_index, new_val)
-
-
-
-
-
 

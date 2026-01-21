@@ -12,14 +12,14 @@ config_version=5
 
 config/name="HudMod"
 run/main_scene="uid://ckmqu1nrqmxml"
-config/features=PackedStringArray("4.5", "C#", "Forward Plus")
+config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/show_image=false
 config/icon="uid://daw7g1bq36r4n"
 
 [autoload]
 
-TypeServer="*res://Autoload/TypeServer.gd"
+ClassServer="*res://Autoload/ClassServer.gd"
 ObjectServer="*res://Autoload/ObjectServer.gd"
 TimeServer="*res://Autoload/TimeServer.gd"
 IS="*res://Autoload/InterfaceServer.gd"

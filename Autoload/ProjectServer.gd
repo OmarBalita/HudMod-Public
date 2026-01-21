@@ -1,5 +1,7 @@
 extends Node
 
+signal project_opened(project_res: ProjectRes)
+
 signal curr_length_changed(new_length: int)
 
 signal media_clip_added(layer_index: int, frame_in: int)
@@ -47,6 +49,7 @@ var project_res: ProjectRes:
 		fps = project_res.fps
 		delta = project_res.delta
 		curr_layers = project_res.root_clip_res.get_children()
+		project_opened.emit(project_res)
 
 var curr_length: int
 var fps: int
@@ -75,6 +78,8 @@ var copied_media_clips: Array[Dictionary]
 # ---------------------------------------------------
 
 func _ready() -> void:
+	if not GlobalServer.is_global_cache_loaded:
+		await GlobalServer.global_cache_loaded
 	open_project(EXAMPLE_PATH)
 	#update_curr_length_and_curr_spacial_frames()
 
@@ -318,6 +323,7 @@ func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emi
 
 func add_preset_clip(preset_media_res: MediaClipRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> MediaClipRes:
 	var new_media_res: MediaClipRes = preset_media_res.duplicate_media_res()
+	new_media_res.move_children_deep(frame_in)
 	add_media_clip(new_media_res, new_media_res.length, layer_index, frame_in, emit_changes, force_layer_index)
 	return new_media_res
 
@@ -380,7 +386,7 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		
 		var old_layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
 		var new_layer: Layer = EditorServer.time_line.get_layer(absolute_target_layer_index)
-		if old_layer.has_media_clip(from_frame_in):
+		if old_layer and old_layer.has_media_clip(from_frame_in):
 			var old_clip_panel: MediaServer.ClipPanel = old_layer.get_media_clip(from_frame_in).clip_panel
 			if old_clip_panel.is_graph_editor_opened:
 				new_layer.send_media_clip_expanded_graph_editors(target_frame_in, old_clip_panel.graph_editors_expanded)
@@ -393,7 +399,7 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		request_delete_layers()
 	
 	for layer: Layer in layers_updated:
-		layer.update()
+		if layer: layer.update()
 	
 	return pasted_layers
 

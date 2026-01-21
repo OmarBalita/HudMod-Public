@@ -15,7 +15,6 @@ var mouse_move_popdown_requested: bool
 
 var tweener:= TweenerComponent.new()
 
-
 func _ready() -> void:
 	# Setup TweenerComponent
 	tweener.easeType = Tween.EASE_OUT
@@ -30,18 +29,15 @@ func _ready() -> void:
 		custom_minimum_size.x = size.x + 50
 		custom_minimum_size.y = size.y
 
-
-
-
 func _input(event: InputEvent) -> void:
 	if poppable_down:
-		
 		var mouse_in: bool = get_global_rect().has_point(get_global_mouse_position())
 		
 		if event is InputEventMouseButton:
-			if event.is_released() and not mouse_in:
-				await get_tree().process_frame
-				popdown()
+			if event.is_pressed() and not mouse_in:
+				if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+					await get_tree().process_frame
+					popdown()
 		
 		elif event is InputEventMouseMotion:
 			if popdown_when_mouse_move and not mouse_move_popdown_requested:
@@ -51,8 +47,7 @@ func _input(event: InputEvent) -> void:
 					popdown()
 				mouse_move_popdown_requested = false
 
-
-func popup(pos = null) -> void:
+func popup(pos: Variant = null) -> void:
 	await get_tree().process_frame
 	if pos == null:
 		pos = get_global_mouse_position()

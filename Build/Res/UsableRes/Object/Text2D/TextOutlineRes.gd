@@ -1,16 +1,12 @@
-class_name TextOutlineRes extends Resource
+class_name TextOutlineRes extends UsableRes
 
-signal outline_property_changed()
+@export var size: int = 0
+@export var color: Color = Color.WHITE
+@export var offset: Vector2 = Vector2.ZERO
 
-@export var size: int = 0:
-	set(val):
-		size = val
-		outline_property_changed.emit()
-@export var color: Color = Color.WHITE:
-	set(val):
-		color = val
-		outline_property_changed.emit()
-@export var offset: Vector2 = Vector2.ZERO:
-	set(val):
-		offset = val
-		outline_property_changed.emit()
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+	return {
+		&"size": export(int_args(size)),
+		&"color": export(color_args(color)),
+		&"offset": export(vec2_args(offset))
+	}

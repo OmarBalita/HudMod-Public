@@ -11,5 +11,5 @@ func get_object_res() -> ObjectRes:
 func set_object_res(new_val: ObjectRes) -> void:
 	object_res = new_val
 
-func get_display_name() -> String: return object_res.get_res_id()
-func get_thumbnail() -> Texture2D: return TypeServer.objects[object_res.get_res_id()].icon
+func get_display_name() -> String: return object_res.get_script().get_global_name()
+func get_thumbnail() -> Texture2D: return ClassServer.object_res_classes[object_res.get_script().get_global_name()].icon

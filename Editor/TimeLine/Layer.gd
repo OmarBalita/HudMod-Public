@@ -333,7 +333,7 @@ func delete_all() -> void:
 
 func popup_move_to() -> void:
 	var max_layer_index: int = ProjectServer.get_curr_layers().size() - 1
-	var index_to_controller: FloatController = IS.create_float_edit("index", false, true, index, 0, max_layer_index, 0, .1, 10, true)[1]
+	var index_to_controller: FloatController = IS.create_float_edit(&"index", index, 0, max_layer_index, 0, 1, 10, true)[1]
 	
 	var window_container: BoxContainer = WindowManager.popup_accept_window(
 		get_window(), Vector2(400.0, 150.0), "Move Layer to", func() -> void:
@@ -364,7 +364,7 @@ func popup_customization_settings() -> void:
 	
 	var popup_title: Label = IS.create_label(layer_label.text, IS.LABEL_SETTINGS_HEADER)
 	var main_custom: Dictionary = ProjectServer.get_layer_customization(index).duplicate(true)
-	var custom_name_controller: LineEdit = IS.create_line_edit_edit("Name", "", main_custom.name)[0]
+	var custom_name_controller: LineEdit = IS.create_string_edit("Name", "", main_custom.name)[0]
 	var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custom.color)[0]
 	var custom_size_controller: FloatController = IS.create_float_edit("Size", false, true, main_custom.size, 35.0, 200.0, 5.0, .1)[1]
 	

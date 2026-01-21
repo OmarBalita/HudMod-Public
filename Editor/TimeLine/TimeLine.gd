@@ -976,8 +976,8 @@ func save_presets(global: bool) -> void:
 	var result:= await loop_selected_media_clips({&"preset_media_ress": [] as Array[MediaClipRes]},
 		func(media_clip: MediaClip, info: Dictionary[StringName, Variant]) -> void:
 			var preset_tree: Tree = MediaServer.create_media_res_tree(media_clip.clip_res)
-			var name_edit: LineEdit = IS.create_line_edit_edit("Preset Name", "", "Preset")[0]
-			var box_container: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(500, 600), "Create Preset", func() -> void:
+			var name_edit: LineEdit = IS.create_string_edit("Preset Name", "new preset")[0]
+			var box_container: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(500, 600), "Save %s Preset" % ("Global" if global else "Project"), func() -> void:
 				var preset_media_res: MediaClipRes = media_clip.clip_res.duplicate_media_res()
 				preset_media_res.move_children_deep(-media_clip.clip_pos)
 				preset_media_res.id = name_edit.text
@@ -1056,7 +1056,7 @@ func clips_start_move(_clips_move_mode: ClipsMoveMode, _clips_moved_objects: Arr
 				var layer_index: int = main_layer_index + object_index
 				var frame: int = get_frame_from_display_pos(mouse_pos.x).keys()[0]
 				
-				return [layer_index, frame, metadata.length]
+				return [layer_index, frame, metadata.length if metadata.has(&"length") else int(EditorServer.editor_settings.media_clip_default_length * ProjectServer.fps)]
 		1:
 			clips_moved_get_target_func = func(object_index: int, info: Dictionary, mouse_pos: Vector2,
 			main_layer_index: int, layer_delta: int, frame_delta: int) -> Array[int]:

@@ -63,13 +63,13 @@ var before_color_rect: ColorRect
 var after_color_rect: ColorRect
 var color_picker_button: IS.CustomTextureButton
 
-var red_controller: SliderControl
-var green_controller: SliderControl
-var blue_controller: SliderControl
-var hue_controller: SliderControl
-var sat_controller: SliderControl
-var val_controller: SliderControl
-var alpha_controller: SliderControl
+var red_controller: FloatController
+var green_controller: FloatController
+var blue_controller: FloatController
+var hue_controller: FloatController
+var sat_controller: FloatController
+var val_controller: FloatController
+var alpha_controller: FloatController
 
 var hex_line: LineEdit
 
@@ -108,14 +108,21 @@ func _ready() -> void:
 	after_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
 	color_picker_button = IS.create_texture_button(texture_color_picker, null, null, true)
 	
-	red_controller = IS.create_float_edit("R", true, false, curr_color.r, .0, 1.0, rgb_step)[0]
-	green_controller = IS.create_float_edit("G", true, false, curr_color.g, .0, 1.0, rgb_step)[0]
-	blue_controller = IS.create_float_edit("B", true, false, curr_color.b, .0, 1.0, rgb_step)[0]
-	
-	hue_controller = IS.create_float_edit("H", true, false, curr_color.h, .0, 1.0, 1.0 / 360)[0]
-	sat_controller = IS.create_float_edit("S", true, false, curr_color.s, .0, 1.0, .01)[0]
-	val_controller = IS.create_float_edit("V", true, false, curr_color.v, .0, 1.0, .01)[0]
-	alpha_controller = IS.create_float_edit("A", true, false, curr_color.a, .0, 1.0, .01)[0]
+	red_controller = IS.create_float_edit("R", curr_color.r, .0, 1., .01, .01, .1, false, 0)[0]
+	green_controller = IS.create_float_edit("G", curr_color.g, .0, 1., .01, .01, .1, false, 0)[0]
+	blue_controller = IS.create_float_edit("B", curr_color.b, .0, 1., .01, .01, .1, false, 0)[0]
+	hue_controller = IS.create_float_edit("H", curr_color.h, .0, 1., .01, .01, .1, false, 0)[0]
+	sat_controller = IS.create_float_edit("S", curr_color.s, .0, 1., .01, .01, .1, false, 0)[0]
+	val_controller = IS.create_float_edit("V", curr_color.v, .0, 1., .01, .01, .1, false, 0)[0]
+	alpha_controller = IS.create_float_edit("A", curr_color.a, .0, 1., .01, .01, .1, false, 0)[0]
+	var red_edit: IS.EditBoxContainer = red_controller.get_parent(); var green_edit: IS.EditBoxContainer = green_controller.get_parent()
+	var blue_edit: IS.EditBoxContainer = blue_controller.get_parent(); var hue_edit: IS.EditBoxContainer = hue_controller.get_parent()
+	var sat_edit: IS.EditBoxContainer = sat_controller.get_parent(); var val_edit: IS.EditBoxContainer = val_controller.get_parent()
+	var alpha_edit: IS.EditBoxContainer = alpha_controller.get_parent()
+	red_edit.header.size_flags_horizontal = 0; green_edit.header.size_flags_horizontal = 0
+	blue_edit.header.size_flags_horizontal = 0; hue_edit.header.size_flags_horizontal = 0
+	sat_edit.header.size_flags_horizontal = 0; val_edit.header.size_flags_horizontal = 0
+	alpha_edit.header.size_flags_horizontal = 0
 	
 	hex_line = IS.create_line_edit("Hex", curr_color.to_html())
 	
@@ -132,18 +139,14 @@ func _ready() -> void:
 	color_display_box.add_child(after_color_rect)
 	color_display_box.add_child(color_picker_button)
 	
-	rgb_box.add_child(red_controller.get_parent())
-	rgb_box.add_child(green_controller.get_parent())
-	rgb_box.add_child(blue_controller.get_parent())
-	hsv_box.add_child(hue_controller.get_parent())
-	hsv_box.add_child(sat_controller.get_parent())
-	hsv_box.add_child(val_controller.get_parent())
+	rgb_box.add_child(red_edit); rgb_box.add_child(green_edit); rgb_box.add_child(blue_edit)
+	hsv_box.add_child(hue_edit); hsv_box.add_child(sat_edit); hsv_box.add_child(val_edit)
 	
 	controller_box.add_child(color_control_box)
 	controller_box.add_child(color_display_box)
 	controller_box.add_child(rgb_box)
 	controller_box.add_child(hsv_box)
-	controller_box.add_child(alpha_controller.get_parent())
+	controller_box.add_child(alpha_edit)
 	controller_box.add_child(hex_line)
 	controller_box.add_child(type_menu)
 	
@@ -164,13 +167,13 @@ func _ready() -> void:
 	color_shape.val_changed.connect(on_color_shape_val_changed)
 	color_val_line.val_changed.connect(on_color_val_line_val_changed)
 	color_picker_button.pressed.connect(on_color_picker_button_pressed)
-	red_controller.slider_controller.val_changed.connect(on_red_slider_val_changed)
-	green_controller.slider_controller.val_changed.connect(on_green_slider_val_changed)
-	blue_controller.slider_controller.val_changed.connect(on_blue_slider_val_changed)
-	hue_controller.slider_controller.val_changed.connect(on_hue_slider_val_changed)
-	sat_controller.slider_controller.val_changed.connect(on_sat_slider_val_changed)
-	val_controller.slider_controller.val_changed.connect(on_val_slider_val_changed)
-	alpha_controller.slider_controller.val_changed.connect(on_alpha_slider_val_changed)
+	red_controller.val_changed.connect(on_red_slider_val_changed)
+	green_controller.val_changed.connect(on_green_slider_val_changed)
+	blue_controller.val_changed.connect(on_blue_slider_val_changed)
+	hue_controller.val_changed.connect(on_hue_slider_val_changed)
+	sat_controller.val_changed.connect(on_sat_slider_val_changed)
+	val_controller.val_changed.connect(on_val_slider_val_changed)
+	alpha_controller.val_changed.connect(on_alpha_slider_val_changed)
 	type_menu.focus_index_changed.connect(on_type_menu_focus_index_changed)
 	hex_line.text_submitted.connect(on_hex_line_text_changed)
 	
@@ -208,12 +211,12 @@ func get_picked_color() -> Color:
 	return image.get_pixelv(pick_pos)
 
 func update() -> void:
-	red_controller.slider_controller.set_curr_val_manually(curr_color.r)
-	green_controller.slider_controller.set_curr_val_manually(curr_color.g)
-	blue_controller.slider_controller.set_curr_val_manually(curr_color.b)
-	hue_controller.slider_controller.set_curr_val_manually(curr_color.h)
-	sat_controller.slider_controller.set_curr_val_manually(curr_color.s)
-	val_controller.slider_controller.set_curr_val_manually(curr_color.v)
+	red_controller.set_curr_val_manually(curr_color.r)
+	green_controller.set_curr_val_manually(curr_color.g)
+	blue_controller.set_curr_val_manually(curr_color.b)
+	hue_controller.set_curr_val_manually(curr_color.h)
+	sat_controller.set_curr_val_manually(curr_color.s)
+	val_controller.set_curr_val_manually(curr_color.v)
 	
 	color_shape.update(curr_color.h, curr_color.s, curr_color.v)
 	color_val_line.update(curr_color.v)

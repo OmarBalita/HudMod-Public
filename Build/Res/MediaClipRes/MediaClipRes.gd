@@ -135,6 +135,14 @@ func get_shader_material() -> ShaderMaterial:
 func set_shader_material(new_shader_material: ShaderMaterial) -> void:
 	shader_material = new_shader_material
 
+func get_curr_frame() -> int: return curr_frame
+func set_curr_frame(new_frame: int) -> void: curr_frame = new_frame
+
+func get_curr_node() -> Node: return curr_node
+func set_curr_node(new_node: Node) -> void: curr_node = new_node
+
+func call_node_method_if(method_name: StringName, args: Array = []) -> void:
+	if curr_node: curr_node.callv(method_name, args)
 
 func duplicate_media_res() -> MediaClipRes:
 	var duplicated_res: MediaClipRes = self.duplicate(true)
@@ -181,7 +189,7 @@ func erase_component(section_key: String, component: ComponentRes) -> void:
 
 func remove_component(section_key: String, component_id: StringName) -> void:
 	for component: ComponentRes in get_section_absolute(section_key):
-		if component.get_res_id() == component_id:
+		if component.get_classname() == component_id:
 			erase_component(section_key, component)
 			return
 
@@ -364,20 +372,22 @@ func loop_stacked_values(method: Callable) -> void:
 		method.call(key, key_result)
 
 func loop_children_deep(info: Dictionary[StringName, Variant], media_res_method: Callable, media_ress_pre_method: Callable = Callable(), media_ress_post_method: Callable = Callable()) -> void:
-	var curr_info: Dictionary[StringName, Variant] = info.duplicate(true)
+	var dupl_info: Dictionary[StringName, Variant] = info.duplicate(true)
 	for layer_index: int in children:
-		var media_clips: Dictionary = children[layer_index].media_clips
-		media_ress_pre_method.call(layer_index, media_clips, curr_info)
-		for frame_in: int in media_clips:
-			var media_res: MediaClipRes = media_clips[frame_in]
-			media_res_method.call(layer_index, media_clips, frame_in, media_res, curr_info)
-			media_res.loop_children_deep(info, media_res_method, media_ress_post_method)
-		media_ress_post_method.call(layer_index, media_clips, curr_info)
+		var media_ress: Dictionary = children[layer_index].media_clips
+		media_ress_pre_method.call(children, layer_index, dupl_info)
+		for frame_in: int in media_ress:
+			media_res_method.call(children, layer_index, frame_in, dupl_info)
+			media_ress[frame_in].loop_children_deep(info, media_res_method, media_ress_pre_method, media_ress_post_method)
+		media_ress_post_method.call(children, layer_index, dupl_info)
 
 func move_children_deep(offset: int) -> void:
-	loop_children_deep({&"media_clips": {} as Dictionary[int, Dictionary]},
-		func(layer_index: int, media_clips: Dictionary, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
-			info.media_clips[layer_index][frame_in + offset] = media_res,
-		func(layer_index: int, media_clips: Dictionary, info: Dictionary[StringName, Variant]) -> void: info.media_clips[layer_index] = {} as Dictionary,
-		func(layer_index: int, media_clips: Dictionary, info: Dictionary[StringName, Variant]) -> void: children[layer_index].media_clips = info.media_clips[layer_index]
+	loop_children_deep(
+		{&"media_ress": {} as Dictionary[int, Dictionary]},
+		func(children: Dictionary[int, Dictionary], layer_index: int, frame_in: int, info: Dictionary[StringName, Variant]) -> void:
+			info.media_ress[layer_index][frame_in + offset] = children[layer_index].media_clips[frame_in],
+		func(children: Dictionary[int, Dictionary], layer_index: int, info: Dictionary[StringName, Variant]) -> void:
+			info.media_ress[layer_index] = {},
+		func(children: Dictionary[int, Dictionary], layer_index: int, info: Dictionary[StringName, Variant]) -> void:
+			children[layer_index].media_clips = info.media_ress[layer_index]
 	)

@@ -21,7 +21,7 @@ var curr_layout: LayoutRootInfo:
 	set(val):
 		curr_layout = val
 		delete_layout_btn.visible = custom_layouts.has(curr_layout)
-var button_group:= ButtonGroup.new()
+var layout_button_group:= ButtonGroup.new()
 
 
 func _ready() -> void:
@@ -77,7 +77,7 @@ func register_layout_button(layout: LayoutRootInfo) -> void:
 	button.text = layout.layout_name.capitalize()
 	button.icon = layout.layout_image
 	
-	button.button_group = button_group
+	button.button_group = layout_button_group
 	button.pressed.connect(_on_layout_btn_pressed.bind(button, layout))
 	
 	layout_btn_box.add_child(button)
@@ -212,7 +212,7 @@ func _on_layout_btn_pressed(button: Button, layout: LayoutRootInfo) -> void:
 		open_layout(layout)
 
 func _on_add_layout_btn_pressed() -> void:
-	var layout_name_edit: LineEdit = IS.create_line_edit_edit(&"Layout Name", &"", &"Custom Layout")[0]
+	var layout_name_edit: LineEdit = IS.create_string_edit(&"Layout Name", &"", &"Custom Layout")[0]
 	
 	var accept_func: Callable = func() -> void:
 		create_new_layout(curr_layout_container, layout_name_edit.text)

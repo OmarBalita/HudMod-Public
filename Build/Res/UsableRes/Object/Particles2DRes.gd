@@ -1,7 +1,5 @@
-class_name Particles2DRes extends ObjectRes
-
-func _init() -> void:
-	set_res_id(&"Particles2D")
+@icon("res://Asset/Icons/Objects/particles-2d.png")
+class_name Particles2DRes extends Object2DRes
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
 	var particles_2d:= Particles2D.new()

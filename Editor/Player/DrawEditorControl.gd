@@ -217,15 +217,15 @@ func _ready_draw_ui() -> void:
 	custom_properties_check_button = IS.create_bool_edit("Custom Properites", false, min_size, 1)[0]
 	custom_color_button = IS.create_color_edit("Line Color", draw_edit.custom_line_color, min_size, 1)[0]
 	custom_fill_color_button = IS.create_color_edit("Fill Color", draw_edit.custom_fill_color, min_size, 1)[0]
-	custom_width_controller = IS.create_float_edit("Radius", false, true, draw_edit.custom_width, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
-	custom_strength_controller = IS.create_float_edit("Strength", false, true, draw_edit.custom_strength, .0, 1.0, .001, .01, 10.0, false, null, null, min_size, 1)[1]
-	pen_stabilize_check_button = IS.create_bool_edit("Stabilize", draw_edit.pen_is_stabilize, Vector2(150, 0), 1)[0]
-	stiffness_controller = IS.create_float_edit("Stiffness", false, true, draw_edit.stiffness, .01, 100.0, .01, .01, 10.0, false, null, null, min_size, 1)[1]
-	eraser_scale_controller = IS.create_float_edit("Eraser Scale", false, true, draw_edit.eraser_scale, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
-	draw_shape_mode_button = IS.create_option_controller([{text = "Line"}, {text = "Rectangle"}, {text = "Circle"}], "", draw_edit.draw_shape_mode)
-	draw_shape_is_centered_button = IS.create_bool_edit("Shape is Centered", true, Vector2(150, 0), draw_edit.draw_shape_is_centered)[0]
-	fill_grid_size_controller = IS.create_float_edit("Fill Grid Size", false, true, draw_edit.fill_grid_size, 2, 10, 1, 1, 10, true, null, null, min_size, 1)[1]
-	circle_subdv_controller = IS.create_float_edit("Circle Subdvision", false, true, draw_edit.circle_subdv, 3, 4096, 1, 1, 10, true, null, null, min_size, 1)[1]
+	#custom_width_controller = IS.create_float_edit("Radius", false, true, draw_edit.custom_width, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
+	#custom_strength_controller = IS.create_float_edit("Strength", false, true, draw_edit.custom_strength, .0, 1.0, .001, .01, 10.0, false, null, null, min_size, 1)[1]
+	#pen_stabilize_check_button = IS.create_bool_edit("Stabilize", draw_edit.pen_is_stabilize, Vector2(150, 0), 1)[0]
+	#stiffness_controller = IS.create_float_edit("Stiffness", false, true, draw_edit.stiffness, .01, 100.0, .01, .01, 10.0, false, null, null, min_size, 1)[1]
+	#eraser_scale_controller = IS.create_float_edit("Eraser Scale", false, true, draw_edit.eraser_scale, 1.0, 1000.0, 1.0, 1.0, 10.0, true, null, null, min_size, 1)[1]
+	#draw_shape_mode_button = IS.create_option_controller([{text = "Line"}, {text = "Rectangle"}, {text = "Circle"}], "", draw_edit.draw_shape_mode)
+	#draw_shape_is_centered_button = IS.create_bool_edit("Shape is Centered", true, Vector2(150, 0), draw_edit.draw_shape_is_centered)[0]
+	#fill_grid_size_controller = IS.create_float_edit("Fill Grid Size", false, true, draw_edit.fill_grid_size, 2, 10, 1, 1, 10, true, null, null, min_size, 1)[1]
+	#circle_subdv_controller = IS.create_float_edit("Circle Subdvision", false, true, draw_edit.circle_subdv, 3, 4096, 1, 1, 10, true, null, null, min_size, 1)[1]
 	drawings_button = IS.create_button("Drawings", IS.TEXTURE_DOWN)
 	
 	IS.add_children(draw_ui_box, [
@@ -371,7 +371,7 @@ func update_draw_edit_enabling() -> void:
 
 
 func popup_drawings_res_list(drawings: Array[GDDrawingRes], can_add_element: bool, pop_from: Control, popuped_controls: Array[Control] = []) -> ListController:
-	var drawings_list_controller = IS.create_list_controller(drawings, ["GDDrawingRes"], [], can_add_element)
+	var drawings_list_controller = IS.create_list_controller(drawings, &"GDDrawingRes", can_add_element)
 	
 	IS.expand(drawings_list_controller, true, true)
 	var popuped_box = IS.popup_box(popuped_controls + [drawings_list_controller], pop_from, null, Vector2(400, 800))

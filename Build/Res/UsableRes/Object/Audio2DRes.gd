@@ -1,7 +1,5 @@
-class_name Audio2DRes extends ObjectRes
-
-func _init() -> void:
-	set_res_id(&"Audio2D")
+@icon("res://Asset/Icons/Objects/audio-2d.png")
+class_name Audio2DRes extends Object2DRes
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
 	var audio_player_2d:= AudioStreamPlayer2D.new()

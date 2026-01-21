@@ -8,13 +8,7 @@ enum MethodType {
 	DIVIDE
 }
 
-@export var owner: MediaClipRes:
-	set(val):
-		owner = val
-		if owner:
-			_update()
-			if not res_changed.is_connected(_update):
-				res_changed.connect(_update)
+@export var owner: MediaClipRes: set = _set_owner
 
 @export var animations: Dictionary[UsableRes, Dictionary]
 # Animating Resources for each value stored like that {
@@ -39,6 +33,13 @@ func get_owner() -> MediaClipRes:
 
 func set_owner(new_owner: MediaClipRes) -> void:
 	owner = new_owner
+
+func _set_owner(new_owner: MediaClipRes) -> void:
+	owner = new_owner
+	if owner:
+		_update()
+		if not res_changed.is_connected(_update):
+			res_changed.connect(_update)
 
 func get_method_type() -> MethodType:
 	return method_type
@@ -142,7 +143,7 @@ func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) 
 
 func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
 	frame = owner.get_frame_or_curr_frame(frame)
-	var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, TypeServer.get_type_from_value(property_val))
+	var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, typeof(property_val))
 	var is_remove_request: bool = can_remove and anim_res.has_key(frame)
 	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame)
 	else: add_animation_keyframe(usable_res, property_key, property_val, frame)
@@ -159,9 +160,9 @@ func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, 
 		remove_animation_absolute(usable_res, property_key)
 	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 
-func send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	if has_animation(usable_res, param_key):
 		request_animation_keyframe(usable_res, param_key, param_new_val, null, false)
 
-func send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	request_animation_keyframe(usable_res, param_key, param_new_val)

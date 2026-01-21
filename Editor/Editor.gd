@@ -45,7 +45,8 @@ func _ready() -> void:
 	body_panel.mouse_exited.connect(set_is_focus.bind(false))
 
 func _ready_editor() -> void:
-	add_child(shortcut_node)
+	#add_child(shortcut_node)
+	pass
 
 
 class HeaderPanel extends PanelContainer:

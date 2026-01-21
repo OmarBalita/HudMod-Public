@@ -9,6 +9,7 @@ extends Node
 # videos stored many times for each MediaClipRes be on the timeline
 @export var videos: Dictionary[MediaClipRes, Video]
 
+
 func load_media_cache_from_file_system(file_system: DisplayFileSystemRes, thumbnail_path: String, waveform_path: String) -> void:
 	var ids_exists: PackedStringArray = EditorServer.get_ids_from_pathes(DirAccess.get_files_at(thumbnail_path))
 	file_system.loop_files_deep({}, func(path_or_name: StringName, file_info: Dictionary, info: Dictionary[StringName, Variant]) -> void:
@@ -63,8 +64,9 @@ func register_audio(path: StringName, ids_exists: PackedStringArray, id: String,
 
 func register_preset_media_res(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
 	var preset_media_res: MediaClipRes = ResourceLoader.load(path)
+	if preset_media_res == null:
+		preset_media_res = MediaServer.get_not_saved_resource(path)
 	preset_media_ress[path] = preset_media_res
-	#MediaServer.server_register_preset_media_res(path, preset_media_res, ids_exists, id, thumbnail_path)
 
 func push_video(media_res: MediaClipRes, path: StringName) -> void:
 	var video: Video = Video.new()

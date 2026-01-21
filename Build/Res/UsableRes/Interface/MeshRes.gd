@@ -50,9 +50,6 @@ enum MeshTypes {
 			if mesh_type != null:
 				_mesh = val
 
-func _init() -> void:
-	set_res_id("MeshRes")
-
 func _get_mesh() -> Mesh:
 	return _mesh
 
@@ -63,11 +60,11 @@ func get_surface_count() -> int:
 	return _mesh.get_surface_count()
 
 func create_outline(margin: float) -> MeshRes:
-	var outlined_mesh = _mesh.create_outline(margin)
+	var outlined_mesh: Mesh = _mesh.create_outline(margin)
 	return _new_from_mesh(outlined_mesh)
 
 static func _get_type_from_mesh(mesh: Mesh) -> Variant:
-	for mesh_type in mesh_types:
+	for mesh_type: int in mesh_types:
 		if typeof(mesh) == mesh_type:
 			return mesh_type
 	return null
@@ -78,7 +75,7 @@ static func _get_mesh_from_type(type: int = 0) -> Variant:
 	return null
 
 static func _new_from_mesh(mesh: Mesh) -> MeshRes:
-	var res = MeshRes.new()
+	var res:= MeshRes.new()
 	res.mesh = mesh
 	return res
 

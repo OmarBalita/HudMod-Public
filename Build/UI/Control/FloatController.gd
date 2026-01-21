@@ -20,7 +20,10 @@ enum States {
 @export var max_val: float = 100.0
 @export var step: float = .5
 @export var curr_val: Variant = 100.0
-@export var is_int: bool = false
+@export var is_int: bool = false:
+	set(val):
+		is_int = val
+		if val: curr_val = int(curr_val)
 
 @export_group("Theme")
 @export_subgroup("Constant")
@@ -74,7 +77,7 @@ func _ready() -> void:
 	curr_val_label = IS.create_label(str(curr_val))
 	curr_val_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
-	var button_args = [texture_right, null, null, false, {mouse_filter = Control.MOUSE_FILTER_STOP}]
+	var button_args: Array = [texture_right, null, null, false, {mouse_filter = Control.MOUSE_FILTER_STOP}]
 	left_button = IS.create_texture_button.callv(button_args)
 	right_button = IS.create_texture_button.callv(button_args)
 	left_button.flip_h = true

@@ -4,13 +4,10 @@ class_name ColorPaletteRes extends UsableRes
 @export var colors: Array
 @export var built_in: bool = false
 
-func _init() -> void:
-	set_res_id("ColorPaletteRes")
-
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
-		'palette_name': CtrlrHelper.get_string_controller_args([], palette_name),
-		'colors': CtrlrHelper.get_list_controller_args([], colors, ["Color"])
+		&"palette_name": export(string_args(palette_name)),
+		&"colors": export(list_args(colors, &"Color"))
 	}
 
 func get_palette_name() -> String:

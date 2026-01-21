@@ -76,12 +76,12 @@ var imported_clip_info: Dictionary[int, Dictionary] = {
 }
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
-	&"EmptyObject2D": {sections = [&"Display2D"]},
-	&"Text2D": {sections = [&"Display2D", &"Transition", &"Text"], },
-	&"Draw": {sections = [&"Display2D", &"Color", &"Draw"]},
-	&"Particles2D": {sections = [&"Display2D", &"Particles"]},
-	&"Camera2D": {sections = [&"Display2D", &"Camera"]},
-	&"Audio2D": {sections = [&"Display2D", &"Sound"]},
+	&"Object2DRes": {sections = [&"Display2D"]},
+	&"Text2DRes": {sections = [&"Display2D", &"Transition", &"Text"], },
+	&"DrawRes": {sections = [&"Display2D", &"Color", &"Draw"]},
+	&"Particles2DRes": {sections = [&"Display2D", &"Particles"]},
+	&"Camera2DRes": {sections = [&"Display2D", &"Camera"]},
+	&"Audio2DRes": {sections = [&"Display2D", &"Sound"]},
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
@@ -94,6 +94,8 @@ var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
 var editor_settings: AppEditorSettings = EditorServer.editor_settings
 
+var not_saved_yet: Dictionary[String, Resource] = {}
+var not_deleted_yet: Array[String] = []
 
 func server_register_image(path: String, image: Image, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
 	if ids_exists.has(id): load_thumbnail(path, thumbnail_path, id)
@@ -142,11 +144,27 @@ func load_waveform(media_path: String, thumbnail_path: String, id: String) -> vo
 	
 	timeline_waveform_textures[StringName(media_path)] = {&"textures": waveform_textures, &"total_width": total_width}
 
-func save_thumbnail(image: Image, thumbnail_path: String, id: String) -> void:
-	image.save_png(str(thumbnail_path, id, ".png"))
+func save_not_saved_yet() -> void:
+	for path: String in not_saved_yet:
+		var res: Resource = not_saved_yet[path]
+		if res is Image:
+			res.save_png(path)
+		elif res is AudioStreamWAV:
+			res.save_to_wav(path)
+		else:
+			ResourceSaver.save(res, path, ResourceSaver.FLAG_COMPRESS)
+	not_saved_yet.clear()
+func store_not_saved_resource(full_path: String, res: Resource) -> void: not_saved_yet[full_path] = res
+func get_not_saved_resource(full_path: String) -> Resource: return not_saved_yet[full_path]
+func store_not_saved_thumbnail(thumbnail_path: String, id: String, image: Image) -> void: not_saved_yet[str(thumbnail_path, id, ".png")] = image
 
-func get_thumbnail(key_as_path: StringName) -> Dictionary:
-	return thumbnails[key_as_path]
+func delete_not_deleted_yet() -> void:
+	for path: String in not_deleted_yet:
+		DirAccess.remove_absolute(path)
+	not_deleted_yet.clear()
+func store_not_deleted_resource(path: String) -> void: not_deleted_yet.append(path)
+
+func get_thumbnail(key_as_path: StringName) -> Dictionary: return thumbnails[key_as_path]
 
 func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnail_path: String, id: String) -> Dictionary:
 	var result_image: Image
@@ -160,7 +178,7 @@ func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnai
 		result_image.resize(THUMBNAIL_TARGET_WIDTH, target_height, Image.INTERPOLATE_LANCZOS)
 		result_texture = ImageTexture.create_from_image(result_image)
 		
-		save_thumbnail(result_image, thumbnail_path, id)
+		store_not_saved_thumbnail(thumbnail_path, id, result_image)
 	
 	else:
 		result_image = image
@@ -175,7 +193,7 @@ func create_thumbnail_from_video_path(video_path: StringName, thumbnail_path: St
 func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV, thumbnail_path: String, id: String) -> Dictionary:
 	var thumbnail_image: Image = generate_waveform_image(audio, .0, INF, draw_waveform_line_thumbnail, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, Color.TRANSPARENT)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
-	save_thumbnail(thumbnail_image, thumbnail_path, id)
+	store_not_saved_thumbnail(thumbnail_path, id, thumbnail_image)
 	return thumbnails[key_as_path]
 
 #func create_thumbnail_from_preset_media_res(key_as_path: StringName, preset_media_res: MediaClipRes, thumbnail_path: String, id: String) -> Dictionary:
@@ -202,7 +220,7 @@ func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio
 	for index: int in waveform_images.size():
 		var image: Image = waveform_images[index]
 		var image_path: String = str(waveform_port_path, index, ".png")
-		image.save_png(image_path)
+		not_saved_yet[image_path] = image
 		total_width += image.get_width()
 	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
 	return waveform_images
@@ -432,11 +450,11 @@ class ClipPanel extends Panel:
 		var offset: float = max(8, EditorServer.time_line.global_position.x - global_position.x + 298.0)
 		info_container.position.x = offset
 	
-	func _get_ui_thumbnail() -> Texture2D:
-		return null
-	
 	func _get_ui_name() -> String:
-		return owner_as_media_clip.clip_res.key_as_path.get_file()
+		return owner_as_media_clip.clip_res.get_display_name()
+	
+	func _get_ui_thumbnail() -> Texture2D:
+		return owner_as_media_clip.clip_res.get_thumbnail()
 	
 	func get_owner_as_media_clip() -> MediaClip:
 		return owner_as_media_clip
@@ -467,7 +485,7 @@ class ClipPanel extends Panel:
 					for prop_key: StringName in animated_props:
 						var anim_res: AnimationRes = animated_props[prop_key]
 						
-						var graph_category:= IS.create_category(true, str(comp_res.get_res_id(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.0), false)
+						var graph_category:= IS.create_category(true, str(comp_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.0), false)
 						var graph_editor:= CurveController.new()
 						
 						graph_editor.curves_profiles = anim_res.profiles
@@ -550,9 +568,6 @@ class ImageClipPanel extends ClipPanel:
 	func _ready() -> void:
 		super()
 		add_theme_stylebox_override(&"panel", preload("uid://d0sgurvxit0n2"))
-	
-	func _get_ui_thumbnail() -> Texture2D:
-		return MediaServer.get_thumbnail(owner_as_media_clip.clip_res.key_as_path).texture
 
 class VideoClipPanel extends ClipPanel:
 	func _ready() -> void:
@@ -657,13 +672,6 @@ class ObjectClipPanel extends ClipPanel:
 		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		thumbnail_rect.custom_minimum_size.x = 50.0
 		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
-	
-	func _get_ui_name() -> String:
-		return owner_as_media_clip.clip_res.object_res.get_res_id()
-	
-	func _get_ui_thumbnail() -> Texture2D:
-		var res_id: StringName = owner_as_media_clip.clip_res.object_res.get_res_id()
-		return TypeServer.objects[res_id].icon
 
 func get_file_main_info(path: StringName, get_more_meta_func: Callable = Callable()) -> Dictionary[StringName, String]:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -760,7 +768,7 @@ func _tree_children_of(parent_res: MediaClipRes, tree: Tree, parent_tree_item: T
 
 func get_clip_sections(media_res: MediaClipRes) -> Array:
 	if media_res is ImportedClipRes: return imported_clip_info[media_res.type].sections
-	elif media_res is ObjectClipRes: return object_clip_info[media_res.object_res.get_res_id()].sections
+	elif media_res is ObjectClipRes: return object_clip_info[media_res.object_res.get_classname()].sections
 	return []
 
 # Get Media Type

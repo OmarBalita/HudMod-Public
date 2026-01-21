@@ -4,7 +4,6 @@ class_name CompressedTextureRes extends UsableRes
 
 func _init(texture: CompressedTexture2D) -> void:
 	set_texture(texture)
-	set_res_id("ImageTextureRes")
 
 func get_texture() -> CompressedTexture2D:
 	return texture

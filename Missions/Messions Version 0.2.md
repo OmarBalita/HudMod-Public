@@ -4,12 +4,18 @@
 	Save project
 	Manage AppData and global files
 
+- PlayBack:
+	Fix Nodes not removed when MediaClipRes exited
+	Constant interpolation for Booleans, and Unanimatable properties
+	Properties in Nested Arrays be Animatable
+
 - Media Explorer:
 	Global, Projects files [+]
 	Activate Presets: Global, Project [+]
 	Move to Global, Move to Project Options
-	Insert a Strong Search system
+	Insert a Strong Search system [+]
 	Fix Selection System [->]
+	Error management when imported media type is not correct [->]
 	Error management when required media are unavailable [->]
 	Activate all 2D Objects:
 		Object2D
@@ -21,7 +27,8 @@
 - Properties:
 	same Search System in Media Explorer
 	Copy, Past, and Duplicate Components
-	Reset Property
+	Reset Property [+]
+	Forced Components
 	Set Property Transition Quickly
 	Transition Component Class
 	Animation In-Out Component Class
@@ -31,14 +38,20 @@
 - Player:
 	Display Audio [+]
 	create Header Menu Bar (just UI)
-	Draw HurtBox for Displayed Media (Image, Video, Object2D ...)
+	Draw HurtBox for Displayed Media (Image, Video, Object2D ...) when selected
 	Select and Interact with Player Viewport
 
 - Controllers:
 	Fix float Controllers
-	String Controller
-	add more int/float Controllers for different editing ways
-	Categories Menu to hide properties
+	Fix String Controller, and Integrate MultiLine
+	Fix Array Controller
+	Fix Keyframes Displaying
+	Create Path Controller, which support Display imported file
+	Create Preset Font Controller
+	Copy Resource or any Value and past it
+	Add more int/float Controllers for different editing ways
+	Categories Menu to hide properties [+]
+	Expand and Collapse Color Palette
 	Color Correction Controllers, Editors:
 		->
 		->
@@ -59,3 +72,4 @@
 		Move any Editor Panel and window-it [+]
 		Built-in Preset Layout, and Custom Layout [+]
 	Fix popuped Menu Problems, with Back Layout, specifically with Timeline
+

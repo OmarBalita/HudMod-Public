@@ -2,7 +2,6 @@ class_name Wave2DComponents extends ComponentRes
 
 func _init() -> void:
 	super()
-	set_res_id("Wave2D")
 	register_props({
 		enable_x = false,
 		enable_y = true,
@@ -11,17 +10,17 @@ func _init() -> void:
 		domain = 100.0
 	})
 
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var frame: int = EditorServer.frame
 	var ex:= func() -> bool: return get_prop(&"enable_x")
 	var ey:= func() -> bool: return get_prop(&"enable_y")
 	var enabled_cond: Array = [func() -> bool: return ex.call() or ey.call(), [true]]
 	return {
-		enable_x = CtrlrHelper.get_bool_controller_args([], ex.call()),
-		enable_y = CtrlrHelper.get_bool_controller_args([], ey.call()),
-		method = CtrlrHelper.get_option_controller_args(enabled_cond, ["Sin", "Cos"], get_prop(&"method")),
-		speed = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"speed")),
-		domain = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"domain"))
+		#enable_x = CtrlrHelper.get_bool_controller_args([], ex.call()),
+		#enable_y = CtrlrHelper.get_bool_controller_args([], ey.call()),
+		#method = CtrlrHelper.get_option_controller_args(enabled_cond, ["Sin", "Cos"], get_prop(&"method")),
+		#speed = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"speed")),
+		#domain = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"domain"))
 	}
 
 func _process(frame: int) -> void:

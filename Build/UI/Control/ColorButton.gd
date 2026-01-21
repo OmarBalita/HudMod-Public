@@ -10,7 +10,26 @@ func _ready() -> void:
 	pressed.connect(on_pressed)
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2(5, 5), size - Vector2(10, 10)), curr_color)
+	var rect_margin_size:= Vector2(5, 5)
+	var rect:= Rect2(rect_margin_size, size - rect_margin_size * 2.)
+	
+	if curr_color.a != 1.:
+		var grid_rect_size: Vector2 = Vector2(10., 10.)
+		var grid_count:= rect.size / grid_rect_size / 2.
+		
+		draw_rect(rect, Color.WHITE)
+		for y: int in grid_count.y + 1:
+			var x_offset: float = (y % 2) * grid_rect_size.x
+			for x: int in grid_count.x:
+				var grid_rect_pos:= Vector2(x * 2., y) * grid_rect_size + Vector2(x_offset, .0)
+				draw_rect(
+					Rect2(
+						rect_margin_size + grid_rect_pos,
+						grid_rect_size
+					).intersection(rect), Color.DIM_GRAY
+				)
+	
+	draw_rect(rect, curr_color)
 
 func get_curr_color() -> Color:
 	return curr_color

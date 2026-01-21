@@ -57,51 +57,46 @@ enum DistMode {
 
 var center_point: Vector2
 
-
-
-
 func _init(init_points: PackedVector2Array = [], init_drawn_entities: Array[DrawnEntityRes] = []) -> void:
-	set_res_id("GDDrawingRes")
-	
 	points = init_points
 	drawn_entities = init_drawn_entities
 	
 	res_changed.connect(on_res_changed)
 	points_changed.connect(on_points_changed)
 
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
-	var line_cond = [get_draw_line, [true]]
-	var display_container = _get_drawing_res_display_viewport_container()
-	var is_brush_exported_parameters: Dictionary[StringName, Dictionary]
-	if is_brush:
-		is_brush_exported_parameters = {
-			"display": {'val': display_container, 'update_func': display_container.get_meta('update_func'), 'ui_cond': []},
-			"brush_name": CtrlrHelper.get_string_controller_args([], brush_name),
-		}
-	return is_brush_exported_parameters.merged({
-		"drawn_entities": CtrlrHelper.get_list_controller_args([], drawn_entities, ["DrawnEntityRes"]),
-		
-		"draw_line": CtrlrHelper.get_bool_controller_args([], draw_line),
-		"draw_fill": CtrlrHelper.get_bool_controller_args([], draw_fill),
-		"antialised": CtrlrHelper.get_bool_controller_args(line_cond, antialised),
-		
-		"color_line": CtrlrHelper.get_color_controller_args(line_cond, color_line),
-		"color_fill": CtrlrHelper.get_color_controller_args([get_draw_fill, [true]], color_fill),
-		"use_color_range": CtrlrHelper.get_bool_controller_args([], use_color_range),
-		"color_range": CtrlrHelper.get_color_range_controller_args([get_use_color_range, [true]], color_range),
-		
-		"main_width": CtrlrHelper.get_float_controller_args(line_cond, false, main_width),
-		"width_curve_range_type": CtrlrHelper.get_option_controller_args(line_cond, RangeTypes.keys(), width_curve_range_type),
-		#"width_begin_curve": CtrlrHelper.get_curve_controller_args(width_begin_curve),
-		#"width_end_curve": CtrlrHelper.get_curve_controller_args(width_end_curve),
-		"width_begin_dist": CtrlrHelper.get_float_controller_args(line_cond, false, width_begin_dist),
-		"width_end_dist": CtrlrHelper.get_float_controller_args(line_cond, false, width_end_dist),
-		
-		"cap_begin_type": CtrlrHelper.get_option_controller_args(line_cond, CapsTypes.keys(), cap_begin_type),
-		"cap_end_type": CtrlrHelper.get_option_controller_args(line_cond, CapsTypes.keys(), cap_end_type),
-		"cap_begin_scale": CtrlrHelper.get_float_controller_args([func() -> bool: return get_draw_line() and get_cap_begin_type(), [true]], false, cap_begin_scale),
-		"cap_end_scale": CtrlrHelper.get_float_controller_args([func() -> bool: return get_draw_line() and get_cap_end_type(), [true]], false, cap_end_scale)
-	})
+#func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+	#var line_cond = [get_draw_line, [true]]
+	#var display_container = _get_drawing_res_display_viewport_container()
+	#var is_brush_exported_parameters: Dictionary[StringName, Dictionary]
+	#if is_brush:
+		#is_brush_exported_parameters = {
+			#"display": {'val': display_container, 'update_func': display_container.get_meta('update_func'), 'ui_cond': []},
+			#"brush_name": CtrlrHelper.get_string_controller_args([], brush_name),
+		#}
+	#return is_brush_exported_parameters.merged({
+		#"drawn_entities": CtrlrHelper.get_list_controller_args([], drawn_entities, ["DrawnEntityRes"]),
+		#
+		#"draw_line": CtrlrHelper.get_bool_controller_args([], draw_line),
+		#"draw_fill": CtrlrHelper.get_bool_controller_args([], draw_fill),
+		#"antialised": CtrlrHelper.get_bool_controller_args(line_cond, antialised),
+		#
+		#"color_line": CtrlrHelper.get_color_controller_args(line_cond, color_line),
+		#"color_fill": CtrlrHelper.get_color_controller_args([get_draw_fill, [true]], color_fill),
+		#"use_color_range": CtrlrHelper.get_bool_controller_args([], use_color_range),
+		#"color_range": CtrlrHelper.get_color_range_controller_args([get_use_color_range, [true]], color_range),
+		#
+		#"main_width": CtrlrHelper.get_float_controller_args(line_cond, false, main_width),
+		#"width_curve_range_type": CtrlrHelper.get_option_controller_args(line_cond, RangeTypes.keys(), width_curve_range_type),
+		##"width_begin_curve": CtrlrHelper.get_curve_controller_args(width_begin_curve),
+		##"width_end_curve": CtrlrHelper.get_curve_controller_args(width_end_curve),
+		#"width_begin_dist": CtrlrHelper.get_float_controller_args(line_cond, false, width_begin_dist),
+		#"width_end_dist": CtrlrHelper.get_float_controller_args(line_cond, false, width_end_dist),
+		#
+		#"cap_begin_type": CtrlrHelper.get_option_controller_args(line_cond, CapsTypes.keys(), cap_begin_type),
+		#"cap_end_type": CtrlrHelper.get_option_controller_args(line_cond, CapsTypes.keys(), cap_end_type),
+		#"cap_begin_scale": CtrlrHelper.get_float_controller_args([func() -> bool: return get_draw_line() and get_cap_begin_type(), [true]], false, cap_begin_scale),
+		#"cap_end_scale": CtrlrHelper.get_float_controller_args([func() -> bool: return get_draw_line() and get_cap_end_type(), [true]], false, cap_end_scale)
+	#})
 
 
 func _get_drawing_res_display_viewport_container() -> SubViewportContainer:

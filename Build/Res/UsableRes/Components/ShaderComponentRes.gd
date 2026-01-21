@@ -94,13 +94,13 @@ func _init() -> void:
 	register_prop(&"effect_blend_method", .0, &"_set_prop_and_update_shader")
 	register_prop(&"effect_weight", .5, &"_set_shader_prop")
 
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
-	return {
-		&"effect_blend_method": CtrlrHelper.get_option_controller_args([], [
-			"Set", "Mix", "Add", "Multiply", "Screen", "Overlay", "Soft Light", "Hard Light", "Difference"
-		], get_prop(&"effect_blend_method")),
-		&"effect_weight": CtrlrHelper.get_float_controller_args([], false, get_prop(&"effect_weight"), .0, 1.0)
-	}
+#func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+	#return {
+		#&"effect_blend_method": CtrlrHelper.get_option_controller_args([], [
+			#"Set", "Mix", "Add", "Multiply", "Screen", "Overlay", "Soft Light", "Hard Light", "Difference"
+		#], get_prop(&"effect_blend_method")),
+		#&"effect_weight": CtrlrHelper.get_float_controller_args([], false, get_prop(&"effect_weight"), .0, 1.0)
+	#}
 
 func _set_prop_and_update_shader(prop_key: StringName, prop_val: Variant) -> void:
 	_set_prop_default(prop_key, prop_val)

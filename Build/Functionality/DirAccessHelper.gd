@@ -20,6 +20,6 @@ static func remove_directory_recursive(path: String) -> void:
 		dir.list_dir_end()
 		
 		DirAccess.remove_absolute(path)
-		print("Removed directory: {path}")
+		printerr("Removed directory: {path}".format(path))
 	else:
-		print("An error occurred when trying to access the path: {path}")
+		printerr("An error occurred when trying to access the path: {path}".format(path))

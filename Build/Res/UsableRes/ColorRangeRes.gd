@@ -5,7 +5,6 @@ signal color_range_changed()
 @export var keys: Dictionary = {}
 
 func _init() -> void:
-	set_res_id("ColorRangeRes")
 	add_key(.0, Color.WHITE)
 	add_key(1.0, Color.BLACK)
 

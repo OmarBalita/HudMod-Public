@@ -1,12 +1,12 @@
 class_name AnimationRes extends Resource
 
-static var funcs_indexer: Dictionary[int, Dictionary] = {
-	3: {s=&"sample_int", a=&"add_key_int", g=&"get_key_int", p=1},
-	4: {s=&"sample_float", a=&"add_key_float", g=&"get_key_float", p=1},
-	5: {s=&"sample_vec2", a=&"add_key_vec2", g=&"get_key_vec2", p=2},
-	6: {s=&"sample_vec3", a=&"add_key_vec3", g=&"get_key_vec3", p=3},
-	7: {s=&"sample_color", a=&"add_key_color", g=&"get_key_color", p=4},
-	8: {s=&"sample_vec4", a=&"add_key_vec4", g=&"get_key_vec4", p=4},
+static var funcs_indexer: Dictionary[Variant.Type, Dictionary] = {
+	TYPE_INT: {s=&"sample_int", a=&"add_key_int", g=&"get_key_int", p=1},
+	TYPE_FLOAT: {s=&"sample_float", a=&"add_key_float", g=&"get_key_float", p=1},
+	TYPE_VECTOR2: {s=&"sample_vec2", a=&"add_key_vec2", g=&"get_key_vec2", p=2},
+	TYPE_VECTOR3: {s=&"sample_vec3", a=&"add_key_vec3", g=&"get_key_vec3", p=3},
+	TYPE_VECTOR4: {s=&"sample_vec4", a=&"add_key_vec4", g=&"get_key_vec4", p=4},
+	TYPE_COLOR: {s=&"sample_color", a=&"add_key_color", g=&"get_key_color", p=4}
 }
 
 @export var value_type: int = -1:

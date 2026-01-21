@@ -1,7 +1,5 @@
-class_name Camera2DRes extends ObjectRes
-
-func _init() -> void:
-	set_res_id(&"Camera2D")
+@icon("res://Asset/Icons/Objects/camera-2d.png")
+class_name Camera2DRes extends Object2DRes
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
 	var camera_2d:= Camera2D.new()

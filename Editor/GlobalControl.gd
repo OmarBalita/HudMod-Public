@@ -17,15 +17,18 @@ func _exit_tree() -> void:
 	EditorServer.global_controls.erase(get_window())
 
 func play() -> void:
-	var timeline: TimeLine = EditorServer.time_line
-	if timeline.is_playing:
-		timeline.stop()
-	else:
-		timeline.play()
+	#var timeline: TimeLine = EditorServer.time_line
+	#if timeline.is_playing:
+		#timeline.stop()
+	#else:
+		#timeline.play()
+	pass
 
 func save() -> void:
 	ProjectServer.save_project()
 	GlobalServer.save_global()
+	MediaServer.save_not_saved_yet()
+	MediaServer.delete_not_deleted_yet()
 
 func undo() -> void:
 	pass

@@ -70,7 +70,7 @@ func update() -> void:
 	 
 	for index: int in options.size():
 		var option: MenuOption = options[index]
-		var option_button: Button = IS.create_button(option.text, option.icon, true, false, {flat = true, expand_icon = expand_icons})
+		var option_button: Button = IS.create_button(option.text, option.icon, true, true, {expand_icon = expand_icons})
 		option_button.add_theme_color_override(&"icon_normal_color", Color.GRAY)
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.pressed.connect(set_focus_index.bind(index))
@@ -81,6 +81,8 @@ func update() -> void:
 		buttons_container.add_child(option_button)
 		if index == focus_index:
 			focused_option_button = option_button
+		else:
+			IS.set_font_from_label_settings(option_button, IS.LABEL_SETTINGS_MAIN)
 	
 	set_focus_index(focus_index, false)
 	custom_minimum_size = buttons_container.size

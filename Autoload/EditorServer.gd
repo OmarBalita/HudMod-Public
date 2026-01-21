@@ -201,7 +201,7 @@ func load_presets(global: bool = false) -> Array[MediaClipRes]:
 			result.append(media_res)
 	return result
 
-func save_presets(presets: Array[MediaClipRes], global: bool = false) -> PackedStringArray:
+func create_presets(presets: Array[MediaClipRes], global: bool = false) -> PackedStringArray:
 	var target_path: String = get_presets_path(global)
 	make_dir_abs(target_path)
 	var used_ids: PackedStringArray = DirAccess.get_files_at(target_path)
@@ -209,7 +209,7 @@ func save_presets(presets: Array[MediaClipRes], global: bool = false) -> PackedS
 	for preset_media_res: MediaClipRes in presets:
 		var id: String = ProjectServer.generate_new_id(used_ids, 12)
 		var save_path: String = str(target_path, id, ".res")
-		ResourceSaver.save(preset_media_res, save_path, ResourceSaver.FLAG_COMPRESS)
+		MediaServer.store_not_saved_resource(save_path, preset_media_res)
 		used_ids.append(id)
 		save_pathes.append(save_path)
 	return save_pathes

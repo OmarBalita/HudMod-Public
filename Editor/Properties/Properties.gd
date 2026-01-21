@@ -106,10 +106,10 @@ func open_properties(media_clips: Array[MediaClip], focused_media_clip: MediaCli
 	if sections_keys:
 		warning_message_label.hide()
 		
-		var options_info: Array[Dictionary] = TypeServer.get_sections_info(sections_keys)
-		var sections_menu:= IS.create_menu(MenuOption.new_options_with_check_group(options_info))
+		#var options_info: Array[Dictionary] = ClassServer.get_sections_info(sections_keys)
+		#var sections_menu:= IS.create_menu(MenuOption.new_options_with_check_group(options_info))
 		
-		header.add_child(sections_menu)
+		#header.add_child(sections_menu)
 		
 		for index: int in sections_keys.size():
 			
@@ -140,7 +140,7 @@ func open_properties(media_clips: Array[MediaClip], focused_media_clip: MediaCli
 			
 			new_components_button.pressed.connect(func() -> void:
 				var section_components: Array
-				for section_info: Dictionary in TypeServer.components[section_key]:
+				for section_info: Dictionary in ClassServer.component_res_sorted_by_sections[section_key]:
 					section_components.append(MenuOption.new(section_info.text, section_info.icon, add_new_component.bind(media_clips, focused_media_clip, section_key, section_info.script)))
 				IS.popup_menu(section_components, new_components_button)
 			)
@@ -154,7 +154,7 @@ func open_properties(media_clips: Array[MediaClip], focused_media_clip: MediaCli
 				root_container.visible = is_true_index
 		
 		change_focus_index_func.call(0)
-		sections_menu.focus_index_changed.connect(change_focus_index_func)
+		#sections_menu.focus_index_changed.connect(change_focus_index_func)
 
 
 func add_new_component(media_clips: Array[MediaClip], focused_media_clip: MediaClip, section_key: String, component_script: Script) -> void:
@@ -188,7 +188,7 @@ func update_section_properties(media_clips: Array[MediaClip], focused_media_clip
 		for index: int in section.size():
 			var component: ComponentRes = section[index]
 			
-			var controller: Control = UsableRes.create_custom_edit(component.get_res_id(), component)[0]
+			var controller: Control = UsableRes.create_custom_edit(component.get_classname(), component)[0]
 			var edit_box: IS.EditBoxContainer = controller.get_meta("owner")
 			edit_box.keyframable = false
 			var delete_button:= IS.create_texture_button(texture_delete)

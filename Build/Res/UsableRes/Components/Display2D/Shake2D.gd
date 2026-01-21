@@ -2,7 +2,6 @@ class_name Shake2DComponent extends ComponentRes
 
 func _init() -> void:
 	super()
-	set_res_id("Shake2D")
 	register_props({
 		dur_between_peaks = 1,
 		offset_scale = 5.0,
@@ -15,15 +14,15 @@ func _init() -> void:
 		points = {}
 	})
 
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var frame: int = EditorServer.frame
 	return {
-		dur_between_peaks = CtrlrHelper.get_float_controller_args([], true, get_prop(&"dur_between_peaks"), 1, 1e6),
-		offset_scale = CtrlrHelper.get_float_controller_args([], false, get_prop(&"offset_scale"), .0, INF, .001, .5),
-		direction = CtrlrHelper.get_vec2_controller_args([], get_prop(&"direction")),
-		spread = CtrlrHelper.get_float_controller_args([], false, get_prop(&"spread"), .0, 1.0),
-		normalized = CtrlrHelper.get_bool_controller_args([], get_prop(&"normalized")),
-		interpolate = CtrlrHelper.get_bool_controller_args([], get_prop(&"interpolate"))
+		#dur_between_peaks = CtrlrHelper.get_float_controller_args([], true, get_prop(&"dur_between_peaks"), 1, 1e6),
+		#offset_scale = CtrlrHelper.get_float_controller_args([], false, get_prop(&"offset_scale"), .0, INF, .001, .5),
+		#direction = CtrlrHelper.get_vec2_controller_args([], get_prop(&"direction")),
+		#spread = CtrlrHelper.get_float_controller_args([], false, get_prop(&"spread"), .0, 1.0),
+		#normalized = CtrlrHelper.get_bool_controller_args([], get_prop(&"normalized")),
+		#interpolate = CtrlrHelper.get_bool_controller_args([], get_prop(&"interpolate"))
 	}
 
 
