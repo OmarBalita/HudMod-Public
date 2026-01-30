@@ -33,7 +33,7 @@ func set_selected_id_manually(new_selected_id: int) -> void:
 	selected_id = new_selected_id
 
 func on_pressed() -> void:
-	var menu = IS.popup_menu(options, self)
+	var menu: PopupedMenu = IS.popup_menu(options, self, get_window())
 	menu.menu_button_pressed.connect(on_menu_button_pressed)
 
 func on_menu_button_pressed(id: int) -> void:

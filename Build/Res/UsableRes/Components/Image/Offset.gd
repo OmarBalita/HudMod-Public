@@ -1,20 +1,20 @@
-class_name OffsetComponent extends ComponentRes
+class_name CompOffset extends ComponentRes
 
-func _init() -> void:
-	super()
-	register_props({
-		centered = true,
-		offset = Vector2.ZERO,
-		flip_h = false,
-		flip_v = false
-	})
+@export var centered: bool = true
+@export var offset: Vector2 = Vector2.ZERO
+@export var flip_h: bool = false
+@export var flip_v: bool = false
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	var frame: int = EditorServer.frame
 	return {
-		#centered = CtrlrHelper.get_bool_controller_args([], get_prop(&"centered")),
-		#offset = CtrlrHelper.get_vec2_controller_args([], get_prop(&"offset")),
-		#flip_h = CtrlrHelper.get_bool_controller_args([], get_prop(&"flip_h")),
-		#flip_v = CtrlrHelper.get_bool_controller_args([], get_prop(&"flip_v"))
+		&"centered": export(bool_args(centered)),
+		&"offset": export(vec2_args(offset)),
+		&"flip_h": export(bool_args(flip_h)),
+		&"flip_v": export(bool_args(flip_v))
 	}
 
+func _process(frame: int) -> void:
+	submit_stacked_value_with_custom_method(&"centered", centered)
+	submit_stacked_value(&"offset", offset)
+	submit_stacked_value_with_custom_method(&"flip_h", flip_h)
+	submit_stacked_value_with_custom_method(&"flip_v", flip_v)

@@ -16,7 +16,7 @@ func add_ui_condition(ui_condition: Dictionary[Array, Array]) -> void:
 func update() -> void:
 	var conditions_buffer: Dictionary[Callable, Variant]
 	
-	for key: Array in ui_conditions.keys():
+	for key: Array in ui_conditions:
 		var cond_func = key[0]
 		var needed_results = key[1]
 		

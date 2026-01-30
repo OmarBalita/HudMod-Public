@@ -139,6 +139,7 @@ func has_media_clip(clip_pos: int) -> bool:
 func reset_media_clip(clip_pos: int, select: bool = true) -> void:
 	remove_media_clip(clip_pos)
 	spawn_media_clip(clip_pos, ProjectServer.get_layer(index).media_clips[clip_pos], select)
+	update(false)
 
 func request_remove_media_clip(clip_pos: int) -> void:
 	if displayed_media_clips.has(clip_pos):
@@ -165,7 +166,13 @@ func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: b
 	
 	elif clip_res is ObjectClipRes:
 		clip = ObjectClip.new()
-		var clip_panel: MediaServer.ObjectClipPanel = MediaServer.ObjectClipPanel.new(clip)
+		var objectres_classname: StringName = clip_res.object_res.get_script().get_global_name()
+		var clip_panel_id: GDScript = MediaServer.object_clip_info[objectres_classname].get(&"clip_panel")
+		var clip_panel: Variant
+		
+		if clip_panel_id == null: clip_panel = MediaServer.ObjectClipPanel.new(clip)
+		else: clip_panel = clip_panel_id.new(clip)
+		
 		clip.set_clip_panel(clip_panel)
 	
 	# Setup Clip Informations
@@ -192,6 +199,7 @@ func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: b
 		
 	displayed_media_clips[clip_pos] = {&"clip": clip}
 	return clip
+
 
 func select_media_clip(clip_pos: int) -> void:
 	if displayed_media_clips.has(clip_pos):

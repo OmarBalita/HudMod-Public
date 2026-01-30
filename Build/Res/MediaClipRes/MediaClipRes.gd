@@ -1,5 +1,7 @@
 class_name MediaClipRes extends Resource
 
+signal media_clip_res_updated()
+
 signal component_property_changed(property_key: StringName, property_new_val: Variant)
 signal shader_code_compiled_successfully()
 signal shader_material_changed()
@@ -17,8 +19,7 @@ signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key
 	set(val):
 		if GlobalServer.is_global_cache_loaded:
 			var min_from: int = MediaServer.get_media_default_from_and_length(self).x
-			if min_from == -1: from = max(0, val)
-			else: from = val
+			from = max(0, val)
 			update()
 		else:
 			from = val
@@ -75,6 +76,10 @@ var shader_material: ShaderMaterial:
 					var param_val: Variant = shader_init_params[param_key]
 					var param_code_key: String = comp_res.get_shader_param_code_name(String(param_key))
 					shader_material.set_shader_parameter(param_code_key, param_val)
+		for section_key: StringName in components:
+			for comp_res: ComponentRes in components[section_key]:
+				if comp_res is ShaderComponentRes:
+					comp_res._ready_shader()
 		shader_material_changed.emit()
 
 var curr_node: Node # Curr Node Instanced
@@ -145,7 +150,7 @@ func call_node_method_if(method_name: StringName, args: Array = []) -> void:
 	if curr_node: curr_node.callv(method_name, args)
 
 func duplicate_media_res() -> MediaClipRes:
-	var duplicated_res: MediaClipRes = self.duplicate(true)
+	var duplicated_res: MediaClipRes = self.duplicate()
 	# Generate new ID
 	duplicated_res.id = ProjectServer.generate_clip_id()
 	# Duplicate Components
@@ -240,6 +245,11 @@ func loop_components_animations_keys(info: Dictionary[StringName, Variant], meth
 							)
 	return info
 
+func _emit_media_clip_res_updated(_from: int = -1, _length: int = -1) -> void:
+	from = from if _from == -1 else _from
+	length = length if _length == -1 else _length
+	media_clip_res_updated.emit()
+
 func _emit_component_property_changed(property_key: StringName, property_new_val: Variant) -> void:
 	component_property_changed.emit(property_key, property_new_val)
 
@@ -254,8 +264,11 @@ func process(frame: int) -> void:
 	loop_components(process_component, [frame])
 	if curr_node:
 		loop_stacked_values(curr_node.set)
-		if shader_material:
-			shader_material.set_shader_parameter(&"time", frame)
+	process_shader_material(frame)
+
+func process_shader_material(frame: int) -> void:
+	if shader_material:
+		shader_material.set_shader_parameter(&"time", frame)
 
 func exit(node: Node) -> void:
 	curr_frame = -1
@@ -265,6 +278,7 @@ func exit(node: Node) -> void:
 
 func update() -> void:
 	loop_components(update_component)
+
 
 
 func enter_component(component: ComponentRes) -> void:
@@ -316,7 +330,6 @@ func compile_shader_snips() -> String:
 		fragment_section, "\n",
 		vertex_section
 	)
-	
 	return shader_code
 
 static func _get_shader_header() -> String:
@@ -339,6 +352,7 @@ static func _format_shader_snip(shader_snip: String, params_names_list: Dictiona
 		format_values[key] = code_key
 	
 	return shader_snip.format(format_values)
+
 
 
 func clear_stacked_values() -> void:
@@ -371,15 +385,18 @@ func loop_stacked_values(method: Callable) -> void:
 		var key_result: Variant = get_stacked_values_key_result(key)
 		method.call(key, key_result)
 
+
 func loop_children_deep(info: Dictionary[StringName, Variant], media_res_method: Callable, media_ress_pre_method: Callable = Callable(), media_ress_post_method: Callable = Callable()) -> void:
 	var dupl_info: Dictionary[StringName, Variant] = info.duplicate(true)
+	var pre_valid: bool = media_ress_pre_method.is_valid()
+	var post_valid: bool = media_ress_post_method.is_valid()
 	for layer_index: int in children:
 		var media_ress: Dictionary = children[layer_index].media_clips
-		media_ress_pre_method.call(children, layer_index, dupl_info)
+		if pre_valid: media_ress_pre_method.call(children, layer_index, dupl_info)
 		for frame_in: int in media_ress:
 			media_res_method.call(children, layer_index, frame_in, dupl_info)
 			media_ress[frame_in].loop_children_deep(info, media_res_method, media_ress_pre_method, media_ress_post_method)
-		media_ress_post_method.call(children, layer_index, dupl_info)
+		if post_valid: media_ress_post_method.call(children, layer_index, dupl_info)
 
 func move_children_deep(offset: int) -> void:
 	loop_children_deep(
@@ -391,3 +408,29 @@ func move_children_deep(offset: int) -> void:
 		func(children: Dictionary[int, Dictionary], layer_index: int, info: Dictionary[StringName, Variant]) -> void:
 			children[layer_index].media_clips = info.media_ress[layer_index]
 	)
+
+func check_children_for_paths_deep(paths_for_check: PackedStringArray) -> PackedStringArray:
+	var result: PackedStringArray
+	
+	for layer_index: int in children:
+		var media_ress: Dictionary = children[layer_index].media_clips
+		
+		for frame_in: int in media_ress:
+			
+			var media_res: MediaClipRes = media_ress[frame_in]
+			if media_res is ImportedClipRes:
+				if not paths_for_check.has(media_res.key_as_path):
+					result.append(media_res.key_as_path)
+			result.append_array(media_res.check_children_for_paths_deep(paths_for_check))
+	
+	return result
+
+func format_children_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
+	loop_children_deep({},
+		func(children: Dictionary[int, Dictionary], layer_index: int, frame_in: int, info: Dictionary[StringName, Variant]) -> void:
+			var child_res: MediaClipRes = children[layer_index].media_clips[frame_in]
+			child_res.format_path(paths_for_format)
+	)
+
+func format_path(paths_for_format: Dictionary[String, String]) -> void:
+	pass

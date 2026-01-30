@@ -35,17 +35,9 @@ var keys_info: Array[Dictionary] = [
 			var values: Array[float]
 			
 			for key: float in keys:
-				var curve_key:= keys[key]
+				var curve_key: CurveKey = keys[key]
 				values.append(curve_key.value)
 				_on_profile_key_added(index, key, curve_key)
-			
-			#var center: float
-			#if values.size() > 1:
-				#center = (values.min() + values.max()) / 2.0
-			#elif values.size() == 1:
-				#center = values[0]
-			#min_val = center - min_val
-			#max_val = center + max_val
 			
 			profile.key_added.connect(func(x: float, curve_key: CurveKey) -> void:
 				_on_profile_key_added(index, x, curve_key)
@@ -64,8 +56,8 @@ var keys_info: Array[Dictionary] = [
 
 @export_group("Draw", "draw")
 @export var draw_cursor: bool = false
-@export var draw_val_step: int = 100
-@export var draw_domain_step: int = 100
+@export var draw_val_step: int = 1
+@export var draw_domain_step: int = 1
 @export var draw_select_color: Color = Color.ORANGE
 
 @export_group("Theme")
@@ -74,8 +66,10 @@ var keys_info: Array[Dictionary] = [
 @export var lock_texture: Texture2D = preload("res://Asset/Icons/padlock.png")
 @export var unlock_texture: Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
 @export_subgroup("Constant")
-@export var navigate_dist: float = 30.0
+@export var navigate_dist: float = -10.0
 @export var navigate_speed: float = 100.0
+@export var zoom_min: float = .5
+@export var zoom_max: float = 5.
 @export_group("Font")
 @export var font: Font = preload("res://Asset/Fonts/Cascadia.ttf")
 
@@ -95,6 +89,7 @@ var is_cursor_focused: bool = false:
 			queue_redraw()
 
 var is_control_focused: bool
+
 
 
 func get_cursor_pos() -> int:
@@ -145,6 +140,8 @@ func keys_delete(keys_index: int, x: float, deselect_key: bool, sort_keys: bool 
 
 func keys_move(keys_index: int, x_from: float, to: Vector2, sort_keys: bool = true, redraw: bool = true) -> bool:
 	if keys_index < 0: return false
+	x_from = format_x(x_from)
+	to.x = format_x(to.x)
 	var same_x:= x_from == to.x
 	var has_key:= keys_has(keys_index, to.x)
 	var can_move_to: bool = (not same_x and not has_key) or (same_x and has_key) or (to.x in [min_domain, max_domain])
@@ -340,8 +337,8 @@ func navigate_value(offset: float) -> void:
 func zoom_value(scale: float) -> void:
 	var val_size:= max_val - min_val
 	var zoom_sign:= signf(scale)
-	if val_size <= 25.0 and zoom_sign == -1: return
-	elif val_size >= 1000.0 and zoom_sign == 1: return
+	if val_size <= zoom_min and zoom_sign == -1: return
+	elif val_size >= zoom_max and zoom_sign == 1: return
 	scale *= (val_size) / 100.
 	min_val -= scale
 	max_val += scale
@@ -451,6 +448,7 @@ func _ready() -> void:
 	shortcut_node.register_shortcut_quickly(&"visible_z", change_channel_visibility.bind(2), [ShortcutNode.new_event_key(Key.KEY_Z)])
 	shortcut_node.register_shortcut_quickly(&"visible_w", change_channel_visibility.bind(3), [ShortcutNode.new_event_key(Key.KEY_W)])
 	set_process(false)
+	zoom_value(20.)
 
 func _gui_input(event: InputEvent) -> void:
 	super(event)
@@ -695,11 +693,6 @@ func _draw() -> void:
 		draw_line(start_pos, end_pos, grid_color, 2.0)
 		draw_string(font, start_pos + Vector2(10., .0), str(val_step))
 	
-	#for step: float in range(1, domain_steps_count):
-		#var domain_step: float = min_domain + step * draw_domain_step
-		#var x_pos: float = get_display_pos_from_domain(domain_step)
-		#draw_line(Vector2(x_pos, .0), Vector2(x_pos, size.y), grid_color, 2.0)
-	
 	var curves_profiles_size: int = curves_profiles.size()
 	for keys_index: int in curves_profiles_size:
 		if not keys_info[keys_index].v:
@@ -707,7 +700,7 @@ func _draw() -> void:
 		
 		var profile: CurveProfile = curves_profiles[keys_index]
 		var keys: Dictionary[float, CurveKey] = profile.keys
-		var keys_keys: Array[float] = profile.keys_keys
+		var keys_keys: Array = profile.keys_keys
 		var color_alpha: float
 		
 		if not is_cursor_focused and keys_index == focused_keys_index:

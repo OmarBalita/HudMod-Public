@@ -114,14 +114,6 @@ func sample_vec2(x: float) -> Vector2:
 func sample_vec3(x: float) -> Vector3:
 	return Vector3(profile_sample(0, x), profile_sample(1, x), profile_sample(2, x))
 
-func sample_color(x: float) -> Color:
-	return Color(
-		profile_sample(0, x),
-		profile_sample(1, x),
-		profile_sample(2, x),
-		profile_sample(3, x)
-	)
-
 func sample_vec4(x: float) -> Vector4:
 	return Vector4(
 		profile_sample(0, x),
@@ -130,6 +122,13 @@ func sample_vec4(x: float) -> Vector4:
 		profile_sample(3, x)
 	)
 
+func sample_color(x: float) -> Color:
+	return Color(
+		profile_sample(0, x),
+		profile_sample(1, x),
+		profile_sample(2, x),
+		profile_sample(3, x)
+	)
 
 func add_key_constant(x: float, value: Variant) -> void:
 	pass
@@ -149,17 +148,17 @@ func add_key_vec3(x: float, value: Vector3) -> void:
 	profile_add_key(1, x, value.y)
 	profile_add_key(2, x, value.z)
 
-func add_key_color(x: float, value: Color) -> void:
-	profile_add_key(0, x, value.r)
-	profile_add_key(1, x, value.g)
-	profile_add_key(2, x, value.b)
-	profile_add_key(3, x, value.a)
-
 func add_key_vec4(x: float, value: Vector4) -> void:
 	profile_add_key(0, x, value.x)
 	profile_add_key(1, x, value.y)
 	profile_add_key(2, x, value.z)
 	profile_add_key(3, x, value.w)
+
+func add_key_color(x: float, value: Color) -> void:
+	profile_add_key(0, x, value.r)
+	profile_add_key(1, x, value.g)
+	profile_add_key(2, x, value.b)
+	profile_add_key(3, x, value.a)
 
 
 func get_key_constant(x: float) -> Variant:
@@ -177,14 +176,6 @@ func get_key_vec2(x: float) -> Vector2:
 func get_key_vec3(x: float) -> Vector3:
 	return Vector3(profile_get_key(0, x), profile_get_key(1, x), profile_get_key(2, x))
 
-func get_key_color(x: float) -> Color:
-	return Color(
-		profile_get_key(0, x),
-		profile_get_key(1, x),
-		profile_get_key(2, x),
-		profile_get_key(3, x)
-	)
-
 func get_key_vec4(x: float) -> Vector4:
 	return Vector4(
 		profile_get_key(0, x),
@@ -193,3 +184,10 @@ func get_key_vec4(x: float) -> Vector4:
 		profile_get_key(3, x)
 	)
 
+func get_key_color(x: float) -> Color:
+	return Color(
+		profile_get_key(0, x),
+		profile_get_key(1, x),
+		profile_get_key(2, x),
+		profile_get_key(3, x)
+	)

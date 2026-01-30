@@ -31,7 +31,7 @@ enum InterpolationMode {
 
 var interpolation_func: Callable
 
-static func new_curve_key(_value: float, _left_control:= Vector2(-2.5, .0), _right_control:= Vector2(2.5, .0), _control_mode: ControlMode = 0, _interpolation_mode: InterpolationMode = 2) -> CurveKey:
+static func new_curve_key(_value: float, _left_control:= Vector2(-20., .0), _right_control:= Vector2(20., .0), _control_mode: ControlMode = 1, _interpolation_mode: InterpolationMode = 2) -> CurveKey:
 	var curve_key:= CurveKey.new()
 	curve_key.value = _value
 	curve_key.left_control = _left_control
@@ -39,6 +39,10 @@ static func new_curve_key(_value: float, _left_control:= Vector2(-2.5, .0), _rig
 	curve_key.control_mode = _control_mode
 	curve_key.interpolation_mode = _interpolation_mode
 	return curve_key
+
+static func new_constant(_value: float) -> CurveKey: return new_curve_key(_value, Vector2(-20., .0), Vector2(20., .0), 2, InterpolationMode.INTERPOLATION_MODE_CONSTANT)
+static func new_linear(_value: float) -> CurveKey: return new_curve_key(_value, Vector2(-20., .0), Vector2(20., .0), 2, InterpolationMode.INTERPOLATION_MODE_LINEAR)
+static func new_bezier_curve(_value: float) -> CurveKey: return new_curve_key(_value, Vector2(-20., .0), Vector2(20., .0), 2, InterpolationMode.INTERPOLATION_MODE_BEZIER_CURVE)
 
 func get_value() -> float:
 	return value

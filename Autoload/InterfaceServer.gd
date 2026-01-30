@@ -3,9 +3,9 @@ extends Node
 
 # Modern Color Palette for Video Editor
 const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
-const COLOR_DARK_BG = Color(0.118, 0.118, 0.129)        # #141417
-const COLOR_DARK_PANEL = Color(0.083, 0.083, 0.1)     # #1e1e24
-const COLOR_DARK_HEADER = Color(0.129, 0.129, 0.137)    # #0f0f12
+const COLOR_DARK_BG = Color(0.15, 0.15, 0.15, 1.0)        # #141417
+const COLOR_DARK_PANEL = Color(0.1, 0.1, 0.1, 1.0)     # #1e1e24
+const COLOR_DARK_HEADER = Color(0.12, 0.12, 0.12, 1.0)    # #0f0f12
 const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)     # #3399ff
 const COLOR_ACCENT_BLUE_HIGHLIGHT = Color(0.616, 0.749, 0.945)
 const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
@@ -36,18 +36,22 @@ const LABEL_SETTINGS_HEADER = preload("res://UI&UX/LabelSettingsHeader.tres")
 const LABEL_SETTINGS_BOLD = preload("res://UI&UX/LabelSettingsBold.tres")
 const LABEL_SETTINGS_MAIN = preload("res://UI&UX/LabelSettingsMain.tres")
 
-const TEXTURE_RIGHT: Texture2D = preload("res://Asset/Icons/right.png")
-const TEXTURE_DOWN: Texture2D = preload("res://Asset/Icons/down.png")
-const TEXTURE_TOGGLE_BUTTON_CHECKED: Texture2D = preload("res://Asset/Icons/toggle-button.png")
-const TEXTURE_TOGGLE_BUTTON_UNCHECKED: Texture2D = preload("res://Asset/Icons/toggle-button2.png")
-const TEXTURE_MEGAPHONE: Texture2D = preload("res://Asset/Icons/megaphone.png")
+const TEXTURE_RIGHT: CompressedTexture2D = preload("res://Asset/Icons/right.png")
+const TEXTURE_DOWN: CompressedTexture2D = preload("res://Asset/Icons/down.png")
+const TEXTURE_TOGGLE_BUTTON_CHECKED: CompressedTexture2D = preload("res://Asset/Icons/toggle-button.png")
+const TEXTURE_TOGGLE_BUTTON_UNCHECKED: CompressedTexture2D = preload("res://Asset/Icons/toggle-button2.png")
+const TEXTURE_MEGAPHONE: CompressedTexture2D = preload("res://Asset/Icons/megaphone.png")
+const TEXTURE_FILE: CompressedTexture2D = preload("res://Asset/Icons/document.png")
+const TEXTURE_FOLDER: CompressedTexture2D = preload("res://Asset/Icons/open-file.png")
+const TEXTURE_CHECK: CompressedTexture2D = preload("res://Asset/Icons/check.png")
+const TEXTURE_X_MARK: CompressedTexture2D = preload("res://Asset/Icons/x-mark.png")
 
-var STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
-var STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")
+const STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
+const STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")
 
-var STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
-var STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
-var STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
+const STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
+const STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
+const STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
 const STYLE_CORNERLESS_DARK: StyleBoxFlat = preload("res://UI&UX/CornerlessDarkStyle.tres")
 const STYLE_CORNERLESS_BLACK: StyleBoxFlat = preload("res://UI&UX/CornerlessBlackStyle.tres")
 
@@ -286,14 +290,17 @@ func create_panel_container(min_size: Vector2 = Vector2.ZERO, style: StyleBox = 
 	return panel
 
 func create_margin_container(left:= 12, right:= 12, up:= 12, down:= 12, more: Dictionary = {}) -> MarginContainer:
-	var margin_container = MarginContainer.new()
+	var margin_container:= MarginContainer.new()
 	set_base_container_settings(margin_container)
-	margin_container.add_theme_constant_override("margin_left", left)
-	margin_container.add_theme_constant_override("margin_right", right)
-	margin_container.add_theme_constant_override("margin_top", up)
-	margin_container.add_theme_constant_override("margin_bottom", down)
+	set_margin_settings(margin_container, left, right, up, down)
 	ObjectServer.describe(margin_container, more)
 	return margin_container
+
+func set_margin_settings(margin_cont: MarginContainer, left: int, right: int, up: int, down: int) -> void:
+	margin_cont.add_theme_constant_override("margin_left", left)
+	margin_cont.add_theme_constant_override("margin_right", right)
+	margin_cont.add_theme_constant_override("margin_top", up)
+	margin_cont.add_theme_constant_override("margin_bottom", down)
 
 func create_box_container(separation_scale: int = 16, vertical: bool = false, more: Dictionary = {alignment = BoxContainer.ALIGNMENT_CENTER, custom_minimum_size = Vector2(32, 32)}) -> BoxContainer:
 	var box_container = BoxContainer.new()
@@ -351,17 +358,17 @@ class EditBoxContainer extends BoxContainer:
 	
 	func _ready() -> void:
 		
-		if keyframable:
-			keyframe_button = IS.create_texture_button(null)
-			keyframe_button.pressed.connect(on_keyframe_button_pressed)
-			header.add_child(keyframe_button)
-			header.move_child(keyframe_button, 1)
-		
 		if resetable:
 			reset_button = IS.create_texture_button(texture_reset)
 			reset_button.pressed.connect(on_reset_button_pressed)
 			header.add_child(reset_button)
-			header.move_child(reset_button, 2)
+			header.move_child(reset_button, 1)
+		
+		if keyframable:
+			keyframe_button = IS.create_texture_button(null)
+			keyframe_button.pressed.connect(on_keyframe_button_pressed)
+			header.add_child(keyframe_button)
+			header.move_child(keyframe_button, 2)
 		
 		add_child(header)
 		move_child(header, 0)
@@ -541,6 +548,12 @@ func create_label(text: String, label_settings: LabelSettings = LABEL_SETTINGS_M
 	ObjectServer.describe(label, more)
 	return label
 
+func create_tree() -> Tree:
+	var tree: Tree = Tree.new()
+	expand(tree, true, true)
+	tree.add_theme_constant_override(&"icon_max_width", 24)
+	tree.add_theme_stylebox_override(&"focus", STYLE_BOX_EMPTY)
+	return tree
 
 func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: float, more:= {}) -> ProgressBar:
 	var bar = ProgressBar.new()
@@ -576,7 +589,6 @@ func create_shortcut_node(shortcut_node_group: StringName, shortcuts: Dictionary
 	shortcut_node.add_to_group(shortcut_node_group)
 	shortcut_node.shortcuts = shortcuts
 	return shortcut_node
-
 
 func create_menu(options: Array, is_vertical: bool = false, is_expanded: bool = true, more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
@@ -824,43 +836,81 @@ func connect_controller_to_edit_box(box: EditBoxContainer, controller: Control, 
 	}
 
 func create_option_edit(name: String, options_info: Array[Dictionary], save_path: String = "", default_id: int = 0, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
-	var box = create_edit_box(name, min_size, false, name_alignment)
-	var option_controller = create_option_controller(options_info, save_path, default_id)
+	var box: EditBoxContainer = create_edit_box(name, min_size, false, name_alignment)
+	var option_controller: OptionController = create_option_controller(options_info, save_path, default_id)
 	expand(option_controller)
 	box.add_child(option_controller)
-	connect_controller_to_edit_box(box, option_controller, func(): option_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: box.set_curr_val(id)), "set_selected_id", "set_selected_id_manually")
+	connect_controller_to_edit_box(box, option_controller, func() -> void: option_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: box.set_curr_val(id)), "set_selected_id", "set_selected_id_manually")
 	return [option_controller]
 
 func create_bool_edit(name: String, is_checked: bool, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box: EditBoxContainer = create_edit_box(name, min_size, false, name_alignment)
 	var check_button: CheckButton = create_check_button(is_checked)
 	box.add_child(check_button)
-	connect_controller_to_edit_box(box, check_button, func(): check_button.pressed.connect(func() -> void: box.set_curr_val(check_button.button_pressed)), "", "", "button_pressed")
+	connect_controller_to_edit_box(box, check_button, func() -> void: check_button.pressed.connect(func() -> void: box.set_curr_val(check_button.button_pressed)), "", "", "button_pressed")
 	return [check_button]
 
-func create_string_edit(name: String, text: String = "", placeholder: String = "", string_controller_type: StringControllerType = 0, open_extensions: Array[String] = [], min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
+func create_string_edit(name: String, text: String = "", placeholder: String = "", string_controller_type: StringControllerType = 0, filter: PackedStringArray = [], editable: bool = true, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box: EditBoxContainer = create_edit_box(name, min_size, string_controller_type == 1, name_alignment)
 	
-	match string_controller_type:
+	if string_controller_type == StringControllerType.TYPE_MULTILINE:
+		var text_edit: CustomTextEdit = create_text_edit(placeholder, text)
+		text_edit.editable = editable
+		box.add_child(text_edit)
+		connect_controller_to_edit_box(
+			box, text_edit, func() -> void:
+				text_edit.text_changed.connect(func():
+					box.set_curr_val(text_edit.get_text())),
+			"set_text"
+		)
+		return [text_edit]
+	
+	else:
+		var line_edit: LineEdit = create_line_edit(placeholder, text)
+		line_edit.editable = editable
+		expand(line_edit)
+		connect_controller_to_edit_box(
+			box, line_edit, func() -> void:
+				line_edit.text_changed.connect(box.set_curr_val), 
+			"set_text"
+		)
 		
-		StringControllerType.TYPE_LINE:
-			var line_edit: LineEdit = create_line_edit(placeholder, text)
-			expand(line_edit)
-			box.add_child(line_edit)
-			connect_controller_to_edit_box(box, line_edit, func() -> void: line_edit.text_changed.connect(box.set_curr_val), "set_text")
-			return [line_edit]
-		
-		StringControllerType.TYPE_MULTILINE:
-			var text_edit: CustomTextEdit = create_text_edit(placeholder, text)
-			box.add_child(text_edit)
-			connect_controller_to_edit_box(box, text_edit, func() -> void: text_edit.text_changed.connect(func(): box.set_curr_val(text_edit.get_text())), "set_text")
-			return [text_edit]
-		
-		StringControllerType.TYPE_OPEN_FILE:
-			pass
-		
-		StringControllerType.TYPE_OPEN_DIR:
-			pass
+		match string_controller_type:
+			
+			StringControllerType.TYPE_LINE:
+				box.add_child(line_edit)
+				return [line_edit]
+			
+			StringControllerType.TYPE_OPEN_FILE:
+				var split_container: SplitContainer = IS.create_split_container()
+				var open_file_btn: Button = create_button("", TEXTURE_FILE)
+				open_file_btn.disabled = not editable
+				
+				split_container.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+				expand(split_container)
+				
+				split_container.add_child(line_edit)
+				split_container.add_child(open_file_btn)
+				box.add_child(split_container)
+				
+				open_file_btn.pressed.connect(
+					func() -> void:
+						var window: FileDialog = WindowManager.create_file_dialog_window(
+						open_file_btn.get_window(), FileDialog.FileMode.FILE_MODE_OPEN_FILE, filter, Vector2i(800, 500), "Open File")
+						window.popup_centered()
+						window.file_selected.connect(
+							func(path: String) -> void:
+								line_edit.text = path
+								line_edit.text_changed.emit(path)
+						)
+				)
+				
+				return [split_container]
+			
+			StringControllerType.TYPE_OPEN_DIR:
+				#var split_container: SplitContainer = IS.create_split_container()
+				#var open_dir_btn: Button = create_button("", TEXTURE_FOLDER)
+				pass
 	
 	return []
 
@@ -969,7 +1019,6 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 	while edit_box is not EditBoxContainer:
 		edit_box = edit_box.get_parent()
 	return edit_box
-
 
 
 func create_layer(id: int, is_root_layer: bool, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:

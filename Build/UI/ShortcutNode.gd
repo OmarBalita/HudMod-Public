@@ -45,6 +45,9 @@ func _input(event: InputEvent) -> void:
 	if cond_func.is_valid() and not cond_func.call():
 		return
 	
+	if not get_global_rect().has_point(get_global_mouse_position()):
+		return
+	
 	if event is InputEventKey:
 		if event.is_pressed():
 			for shortcut: Shortcut in shortcuts:

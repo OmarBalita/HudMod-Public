@@ -12,11 +12,13 @@
 - Media Explorer:
 	Global, Projects files [+]
 	Activate Presets: Global, Project [+]
-	Move to Global, Move to Project Options
+	Move to Global, Move to Project Options [+]
 	Insert a Strong Search system [+]
+	
 	Fix Selection System [->]
-	Error management when imported media type is not correct [->]
-	Error management when required media are unavailable [->]
+	Error: management when imported media type is not correct [+]
+	Error: management when required media are unavailable [+]
+	
 	Activate all 2D Objects:
 		Object2D
 		Camera2D

@@ -170,10 +170,10 @@ class MediaBox extends Container:
 				return func(a: CreatedCard, b: CreatedCard) -> bool:
 					return a.display_name.to_lower() < b.display_name.to_lower()
 			1:
-				return func(a: CreatedCard, b:CreatedCard) -> bool:
-					if a.created_card_type and not b.created_card_type: return true
-					elif not a.created_card_type and b.created_card_type: return false
-					else: return a.created_card_type < b.created_card_type
+				return func(a: CreatedCard, b: CreatedCard) -> bool:
+					if a.created_card_type == b.created_card_type:
+						return a.create_date > b.create_date
+					return a.created_card_type < b.created_card_type
 			2:
 				return func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date > b.create_date
 			3:
@@ -220,12 +220,6 @@ class CreatedBox extends MediaBox:
 	
 	func get_true_file_system(global: bool) -> DisplayFileSystemRes:
 		return global_file_system if global else project_file_system
-	
-	func get_image_paths(global: bool) -> Array[String]:
-		var thumbnail_path: String; var waveform_path: String
-		if global: thumbnail_path = GlobalServer.global_thumbnail_path; waveform_path = GlobalServer.global_waveform_path
-		else: thumbnail_path = ProjectServer.project_thumbnail_path; waveform_path = ProjectServer.project_waveform_path
-		return [thumbnail_path, waveform_path]
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
 		display_file_system = project_file_system
@@ -329,11 +323,19 @@ class CreatedBox extends MediaBox:
 		var root_button: Button = path_controller.get_child(0)
 		IS.popup_menu([
 			MenuOption.new("Project", null, set_display_file_system.bind(project_file_system)),
-			MenuOption.new("Global", null, set_display_file_system.bind(global_file_system))
+			MenuOption.new("Global", null, set_display_file_system.bind(global_file_system)),
 		], root_button)
 	
 	func _get_created_box_category() -> Category:
 		return null
+	
+	func _get_selected_paths_or_names() -> PackedStringArray:
+		var paths_or_names: PackedStringArray
+		var cards: Array[Node] = _get_created_box_category().get_contents()
+		for card: CreatedCard in cards:
+			if card.is_selected:
+				paths_or_names.append(card._get_created_card_name_or_path())
+		return paths_or_names
 	
 	func create_folder(display_path: Array, folder_name: String) -> void:
 		display_file_system.create_folder(display_path, folder_name)
@@ -341,29 +343,23 @@ class CreatedBox extends MediaBox:
 	func create_folders(display_path: Array, folders_names: PackedStringArray) -> void:
 		display_file_system.create_folders(display_path, folders_names)
 	
-	func create_file(display_path: Array, file_path: String) -> void:
-		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
-		display_file_system.create_file(display_path, file_path, image_paths[0], image_paths[1])
+	func create_file(display_path: Array, file_path: String) -> MediaCache.LOAD_ERR:
+		return display_file_system.create_file(display_path, file_path)
 	
-	func create_files(display_path: Array, files_pathes: PackedStringArray) -> void:
-		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
-		display_file_system.create_files(display_path, files_pathes, image_paths[0], image_paths[1])
+	func create_files(display_path: Array, files_pathes: PackedStringArray) -> Array[MediaCache.LOAD_ERR]:
+		return display_file_system.create_files(display_path, files_pathes)
 	
 	func delete_file_or_folder(display_path: Array, path_or_name: String, delete_real_file: bool = false) -> void:
-		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
-		display_file_system.delete(display_path, path_or_name, image_paths[0], image_paths[1], delete_real_file)
+		display_file_system.delete(display_path, path_or_name, delete_real_file)
+		EditorServer.scan_media_existent()
 	
 	func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray, delete_real_file: bool = false) -> void:
-		var image_paths: Array[String] = get_image_paths(display_file_system == global_file_system)
-		display_file_system.delete_packed(display_path, pathes_or_names, image_paths[0], image_paths[1], delete_real_file)
+		display_file_system.delete_packed(display_path, pathes_or_names, delete_real_file)
+		EditorServer.scan_media_existent()
 	
 	func delete_selected(delete_real_files: bool = false) -> void:
-		var pathes_or_names: PackedStringArray
-		var cards: Array[Node] = _get_created_box_category().get_contents()
-		for card: CreatedCard in cards:
-			if card.is_selected:
-				pathes_or_names.append(card._get_created_card_name_or_path())
-		delete_files_or_folders(curr_display_path, pathes_or_names, delete_real_files)
+		var paths_or_names: PackedStringArray = _get_selected_paths_or_names()
+		delete_files_or_folders(curr_display_path, paths_or_names, delete_real_files)
 	
 	func _on_folder_clicked(folder_name: String) -> void:
 		curr_display_path.append(folder_name)
@@ -387,7 +383,8 @@ class CreatedBox extends MediaBox:
 class ImportBox extends CreatedBox:
 	
 	@export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
-	@export var texture_check: Texture2D = preload("res://Asset/Icons/check.png")
+	@export var texture_check: Texture2D = IS.TEXTURE_CHECK
+	@export var texture_x_mark: Texture2D = IS.TEXTURE_X_MARK
 	@export var texture_wait: Texture2D = preload("res://Asset/Icons/hourglass.png")
 	
 	var import_button: Button
@@ -399,7 +396,7 @@ class ImportBox extends CreatedBox:
 	var progress_bar: ProgressBar
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
-		project_file_system = ProjectServer.project_res.import_file_system
+		project_file_system = ProjectServer.import_file_system
 		global_file_system = GlobalServer.import_file_system
 		super(_media_explorer)
 	
@@ -425,14 +422,71 @@ class ImportBox extends CreatedBox:
 		# the Key be the file path when the type is "file"
 		var media_type: int = info.media_type
 		var import_card:= ImportCard.new()
+		
+		import_card.discarded = info.has(&"discard")
 		import_card.created_card_type = media_type + 1
 		import_card.info = {
 			&"type": media_type,
 			&"length": int(MediaServer.get_media_default_length(media_type, key) * ProjectServer.fps),
-			&"path": key,
-			&"thumbnail": MediaServer.get_thumbnail(key).texture
+			&"path": key
 		}
 		return import_card
+	
+	# move_option: 0 = MOVE_TO_PROJECT, 1 = MOVE_TO_GLOBAL
+	func move_selected(move_option: int, move_to_display_path: Array, move_fake_files: bool, move_real_files: bool) -> void:
+		
+		var is_global: bool = move_option == 1
+		var move_from: Dictionary = display_file_system.get_dir(curr_display_path)
+		
+		var target_file_system: DisplayFileSystemRes = get_true_file_system(is_global)
+		
+		var paths_or_names: PackedStringArray = _get_selected_paths_or_names()
+		
+		var files_paths: PackedStringArray
+		var folders: Dictionary[String, Dictionary]
+		
+		for path_or_name: String in paths_or_names:
+			if path_or_name.is_absolute_path():
+				files_paths.append(path_or_name)
+			elif path_or_name.is_valid_filename():
+				folders[path_or_name] = move_from[path_or_name]
+		
+		if move_real_files:
+			
+			var paths_for_format: Dictionary[String, String] = {}
+			var media_dir_path: String = EditorServer.get_media_path(is_global)
+			
+			for index: int in files_paths.size():
+				
+				var from: String = files_paths[index]
+				var to: String = DirAccessHelper.create_unique_path(str(media_dir_path, from.get_file()))
+				
+				files_paths.set(index, to)
+				move_from[to] = move_from[from]
+				move_from.erase(from)
+				
+				paths_for_format[from] = to
+				
+				DirAccess.rename_absolute(from, to)
+				MediaCache.replace_path(from, to)
+			
+			EditorServer.format_paths(paths_for_format)
+		
+		if move_fake_files:
+			
+			display_file_system.delete_packed(curr_display_path, paths_or_names, false)
+			target_file_system.create_files(move_to_display_path, files_paths)
+			target_file_system.add_folders(move_to_display_path, folders)
+			
+			display_file_system = target_file_system
+			curr_display_path = move_to_display_path
+		
+		EditorServer.scan_media_existent()
+		EditorServer.save()
+	
+	func replace_selected() -> void:
+		var paths_or_names: PackedStringArray = _get_selected_paths_or_names()
+		EditorServer.popup_replace_paths_window(paths_or_names, false, true)
 	
 	func on_import_button_pressed() -> void:
 		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
@@ -471,21 +525,23 @@ class ImportBox extends CreatedBox:
 		thread.start(_thread_create_files.bind(paths, curr_display_path))
 	
 	func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) -> void:
+		var load_errs: Array[MediaCache.LOAD_ERR]
 		var total: int = paths.size()
 		for index: int in total:
 			var path: String = paths.get(index)
 			_report_start.call_deferred(index, path)
-			await create_file(curr_display_path, path)
-			_report_progress.call_deferred(index, total, path)
+			var load_err: MediaCache.LOAD_ERR = await create_file(curr_display_path, path)
+			_report_progress.call_deferred(index, total, path, load_err == 0)
+			
+			load_errs.append(load_err)
 	
 	func _report_start(index: int, path: String) -> void:
 		progress_list.add_item(path, texture_wait)
 	
-	func _report_progress(index: int, total: int, path: String) -> void:
-		
+	func _report_progress(index: int, total: int, path: String, load_success: bool) -> void:
 		progress_list.set_item_custom_bg_color(index, Color(Color.GREEN_YELLOW, .1))
 		progress_list.set_item_text(index, path.get_file())
-		progress_list.set_item_icon(index, texture_check)
+		progress_list.set_item_icon(index, texture_check if load_success else texture_x_mark)
 		
 		var tween: Tween = create_tween()
 		var progress_bar_val: float = ((index + 1) / float(total)) * 100.0
@@ -551,7 +607,7 @@ class PresetBox extends CreatedBox:
 	var preset_category: Category
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
-		project_file_system = ProjectServer.project_res.preset_file_system
+		project_file_system = ProjectServer.preset_file_system
 		global_file_system = GlobalServer.preset_file_system
 		super(_media_explorer)
 	
@@ -566,6 +622,7 @@ class PresetBox extends CreatedBox:
 	func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
 		var preset_card:= PresetCard.new()
 		var preset_media_res: MediaClipRes = MediaCache.get_preset_media_res(key)
+		preset_card.discarded = info.has(&"discard")
 		preset_card.info = {
 			&"path": key,
 			&"preset_media_res": preset_media_res,
@@ -677,6 +734,10 @@ class CreatedCard extends MediaCard:
 	@export var create_date: float
 	
 	var created_box: CreatedBox
+	var discarded: bool:
+		set(val):
+			discarded = val
+			draggable = not val
 	
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton:
@@ -722,23 +783,83 @@ class ImportCard extends CreatedCard:
 	
 	func _ready() -> void:
 		super()
-		_setup_media_card(info.path.get_file(), info.thumbnail)
+		var thumb: Texture2D
+		if discarded: thumb = IS.TEXTURE_X_MARK
+		else: thumb = MediaServer.get_thumbnail(info.path).texture
+		_setup_media_card(info.path.get_file(), thumb)
 		set_metadata(info)
 	
 	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
 		super(group, remove, is_drag_selection, emit_change)
-		if not is_drag_selection:
+		
+		if discarded:
+			EditorServer.properties._clear_controls()
+		elif not is_drag_selection:
 			var imported_info: Dictionary[StringName, String] = MediaServer.get_imported_file_info(info.path, info.type)
 			EditorServer.properties.update_media_properties(imported_info)
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
+		if discarded: return
 		ProjectServer.add_imported_clip(info.type, info.path, layer_index, frame_in, true)
 	
 	func _get_created_card_menu_options() -> Array:
 		return [
-			MenuOption.new("Move to"),
+			MenuOption.new("Move to", null, popup_move_to_window),
+			MenuOption.new("Replace", null, created_box.replace_selected),
 			MenuOption.new_line()
 		] + super()
+	
+	func popup_move_to_window() -> void:
+		var move_optionbutton: OptionController = IS.create_float_edit.callv(["Move to"] + UsableRes.options_args(0, DisplayFileSystemPath.SYSTEM_TYPE))[0]
+		
+		var move_fake_files_checkbutton: CheckButton = IS.create_bool_edit("Move in Embeded file system ", false)[0]
+		var tree: Tree = IS.create_tree()
+		
+		var move_real_file_checkbutton: CheckButton = IS.create_bool_edit("Move in Disk", true)[0]
+		var warning_text_edit: CustomTextEdit = IS.create_text_edit()
+		warning_text_edit.add_theme_color_override("font_readonly_color", IS.COLOR_WARNING_YELLOW)
+		IS.expand(warning_text_edit, true, true)
+		warning_text_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+		warning_text_edit.editable = false
+		
+		var update_ui_func: Callable = func() -> void:
+			var move_to_global: bool = move_optionbutton.selected_id == 1
+			
+			var text: String = "Warning"
+			var target_name: String = "Global" if move_to_global else "Project"
+			
+			tree.visible = move_fake_files_checkbutton.button_pressed
+			var move_to_file_system: DisplayFileSystemRes = created_box.get_true_file_system(move_to_global)
+			move_to_file_system.build_tree(tree, "%s (Fake Files)" % target_name)
+			tree.set_selected(tree.get_root(), 0)
+			
+			if move_fake_files_checkbutton.button_pressed:
+				text += "\n\n- media will be moved to the specified folder in '%s' within the HudMod custom file system." % target_name
+			if move_real_file_checkbutton.button_pressed:
+				text += "\n\n- media files will be moved to the '%s' media dir in disk." % target_name
+			text += "\n\n- No undo."
+			warning_text_edit.text = text
+		
+		update_ui_func.call()
+		move_optionbutton.selected_option_changed.connect(func(id: int, option: MenuOption) -> void: update_ui_func.call())
+		move_fake_files_checkbutton.pressed.connect(update_ui_func)
+		move_real_file_checkbutton.pressed.connect(update_ui_func)
+		
+		var box: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(400, 600), "Move to", func() -> void:
+			created_box.move_selected(
+				move_optionbutton.selected_id,
+				tree.get_selected().get_metadata(0),
+				move_fake_files_checkbutton.button_pressed,
+				move_real_file_checkbutton.button_pressed
+			)
+		)
+		IS.add_children(box, [
+			move_optionbutton.get_parent(),
+			move_fake_files_checkbutton.get_parent(),
+			tree,
+			move_real_file_checkbutton.get_parent(),
+			warning_text_edit
+		])
 
 class FolderCard extends CreatedCard:
 	
@@ -752,6 +873,10 @@ class FolderCard extends CreatedCard:
 	func _double_click() -> void:
 		clicked.emit()
 	
+	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		super(group, remove, is_drag_selection, emit_change)
+		EditorServer.properties._clear_controls()
+	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		var forward: Dictionary = info.forward
 		for key: String in forward:
@@ -759,6 +884,7 @@ class FolderCard extends CreatedCard:
 			if key_info.type == "file":
 				var media_type: int = key_info.media_type
 				ProjectServer.add_imported_clip(media_type, key, layer_index, frame_in)
+		
 		ProjectServer.emit_media_clips_change()
 	
 	func _get_created_card_name_or_path() -> String:
@@ -792,10 +918,15 @@ class PresetCard extends CreatedCard:
 	
 	func _ready() -> void:
 		super()
-		_setup_media_card(info.preset_media_res.id, preset_thumbnail)
+		_setup_media_card(info.preset_media_res.id, IS.TEXTURE_X_MARK if discarded else preset_thumbnail)
 		set_metadata(info)
 	
+	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		super(group, remove, is_drag_selection, emit_change)
+		EditorServer.properties._clear_controls()
+	
 	func add_media(layer_index: int, frame_in: int) -> void:
+		if discarded: return
 		ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
 	
 	func delete() -> void:

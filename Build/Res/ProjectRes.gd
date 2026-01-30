@@ -6,11 +6,6 @@ signal fps_changed(fps: int)
 
 static var default_length: int = 900 # as Frames
 
-@export_group("Files")
-@export var import_file_system: DisplayFileSystemRes
-@export var preset_file_system: DisplayFileSystemRes
-
-@export_group("Project")
 @export var resolution: Vector2i = Vector2i(1024, 720):
 	set(val):
 		resolution = val

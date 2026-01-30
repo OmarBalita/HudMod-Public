@@ -37,6 +37,9 @@ func set_prop(property_key: StringName, property_val: Variant) -> void:
 
 func set_and_emit_prop(property_key: StringName, property_val: Variant) -> void:
 	set_prop_func.call(property_key, property_val)
+	emit_res_changed()
+
+func emit_res_changed() -> void:
 	res_changed.emit()
 
 func register_prop(property_key: StringName, property_val: Variant, set_func: StringName = &"_set_prop_default", get_func: StringName = &"_get_prop_default") -> void:
@@ -47,7 +50,7 @@ func register_props(_properties: Dictionary[StringName, Variant], set_func: Stri
 		var property_default_val: Variant = _properties.get(property_key)
 		register_prop(property_key, property_default_val, set_func, get_func)
 
-func loop_prop(method: Callable) -> void:
+func loop_props(method: Callable) -> void:
 	for property_name: StringName in properties:
 		var property_val: Variant = get_prop(property_name)
 		method.call(property_name, property_val)
@@ -55,14 +58,12 @@ func loop_prop(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {}
 
-func _exported_props_controllers_created(props_controllers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
+func _exported_props_controllers_created(props_controllers: Dictionary[StringName, Control]) -> void:
 	pass
 
-func _send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
-	edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
-
-func _send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
-	edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
+# Works when a properties changes comes from the inspector
+func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void: edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
+func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void: edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
 
 static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = []) -> Array[Control]:
 	var usable_res_script:= usable_res.get_script() as Script
@@ -79,16 +80,18 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	var edit_box_container: BoxContainer = IS.create_custom_edit_box(name, edits_box_container)
 	edits_box_container.set_meta(&"owner", edit_box_container)
 	
-	var properties_controllers: Dictionary[StringName, IS.EditBoxContainer] = {}
-	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_box_container, properties_controllers)
-	
 	var ui_profile: UIProfile = UIProfile.new()
 	var ui_conditions: Dictionary[Array, Array]
+	
+	var properties_controllers: Dictionary[StringName, Control] = {}
+	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_box_container, properties_controllers, ui_profile)
 	
 	for key: StringName in exported_props:
 		var ctrlr_info: ExportInfo = exported_props[key]
 		var ctrlr_args: Array = ctrlr_info.get_args()
 		var ui_cond: Array = ctrlr_info.get_ui_cond()
+		
+		var control: Control
 		
 		if ctrlr_info is ExportMethodInfo:
 			
@@ -101,6 +104,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 					curr_box_container.add_child(cat)
 					categories_entered.append(cat)
 					curr_box_container = cat.content_container
+					control = cat
 				
 				ExportMethodType.METHOD_EXIT_CATEGORY:
 					categories_entered.resize(categories_entered.size() - 1)
@@ -108,20 +112,34 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				
 				ExportMethodType.METHOD_CALLABLE:
 					var callable_button: Button = IS.create_button(key, IS.TEXTURE_MEGAPHONE, true)
-					callable_button.pressed.connect(ctrlr_args[0])
+					var button_style: StyleBoxFlat = callable_button.get_theme_stylebox(&"normal").duplicate(false)
+					var button_color: Color = ctrlr_args[1]
+					button_style.bg_color = button_color
+					button_style.border_color = button_color.lightened(.3)
+					IS.set_button_style(callable_button, button_style)
+					callable_button.add_theme_stylebox_override(
+						&"normal",
+						button_style
+					)
+					
+					callable_button.pressed.connect(ctrlr_args[0].bind(usable_ress))
 					curr_box_container.add_child(callable_button)
+					control = callable_button
 				
 				ExportMethodType.METHOD_CUSTOM_EXPORT:
-					pass
+					var custom_control: Control = ctrlr_args[0]
+					curr_box_container.add_child(custom_control)
+					properties_controllers[key] = custom_control
+					control = custom_control
 		
 		else:
 			var val: Variant = ctrlr_args[0]
 			
-			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args)
+			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress)
 			if controllers.size():
 				var edit_box: IS.EditBoxContainer = IS.get_edit_box_from(controllers)
 				var is_object: bool = typeof(val) == TYPE_OBJECT
-				var changeable: bool = not is_object
+				var changeable: bool = not is_object and ctrlr_info.keyframable
 				
 				edit_box.default_val = usable_res_script.get_property_default_value(key)
 				edit_box.keyframable = changeable
@@ -135,7 +153,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 						if prop_key.is_empty(): prop_key = key
 						for curr_usable_res: UsableRes in usable_ress:
 							curr_usable_res.set_and_emit_prop(prop_key, new_val)
-							curr_usable_res._send_new_val(edit_box_container, curr_usable_res, prop_key, new_val)
+							curr_usable_res._receive_new_val(edit_box_container, curr_usable_res, prop_key, new_val)
 						edit_box.update_ui()
 						ui_profile.update()
 				)
@@ -146,13 +164,16 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 						if prop_key.is_empty(): prop_key = key
 						#usable_res.send_keyframe(edit_box_container, prop_usable_res, prop_key, prop_new_val)
 						for curr_usable_res: UsableRes in usable_ress:
-							curr_usable_res._send_keyframe(edit_box_container, curr_usable_res, prop_key, prop_new_val)
+							curr_usable_res._receive_keyframe(edit_box_container, curr_usable_res, prop_key, prop_new_val)
 				)
 				curr_box_container.add_child(edit_box)
-				
-				if ui_cond:
-					if ui_conditions.has(ui_cond): ui_conditions[ui_cond].append(edit_box)
-					else: ui_conditions[ui_cond] = [edit_box]
+				control = edit_box
+		
+		if control and ui_cond:
+			if ui_conditions.has(ui_cond):
+				ui_conditions[ui_cond].append(control)
+			else:
+				ui_conditions[ui_cond] = [control]
 	
 	usable_res._exported_props_controllers_created(properties_controllers)
 	
@@ -169,8 +190,10 @@ func get_classname() -> StringName:
 
 
 class ExportInfo extends RefCounted:
+	
 	@export var args: Array
 	@export var ui_cond: Array
+	@export var keyframable: bool
 	
 	func _init(_args: Array, _ui_cond: Array = []) -> void:
 		args = _args
@@ -185,7 +208,7 @@ enum ExportMethodType {
 	METHOD_ENTER_CATEGORY,
 	METHOD_EXIT_CATEGORY,
 	METHOD_CALLABLE,
-	METHOD_CUSTOM_EXPORT
+	METHOD_CUSTOM_EXPORT,
 }
 
 class ExportMethodInfo extends ExportInfo:
@@ -199,13 +222,16 @@ class ExportMethodInfo extends ExportInfo:
 	func set_method_type(new_val: ExportMethodType) -> void: method_type = new_val
 
 
-static func export(args: Array, ui_cond: Array = []) -> ExportInfo: return ExportInfo.new(args, ui_cond)
+static func export(args: Array, ui_cond: Array = [], keyframable: bool = true) -> ExportInfo:
+	var export_info:= ExportInfo.new(args, ui_cond)
+	export_info.keyframable = keyframable
+	return export_info
 
 static func export_method(method_type: ExportMethodType, args: Array = [], ui_cond: Array = []) -> ExportMethodInfo:
 	return ExportMethodInfo.new(args, ui_cond, method_type)
 
 static func bool_args(val: bool) -> Array: return [val]
-static func string_args(val: String, controller_type: IS.StringControllerType = 0, open_extensions: Array[String] = [], placeholder: String = "") -> Array: return [val, placeholder, controller_type, open_extensions]
+static func string_args(val: String, controller_type: IS.StringControllerType = 0, filter: Array[String] = [], placeholder: String = "", editable: bool = true) -> Array: return [val, placeholder, controller_type, filter, editable]
 static func int_args(val: int, min: float = -INF, max: float = INF, step: int = 1, spin_scale: int = 1, magnet_step: int = 5, controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, true, controller_type]
 static func options_args(val: int, options: Dictionary) -> Array: return [val, -INF, INF, 1, 1, 1, true, IS.FloatControllerType.TYPE_OPTIONS, options]
 static func float_args(val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, magnet_step: float = 5., controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, false, controller_type]
@@ -218,10 +244,8 @@ static func list_args(val: Array, list_classname: StringName, can_add_element: b
 
 static func method_enter_cat_args(cat_color: Color = Color.BLACK) -> Array: return [cat_color]
 static func method_exit_cat_args() -> Array: return []
-static func method_callable_args(callable: Callable) -> Array: return [callable]
+static func method_callable_args(callable: Callable, color: Color = IS.COLOR_ACCENT_BLUE, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
 static func method_custom_args(control: Control) -> Array: return [control]
-
-
 
 
 

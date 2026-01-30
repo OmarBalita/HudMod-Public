@@ -199,6 +199,7 @@ func _ready() -> void:
 	r_expand_button.position.x -= 10.0
 	
 	# Connections
+	clip_res.media_clip_res_updated.connect(on_media_res_updated)
 	clip_res.comp_animation_res_added.connect(on_media_res_animation_res_added)
 	clip_res.comp_animation_res_removed.connect(on_media_res_animation_res_removed)
 	
@@ -462,6 +463,9 @@ func edit(emit_changes: bool = true, force_layer_index: bool = false) -> void:
 		new_right_clip.set_meta(&"left_neighbor_clip", get_meta(&"left_neighbor_clip"))
 
 # ---------------------------------------------------
+
+func on_media_res_updated() -> void:
+	layer.reset_media_clip(clip_pos, is_selected)
 
 func on_media_res_animation_res_added(comp_res: ComponentRes, usable_res: UsableRes, property_key: StringName, anim_res: AnimationRes) -> void:
 	if clip_panel.is_graph_editor_opened: open_graph_editor()

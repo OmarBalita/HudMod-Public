@@ -70,23 +70,25 @@ const MEDIA_EXTENSIONS: PackedStringArray = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS 
 const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS]
 
 var imported_clip_info: Dictionary[int, Dictionary] = {
-	0: {default_name = "Image", sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
-	1: {default_name = "Video", sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
-	2: {default_name = "Audio", sections = [&"Sound"], clip_panel = AudioClipPanel},
+	0: {default_name = "Image", icon = preload("res://Asset/Icons/image.png"), color = Color("ffcb59"), sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
+	1: {default_name = "Video", icon = preload("res://Asset/Icons/video.png"), color = Color("7ae65c"), sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
+	2: {default_name = "Audio", icon = preload("res://Asset/Icons/audio.png"), color = Color("62c4f5"), sections = [&"Sound"], clip_panel = AudioClipPanel},
 }
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Object2DRes": {sections = [&"Display2D"]},
-	&"Text2DRes": {sections = [&"Display2D", &"Transition", &"Text"], },
+	&"Text2DRes": {sections = [&"Display2D", &"Transition", &"Text"]},
 	&"DrawRes": {sections = [&"Display2D", &"Color", &"Draw"]},
 	&"Particles2DRes": {sections = [&"Display2D", &"Particles"]},
 	&"Camera2DRes": {sections = [&"Display2D", &"Camera"]},
-	&"Audio2DRes": {sections = [&"Display2D", &"Sound"]},
+	&"Audio2DRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel},
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
 const TIMELINE_VIDEO_IMAGE_WIDTH: int = 64
 const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 256
+
+const THUMBNAIL_DISCARD: Dictionary = {&"texture": IS.TEXTURE_X_MARK}
 
 var thumbnails: Dictionary[StringName, Dictionary]
 var timeline_video_textures: Dictionary[StringName, Dictionary]
@@ -116,6 +118,41 @@ func server_register_audio(path: String, audio_stream: AudioStreamWAV, ids_exist
 	else:
 		create_thumbnail_from_audio(path, audio_stream, thumbnail_path, id)
 		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
+
+func server_replace_media_path(from: String, to: String) -> void:
+	if thumbnails.has(from):
+		thumbnails[to] = thumbnails[from]
+		thumbnails.erase(from)
+	
+	if timeline_video_textures.has(from):
+		timeline_video_textures[to] = timeline_video_textures[from]
+		timeline_video_textures.erase(from)
+	
+	if timeline_waveform_textures.has(from):
+		timeline_waveform_textures[to] = timeline_waveform_textures[from]
+		timeline_waveform_textures.erase(from)
+	
+	if not_saved_yet.has(from):
+		not_saved_yet[to] = not_saved_yet[from]
+		not_saved_yet.erase(from)
+	
+	if not_deleted_yet.has(from):
+		not_deleted_yet.append(to)
+		not_deleted_yet.erase(from)
+
+func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
+	thumbnails.erase(path)
+	store_not_deleted_thumbnail(thumbnail_path, id)
+
+func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	thumbnails.erase(path)
+	timeline_waveform_textures.erase(path)
+
+func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	thumbnails.erase(path)
+	timeline_waveform_textures.erase(path)
+	store_not_deleted_thumbnail(thumbnail_path, id)
+	store_not_deleted_dir(str(waveform_path, id))
 
 #func server_register_preset_media_res(path: String, preset_media_res: MediaClipRes, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
 	#if ids_exists.has(id):
@@ -154,17 +191,44 @@ func save_not_saved_yet() -> void:
 		else:
 			ResourceSaver.save(res, path, ResourceSaver.FLAG_COMPRESS)
 	not_saved_yet.clear()
-func store_not_saved_resource(full_path: String, res: Resource) -> void: not_saved_yet[full_path] = res
-func get_not_saved_resource(full_path: String) -> Resource: return not_saved_yet[full_path]
-func store_not_saved_thumbnail(thumbnail_path: String, id: String, image: Image) -> void: not_saved_yet[str(thumbnail_path, id, ".png")] = image
+
+func store_not_saved_resource(full_path: String, res: Resource) -> void:
+	not_saved_yet[full_path] = res
+
+func store_not_saved_thumbnail(thumbnail_path: String, id: String, image: Image) -> void:
+	not_saved_yet[str(thumbnail_path, id, ".png")] = image
+
+func get_not_saved_resource(full_path: String) -> Resource:
+	return not_saved_yet.get(full_path)
 
 func delete_not_deleted_yet() -> void:
 	for path: String in not_deleted_yet:
-		DirAccess.remove_absolute(path)
+		var result: Error = DirAccess.remove_absolute(path)
+		if result != OK:
+			DirAccessHelper.remove_directory_recursive(path)
 	not_deleted_yet.clear()
-func store_not_deleted_resource(path: String) -> void: not_deleted_yet.append(path)
 
-func get_thumbnail(key_as_path: StringName) -> Dictionary: return thumbnails[key_as_path]
+func store_not_deleted_resource(path: String) -> void:
+	if not_saved_yet.has(path): not_saved_yet.erase(path)
+	else: not_deleted_yet.append(path)
+
+func store_not_deleted_thumbnail(thumbnail_path: String, id: String) -> void:
+	store_not_deleted_resource(str(thumbnail_path, id, ".png"))
+
+func store_not_deleted_dir(dir_path: String) -> void:
+	var deleteable: PackedStringArray
+	
+	for path: String in not_saved_yet:
+		if path.begins_with(dir_path):
+			deleteable.append(path)
+	
+	for path: String in deleteable:
+		not_saved_yet.erase(path)
+	
+	not_deleted_yet.append(dir_path)
+
+func get_thumbnail(key_as_path: StringName) -> Dictionary:
+	return thumbnails[key_as_path] if thumbnails.has(key_as_path) else THUMBNAIL_DISCARD
 
 func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnail_path: String, id: String) -> Dictionary:
 	var result_image: Image
@@ -240,23 +304,40 @@ func get_media_default_length(media_type: int, key_as_path: StringName, default_
 		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
 			var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
 			media_length = video_info.frame_count * video_info.frame_rate
+		
 		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
-			media_length = MediaCache.get_audio(key_as_path).get_length()
+			var audio_wav: AudioStreamWAV = MediaCache.get_audio(key_as_path)
+			if audio_wav: media_length = MediaCache.get_audio(key_as_path).get_length()
 		_:
 			media_length = default_length
 	return media_length
 
 func get_media_default_from_and_length(media_res: MediaClipRes, default_from: int = -INF, default_length: int = INF) -> Vector2i:
 	var result: Vector2i = Vector2i(default_from, default_length)
+	
 	if media_res is ImportedClipRes:
+		
 		var fps: int = ProjectServer.fps
 		var key_as_path: StringName = media_res.key_as_path
+		
 		match media_res.type:
+			
 			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
 				var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
 				result = Vector2i(-1, video_info.frame_count * video_info.frame_rate * fps)
+			
 			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
-				result = Vector2i(-1, MediaCache.get_audio(key_as_path).get_length() * fps)
+				var audio_wav: AudioStreamWAV = MediaCache.get_audio(key_as_path)
+				if audio_wav: result = Vector2i(-1, audio_wav.get_length() * fps)
+	
+	elif media_res is ObjectClipRes:
+		
+		var object_res: ObjectRes = media_res.object_res
+		result = Vector2i(
+			object_res.get_min_from(),
+			object_res.get_effected_max_length(),
+		)
+	
 	return result
 
 # Written by Omar TOP and edited by Claude AI
@@ -496,6 +577,9 @@ class ClipPanel extends Panel:
 						graph_category.add_content(graph_editor)
 						box_container.add_child(graph_category)
 						
+						IS.set_margin_settings(graph_category.content_margin_container, 0, 0, 0, 0)
+						graph_category.content_color = Color.BLACK
+						
 						IS.expand(graph_editor, true, true)
 						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 						graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
@@ -562,7 +646,6 @@ class ClipPanel extends Panel:
 			for prop_key: StringName in usable_res_port:
 				usable_res_port[prop_key].content_container.get_child(0).set_cursor_pos(new_local_frame)
 
-
 class ImageClipPanel extends ClipPanel:
 	
 	func _ready() -> void:
@@ -570,12 +653,14 @@ class ImageClipPanel extends ClipPanel:
 		add_theme_stylebox_override(&"panel", preload("uid://d0sgurvxit0n2"))
 
 class VideoClipPanel extends ClipPanel:
+	
 	func _ready() -> void:
 		super()
 		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
 
 class AudioClipPanel extends ClipPanel:
-	@onready var waveform_box_container: BoxContainer = IS.create_box_container(0, false, {})
+	
+	@onready var waveform_box_container:= WaveformBoxContainer.new()
 	
 	var texture_rects: Dictionary[int, TextureRect]
 	
@@ -591,20 +676,84 @@ class AudioClipPanel extends ClipPanel:
 		add_child(waveform_box_container)
 		super()
 	
+	func _get_ui_thumbnail() -> Texture2D:
+		var thumb: Texture2D = owner_as_media_clip.clip_res.get_thumbnail()
+		return thumb if thumb == IS.TEXTURE_X_MARK else null
+	
 	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
 		var clip_res: MediaClipRes = owner_as_media_clip.clip_res
 		if frame_in == -1: frame_in = clip_res.from
 		if length == -1: length = clip_res.length
 		super(frame_in, length)
 		
+		waveform_box_container.update_ui(clip_res.key_as_path, frame_in, length)
+		_update_ui_transform()
+	
+	func _update_ui_transform() -> void:
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		waveform_box_container.position.x = waveform_transform.x
+		waveform_box_container.size.x = waveform_transform.y
+		super()
+
+class ObjectClipPanel extends ClipPanel:
+	
+	func _ready() -> void:
+		super()
+		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		thumbnail_rect.custom_minimum_size.x = 50.0
+		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
+
+class Audio2DClipPanel extends ObjectClipPanel:
+	
+	@onready var waveform_box_container:= WaveformBoxContainer.new()
+	
+	func _ready_ui() -> void:
+		add_child(waveform_box_container)
+		super()
+	
+	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
+		var clip_res: ObjectClipRes = owner_as_media_clip.clip_res
+		if frame_in == -1: frame_in = clip_res.from
+		if length == -1: length = clip_res.length
+		super(frame_in, length)
+		
+		var audio2d_res: Audio2DRes = clip_res.object_res
+		var stream: DisplayFileSystemPath = audio2d_res.stream
+		if not stream:
+			return
+		var audio_key_as_path: String = stream.disk_path
+		waveform_box_container.update_ui(audio_key_as_path, frame_in, length)
+		_update_ui_transform()
+	
+	func _update_ui_transform() -> void:
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		waveform_box_container.position.x = waveform_transform.x
+		waveform_box_container.size.x = waveform_transform.y / owner_as_media_clip.clip_res.object_res.pitch_scale
+		super()
+
+class WaveformBoxContainer extends BoxContainer:
+	
+	var texture_rects: Dictionary[int, TextureRect]
+	
+	var curr_waveform_textures_total_width: float
+	var curr_waveform_start_index: Vector2i
+	var curr_waveform_end_index: Vector2i
+	
+	func _init() -> void:
+		IS.describe_box_container(self, 0, false)
+	
+	func update_ui(audio_key_as_path: String, frame_in: int, length: int) -> void:
+		
+		if not MediaServer.timeline_waveform_textures.has(audio_key_as_path):
+			return
+		
 		var waveform_start_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in)
 		var waveform_end_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in + length)
 		
-		var waveform_textures_info: Dictionary = MediaServer.get_timeline_waveform_textures(clip_res.key_as_path)
+		var waveform_textures_info: Dictionary = MediaServer.get_timeline_waveform_textures(audio_key_as_path)
 		var waveform_textures: Array = waveform_textures_info.textures
 		var ranged_waveform_textures: Array = waveform_textures.slice(waveform_start_index.x, waveform_end_index.x)
 		
-		# Remove
 		for index: int in texture_rects.keys():
 			if index < waveform_start_index.x or index > waveform_end_index.x:
 				texture_rects[index].queue_free()
@@ -640,41 +789,37 @@ class AudioClipPanel extends ClipPanel:
 		for time: int in texture_rects.size():
 			var index: int = texture_rects.keys()[time]
 			var texture_rect: TextureRect = texture_rects[index]
-			waveform_box_container.move_child(texture_rect, time)
+			move_child(texture_rect, time)
 		
 		curr_waveform_textures_total_width = curr_total_width
 		curr_waveform_start_index = waveform_start_index
 		curr_waveform_end_index = waveform_end_index
-		
-		_update_ui_transform()
 	
-	func _update_ui_transform() -> void:
-		var length_ratio: float = owner_as_media_clip.size.x / curr_length
+	func calculate_transform(size: Vector2, curr_length: int) -> Vector2:
+		var length_ratio: float = size.x / curr_length
 		var textures_total_size: float = curr_waveform_textures_total_width * length_ratio
 		var waveform_start_offset: float = curr_waveform_start_index.y * length_ratio
 		
-		waveform_box_container.position.x = -waveform_start_offset
-		waveform_box_container.size.x = textures_total_size
-		
-		super()
+		return Vector2(
+			-waveform_start_offset,
+			textures_total_size
+		)
 	
 	func _push_waveform_texture_rect(texture: ImageTexture) -> Control:
 		var texture_rect: TextureRect = IS.create_texture_rect(texture, {})
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		texture_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		waveform_box_container.add_child(texture_rect)
+		add_child(texture_rect)
 		return texture_rect
 
-class ObjectClipPanel extends ClipPanel:
-	func _ready() -> void:
-		super()
-		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		thumbnail_rect.custom_minimum_size.x = 50.0
-		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
+
+
 
 func get_file_main_info(path: StringName, get_more_meta_func: Callable = Callable()) -> Dictionary[StringName, String]:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null: return {}
+	
 	var file_size_as_kb: float = snappedf(file.get_length() / 1024.0, .001)
 	
 	var meta: Dictionary[StringName, String] = {
@@ -698,6 +843,9 @@ func get_imported_file_info(key_as_path: StringName, type: int) -> Dictionary[St
 
 func get_image_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
 	var image: Image = MediaCache.get_image(key_as_path)
+	if not image:
+		return {&"title": "Image"}
+	
 	var width: int = image.get_width()
 	var height: int = image.get_height()
 	var format_int: Image.Format = image.get_format()
@@ -745,10 +893,8 @@ func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 
 
 func create_media_res_tree(root_res: MediaClipRes) -> Tree:
-	var tree: Tree = Tree.new()
-	tree.add_theme_constant_override(&"icon_max_width", 24)
+	var tree: Tree = IS.create_tree()
 	var root_item: TreeItem = tree.create_item()
-	tree.add_theme_stylebox_override(&"focus", IS.STYLE_BOX_EMPTY)
 	root_item.set_text(0, root_res.get_display_name())
 	root_item.set_icon(0, root_res.get_thumbnail())
 	_tree_children_of(root_res, tree, root_item)

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LayoutRootInfo" load_steps=7 format=3 uid="uid://cgukcm1eovxk"]
+[gd_resource type="Resource" script_class="LayoutRootInfo" format=3 uid="uid://cgukcm1eovxk"]
 
 [ext_resource type="Script" uid="uid://cis86m6ws6jio" path="res://Build/Res/Layout/LayoutInfo.gd" id="1_kpb2l"]
 [ext_resource type="Texture2D" uid="uid://28c0fmbeohi2" path="res://Asset/Icons/grid.png" id="2_f8snc"]
@@ -9,26 +9,20 @@
 script = ExtResource("1_kpb2l")
 editor_1_name = &"player"
 editor_2_name = &"properties"
-vertical = false
-split_offset = 0
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
 [sub_resource type="Resource" id="Resource_vkkdt"]
 script = ExtResource("1_kpb2l")
 layout_2 = SubResource("Resource_d41q3")
 editor_1_name = &"media_explorer"
-editor_2_name = &""
-vertical = false
-split_offset = 500
+split_offset = 550
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
 [resource]
 script = ExtResource("3_b1ast")
 layout_name = &"Default"
 layout_image = ExtResource("2_f8snc")
-windowed_infos = Array[ExtResource("4_d41q3")]([])
 layout_1 = SubResource("Resource_vkkdt")
-editor_1_name = &""
 editor_2_name = &"time_line"
 vertical = true
 split_offset = 146

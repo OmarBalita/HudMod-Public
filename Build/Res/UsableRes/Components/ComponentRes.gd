@@ -18,15 +18,10 @@ enum MethodType {
 
 @export var method_type: MethodType = 1:
 	set(val):
-		method_type = val
 		if owner and method_type != val:
-			_update()
+			emit_changed()
+		method_type = val
 
-var update_animations: bool = true
-
-
-func _init() -> void:
-	use_global_variables_as_properties = false
 
 func get_owner() -> MediaClipRes:
 	return owner
@@ -36,10 +31,6 @@ func set_owner(new_owner: MediaClipRes) -> void:
 
 func _set_owner(new_owner: MediaClipRes) -> void:
 	owner = new_owner
-	if owner:
-		_update()
-		if not res_changed.is_connected(_update):
-			res_changed.connect(_update)
 
 func get_method_type() -> MethodType:
 	return method_type
@@ -61,19 +52,23 @@ func duplicate_component_res() -> ComponentRes:
 	
 	return dupl_comp_res
 
+func emit_res_changed() -> void:
+	super()
+	owner.process(owner.curr_frame)
+
 func _enter() -> void:
 	pass
 
 func _process(frame: int) -> void:
-	loop_prop(submit_stacked_value)
+	pass
 
 func _exit() -> void:
 	pass
 
-func _update() -> void:
-	update_animations = false
-	owner.process(owner.curr_frame)
-	update_animations = true
+#func _update() -> void:
+	#update_animations = false
+	#owner.process(owner.curr_frame)
+	#update_animations = true
 
 func _update_and_animate() -> void:
 	owner.process(owner.curr_frame)
@@ -82,12 +77,18 @@ func _update_and_animate() -> void:
 func submit_stacked_value(key: StringName, value: Variant) -> void:
 	owner.add_stacked_value(key, value, method_type)
 
+func submit_stacked_value_with_custom_method(key: StringName, value: Variant, custom_method: MethodType = MethodType.SET) -> void:
+	owner.add_stacked_value(key, value, custom_method)
+
+func submit_stacked_values(stacked_values: Dictionary[StringName, Variant]) -> void:
+	for key: StringName in stacked_values:
+		owner.add_stacked_value(key, stacked_values[key], method_type)
+
 func receive_stacked_values_key_result(key: StringName) -> Variant:
 	return owner.get_stacked_values_key_result(key)
 
 func request_push_animations_result(frame: float) -> void:
-	if update_animations:
-		push_animations_result(frame)
+	push_animations_result(frame)
 
 func loop_animations(frame: float, method: Callable) -> void:
 	frame += owner.from
@@ -129,7 +130,7 @@ func make_animation_absolute(usable_res: UsableRes, property_key: StringName, pr
 		anim_res.update_profiles()
 		res_section[property_key] = anim_res
 		for profile: CurveProfile in anim_res.profiles:
-			profile.profile_updated.connect(_update_and_animate)
+			profile.res_changed.connect(_update_and_animate)
 		owner.comp_animation_res_added.emit(self, usable_res, property_key, anim_res)
 	return res_section.get(property_key)
 
@@ -160,9 +161,9 @@ func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, 
 		remove_animation_absolute(usable_res, property_key)
 	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 
-func _send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	if has_animation(usable_res, param_key):
 		request_animation_keyframe(usable_res, param_key, param_new_val, null, false)
 
-func _send_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	request_animation_keyframe(usable_res, param_key, param_new_val)

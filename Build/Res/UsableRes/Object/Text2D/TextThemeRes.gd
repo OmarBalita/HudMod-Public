@@ -9,6 +9,10 @@ enum FontVariationEnum {
 
 @export_group("Font")
 @export var font: FontVariation = FontVariation.new()
+
+@export var load_font_from_path: bool = true
+@export var font_path: String
+@export var built_in_font: FontRes = FontRes.new()
 @export var font_size: int = 48
 @export var font_color: Color = Color.WHITE
 @export var font_variation: FontVariationEnum = 0
@@ -26,8 +30,12 @@ enum FontVariationEnum {
 @export var shadow_offset: Vector2 = Vector2.ZERO
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+	var is_load_from_file_func: Callable = get.bind(&"load_font_from_path")
 	return {
 		&"Font": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
+		&"load_font_from_path": export(bool_args(load_font_from_path)),
+		&"font_path": export(string_args(font_path, IS.StringControllerType.TYPE_OPEN_FILE, ["ttf", "otf", "ttc", "otc", "woff", "woff2"], "Open Font File"), [is_load_from_file_func, [true]]),
+		&"built_in_font": export([built_in_font], [is_load_from_file_func, [false]]),
 		&"font_size": export(int_args(font_size, 1, 999)),
 		&"font_color": export(color_args(font_color)),
 		&"font_variation": export(options_args(font_variation, FontVariationEnum)),

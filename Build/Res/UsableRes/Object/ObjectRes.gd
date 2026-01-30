@@ -13,4 +13,11 @@ static func get_object_info() -> Dictionary[StringName, String]:
 		&"title": "ObjectRes",
 		&"description": ""
 	}
+static func get_object_section() -> StringName: return &""
+
+func get_min_from() -> float: return -INF
+func get_max_length() -> float: return +INF
+func get_effected_max_length() -> float: return get_max_length()
+
+func format_path(paths_for_format: Dictionary[String, String]) -> void: pass
 

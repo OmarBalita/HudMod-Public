@@ -66,6 +66,7 @@ func _update_layout(open_what: LayoutRootInfo = null) -> void:
 	open_layout(open_what if open_what else preset_layouts[0])
 
 func register_layout_button(layout: LayoutRootInfo) -> void:
+	var audio_wav: AudioStreamWAV = AudioStreamHelper.create_stream_from_path("")
 	
 	var button: Button = Button.new()
 	

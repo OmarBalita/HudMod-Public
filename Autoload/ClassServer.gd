@@ -136,13 +136,16 @@ func value_get_classname(value: Variant) -> StringName:
 func comps_get_section_comps(section: StringName) -> Dictionary[StringName, Dictionary]:
 	return component_res_sorted_by_sections[section]
 
-func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = []) -> Array[Control]:
+func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = [], usable_ress: Array[UsableRes] = []) -> Array[Control]:
 	var result: Array[Control]
 	var prop_type: Variant.Type = typeof(prop_val)
 	if prop_type == TYPE_OBJECT:
 		prop_val = prop_val as Object
 		if prop_val is UsableRes:
-			return prop_val.create_custom_edit(prop_name, prop_val)
+			var nested_usable_ress: Array[UsableRes]
+			for usable_res: UsableRes in usable_ress:
+				nested_usable_ress.append(usable_res.get_prop(prop_name))
+			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress)
 		return []
 	else:
 		return base_classes[prop_type].editor_method.callv([prop_name] + controller_args)

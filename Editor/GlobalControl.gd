@@ -25,10 +25,8 @@ func play() -> void:
 	pass
 
 func save() -> void:
-	ProjectServer.save_project()
-	GlobalServer.save_global()
-	MediaServer.save_not_saved_yet()
-	MediaServer.delete_not_deleted_yet()
+	EditorServer.save()
+
 
 func undo() -> void:
 	pass

@@ -24,10 +24,10 @@ class GlobalPointInfo extends Resource:
 @export var control_use_selection_box: bool = true
 
 @export_group("Draw", "draw")
-@export var draw_x_small_step: int = 1
-@export var draw_y_small_step: int = 1
-@export var draw_x_big_step: int = 10
-@export var draw_y_big_step: int = 20
+@export var draw_x_small_step: float = 1.
+@export var draw_y_small_step: float = 1.
+@export var draw_x_big_step: float = 10.
+@export var draw_y_big_step: float = 20.
 
 var single_selection_func: Callable
 var selection_box_cond: Callable

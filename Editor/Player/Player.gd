@@ -133,6 +133,7 @@ func _ready_ui() -> void:
 	var time_container = IS.create_box_container()
 	
 	viewport = SubViewport.new()
+	viewport.audio_listener_enable_2d = true
 	view_container.add_child(viewport)
 	flex_view_control.add_child(view_container)
 	viewport.size = ProjectServer.project_res.resolution

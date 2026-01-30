@@ -9,3 +9,6 @@ func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_in
 static func get_object_info() -> Dictionary[StringName, String]:
 	return {&"title": "Particles2D",
 		&"description": "Particles2D is used to create diverse visual effects using the Particle System."}
+
+static func get_object_section() -> StringName: return &"Particles"
+

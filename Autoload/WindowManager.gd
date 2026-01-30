@@ -13,7 +13,6 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 		initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN,
 		size = window_size,
 		title = window_title,
-		unresizable = true,
 	})
 	
 	var processing_rect: ProcessingControl = create_processing_rect(is_processing_rect_hidden)
@@ -48,31 +47,45 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	var window: AcceptWindow = window_container.get_window()
 	
 	var box: BoxContainer = IS.create_box_container(10, true)
+	var scroll_cont: ScrollContainer = IS.create_scroll_container()
+	var box2: BoxContainer = IS.create_box_container(10, true)
 	var accept_box: BoxContainer = IS.create_box_container()
 	var accept_button: Button = IS.create_button("Accept", null, true, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	var cancel_button: Button = IS.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	if accept_pressed != null: accept_button.pressed.connect(accept_pressed)
-	if cancel_pressed != null: cancel_button.pressed.connect(cancel_pressed)
-	accept_button.pressed.connect(window.emit_accept)
-	cancel_button.pressed.connect(window.emit_cancel)
+	if accept_pressed.is_valid():
+		accept_button.pressed.connect(accept_pressed)
+	if cancel_pressed.is_valid():
+		cancel_button.pressed.connect(cancel_pressed)
+		window.close_requested.connect(cancel_pressed)
 	
-	var on_child_changed: Callable = func(node: Node):
-		#await get_tree().process_frame
+	accept_button.pressed.connect(func() -> void: if window: window.emit_accept())
+	cancel_button.pressed.connect(func() -> void: if window: window.emit_cancel())
+	
+	var on_child_changed: Callable = func(node: Node) -> void:
 		box.move_child.call_deferred(accept_box, box.get_child_count())
 	
 	box.child_entered_tree.connect(on_child_changed)
 	box.child_exiting_tree.connect(on_child_changed)
 	
+	IS.expand(scroll_cont, true, true)
+	IS.expand(box2, true, true)
+	
 	accept_box.add_child(accept_button)
 	accept_box.add_child(cancel_button)
+	
+	scroll_cont.add_child(box2)
+	box.add_child(scroll_cont)
 	box.add_child(accept_box)
 	window_container.add_child(box)
 	
-	return box
+	if window:
+		window.accept_button = accept_button
+		window.cancel_button = cancel_button
+	
+	return box2
 
 func popup_color_controller_window(processing_node: Node, main_color: Color, on_color_changed: Callable = Callable()) -> PopupedColorController:
 	var window_container: MarginContainer = WindowManager.popup_window_base(processing_node, Vector2i(350.0, 650.0), "Pick a Color", true)
-	window_container.get_window().always_on_top = true
 	
 	var color_controller: PopupedColorController = IS.create_popuped_color_controller(main_color)
 	if on_color_changed.is_valid(): color_controller.color_changed.connect(on_color_changed)
@@ -87,6 +100,8 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	
 	var file_dialog: FileDialog = FileDialog.new()
 	var processing_rect: ProcessingControl = create_processing_rect()
+	
+	file_dialog.always_on_top = true
 	
 	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	file_dialog.file_mode = file_mode
@@ -130,8 +145,14 @@ func on_window_close_request(window: Window, processing_rect: Node) -> void:
 
 class AcceptWindow extends Window:
 	
+	var accept_button: Button
+	var cancel_button: Button
+	
 	signal accepted()
 	signal canceled()
+	
+	func _init() -> void:
+		always_on_top = true
 	
 	func emit_accept() -> void:
 		accepted.emit()

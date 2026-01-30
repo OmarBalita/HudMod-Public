@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cqqv36k5klsh1"]
+[gd_scene format=3 uid="uid://cqqv36k5klsh1"]
 
 [sub_resource type="GDScript" id="GDScript_nxiqb"]
 script/source = "extends Node
@@ -12,5 +12,5 @@ func test(object_id: Object) -> Object:
 	return new_object
 "
 
-[node name="Node" type="Node"]
+[node name="Node" type="Node" unique_id=1645874642]
 script = SubResource("GDScript_nxiqb")

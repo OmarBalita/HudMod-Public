@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://c5j8uwlpcdbkb"]
+[gd_scene format=3 uid="uid://c5j8uwlpcdbkb"]
 
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="Script" uid="uid://d2qybm5ehn5ha" path="res://Editor/Main.gd" id="1_30lmd"]
@@ -43,7 +43,7 @@ script/source = "extends HBoxContainer
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bn3x6"]
 
-[node name="PrototypeMain" type="Control" node_paths=PackedStringArray("editors")]
+[node name="PrototypeMain" type="Control" unique_id=51297914 node_paths=PackedStringArray("editors")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -61,7 +61,7 @@ editors = {
 }
 preset_layouts = Array[ExtResource("2_x7e6b")]([ExtResource("2_s30d6"), ExtResource("5_cd0xf"), ExtResource("4_t7s5e")])
 
-[node name="BG" type="ColorRect" parent="."]
+[node name="BG" type="ColorRect" parent="." unique_id=1809441321]
 z_index = -2
 layout_mode = 1
 anchors_preset = 15
@@ -69,9 +69,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0666667, 0.0666667, 0.0745098, 1)
+color = Color(0.08, 0.08, 0.08, 1)
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=1552990746]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -84,70 +84,70 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Box" type="VBoxContainer" parent="Margin"]
+[node name="Box" type="VBoxContainer" parent="Margin" unique_id=2046023129]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="PanelContainer" parent="Margin/Box"]
+[node name="Header" type="PanelContainer" parent="Margin/Box" unique_id=2105006722]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
-[node name="Bottom" type="PanelContainer" parent="Margin/Box"]
+[node name="Bottom" type="PanelContainer" parent="Margin/Box" unique_id=206862263]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="Margin/Box/Bottom"]
+[node name="MarginContainer" type="MarginContainer" parent="Margin/Box/Bottom" unique_id=2006575577]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Margin/Box/Bottom/MarginContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Margin/Box/Bottom/MarginContainer" unique_id=1493160752]
 layout_mode = 2
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer"]
+[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer" unique_id=280385886]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="LayoutButtonContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+[node name="LayoutButtonContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=131722417]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 alignment = 1
 script = SubResource("GDScript_sruw6")
 
-[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1936103180]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
-theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
-theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
 theme_override_colors/icon_normal_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
 theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("6_t7s5e")
 flat = true
 
-[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box"]
+[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1034418709]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
 focus_mode = 0
-theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
-theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
 theme_override_colors/icon_normal_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
 theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("26_s30d6")
 flat = true
 
-[node name="GlobalControl" type="Control" parent="."]
+[node name="GlobalControl" type="Control" parent="." unique_id=957362020]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -158,7 +158,7 @@ mouse_filter = 2
 script = ExtResource("30_sruw6")
 metadata/_custom_type_script = "uid://dhcmxesxndwle"
 
-[node name="DrawableRect" type="ColorRect" parent="." groups=["drawable_rect"]]
+[node name="DrawableRect" type="ColorRect" parent="." unique_id=1023361327 groups=["drawable_rect"]]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = -0.000588235
@@ -172,7 +172,7 @@ script = ExtResource("25_ig1nw")
 metadata/_custom_type_script = "uid://d1jx0qooyty3l"
 metadata/_edit_use_anchors_ = true
 
-[node name="EditorsFolder" type="Control" parent="."]
+[node name="EditorsFolder" type="Control" parent="." unique_id=320146041]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -183,7 +183,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_x7e6b")
 
-[node name="TimeLine" parent="EditorsFolder" instance=ExtResource("1_n2wvd")]
+[node name="TimeLine" parent="EditorsFolder" unique_id=1681951207 instance=ExtResource("1_n2wvd")]
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
 size_flags_horizontal = 3
@@ -208,7 +208,7 @@ texture_fit_to_fill = ExtResource("17_pajpo")
 texture_replace = ExtResource("21_s30d6")
 color_layer = Color(0.196078, 0.196078, 0.207843, 1)
 
-[node name="Properties" type="Control" parent="EditorsFolder"]
+[node name="Properties" type="Control" parent="EditorsFolder" unique_id=691186840]
 clip_contents = true
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
@@ -225,7 +225,7 @@ texture_search = ExtResource("25_gck3f")
 texture_delete = ExtResource("26_s30d6")
 texture_drag = ExtResource("27_30lmd")
 
-[node name="Player" type="Control" parent="EditorsFolder"]
+[node name="Player" type="Control" parent="EditorsFolder" unique_id=2134777024]
 clip_contents = true
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
@@ -239,7 +239,7 @@ size_flags_vertical = 3
 size_flags_stretch_ratio = 1.7
 script = ExtResource("2_7i47x")
 
-[node name="MediaExplorer" type="Control" parent="EditorsFolder"]
+[node name="MediaExplorer" type="Control" parent="EditorsFolder" unique_id=2118222730]
 clip_contents = true
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
@@ -251,7 +251,7 @@ grow_vertical = 2
 size_flags_vertical = 3
 script = ExtResource("1_7i47x")
 
-[node name="ColorCorrectionEditor" type="Control" parent="EditorsFolder"]
+[node name="ColorCorrectionEditor" type="Control" parent="EditorsFolder" unique_id=1872380720]
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
 anchors_preset = 15
@@ -264,7 +264,7 @@ size_flags_vertical = 3
 script = ExtResource("10_x7e6b")
 metadata/_custom_type_script = "uid://cxhg0wsinlupc"
 
-[node name="ColorScopeEditor" type="Control" parent="EditorsFolder"]
+[node name="ColorScopeEditor" type="Control" parent="EditorsFolder" unique_id=1611740222]
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 1
 anchors_preset = 15
@@ -276,7 +276,7 @@ size_flags_horizontal = 3
 script = ExtResource("37_t8vbk")
 metadata/_custom_type_script = "uid://uupil02s5ia4"
 
-[node name="TweenerComponent" type="Node" parent="." groups=["tweener"]]
+[node name="TweenerComponent" type="Node" parent="." unique_id=1035604091 groups=["tweener"]]
 unique_name_in_owner = true
 script = ExtResource("36_t7s5e")
 transType = 7

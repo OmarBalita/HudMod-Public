@@ -86,7 +86,11 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	color_correction_editor._ready_editor()
 	color_scope_editor._ready_editor()
 	
-	get_window().files_dropped.connect(on_files_dropped)
+	var window: Window = get_window()
+	window.focus_entered.connect(on_window_focus_entered)
+	window.files_dropped.connect(on_window_files_dropped)
+	
+	scan_media_existent()
 
 
 # Frame Get Set
@@ -101,20 +105,37 @@ func set_frame(new_frame: int) -> void:
 # Controllers Handling
 # ---------------------------------------------------
 
-func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, IS.EditBoxContainer]) -> void:
+func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, Control], ui_profile: UIProfile) -> void:
 	usable_ress_controllers[usable_res] = {
 		&"usable_ress": usable_ress,
 		&"edit_box_container": edit_box_container,
-		&"properties_boxes_containers": properties_containers
+		&"properties_boxes_containers": properties_containers,
+		&"ui_profile": ui_profile
 	}
+
+func has_usable_res_controllers(usable_res: UsableRes) -> bool:
+	if usable_ress_controllers.has(usable_res):
+		if usable_ress_controllers[usable_res].edit_box_container:
+			return true
+		usable_ress_controllers.erase(usable_res)
+	return false
 
 func clear_usable_res_controllers(usable_res: UsableRes) -> void:
 	usable_ress_controllers.erase(usable_res)
 
-func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> IS.EditBoxContainer:
+func get_usable_res_controllers(usable_res: UsableRes) -> Dictionary[StringName, Control]:
+	return usable_ress_controllers[usable_res].properties_boxes_containers
+
+func get_usable_res_ui_profile(usable_res: UsableRes) -> UIProfile:
+	return usable_ress_controllers[usable_res].ui_profile
+
+func update_usable_res_ui_profile(usable_res: UsableRes) -> void:
+	get_usable_res_ui_profile(usable_res).update()
+
+func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> Control:
 	if usable_ress_controllers.has(usable_res):
 		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
-		var property_container: IS.EditBoxContainer = curr_properties_containers[property_key]
+		var property_container: Control = curr_properties_containers[property_key]
 		return property_container
 	return null
 
@@ -217,17 +238,141 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 func get_presets_path(global: bool) -> String:
 	return GlobalServer.global_preset_path if global else ProjectServer.project_preset_path
 
+func get_media_path(global: bool) -> String:
+	return GlobalServer.global_media_path if global else ProjectServer.project_media_path
+
 func get_ids_from_pathes(pathes: PackedStringArray) -> PackedStringArray:
 	var used_ids: PackedStringArray
 	for path: String in pathes:
 		used_ids.append(path.get_file().split(".")[0])
 	return used_ids
 
+func save() -> void:
+	ProjectServer.save_project()
+	GlobalServer.save_global()
+	MediaServer.save_not_saved_yet()
+	MediaServer.delete_not_deleted_yet()
+
+func scan_media_existent() -> void:
+	var project_imp_sys:= ProjectServer.import_file_system
+	var project_pres_sys:= ProjectServer.preset_file_system
+	var global_imp_sys:= GlobalServer.import_file_system
+	var global_pres_sys:= GlobalServer.preset_file_system
+	
+	project_imp_sys.check_for_discard_paths()
+	global_imp_sys.check_for_discard_paths()
+	
+	var project_import_paths: PackedStringArray = project_imp_sys.get_files_paths()
+	var project_preset_paths: PackedStringArray = project_pres_sys.get_files_paths()
+	
+	var global_import_paths: PackedStringArray = global_imp_sys.get_files_paths()
+	var global_preset_paths: PackedStringArray = global_pres_sys.get_files_paths()
+	
+	var all_import_paths: PackedStringArray = project_import_paths + global_import_paths
+	var all_preset_paths: PackedStringArray = project_preset_paths + global_preset_paths
+	
+	var disk_paths_not_exists: PackedStringArray
+	for import_path: String in all_import_paths:
+		if not FileAccess.file_exists(import_path):
+			disk_paths_not_exists.append(import_path)
+	
+	if disk_paths_not_exists:
+		if not replace_paths_window:
+			popup_replace_paths_window(disk_paths_not_exists)
+		return
+	elif replace_paths_window:
+		replace_paths_window.queue_free()
+	
+	var global_paths_needed: PackedStringArray = global_pres_sys.preset_media_ress_check_for_paths(global_import_paths)
+	
+	media_explorer.import_box.update()
+	media_explorer.preset_box.update()
+
+func replace_paths(paths_for_replace: Dictionary[String, String], discard_option: bool) -> void:
+	ProjectServer.import_file_system.replace_paths(paths_for_replace, discard_option)
+	GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
+	format_paths(paths_for_replace)
+
+func discard_paths(paths: PackedStringArray) -> void:
+	ProjectServer.import_file_system.discard_paths(paths)
+	GlobalServer.import_file_system.discard_paths(paths)
+
+func format_paths(paths_for_format: Dictionary[String, String]) -> void:
+	ProjectServer.format_media_clips_paths(paths_for_format)
+	ProjectServer.preset_file_system.preset_media_ress_format_paths(paths_for_format)
+	GlobalServer.preset_file_system.preset_media_ress_format_paths(paths_for_format)
+
+
+func get_import_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.import_file_system if global else ProjectServer.import_file_system
+func get_preset_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.preset_file_system if global else ProjectServer.preset_file_system
+
+
+# Popup Windows
+# ---------------------------------------------------
+
+var replace_paths_window: Window
+
+func popup_replace_paths_window(paths: PackedStringArray, discard_option: bool = true, custom_popup: bool = false) -> WindowManager.AcceptWindow:
+	var paths_for_replace: Dictionary[String, String] = {}
+	
+	var window_cont: BoxContainer = WindowManager.popup_accept_window(
+		get_window(),
+		Vector2(900, 500),
+		"Replace unexistent paths",
+		replace_paths.bind(paths_for_replace, discard_option),
+		func() -> void: if discard_option: discard_paths(paths)
+	)
+	
+	var window: WindowManager.AcceptWindow = window_cont.get_window()
+	window.accept_button.text = "Replace"
+	window.cancel_button.text = "Discard"
+	
+	for path: String in paths:
+		
+		if paths_for_replace.has(path):
+			continue
+		
+		var new_path: String = ""
+		
+		var type: int = MediaServer.get_media_type_from_path(path)
+		var type_info: Dictionary = MediaServer.imported_clip_info[type]
+		
+		var path_edit: Control = IS.create_string_edit(path, new_path, "Choose a New path", 2, MediaServer.MEDIA_EXTENSIONS)[0]
+		var edit_box: IS.EditBoxContainer = path_edit.get_parent()
+		
+		var icon_rect: TextureRect = IS.create_texture_rect(type_info.icon, {modulate = type_info.color, custom_minimum_size = Vector2(24., .0), stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED})
+		var valid_path_rect: TextureRect = IS.create_texture_rect(null, {custom_minimum_size = Vector2(24., .0), stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED})
+		
+		var on_update_path_func: Callable = func(usable_res: UsableRes, key: StringName, val: Variant) -> void:
+			paths_for_replace[path] = val
+			
+			var cond1: bool = FileAccess.file_exists(val)
+			var cond2: bool = MediaServer.get_media_type_from_path(val) == type
+			valid_path_rect.texture = IS.TEXTURE_CHECK if cond1 and cond2 else IS.TEXTURE_X_MARK
+		
+		on_update_path_func.call(null, &"", new_path)
+		
+		edit_box.header.add_child(icon_rect)
+		edit_box.header.add_child(valid_path_rect)
+		edit_box.val_changed.connect(on_update_path_func)
+		
+		window_cont.add_child(edit_box)
+		
+		paths_for_replace[path] = new_path
+	
+	if not custom_popup:
+		replace_paths_window = window
+	
+	return window
+
+
 # Connections
 # ---------------------------------------------------
 
-func on_files_dropped(files_pathes: Array[String]) -> void:
-	
+func on_window_focus_entered() -> void:
+	scan_media_existent()
+
+func on_window_files_dropped(files_pathes: Array[String]) -> void:
 	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
 	var target_layer: Layer = time_line.get_layer_by_pos(mouse_pos)
 	var target_layer_index: int = target_layer.index if target_layer else -1

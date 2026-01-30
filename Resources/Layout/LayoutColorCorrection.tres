@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LayoutRootInfo" load_steps=8 format=3 uid="uid://6qv1nryowska"]
+[gd_resource type="Resource" script_class="LayoutRootInfo" format=3 uid="uid://6qv1nryowska"]
 
 [ext_resource type="Script" uid="uid://cis86m6ws6jio" path="res://Build/Res/Layout/LayoutInfo.gd" id="1_70ktj"]
 [ext_resource type="Texture2D" uid="uid://b11ygfd0umguo" path="res://Asset/Icons/color-corr.png" id="2_v8ghe"]
@@ -9,16 +9,12 @@
 script = ExtResource("1_70ktj")
 editor_1_name = &"player"
 editor_2_name = &"properties"
-vertical = false
-split_offset = 0
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
 [sub_resource type="Resource" id="Resource_5ke31"]
 script = ExtResource("1_70ktj")
 layout_2 = SubResource("Resource_70ktj")
 editor_1_name = &"color_scope"
-editor_2_name = &""
-vertical = false
 split_offset = -400
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
@@ -26,7 +22,6 @@ metadata/_custom_type_script = "uid://cis86m6ws6jio"
 script = ExtResource("1_70ktj")
 editor_1_name = &"time_line"
 editor_2_name = &"color_correction"
-vertical = false
 split_offset = 150
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
@@ -34,11 +29,8 @@ metadata/_custom_type_script = "uid://cis86m6ws6jio"
 script = ExtResource("3_5ke31")
 layout_name = &"Color Correction"
 layout_image = ExtResource("2_v8ghe")
-windowed_infos = Array[ExtResource("4_pqc6d")]([])
 layout_1 = SubResource("Resource_5ke31")
 layout_2 = SubResource("Resource_pqc6d")
-editor_1_name = &""
-editor_2_name = &""
 vertical = true
 split_offset = 400
 metadata/_custom_type_script = "uid://cis86m6ws6jio"

@@ -87,31 +87,34 @@ const SHADER_PARAM_TYPE_STRING_INDEXER: Dictionary[int, String] = {
 	ShaderParamType.PARAM_TYPE_USAMPLER_3D: "usampler3D"
 }
 
+@export var effect_blend_method: ShaderBlendMethod:
+	set(val):
+		effect_blend_method = val
+		owner.compile_shader_snips()
+
+@export var effect_weight: float = .5:
+	set(val):
+		effect_weight = val
+		_set_shader_prop(&"effect_weight", effect_weight)
+
 var shader_params_names_list: Dictionary[String, String]
 
-func _init() -> void:
-	super()
-	register_prop(&"effect_blend_method", .0, &"_set_prop_and_update_shader")
-	register_prop(&"effect_weight", .5, &"_set_shader_prop")
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+	return {
+		&"Effect": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
+		&"effect_blend_method": export(options_args(effect_blend_method, ShaderBlendMethod)),
+		&"effect_weight": export(float_args(effect_weight, .0, 1.)),
+		&"_Effect": export_method(ExportMethodType.METHOD_EXIT_CATEGORY)
+	}
 
-#func _get_exported_props() -> Dictionary[StringName, Dictionary]:
-	#return {
-		#&"effect_blend_method": CtrlrHelper.get_option_controller_args([], [
-			#"Set", "Mix", "Add", "Multiply", "Screen", "Overlay", "Soft Light", "Hard Light", "Difference"
-		#], get_prop(&"effect_blend_method")),
-		#&"effect_weight": CtrlrHelper.get_float_controller_args([], false, get_prop(&"effect_weight"), .0, 1.0)
-	#}
-
-func _set_prop_and_update_shader(prop_key: StringName, prop_val: Variant) -> void:
-	_set_prop_default(prop_key, prop_val)
-	owner.compile_shader_snips()
+func _ready_shader() -> void:
+	pass
 
 func _set_shader_prop(prop_key: StringName, prop_val: Variant) -> void:
-	_set_prop_default(prop_key, prop_val)
 	owner.get_shader_material().set_shader_parameter(get_shader_param_code_name(prop_key), prop_val)
 
 func _get_shader_init_params() -> Dictionary[StringName, Variant]:
-	return {&"effect_weight": get_prop(&"effect_weight")}
+	return {&"effect_weight": effect_weight}
 
 func get_shader_params_names_list() -> Dictionary[String, String]:
 	return shader_params_names_list
@@ -124,48 +127,47 @@ func get_shader_param_code_name(display_name: String) -> String:
 
 func _get_shader_global_params_snip() -> String:
 	return "
-uniform float {effect_blend_method};
 uniform float {effect_weight};
-"
+\n"
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
 
 
 func _get_shader_blend_snip(a_arg: String, b_arg: String, blend_method: ShaderBlendMethod = -1) -> String:
 	if blend_method == -1:
-		blend_method = get_prop(&"effect_blend_method")
+		blend_method = effect_blend_method
 	
 	var result: String
 	var r_side: String
 	
 	match blend_method:
-		0: r_side = "[b];"
-		1: r_side = "mix([a], [b], {effect_weight});"
-		2: r_side = "[a] + [b] * {effect_weight};"
-		3: r_side = "[a] * [b];"
-		4: r_side = "1.0 - (1.0 - [a]) * (1.0 - [b]);"
+		0: r_side = "[b]"
+		1: r_side = "mix([a], [b], {effect_weight})"
+		2: r_side = "[a] + [b] * {effect_weight}"
+		3: r_side = "[a] * [b]"
+		4: r_side = "1.0 - (1.0 - [a]) * (1.0 - [b])"
 		5: r_side = "
 	mix(
 		2.0 * [a] * [b],
 		1.0 - 2.0 * (1.0 - [a]) * (1.0 - [b]),
 		step(0.5, [a])
-	);
+	)
 "
-		6: r_side = "[a] + ([b] - 0.5) * (1.0 - abs(2.0 * [a] - 1.0));"
+		6: r_side = "[a] + ([b] - 0.5) * (1.0 - abs(2.0 * [a] - 1.0))"
 		7: r_side = "
 	mix(
 		2.0 * [a] * [b],
 		1.0 - 2.0 * (1.0 - [a]) * (1.0 - [b]),
 		step(0.5, [b])
-	);
+	)
 "
-		8: r_side = "abs([a] - [b]);"
+		8: r_side = "abs([a] - [b])"
 	
 	r_side = r_side.format({
 		"a" = a_arg,
 		"b" = "{" + b_arg + "}"
 	}, "[_]")
 	
-	result = "	%s = %s" % [a_arg, r_side]
+	result = "	%s = mix(%s, %s, {effect_weight});" % [a_arg, a_arg, r_side]
 	
 	return result

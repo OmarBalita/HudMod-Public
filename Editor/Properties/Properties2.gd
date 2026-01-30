@@ -319,7 +319,7 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
 	var comp_res_owner: ComponentRes = comp_info.component_res_owner
-	comp_res_owner.res_changed.connect(func() -> void: property_changed.emit())
+	comp_res_owner.res_changed.connect(property_changed.emit)
 	
 	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress)
 	var comp_editor: IS.EditBoxContainer = IS.get_edit_box_from(comp_controllers)

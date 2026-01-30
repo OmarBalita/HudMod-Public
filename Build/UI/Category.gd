@@ -48,7 +48,7 @@ func _ready() -> void:
 	dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 	
 	header_button = Button.new()
-	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10.0, .0)})
+	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10., .0)})
 	
 	content_panel_container = PanelContainer.new()
 	content_margin_container = IS.create_margin_container(8,8,8,8, {clip_contents = false})

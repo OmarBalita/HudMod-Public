@@ -8,14 +8,22 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="HudMod"
 run/main_scene="uid://ckmqu1nrqmxml"
-config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/show_image=false
 config/icon="uid://daw7g1bq36r4n"
+
+[audio]
+
+buses/default_bus_layout="uid://f6m86soc3vm8"
 
 [autoload]
 
@@ -49,12 +57,14 @@ enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg")
 [file_customization]
 
 folder_colors={
+"res://Asset/": "blue",
 "res://Autoload/": "yellow",
 "res://Build/": "gray",
 "res://Editor/": "teal",
 "res://ExampleProject/": "orange",
 "res://Prototype/": "purple",
-"res://UI&UX/": "pink"
+"res://UI&UX/": "pink",
+"res://addons/": "red"
 }
 
 [global_group]

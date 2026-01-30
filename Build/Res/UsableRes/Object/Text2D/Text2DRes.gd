@@ -57,6 +57,8 @@ static func get_object_info() -> Dictionary[StringName, String]:
 		&"description": ""
 	}
 
+static func get_object_section() -> StringName: return &"Text"
+
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
 		&"text": export(string_args(text, 1)),
@@ -70,7 +72,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"text_themes": export(list_args(text_themes, &"TextThemeRes", true, true, true, true, 1)),
 	}
 
-func _send_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
+func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
 	super(edit_box_container, usable_res, prop_key, prop_new_val)
 	if prop_key == &"text_themes":
 		delete_non_existent_themes()
@@ -79,6 +81,10 @@ func apply_selected_theme_to_selected_text() -> void:
 	var text_ctrlr: CustomTextEdit = EditorServer.get_usable_res_property_controller(self, &"text").controller
 	var list_ctrlr: ListController = EditorServer.get_usable_res_property_controller(self, &"text_themes").controller
 	
+	#printt(
+		#text_ctrlr.get_selection_from_index(),
+		#text_ctrlr.get_selection_to_index(),
+	#)
 	if text_ctrlr.has_selection() and list_ctrlr.focus_index != -1:
 		apply_theme(
 			text_ctrlr.get_selection_from_index(),
@@ -87,34 +93,48 @@ func apply_selected_theme_to_selected_text() -> void:
 		)
 
 func delete_non_existent_themes() -> void:
+	var keys_to_delete: Array[int] = []
 	for text_index: int in text_themes_data.keys():
 		if not text_themes.has(text_themes_data[text_index]):
-			text_themes_data.erase(text_index)
-			if not text_themes_data.has(0):
-				text_themes_data[0] = text_themes[0]
+			keys_to_delete.append(text_index)
+	
+	for key in keys_to_delete:
+		text_themes_data.erase(key)
+	
+	if text_themes_data.is_empty() and not text_themes.is_empty():
+		text_themes_data[0] = text_themes[0]
+	
 	start_update_data(true)
 
 func apply_theme(from: int, to: int, theme: TextThemeRes) -> void:
 	text_themes_data[from] = theme
-	text_themes_data.sort()
 	
-	var text_themes_data_keys: Array[int] = text_themes_data.keys()
-	var from_index: int = text_themes_data_keys.find(from)
+	var keys_to_remove: Array[int] = []
+	for key: int in text_themes_data.keys():
+		if key > from and key < to:
+			keys_to_remove.append(key)
 	
-	var latest_removed_theme: TextThemeRes
-	for index: int in range(from_index + 1, text_themes_data_keys.size()):
-		var text_index: int = text_themes_data_keys[index]
-		if to < text_index:
-			if latest_removed_theme:
-				text_themes_data[text_index] = latest_removed_theme
+	for key: int in keys_to_remove:
+		text_themes_data.erase(key)
+	
+	var sorted_keys: Array[int] = []
+	sorted_keys.assign(text_themes_data.keys())
+	sorted_keys.sort()
+	
+	var next_theme: TextThemeRes = null
+	for key: int in sorted_keys:
+		if key > to:
+			next_theme = text_themes_data[key]
 			break
-		else:
-			latest_removed_theme = text_themes_data[text_index]
-			text_themes_data.erase(text_index)
 	
-	print(text_themes_data)
+	if next_theme == null:
+		for index: int in range(sorted_keys.size() - 1, -1, -1):
+			if sorted_keys[index] < from:
+				next_theme = text_themes_data[sorted_keys[index]]
+				break
 	
-	start_update_data(true)
+	if next_theme != null and to < text.length():
+		text_themes_data[to] = next_theme
 
 func start_update_data(force: bool = false) -> void:
 	#if not force and text == text_res.text:
@@ -143,7 +163,7 @@ func update_data(text_res: Text2DRes) -> void:
 		if line_text.strip_edges().is_empty():
 			line_text = "\n"
 		
-		var line_data: LineData = _prepare_line_data(text_themes, line_text, curr_char_index)
+		var line_data: LineData = _prepare_line_data(line_text, curr_char_index)
 		_build_characters(line_data, line_text, curr_char_index, text_res.tracking)
 		new_lines_data.append(line_data)
 		curr_char_index += line_text.length()
@@ -201,34 +221,56 @@ func _build_characters(line_data: LineData, line_text: String, line_start_index:
 			curr_position.x += advance + tracking * theme.font_size
 
 
-func _prepare_line_data(text_themes: Array, line_text: String, line_start_index: int) -> LineData:
-	# --- Single-Theme ---
-	var theme: TextThemeRes = _get_theme_at_position(line_start_index)
-	var font: Font = theme.font
-	var font_size: int = theme.font_size
-	var font_variations: Array[RID] = _get_font_variation_rids(font, theme)
+func _prepare_line_data(line_text: String, line_start_index: int) -> LineData:
+	# التحقق من وجود ثيمات متعددة
+	var has_multiple_themes: bool = _line_has_multiple_themes(line_text, line_start_index)
 	
-	var shaped_line_rid: RID = _create_shaped_line(line_text, font_variations, font_size)
+	if has_multiple_themes:
+		# --- Multi-theme ---
+		var line_shape: Dictionary = _shape_multitheme_line(line_text, line_start_index)
+		var ordered_glyphs: Array = line_shape.ordered_glyphs
+		var bidi_rid: RID = line_shape.bidi_rid
+		
+		var segments_data: Dictionary = _compose_segments_from_glyphs(ordered_glyphs, line_text, line_start_index)
+		if bidi_rid.is_valid():
+			ts.free_rid(bidi_rid)
+		
+		return _create_new_line_data(segments_data.segments, segments_data.max_line_height, segments_data.max_ascent, segments_data.max_descent,LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
+	else:
+		# --- Single-Theme ---
+		var theme: TextThemeRes = _get_theme_at_position(line_start_index)
+		var font: Font = theme.font
+		var font_size: int = theme.font_size
+		var font_variations: Array[RID] = _get_font_variation_rids(font, theme)
+		
+		var shaped_line_rid: RID = _create_shaped_line(line_text, font_variations, font_size)
+		
+		var glyphs: Array[Dictionary] = ts.shaped_text_get_glyphs(shaped_line_rid)
+		var line_width: float = ts.shaped_text_get_size(shaped_line_rid).x
+		var ascent: float = font.get_ascent(font_size)
+		var descent: float = font.get_descent(font_size)
+		var height: float = ascent + descent
+		
+		var segment: TextSegmentRes = _create_new_segment(glyphs, theme, line_width, height, ascent, descent)
+		return _create_new_line_data([segment], height, ascent, descent, LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
+
+func _line_has_multiple_themes(line_text: String, line_start_index: int) -> bool:
+	if text_themes_data.size() <= 1:
+		return false
 	
-	var glyphs: Array[Dictionary] = ts.shaped_text_get_glyphs(shaped_line_rid)
-	var line_width: float = ts.shaped_text_get_size(shaped_line_rid).x
-	var ascent: float = font.get_ascent(font_size)
-	var descent: float = font.get_descent(font_size)
-	var height: float = ascent + descent
+	var line_end_index: int = line_start_index + line_text.length()
+	var sorted_keys: Array[int] = []
+	sorted_keys.assign(text_themes_data.keys())
+	sorted_keys.sort()
 	
-	var segment: TextSegmentRes = _create_new_segment(glyphs, theme, line_width, height, ascent, descent)
-	return _create_new_line_data([segment], height, ascent, descent, LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
+	var themes_in_range: int = 0
+	for key: int in sorted_keys:
+		if key >= line_start_index and key < line_end_index:
+			themes_in_range += 1
+			if themes_in_range > 1:
+				return true
 	
-	# --- Multi-theme ---
-	var line_shape: Dictionary = _shape_multitheme_line(line_text, line_start_index)
-	var ordered_glyphs: Array = line_shape.ordered_glyphs
-	var bidi_rid: RID = line_shape.bidi_rid
-	
-	var segments_data: Dictionary = _compose_segments_from_glyphs(ordered_glyphs, line_text, line_start_index)
-	if bidi_rid.is_valid():
-		ts.free_rid(bidi_rid)
-	
-	return _create_new_line_data(segments_data.segments, segments_data.max_line_height, segments_data.max_ascent, segments_data.max_descent,LineData.LineAlignment.NONE, line_text, Vector2.ZERO)
+	return false
 
 func _shape_multitheme_line(line_text: String, line_start_index: int) -> Dictionary:
 	var char_to_theme_map: Array[TextThemeRes] = []
@@ -385,11 +427,22 @@ func _get_font_variation_rids(font: Font, text_theme: TextThemeRes) -> Array[RID
 	return [fonts[index]]
 
 func _get_theme_at_position(pos: int) -> TextThemeRes:
-	var text_themes_data_keys: Array = text_themes_data.keys()
-	for char_start_index: int in text_themes_data_keys:
-		if pos >= char_start_index:
-			return text_themes_data[char_start_index]
-	return text_themes_data[text_themes_data_keys.front()]
+	if text_themes_data.is_empty():
+		return text_themes[0] if not text_themes.is_empty() else TextThemeRes.new()
+	
+	var sorted_keys: Array[int] = []
+	sorted_keys.assign(text_themes_data.keys())
+	sorted_keys.sort()
+	
+	var selected_theme: TextThemeRes = text_themes_data[sorted_keys[0]]
+	
+	for key: int in sorted_keys:
+		if pos >= key:
+			selected_theme = text_themes_data[key]
+		else:
+			break
+	
+	return selected_theme
 
 func _get_global_index(index: int) -> int:
 	var count: int = 0

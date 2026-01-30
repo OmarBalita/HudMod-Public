@@ -1,8 +1,7 @@
-class_name CurveProfile extends Resource
+class_name CurveProfile extends UsableRes
 
 signal key_added(x: float, curve_key: CurveKey)
 signal key_removed(x: float)
-signal profile_updated()
 
 static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringName] = {
 	CurveKey.InterpolationMode.INTERPOLATION_MODE_CONSTANT: &"_interpolate_constant",
@@ -33,10 +32,65 @@ static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringN
 
 @export var baked: Dictionary[float, float]
 
+@export_group(&"Ctrlr Settings")
+@export var ctrlr_min_val: float = .0
+@export var ctrlr_max_val: float = 1.
+@export var ctrlr_val_step: float = .01
+@export var ctrlr_min_domain: float = .0
+@export var ctrlr_max_domain: float = 256.
+@export var ctrlr_domain_step: float = 1.
+
+@export var ctrlr_zoom_min: float = .5
+@export var ctrlr_zoom_max: float = 5.
+
+@export var ctrlr_val_snap_step: Vector2 = Vector2(.1, .2)
+@export var ctrlr_domain_snap_step: Vector2 = Vector2(1., 8.)
+
 var keys_keys: Array
 
-var sample_func: Callable
+var sample_func: Callable = sample
 
+static func preset_linear() -> CurveProfile:
+	var profile: CurveProfile = new_profile_with_ctrlr_sett()
+	profile.add_key(profile.ctrlr_min_domain, CurveKey.new_bezier_curve(profile.ctrlr_min_val))
+	profile.add_key(profile.ctrlr_max_domain, CurveKey.new_bezier_curve(profile.ctrlr_max_val))
+	return profile
+
+static func new_profile_with_ctrlr_sett(min_val: float = .0, max_val: float = 1., val_step: float = .01, min_domain: float = .0, max_domain: float = 256., domain_step: float = 1.,
+	zoom_min: float = .5, zoom_max: float = 5., val_snap_step: Vector2 = Vector2(.1, .2), domain_snap_step: Vector2 = Vector2(1., 8.)) -> CurveProfile:
+	
+	var curve_profile:= CurveProfile.new()
+	ObjectServer.describe(curve_profile, {
+		ctrlr_min_val = min_val, ctrlr_max_val = max_val, ctrlr_val_step = val_step,
+		ctrlr_min_domain = min_domain, ctrlr_max_domain = max_domain, ctrlr_domain_step = domain_step,
+		
+		ctrlr_zoom_min = zoom_min, ctrlr_zoom_max = zoom_max,
+		
+		ctrlr_domain_snap_step = domain_snap_step,
+		ctrlr_val_snap_step = val_snap_step,
+	})
+	return curve_profile
+
+
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+	var curve_ctrlr:= CurveController.new()
+	curve_ctrlr.curves_profiles = [self]
+	
+	ObjectServer.describe(curve_ctrlr, {
+		min_val = ctrlr_min_val, max_val = ctrlr_max_val, val_step = ctrlr_val_step,
+		min_domain = ctrlr_min_domain, max_domain = ctrlr_max_domain, domain_step = ctrlr_domain_step,
+		
+		zoom_min = ctrlr_zoom_min, zoom_max = ctrlr_zoom_max,
+		
+		draw_x_small_step = ctrlr_domain_snap_step.x, draw_x_big_step = ctrlr_domain_snap_step.y,
+		draw_y_small_step = ctrlr_val_snap_step.x, draw_y_big_step = ctrlr_val_snap_step.y
+	})
+	
+	curve_ctrlr.custom_minimum_size.y = 220.
+	
+	return {
+		&"curve_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [curve_ctrlr]),
+	}
 
 static func new_profile_curve(_keys: Dictionary[float, CurveKey], _bakeable: bool = false) -> CurveProfile:
 	#_keys: Dictionary[float, CurveKey], _bakeable: bool = false
@@ -239,7 +293,15 @@ func update_profile() -> void:
 			for x: int in range(keys_keys[0], keys_keys[-1] + 1):
 				baked[x] = sample(x)
 	
-	profile_updated.emit()
+	emit_res_changed()
+
+# works only when keys start from .0 and ended to ctrlr_max_domain.
+func create_image_texture() -> ImageTexture:
+	var image: Image = Image.create_empty(ctrlr_max_domain, 1, false, Image.FORMAT_L8)
+	for x: int in ctrlr_max_domain:
+		var y: float = sample_func.call(x)
+		image.set_pixel(x, 0, Color(y, y, y))
+	return ImageTexture.create_from_image(image)
 
 func duplicate_profile() -> CurveProfile:
 	var new_keys: Dictionary[float, CurveKey] = keys.duplicate()

@@ -28,8 +28,13 @@ func load_global() -> void:
 	import_file_system = ResLoadHelper.load_or_save(import_file_system_path, DisplayFileSystemRes)
 	preset_file_system = ResLoadHelper.load_or_save(preset_file_system_path, DisplayFileSystemRes)
 	global_usable_res = ResLoadHelper.load_or_save(global_usable_res_path, GlobalUsableRes)
-	MediaCache.load_media_cache_from_file_system(import_file_system, global_thumbnail_path, global_waveform_path)
-	MediaCache.load_media_cache_from_file_system(preset_file_system, global_thumbnail_path, global_waveform_path)
+	
+	import_file_system.thumbnail_path = global_thumbnail_path
+	import_file_system.waveform_path = global_waveform_path
+	
+	MediaCache.load_media_cache_from_file_system(import_file_system)
+	MediaCache.load_media_cache_from_file_system(preset_file_system)
+	
 	is_global_cache_loaded = true
 	global_cache_loaded.emit()
 
@@ -46,3 +51,6 @@ func make_global_dirs_abs() -> void:
 		global_media_path,
 		global_preset_path
 	]))
+
+
+

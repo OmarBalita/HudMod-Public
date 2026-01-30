@@ -1,40 +1,42 @@
-class_name Wave2DComponents extends ComponentRes
+class_name CompWave2D extends ComponentRes
 
-func _init() -> void:
-	super()
-	register_props({
-		enable_x = false,
-		enable_y = true,
-		method = 0,
-		speed = 10.0,
-		domain = 100.0
-	})
+enum WaveMethod {
+	WAVE_METHOD_SIN,
+	WAVE_METHOD_COS
+}
+
+@export var enable_x: bool = false
+@export var enable_y: bool = true
+@export var method: WaveMethod
+@export var speed: float = 10.
+@export var domain: float = 100.
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	var frame: int = EditorServer.frame
-	var ex:= func() -> bool: return get_prop(&"enable_x")
-	var ey:= func() -> bool: return get_prop(&"enable_y")
-	var enabled_cond: Array = [func() -> bool: return ex.call() or ey.call(), [true]]
+	var enabled_cond: Array = [
+		func() -> bool:
+			return self.enable_x or self.enable_y,
+		[true]
+	]
 	return {
-		#enable_x = CtrlrHelper.get_bool_controller_args([], ex.call()),
-		#enable_y = CtrlrHelper.get_bool_controller_args([], ey.call()),
-		#method = CtrlrHelper.get_option_controller_args(enabled_cond, ["Sin", "Cos"], get_prop(&"method")),
-		#speed = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"speed")),
-		#domain = CtrlrHelper.get_float_controller_args(enabled_cond, false, get_prop(&"domain"))
+		&"enable_x": export(bool_args(enable_x)),
+		&"enable_y": export(bool_args(enable_y)),
+		&"method": export(options_args(method, WaveMethod)),
+		&"speed": export(float_args(speed), enabled_cond),
+		&"domain": export(float_args(domain), enabled_cond)
 	}
 
 func _process(frame: int) -> void:
-	request_push_animations_result(frame)
+	
 	var method: Callable
-	match get_prop(&"method"):
-		0: method = sin
-		1: method = cos
-	var speed: float = get_prop(&"speed")
-	var domain: float = get_prop(&"domain")
+	if method_type == 0:
+		method = sin
+	else:
+		method = cos
+	
 	var result: float = method.call(deg_to_rad(frame) * speed) * domain
 	var submitted_result: Vector2
-	if get_prop(&"enable_x"):
-		submitted_result.x = result
-	if get_prop(&"enable_y"):
-		submitted_result.y = result
+	
+	if enable_x: submitted_result.x = result
+	if enable_y: submitted_result.y = result
+	
 	submit_stacked_value(&"position", submitted_result)

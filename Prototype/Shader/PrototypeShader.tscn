@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://df1pgyem08qs0"]
+
+[ext_resource type="Texture2D" uid="uid://71t0sggyev61" path="res://Asset/Images/pexels-creative-vix-9754.jpg" id="1_vfnuj"]
+
+[sub_resource type="Shader" id="Shader_dcitl"]
+code = "shader_type canvas_item;
+
+uniform float temperature : hint_range(-1.0, 1.0) = 0.0;
+uniform float tint : hint_range(-1.0, 1.0) = 0.0;
+
+uniform sampler2D red_curve : hint_default_white;
+uniform sampler2D green_curve : hint_default_white;
+uniform sampler2D blue_curve : hint_default_white;
+uniform sampler2D rgb_curve : hint_default_white;
+
+uniform bool use_curves = false;
+
+void fragment() {
+    vec4 tex_color = texture(TEXTURE, UV);
+    vec3 color = tex_color.rgb;
+    
+    vec3 warm_cool = vec3(1.0 + temperature, 1.0, 1.0 - temperature);
+    
+    vec3 green_magenta = vec3(1.0 + tint * 0.5, 1.0 - tint, 1.0 + tint * 0.5);
+    
+    color *= warm_cool;
+    color *= green_magenta;
+    
+    float old_luma = dot(tex_color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float new_luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color *= (old_luma / max(new_luma, 0.001));
+    
+    if (use_curves) {
+        color.r = texture(rgb_curve, vec2(color.r, 0.5)).r;
+        color.g = texture(rgb_curve, vec2(color.g, 0.5)).g;
+        color.b = texture(rgb_curve, vec2(color.b, 0.5)).b;
+        
+        color.r = texture(red_curve, vec2(color.r, 0.5)).r;
+        color.g = texture(green_curve, vec2(color.g, 0.5)).g;
+        color.b = texture(blue_curve, vec2(color.b, 0.5)).b;
+    }
+    
+    COLOR = vec4(clamp(color, 0.0, 1.0), tex_color.a);
+}"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_vfnuj"]
+load_path = "res://.godot/imported/image.png-2de165adb17dfebcee8a7cd6c9833936.ctex"
+
+[sub_resource type="Curve" id="Curve_vfnuj"]
+_data = [Vector2(0.059405945, 0), 0.0, 0.023096787, 0, 0, Vector2(0.2508251, 0.3569519), 0.0, 0.0, 0, 0, Vector2(0.37623763, 0.4872995), 0.0, 0.0, 0, 0, Vector2(0.4719472, 0.5307487), 0.0, 0.0, 0, 0, Vector2(0.9504951, 1), -0.21064195, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="CurveTexture" id="CurveTexture_dcitl"]
+curve = SubResource("Curve_vfnuj")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1tw12"]
+shader = SubResource("Shader_dcitl")
+shader_parameter/temperature = 0.0
+shader_parameter/tint = 0.0
+shader_parameter/red_curve = SubResource("CompressedTexture2D_vfnuj")
+shader_parameter/green_curve = SubResource("CompressedTexture2D_vfnuj")
+shader_parameter/blue_curve = SubResource("CompressedTexture2D_vfnuj")
+shader_parameter/rgb_curve = SubResource("CurveTexture_dcitl")
+shader_parameter/use_curves = true
+
+[node name="PrototypeShader" type="Node2D" unique_id=1695768259]
+metadata/_edit_horizontal_guides_ = [-717.0]
+
+[node name="WhiteBalance" type="Sprite2D" parent="." unique_id=644170137]
+material = SubResource("ShaderMaterial_1tw12")
+texture = ExtResource("1_vfnuj")

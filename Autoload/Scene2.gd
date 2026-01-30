@@ -9,6 +9,7 @@ var editor_settings: AppEditorSettings = EditorServer.editor_settings
 var viewport: SubViewport
 var root: Node
 var camera: Camera2D
+var cameras_as_objects: Array[Camera2D]
 
 func _ready_scene() -> void:
 	# Start Scene
@@ -37,6 +38,18 @@ func set_curr_objects(new_val: Dictionary[MediaClipRes, Node]) -> void:
 
 func get_object(media_res: MediaClipRes) -> Variant:
 	return curr_objects.get(media_res)
+
+func add_camera_as_object(camera_2d: Camera2D) -> void:
+	cameras_as_objects.append(camera_2d)
+	update_camera_enabling()
+
+func remove_camera_as_object(camera_2d: Camera2D) -> void:
+	cameras_as_objects.erase(camera_2d)
+	update_camera_enabling()
+
+func update_camera_enabling() -> void:
+	camera.enabled = cameras_as_objects.size() == 0
+
 
 func instance_sprite(parent_res: MediaClipRes, imported_res: ImportedClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Sprite2D:
 	var sprite:= Sprite2D.new()
@@ -116,7 +129,7 @@ func try_play_func(media_res: MediaClipRes, object: Node) -> void:
 	var start_from: int = media_res.from
 	var local_frame: int = TimeServer.localize_frame(curr_frame, frame_in)
 	
-	if object is AudioStreamPlayer:
+	if object is AudioStreamPlayer or object is AudioStreamPlayer2D:
 		if object.playing:
 			return
 		object.play((local_frame + start_from) / float(ProjectServer.fps))
@@ -132,7 +145,7 @@ func stop() -> void:
 	loop_objects(stop_func)
 
 func stop_func(media_res: MediaClipRes, object: Object) -> void:
-	if object is AudioStreamPlayer:
+	if object is AudioStreamPlayer or object is AudioStreamPlayer2D:
 		object.stop()
 	elif object is VideoViewer:
 		object.stop()
@@ -184,5 +197,4 @@ func on_timeline_curr_frame_stopped_manually() -> void:
 	seek_video_viewers_frame()
 
 func _on_media_res_shader_material_changed(media_res: MediaClipRes, object_2d: CanvasItem) -> void:
-	var shader_material: ShaderMaterial = media_res.get_shader_material()
 	object_2d.set_material(media_res.get_shader_material())

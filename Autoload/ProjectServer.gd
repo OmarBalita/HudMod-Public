@@ -42,6 +42,9 @@ var project_waveform_path: String
 var project_media_path: String
 var project_preset_path: String
 
+var import_file_system: DisplayFileSystemRes
+var preset_file_system: DisplayFileSystemRes
+
 var project_res: ProjectRes:
 	set(val):
 		project_res = val
@@ -83,19 +86,36 @@ func _ready() -> void:
 	open_project(EXAMPLE_PATH)
 	#update_curr_length_and_curr_spacial_frames()
 
+func get_project_paths(_project_path: String) -> Dictionary[StringName, String]:
+	return {
+		&"project_res": _project_path + "project.res",
+		&"import_sys": _project_path + "import_file_sys.res",
+		&"preset_sys": _project_path + "preset_file_sys.res"
+	}
+
 func open_project(_project_path: String) -> void:
-	var project_res_path: String = _project_path + "project.res"
-	if not FileAccess.file_exists(project_res_path):
+	var project_paths: Dictionary[StringName, String] = get_project_paths(_project_path)
+	
+	if not FileAccess.file_exists(project_paths.project_res):
 		printerr("The project file 'project.res' was not found in the correct path.")
 		return
-	var _project_res: Resource = ResourceLoader.load(project_res_path)
+	
+	import_file_system = ResLoadHelper.load_or_save(project_paths.import_sys, DisplayFileSystemRes)
+	preset_file_system = ResLoadHelper.load_or_save(project_paths.preset_sys, DisplayFileSystemRes)
+	
+	var _project_res: Resource = ResourceLoader.load(project_paths.project_res)
 	if _project_res is not ProjectRes:
 		printerr("The project could not be opened.")
 		return
+	
 	project_path = _project_path
 	project_res = _project_res
 	
+	import_file_system.thumbnail_path = project_thumbnail_path
+	import_file_system.waveform_path = project_waveform_path
+	
 	make_layers_absolute(PackedInt32Array(range(project_res.root_clip_res.children.size())))
+	# Lazy Load
 	loop_media_clips({},
 		func(layer_index: int, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
 			media_res.loop_components(func(comp: ComponentRes) -> void:
@@ -106,13 +126,15 @@ func open_project(_project_path: String) -> void:
 				)
 			)
 	)
-	
-	MediaCache.load_media_cache_from_file_system(project_res.import_file_system, project_thumbnail_path, project_waveform_path)
-	MediaCache.load_media_cache_from_file_system(project_res.preset_file_system, project_thumbnail_path, project_waveform_path)
+	MediaCache.load_media_cache_from_file_system(import_file_system)
+	MediaCache.load_media_cache_from_file_system(preset_file_system)
 
 
 func save_project() -> void:
-	ResourceSaver.save(project_res, project_path + "/project.res")
+	var project_paths: Dictionary[StringName, String] = get_project_paths(project_path)
+	ResourceSaver.save(import_file_system, project_paths.import_sys)
+	ResourceSaver.save(preset_file_system, project_paths.preset_sys)
+	ResourceSaver.save(project_res, project_paths.project_res)
 
 
 # Media Clips
@@ -317,7 +339,7 @@ func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index:
 
 func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> ObjectClipRes:
 	var object_clip_res: ObjectClipRes = ObjectClipRes.new()
-	object_clip_res.object_res = object_res
+	object_clip_res.set_object_res(object_res)
 	add_media_clip(object_clip_res, EditorServer.editor_settings.media_clip_default_length * project_res.fps, layer_index, frame_in, emit_changes, force_layer_index)
 	return object_clip_res
 
@@ -599,6 +621,12 @@ func parent_up_media_clips(clips_info: Array[Dictionary], times: int = 1) -> voi
 
 func clear_media_clips_parents(clips_info: Array[Dictionary]) -> void:
 	parent_up_media_clips(clips_info, curr_layers_path.size())
+
+func check_media_clips_paths(all_media_paths: PackedStringArray) -> PackedStringArray:
+	return project_res.root_clip_res.check_children_for_paths_deep(all_media_paths)
+
+func format_media_clips_paths(paths_for_format: Dictionary[String, String]) -> void:
+	project_res.root_clip_res.format_children_paths_deep(paths_for_format)
 
 func update_curr_layers() -> void:
 	if curr_layers_path.is_empty(): curr_layers = project_res.root_clip_res.get_children()

@@ -26,6 +26,7 @@ enum States {
 		if val: curr_val = int(curr_val)
 
 @export_group("Theme")
+@export var change_value_when_drag: bool = true
 @export_subgroup("Constant")
 @export_range(.001, 100.0) var spin_scale: float = 1.0
 @export_range(1.0, 100.0) var spin_magnet_step: float = 10.0
@@ -47,6 +48,7 @@ var is_grab: bool:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 			grab_started.emit()
 		else:
+			set_curr_val(control_val, true, true)
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			get_viewport().warp_mouse(global_position + size / 2.0)
 			start_pos = null
@@ -58,7 +60,6 @@ var control_val: float:
 		set_curr_val(control_val)
 
 var is_magnet: bool
-
 
 # RealTime Nodes
 var typing_line: LineEdit
@@ -104,15 +105,18 @@ func _ready() -> void:
 	update_ui()
 
 
-func _input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	
 	if event is InputEventMouseMotion:
+		
 		if is_grab:
 			control_val += float(event.relative.x) * spin_scale
 			is_magnet = event.ctrl_pressed
+		
 		elif start_pos != null:
 			if request_grab():
 				set_is_grab(true)
+	
 	elif event is InputEventMouseButton:
 		if not get_global_rect().has_point(get_global_mouse_position()) and state: state = 0
 
@@ -133,44 +137,42 @@ func on_button_up() -> void:
 func on_typing_line_text_submitted(new_text: String) -> void:
 	state = 0
 	
-	var regex = RegEx.new()
+	var regex:= RegEx.new()
 	regex.compile("^[0-9+\\-*/. ()]+$")
 	if regex.search(new_text) == null:
 		return
 	
-	var expression = Expression.new()
-	var parse_error = expression.parse(new_text)
+	var expression:= Expression.new()
+	var parse_error:= expression.parse(new_text)
 	if parse_error != OK:
 		return
 	
-	var result = expression.execute()
+	var result: Variant = expression.execute()
 	if expression.has_execute_failed():
 		return
 	
-	set_curr_val(result)
+	set_curr_val(result, true, true)
 
 func on_left_button_pressed() -> void:
-	set_curr_val(curr_val - step)
+	set_curr_val(curr_val - step, true, true)
 
 func on_right_button_pressed() -> void:
-	set_curr_val(curr_val + step)
+	set_curr_val(curr_val + step, true, true)
 
 
 
 func get_curr_val() -> float:
 	return curr_val
 
-func set_curr_val(new_val: float, emit_change: bool = true) -> void:
+func set_curr_val(new_val: float, emit_change: bool = true, force_change_value: bool = false) -> void:
 	curr_val = clamp(new_val, min_val, max_val)
 	curr_val = snapped(curr_val, spin_magnet_step if is_magnet else step)
-	if is_int:
-		curr_val = int(curr_val)
-	if progress_bar != null and progress_bar.is_node_ready():
-		progress_bar.value = curr_val
-	if curr_val_label != null and curr_val_label.is_node_ready():
-		curr_val_label.text = str(curr_val)
-	if emit_change:
-		val_changed.emit(curr_val)
+	
+	if is_int: curr_val = int(curr_val)
+	if progress_bar != null and progress_bar.is_node_ready(): progress_bar.value = curr_val
+	if curr_val_label != null and curr_val_label.is_node_ready(): curr_val_label.text = str(curr_val)
+	if emit_change and (change_value_when_drag or force_change_value): val_changed.emit(curr_val)
+	
 	queue_redraw()
 
 func set_curr_val_manually(new_val: float) -> void:

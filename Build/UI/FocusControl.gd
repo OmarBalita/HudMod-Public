@@ -114,7 +114,7 @@ func _input(event: InputEvent) -> void:
 						is_pressed = true
 						press_pos = mouse_pos
 						start_drag_dist = mouse_pos - global_position
-						can_drag = request_drag_func.is_null() or request_drag_func.call()
+						can_drag = draggable and (request_drag_func.is_null() or request_drag_func.call())
 				
 				else:
 					if is_dragging:
