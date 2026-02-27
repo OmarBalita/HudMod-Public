@@ -77,11 +77,11 @@ var imported_clip_info: Dictionary[int, Dictionary] = {
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Object2DRes": {sections = [&"Display2D"]},
-	&"Text2DRes": {sections = [&"Display2D", &"Transition", &"Text"]},
-	&"DrawRes": {sections = [&"Display2D", &"Color", &"Draw"]},
+	&"Text2DRes": {sections = [&"Display2D", &"Layout", &"Text"]},
+	&"Shape2DRes": {sections = [&"Display2D", &"Shape"]},
 	&"Particles2DRes": {sections = [&"Display2D", &"Particles"]},
 	&"Camera2DRes": {sections = [&"Display2D", &"Camera"]},
-	&"Audio2DRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel},
+	&"Audio2DRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel}
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
@@ -700,7 +700,7 @@ class ObjectClipPanel extends ClipPanel:
 	func _ready() -> void:
 		super()
 		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		thumbnail_rect.custom_minimum_size.x = 50.0
+		thumbnail_rect.custom_minimum_size.x = 50.
 		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
 
 class Audio2DClipPanel extends ObjectClipPanel:

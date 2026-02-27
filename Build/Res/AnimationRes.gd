@@ -43,7 +43,6 @@ func update_profiles() -> void:
 	for index: int in profiles_size:
 		profiles.append(CurveProfile.new_profile_curve({} as Dictionary[float, CurveKey]))
 
-
 func duplicate_anim_res() -> AnimationRes:
 	var dupl_anim_res:= duplicate()
 	var new_profiles: Array[CurveProfile]

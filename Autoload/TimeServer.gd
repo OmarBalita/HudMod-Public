@@ -26,3 +26,4 @@ func frame_to_timecode(frame: int, fps: int = 0) -> String:
 	var seconds:= int(total_seconds % 60)
 	var frames:= int(frame % fps)
 	return "%02d:%02d:%02d:%02d" % [hours, minutes, seconds, frames]
+

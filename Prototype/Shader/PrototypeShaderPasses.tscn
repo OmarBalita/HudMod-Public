@@ -1,0 +1,338 @@
+[gd_scene format=3 uid="uid://d8brjlbdg8bv"]
+
+[ext_resource type="Texture2D" uid="uid://bct5xo3ijasof" path="res://Asset/Images/phpgYxi0R.png" id="1_rdepk"]
+
+[sub_resource type="GDScript" id="GDScript_5jfbs"]
+script/source = "extends Node
+
+@onready var viewport_a: SubViewport = %SubViewport
+@onready var quad_a: Sprite2D = %Sprite2D
+
+@onready var viewport_b: SubViewport = %SubViewport2
+@onready var quad_b: Sprite2D = %Sprite2D2
+
+@onready var target_rect: ColorRect = $TargetRect
+@onready var target_texture_rect: TextureRect = %TargetTextureRect
+
+@export var source_texture: Texture2D
+@export var effects: Array[ShaderMaterial] = []
+
+func _process(delta: float) -> void:
+	if Input.is_action_just_pressed(\"enter\"):
+		process_passes(source_texture)
+
+func process_passes(input: Texture2D) -> void:
+	target_rect.hide()
+	
+	viewport_a.size = input.get_size()
+	viewport_b.size = input.get_size()
+	
+	var read_vp: SubViewport = viewport_a
+	var write_vp: SubViewport = viewport_b
+	var read_quad: Sprite2D = quad_a
+	var write_quad: Sprite2D = quad_b
+	
+	read_quad.texture = input
+	
+	for index: int in effects.size():
+		var effect: ShaderMaterial = effects[index]
+		
+		var current_tex: ViewportTexture = read_vp.get_texture()
+		write_quad.texture = current_tex
+		write_quad.material = effect
+		
+		write_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+		
+		var temp_vp: SubViewport = read_vp
+		var temp_quad: Sprite2D = read_quad
+		read_vp = write_vp
+		write_vp = temp_vp
+		read_quad = write_quad
+		write_quad = temp_quad
+		
+		await RenderingServer.frame_post_draw
+	
+	push_result(read_vp.get_texture())
+
+func push_result(texture: Texture2D) -> void:
+	target_rect.show()
+	target_texture_rect.texture = texture
+
+"
+
+[sub_resource type="Shader" id="Shader_3c2gf"]
+code = "shader_type canvas_item;
+
+uniform int radius : hint_range(0, 10) = 3;
+
+void fragment() {
+	vec2 tex_size = vec2(textureSize(TEXTURE, 0));
+	vec2 uv = UV;
+	
+	vec3 mean[4];
+	vec3 std_dev[4];
+	for (int i = 0; i < 4; i++) {
+		mean[i] = vec3(.0);
+		std_dev[i] = vec3(.0);
+	}
+	
+	int n = (radius + 1) * (radius + 1);
+	float f_n = float(n);
+	
+	int bounds[16] = int[](
+		-radius, 0, -radius, 0,
+		0, radius, -radius, 0,
+		-radius, 0, 0, radius,
+		0, radius, 0, radius
+	);
+	
+	for (int i = 0; i < 4; i++) {
+		for (int x = bounds[i*4]; x <= bounds[i*4+1]; x++) {
+			for (int y = bounds[i*4+2]; y <= bounds[i*4+3]; y++) {
+				vec3 c = texture(TEXTURE, uv + vec2(float(x), float(y)) / tex_size).rgb;
+				mean[i] += c;
+				std_dev[i] += c * c;
+			}
+		}
+	}
+	
+	float min_sigma2 = 1e+2;
+	vec3 final_color = vec3(.0);
+	
+	for (int i = 0; i < 4; i++) {
+		mean[i] /= f_n;
+		std_dev[i] = abs(std_dev[i] / f_n - mean[i] * mean[i]);
+		float sigma2 = std_dev[i].r + std_dev[i].g + std_dev[i].b;
+		
+		if (sigma2 < min_sigma2) {
+			min_sigma2 = sigma2;
+			final_color = mean[i];
+		}
+	}
+	
+	COLOR.rgb = final_color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rdepk"]
+shader = SubResource("Shader_3c2gf")
+shader_parameter/radius = 10
+
+[sub_resource type="Shader" id="Shader_rdepk"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform vec2 dir = vec2(1., .0);
+uniform float power = .05;
+uniform int quality: hint_range(1, 64) = 4;
+uniform bool clip_border = false;
+uniform bool transparancy = true;
+
+void vertex(){
+	if (clip_border == false) {
+		vec2 blur_size = abs(normalize(dir) * power) * 2.;
+		VERTEX *= blur_size + 1.;
+		UV = (UV - .5) * (blur_size + 1.) + .5;
+	}
+}
+
+void fragment(){
+	float in_square = inside_unit_square(UV);
+	float num_samples = in_square;
+	
+	vec4 color = texture(TEXTURE, UV) * in_square;
+	vec2 step_size = normalize(dir) * power / (float(quality));
+	vec2 uv;
+	
+	for(int i = 1; i <= quality; i++){
+		vec2 uv_scalar = step_size * float(i);
+		
+		uv = UV + uv_scalar;
+		in_square = inside_unit_square(uv);
+		num_samples += in_square;
+		color += texture(TEXTURE, uv) * in_square;
+		
+		uv = UV - uv_scalar;
+		in_square = inside_unit_square(uv);
+		num_samples += in_square;
+		color += texture(TEXTURE, uv) * in_square;
+	}
+	
+	color.rgb /= num_samples;
+	if (transparancy) {
+		color.a /= float(quality) * 2.0 + 1.0;
+	}
+	
+	COLOR = color;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3c2gf"]
+shader = SubResource("Shader_rdepk")
+shader_parameter/dir = Vector2(1, 0)
+shader_parameter/power = 0.05
+shader_parameter/quality = 8
+shader_parameter/clip_border = false
+shader_parameter/transparancy = true
+
+[sub_resource type="Shader" id="Shader_4vwar"]
+code = "shader_type canvas_item;
+
+uniform float force: hint_range(-.3, 5.) = .2;
+uniform float zoom: hint_range(-2., 2.) = 1.;
+
+void fragment() {
+	vec2 p = UV * 2. - 1.;
+	float r2 = dot(p, p);
+	float f = 1. + force * r2;
+	p *= f / (1. + force * zoom);
+	vec2 final_uv = (p + 1.) / 2.;
+	vec4 color = texture(TEXTURE, final_uv);
+	if (final_uv.x < .0 || final_uv.x > 1. || final_uv.y < .0 || final_uv.y > 1.) {
+		color = vec4(.0, .0, .0, 1.);
+	}
+	COLOR = color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s8dyu"]
+shader = SubResource("Shader_4vwar")
+shader_parameter/force = 0.2
+shader_parameter/zoom = 1.0
+
+[sub_resource type="Shader" id="Shader_jwv0l"]
+code = "shader_type canvas_item;
+
+uniform float size = 16.;
+const float ratio = 1.142857142;
+
+void fragment() {
+	vec2 norm_size = vec2(size * ratio, size) * TEXTURE_PIXEL_SIZE;
+	bool less_than_half = mod(UV.y / 2., norm_size.y) / norm_size.y < .5;
+	vec2 uv = UV + vec2(norm_size.x * .5 * float(less_than_half), .0);
+	vec2 center_uv = floor(uv / norm_size) * norm_size;
+	vec2 norm_uv = mod(uv, norm_size) / norm_size;
+	center_uv += mix(vec2(.0, .0),
+		mix(mix(vec2(norm_size.x, -norm_size.y),
+			vec2(.0, -norm_size.y),
+			float(norm_uv.x < .5)),
+			mix(vec2(.0, -norm_size.y),
+			vec2(-norm_size.x, -norm_size.y),
+			float(norm_uv.x < .5)),
+			float(less_than_half)),
+		float(norm_uv.y < .3333333) * float(norm_uv.y / .3333333 < (abs(norm_uv.x - .5) * 2.)));
+	
+	COLOR = textureLod(TEXTURE, center_uv, .0);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jwv0l"]
+shader = SubResource("Shader_jwv0l")
+shader_parameter/size = 20.0
+
+[sub_resource type="Shader" id="Shader_gduh5"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform vec2 light_dir = vec2(1., .0);
+uniform float intensity: hint_range(.0, .02) = .005;
+uniform vec4 highlight_color: source_color = vec4(1., 1., 1., 1.);
+uniform vec4 shadow_color: source_color = vec4(.0, .0, .0, 1.);
+
+void fragment() {
+	vec4 color = texture(TEXTURE, UV);
+	
+	vec2 dir = normalize(light_dir) * intensity;
+	
+	float sample_plus = get_luminance(texture(TEXTURE, UV + dir).rgb);
+	float sample_minus = get_luminance(texture(TEXTURE, UV - dir).rgb);
+	
+	float diff = sample_plus - sample_minus;
+	
+	vec4 base = color;
+	vec4 final = base;
+	
+	if (diff > .0) {
+		final = mix(final, highlight_color, clamp(diff * 5., .0, 1.));
+	} else {
+		final = mix(final, shadow_color, clamp(abs(diff) * 5., .0, 1.));
+	}
+	
+	COLOR = final;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xq5ug"]
+shader = SubResource("Shader_gduh5")
+shader_parameter/light_dir = Vector2(1, 0)
+shader_parameter/intensity = 0.005
+shader_parameter/highlight_color = Color(1, 1, 1, 1)
+shader_parameter/shadow_color = Color(0, 0, 0, 1)
+
+[node name="PrototypeShaderPasses" type="Node" unique_id=167448750]
+script = SubResource("GDScript_5jfbs")
+source_texture = ExtResource("1_rdepk")
+effects = Array[ShaderMaterial]([SubResource("ShaderMaterial_rdepk"), SubResource("ShaderMaterial_3c2gf"), SubResource("ShaderMaterial_s8dyu"), SubResource("ShaderMaterial_jwv0l"), SubResource("ShaderMaterial_xq5ug")])
+
+[node name="HSplitContainer" type="HSplitContainer" parent="." unique_id=860772665]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer" unique_id=1736864424]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="HSplitContainer/SubViewportContainer" unique_id=793422038]
+unique_name_in_owner = true
+transparent_bg = true
+handle_input_locally = false
+canvas_item_default_texture_filter = 0
+size = Vector2i(844, 800)
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="HSplitContainer/SubViewportContainer/SubViewport" unique_id=264602730]
+unique_name_in_owner = true
+texture_filter = 1
+
+[node name="Camera2D" type="Camera2D" parent="HSplitContainer/SubViewportContainer/SubViewport" unique_id=131649479]
+
+[node name="SubViewportContainer2" type="SubViewportContainer" parent="HSplitContainer" unique_id=962165497]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport2" type="SubViewport" parent="HSplitContainer/SubViewportContainer2" unique_id=1986598785]
+unique_name_in_owner = true
+transparent_bg = true
+handle_input_locally = false
+canvas_item_default_texture_filter = 0
+size = Vector2i(844, 800)
+render_target_update_mode = 4
+
+[node name="Sprite2D2" type="Sprite2D" parent="HSplitContainer/SubViewportContainer2/SubViewport2" unique_id=75000767]
+unique_name_in_owner = true
+texture_filter = 1
+
+[node name="Camera2D" type="Camera2D" parent="HSplitContainer/SubViewportContainer2/SubViewport2" unique_id=683992709]
+
+[node name="TargetRect" type="ColorRect" parent="." unique_id=1200100428]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="TargetTextureRect" type="TextureRect" parent="TargetRect" unique_id=2047585204]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5

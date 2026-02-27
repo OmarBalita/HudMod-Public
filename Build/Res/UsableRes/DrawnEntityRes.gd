@@ -41,8 +41,6 @@ enum DistMode {
 @export var arc_end_angle: float = TAU
 @export var arc_points_count: int = 8
 
-@export var texture: CompressedTextureRes
-
 #@export var mesh: Mesh
 
 @export var position: Vector2

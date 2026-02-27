@@ -8,18 +8,6 @@ class_name Audio2DRes extends Object2DRes
 
 @export var volume_db: float = .0
 @export var pitch_scale: float = 1.
-	#set(val):
-		#
-		#var pitch_ratio: float = pitch_scale / val
-		#pitch_scale = val
-		#
-		#var target_length: int = owner.length / get_max_length() / pitch_scale
-		#
-		#if owner:
-			#owner._emit_media_clip_res_updated(
-				#owner.from,
-				#owner.length * pitch_ratio
-			#)
 
 @export var max_distance: int = 2000
 @export var attenuation: float = 1.
@@ -58,7 +46,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"panning_strength": export(float_args(panning_strength, .0, +INF))
 	}
 
-func _exported_props_controllers_created(props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	var pitch_scale_ctrlr: FloatController = props_controllers.pitch_scale.controller
 	pitch_scale_ctrlr.change_value_when_drag = false
 

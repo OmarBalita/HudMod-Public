@@ -13,3 +13,4 @@ static func get_object_info() -> Dictionary[StringName, String]:
 		&"description": "The Object2D is simply an object with 2D properties; it can be moved, rotated, and resized.
 		It's useful because it can be used as a pointer or drawn on."
 	}
+

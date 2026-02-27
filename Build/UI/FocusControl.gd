@@ -29,7 +29,7 @@ const ALT_MASK: int = 67108864
 
 @export_subgroup("Dragging")
 @export var draggable: bool
-@export var min_drag_distance: float = 5.0
+@export var min_drag_distance: float = 10.0
 @export var group_when_dragging: bool
 
 @export_group("Theme")

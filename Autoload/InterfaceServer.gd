@@ -456,7 +456,7 @@ func create_viewport_container(more: Dictionary = {}) -> SubViewportContainer:
 
 # Enhanced button creation
 func create_button(text: String, icon: Texture2D = null, accent: bool = false, flat: bool = false, more: Dictionary = {}) -> Button:
-	var button = Button.new()
+	var button:= Button.new()
 	set_base_settings(button)
 	
 	if accent:
@@ -766,6 +766,11 @@ func create_vec2_controller(curr_val: Vector2, more: Dictionary = {}) -> Vector2
 	ObjectServer.describe(vec2_controller, more)
 	return vec2_controller
 
+func create_vec3_controller(curr_val: Vector3) -> Vector3Controller:
+	var vec3_controller:= Vector3Controller.new()
+	vec3_controller.curr_val = curr_val
+	return vec3_controller
+
 func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
 	var color_button:= ColorButton.new()
 	set_base_settings(color_button)
@@ -790,7 +795,6 @@ func create_list_controller(list: Array, list_type: StringName = &"", can_add_el
 
 func create_color_range_control(color_range_res: ColorRangeRes, more: Dictionary = {}) -> ColorRangeControl:
 	var color_range_control = ColorRangeControl.new()
-	set_base_panel_settings(color_range_control, STYLE_BODY)
 	color_range_control.color_range_controller.color_range_res = color_range_res
 	ObjectServer.describe(color_range_control, more)
 	return color_range_control
@@ -871,7 +875,7 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 		expand(line_edit)
 		connect_controller_to_edit_box(
 			box, line_edit, func() -> void:
-				line_edit.text_changed.connect(box.set_curr_val), 
+				line_edit.text_changed.connect(func(new_text: String) -> void: box.set_curr_val(new_text)),
 			"set_text"
 		)
 		
@@ -965,13 +969,13 @@ func create_vec2_edit(name: String, curr_val: Vector2, min_size: Vector2 = EDIT_
 	connect_controller_to_edit_box(box, vec2_controller, func() -> void: vec2_controller.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
 	return [vec2_controller]
 
-func create_vec3_edit(name: String, curr_val: Vector2, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
+func create_vec3_edit(name: String, curr_val: Vector3, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box: EditBoxContainer = create_edit_box(name, min_size, false, name_alignment)
-	var vec2_controller:= create_vec2_controller(curr_val)
-	expand(vec2_controller)
-	box.add_child(vec2_controller)
-	connect_controller_to_edit_box(box, vec2_controller, func() -> void: vec2_controller.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
-	return [vec2_controller]
+	var vec3_controller:= create_vec3_controller(curr_val)
+	expand(vec3_controller)
+	box.add_child(vec3_controller)
+	connect_controller_to_edit_box(box, vec3_controller, func() -> void: vec3_controller.val_changed.connect(box.set_curr_val), "set_curr_val", "set_curr_val_manually")
+	return [vec3_controller]
 
 func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
 	var box: EditBoxContainer = create_edit_box(name, min_size, false, name_alignment)
@@ -1003,6 +1007,7 @@ func create_color_range_edit(name: String, color_range_res: ColorRangeRes, min_s
 	
 	connect_controller_to_edit_box(box, color_range_control, func(): color_range_control.val_changed.connect(box.set_curr_val.bind(color_range_res)), "set_color_range_res")
 	return [color_range_control]
+
 
 
 func get_main_controller_from(controllers: Array[Control]) -> Control:
@@ -1146,8 +1151,8 @@ func create_status_label(text: String, status_type: String = "normal") -> Label:
 
 
 
-func add_children(parent: Node, childs: Array[Node]) -> void:
-	for node: Node in childs:
+func add_children(parent: Node, children: Array[Node]) -> void:
+	for node: Node in children:
 		parent.add_child(node)
 
 func clear_children(parent: Node) -> void:

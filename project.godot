@@ -33,6 +33,7 @@ TimeServer="*res://Autoload/TimeServer.gd"
 IS="*res://Autoload/InterfaceServer.gd"
 MediaCache="*res://Autoload/MediaCache.gd"
 EditorServer="*res://Autoload/EditorServer.gd"
+RenderFarm="*uid://c5f64ojkvdmyt"
 ProjectServer="*res://Autoload/ProjectServer.gd"
 GlobalServer="*res://Autoload/GlobalServer.gd"
 MediaServer="*res://Autoload/MediaServer.gd"
@@ -110,6 +111,4 @@ enter={
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

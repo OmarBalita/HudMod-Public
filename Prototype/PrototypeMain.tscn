@@ -34,6 +34,8 @@
 [ext_resource type="Texture2D" uid="uid://dmxkq6igt7fh" path="res://Asset/Icons/trash-can.png" id="26_s30d6"]
 [ext_resource type="Texture2D" uid="uid://bmt4dqj1kocsw" path="res://Asset/Icons/drag.png" id="27_30lmd"]
 [ext_resource type="Script" uid="uid://bnu877glq6rrg" path="res://Editor/GlobalControl.gd" id="30_sruw6"]
+[ext_resource type="Texture2D" uid="uid://uo6vskc2rhkf" path="res://Asset/Icons/eye.png" id="32_cd0xf"]
+[ext_resource type="Texture2D" uid="uid://y14al8cbxy4t" path="res://Asset/Icons/visible.png" id="32_t8vbk"]
 [ext_resource type="Script" uid="uid://d2t1uchaqp6v3" path="res://Build/Functionality/TweenerComponent.gd" id="36_t7s5e"]
 [ext_resource type="Script" uid="uid://uupil02s5ia4" path="res://Editor/ColorCorrection/ColorScopeEditor.gd" id="37_t8vbk"]
 
@@ -149,11 +151,7 @@ flat = true
 
 [node name="GlobalControl" type="Control" parent="." unique_id=957362020]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("30_sruw6")
 metadata/_custom_type_script = "uid://dhcmxesxndwle"
@@ -222,6 +220,8 @@ size_flags_vertical = 3
 script = ExtResource("23_pajpo")
 texture_add = ExtResource("24_sruw6")
 texture_search = ExtResource("25_gck3f")
+texture_enable = ExtResource("32_cd0xf")
+texture_disable = ExtResource("32_t8vbk")
 texture_delete = ExtResource("26_s30d6")
 texture_drag = ExtResource("27_30lmd")
 

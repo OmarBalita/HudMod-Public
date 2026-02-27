@@ -9,8 +9,8 @@ var curr_val: Vector2:
 			x_edit.set_curr_val_manually(val.x)
 			y_edit.set_curr_val_manually(val.y)
 
-@onready var x_edit: FloatController = IS.create_float_controller(curr_val.x, -INF, INF, .001, .1)
-@onready var y_edit: FloatController = IS.create_float_controller(curr_val.y, -INF, INF, .001, .1)
+@onready var x_edit: FloatController = IS.create_float_controller(curr_val.x, -INF, INF, .001, .01)
+@onready var y_edit: FloatController = IS.create_float_controller(curr_val.y, -INF, INF, .001, .01)
 
 func _ready() -> void:
 	IS.describe_box_container(self, 6, true)

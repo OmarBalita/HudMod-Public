@@ -15,8 +15,9 @@ signal calculation_finished()
 
 var curr_samples_down_scale: int = samples_down_scale:
 	set(val):
-		curr_samples_down_scale = val
-		request_calculate()
+		if val != curr_samples_down_scale:
+			curr_samples_down_scale = val
+			request_calculate(true)
 
 var color_scope_sub_editors: Dictionary[StringName, ColorScopeSubEditor] = {
 	&"histogram": HistogramEditor.new(),
@@ -86,13 +87,21 @@ func _ready_editor() -> void:
 	
 	request_calculate()
 
+
+func _input(event: InputEvent) -> void:
+	if (EditorServer.properties.get_global_rect().has_point(get_global_mouse_position()) and Input.get_mouse_button_mask() == 1) or EditorServer.time_line.is_playing:
+		curr_samples_down_scale = inplay_samples_down_scale
+	else:
+		curr_samples_down_scale = samples_down_scale
+
+
 func request_calculate(force: bool = false) -> void:
 	if not is_visible_in_tree() or not color_scope_sub_editors_visib.has(true):
 		return
 	await get_tree().process_frame
 	await get_tree().process_frame
 	curr_image = Scene2.viewport.get_texture().get_image()
-	#curr_image.shrink_x2()
+	curr_image.shrink_x2()
 	var new_image_data: PackedByteArray = curr_image.get_data()
 	if not force and curr_image_data == new_image_data:
 		return
@@ -427,7 +436,7 @@ class VectorScopeViewer extends ColorScopeViewer:
 		draw_circle(center_pos, 5., Color.WHITE, true, -1., true)
 
 func _on_project_server_media_clips_changed() -> void:
-	request_calculate()
+	curr_samples_down_scale = inplay_samples_down_scale
 
 func _on_editor_server_frame_changed(frame: int) -> void:
 	request_calculate()

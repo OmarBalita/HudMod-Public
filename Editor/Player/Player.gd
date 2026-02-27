@@ -136,7 +136,6 @@ func _ready_ui() -> void:
 	viewport.audio_listener_enable_2d = true
 	view_container.add_child(viewport)
 	flex_view_control.add_child(view_container)
-	viewport.size = ProjectServer.project_res.resolution
 	flex_view_control.viewport_container = view_container
 	
 	play_button = IS.create_texture_button(texture_play, null, texture_pause, true)

@@ -1,6 +1,459 @@
-[gd_scene format=3 uid="uid://df1pgyem08qs0"]
+[gd_scene format=3 uid="uid://djdgbj4cat4i7"]
 
 [ext_resource type="Texture2D" uid="uid://71t0sggyev61" path="res://Asset/Images/pexels-creative-vix-9754.jpg" id="1_vfnuj"]
+[ext_resource type="Texture2D" uid="uid://cswwyfsfrvo1" path="res://Asset/Images/prasad-madusanka-TQysGtEinVk-unsplash.jpg" id="2_dcitl"]
+[ext_resource type="Shader" uid="uid://boxx7jgvhc26r" path="res://Build/Shader/Image/Perspective.gdshader" id="2_p8tll"]
+[ext_resource type="Texture2D" uid="uid://drodbed2flhi5" path="res://Asset/Images/run_image.png" id="3_1tw12"]
+[ext_resource type="Shader" uid="uid://br6r2wciu3ijg" path="res://Build/Shader/Image/Denoise.gdshader" id="3_iov73"]
+[ext_resource type="Shader" uid="uid://bdm0jdqhd7y5m" path="res://Build/Shader/Image/VHS.gdshader" id="3_p8tll"]
+[ext_resource type="Texture2D" uid="uid://dfwcuorrey46b" path="res://Asset/Images/frank-huang-UpUpNXsL0LA-unsplash.jpg" id="3_tjshb"]
+[ext_resource type="Texture2D" uid="uid://dwxgddfw1hwh2" path="res://Asset/Images/eduard-pretsi-s6JX2g__QpE-unsplash.jpg" id="4_ehi37"]
+[ext_resource type="Texture2D" uid="uid://dbjuvpllyxwdt" path="res://Asset/Images/pexels-charles-kettor-268979-831475.jpg" id="4_tdf7u"]
+[ext_resource type="Shader" uid="uid://bsg2qwqsaxuj5" path="res://Build/Shader/Image/Kawahara.gdshader" id="5_gchci"]
+[ext_resource type="Texture2D" uid="uid://tbjwxbgcs6f3" path="res://Asset/Images/silver-tabby-cat-sitting-on-green-background-free-photo.jpg" id="5_inflt"]
+[ext_resource type="Texture2D" uid="uid://d2r174foqv3da" path="res://Asset/Images/WIN_20250316_19_48_04_Pro.jpg" id="6_l6s8s"]
+[ext_resource type="Shader" uid="uid://bb2sdr6p5127o" path="res://Build/Shader/Image/Clarity.gdshader" id="6_pfssk"]
+[ext_resource type="Shader" uid="uid://b1cbf8x1t7fc3" path="res://Build/Shader/Image/Vignette.gdshader" id="7_lh14w"]
+[ext_resource type="Texture2D" uid="uid://b4xvjek6lfelv" path="res://Asset/Images/images.jpg" id="7_qbhgp"]
+[ext_resource type="Texture2D" uid="uid://yb10nyikmf4a" path="res://Asset/Icons/App/logo2_bg.png" id="8_n0gsr"]
+[ext_resource type="Texture2D" uid="uid://d1hkgwx2xj62t" path="res://Asset/Images/WIN_20250426_14_57_07_Pro.jpg" id="10_7ke4e"]
+[ext_resource type="Shader" uid="uid://djexqmoxnx7g5" path="res://Build/Shader/Image/Posterize.gdshader" id="10_fnhdb"]
+[ext_resource type="Shader" uid="uid://dw6gqa8fuo322" path="res://Build/Shader/Image/LEDGrid.gdshader" id="11_6dp28"]
+[ext_resource type="Texture2D" uid="uid://bct5xo3ijasof" path="res://Asset/Images/phpgYxi0R.png" id="11_nrhsr"]
+[ext_resource type="Shader" uid="uid://dic730e7r6tj0" path="res://Build/Shader/Image/Glitch.gdshader" id="11_okykx"]
+[ext_resource type="Shader" uid="uid://u62e2mxuggsp" path="res://Build/Shader/Image/GlitchWeird.gdshader" id="12_838q0"]
+[ext_resource type="Shader" uid="uid://bstpmvxgb5mur" path="res://Build/Shader/Image/Hexagon.gdshader" id="12_ovi4m"]
+[ext_resource type="Shader" uid="uid://degjvk3d7cy6u" path="res://Build/Shader/Image/BlurMotion.gdshader" id="13_8pbat"]
+[ext_resource type="Texture2D" uid="uid://bai3nd6aap0oi" path="res://Asset/Images/waqar.png" id="13_anl0e"]
+[ext_resource type="Shader" uid="uid://uadj1xc8sd7l" path="res://Build/Shader/Image/BlurGaussian.gdshader" id="13_tdrvq"]
+[ext_resource type="Shader" uid="uid://t2684iv7dui0" path="res://Build/Shader/Image/BlurRotational.gdshader" id="14_2p7gi"]
+[ext_resource type="Shader" uid="uid://bensw4of4ekpg" path="res://Build/Shader/Image/Voronoi.gdshader" id="14_54dnw"]
+[ext_resource type="Shader" uid="uid://c3e5w4uu1hsrc" path="res://Build/Shader/Image/BlurRay.gdshader" id="15_vh7e3"]
+[ext_resource type="Shader" uid="uid://c2vbgfv6m4w24" path="res://Build/Shader/Image/Halftone.gdshader" id="16_gchci"]
+[ext_resource type="Shader" uid="uid://4didjxlh3tmx" path="res://Build/Shader/Image/BlurMaximum.gdshader" id="17_vh7e3"]
+[ext_resource type="Shader" uid="uid://b7tlni7022s53" path="res://Build/Shader/Image/BlurMinimum.gdshader" id="18_ak67c"]
+[ext_resource type="Shader" uid="uid://bfpamnfv3wgl1" path="res://Build/Shader/Image/ToonEdge.gdshader" id="18_gchci"]
+[ext_resource type="Shader" uid="uid://sb7omljrqs5u" path="res://Build/Shader/Image/Sketch.gdshader" id="20_7u3qs"]
+[ext_resource type="Shader" uid="uid://btp4spjbrr7de" path="res://Build/Shader/Image/Emboss.gdshader" id="21_ml21d"]
+[ext_resource type="Shader" uid="uid://5r4awqf2oshx" path="res://Build/Shader/Image/Pixelate.gdshader" id="23_bgtkm"]
+[ext_resource type="Shader" uid="uid://cchikolr1oe0f" path="res://Build/Shader/Image/DistLens.gdshader" id="32_qibr1"]
+[ext_resource type="Shader" uid="uid://ih78vbiv27l3" path="res://Build/Shader/Image/DistRipple.gdshader" id="33_efobh"]
+[ext_resource type="Shader" uid="uid://caq44k16gu510" path="res://Build/Shader/Image/DistTwirl.gdshader" id="34_aao0d"]
+[ext_resource type="Shader" uid="uid://7hk2ut8e3m0c" path="res://Build/Shader/Image/DistBulge.gdshader" id="35_r4gls"]
+[ext_resource type="Shader" uid="uid://bnlxsft5hbeih" path="res://Build/Shader/Image/DistHeat.gdshader" id="36_xoael"]
+[ext_resource type="Shader" uid="uid://conk05dq2hyjy" path="res://Build/Shader/Image/DirectionalChromaticAberration.gdshader" id="38_aao0d"]
+[ext_resource type="Shader" uid="uid://boa3xujp576ew" path="res://Build/Shader/Image/Glow.gdshader" id="38_hxy6b"]
+[ext_resource type="Shader" uid="uid://c2jf6mi7fyg06" path="res://Build/Shader/Image/Rays.gdshader" id="38_lg5mm"]
+[ext_resource type="Shader" uid="uid://b4v7edbedp8c7" path="res://Build/Shader/Image/LensFlare.gdshader" id="38_xoael"]
+[ext_resource type="Shader" uid="uid://bqx3vacilvu7e" path="res://Build/Shader/Image/RadialChromaticAberration.gdshader" id="39_r4gls"]
+[ext_resource type="Texture2D" uid="uid://bodxdwiaqu416" path="res://Asset/Icons/Objects/audio-2d.png" id="39_ug2v2"]
+
+[sub_resource type="Shader" id="Shader_iov73"]
+code = "shader_type canvas_item;
+
+uniform bool invert_red = true;
+uniform bool invert_green = true;
+uniform bool invert_blue = true;
+uniform bool invert_alpha;
+
+void fragment() {
+	if (invert_red) COLOR.r = 1. - COLOR.r;
+	if (invert_green) COLOR.g = 1. - COLOR.g;
+	if (invert_blue) COLOR.b = 1. - COLOR.b;
+	if (invert_alpha) COLOR.a = 1. - COLOR.a;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lh14w"]
+shader = SubResource("Shader_iov73")
+shader_parameter/invert_red = true
+shader_parameter/invert_green = true
+shader_parameter/invert_blue = true
+shader_parameter/invert_alpha = false
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7erdt"]
+shader = ExtResource("2_p8tll")
+shader_parameter/fov = 90.0
+shader_parameter/cull_back = false
+shader_parameter/y_rot = 0.0
+shader_parameter/x_rot = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ruurt"]
+shader = ExtResource("3_p8tll")
+shader_parameter/time = 0.0
+shader_parameter/overlay = false
+shader_parameter/scanlines_opacity = 0.4
+shader_parameter/scanlines_width = 0.25
+shader_parameter/grille_opacity = 0.3
+shader_parameter/resolution = Vector2(640, 480)
+shader_parameter/pixelate = true
+shader_parameter/roll = true
+shader_parameter/roll_speed = 8.0
+shader_parameter/roll_size = 15.0
+shader_parameter/roll_variation = 1.8
+shader_parameter/distort_intensity = 0.05
+shader_parameter/noise_opacity = 0.4
+shader_parameter/noise_speed = 5.0
+shader_parameter/static_noise_intensity = 0.06
+shader_parameter/aberration = 0.03
+shader_parameter/brightness = 1.4
+shader_parameter/discolor = true
+shader_parameter/warp_amount = 1.0
+shader_parameter/clip_warp = false
+shader_parameter/vignette_intensity = 0.4
+shader_parameter/vignette_opacity = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_euamy"]
+shader = ExtResource("3_iov73")
+shader_parameter/sigma = 2.0
+shader_parameter/kSigma = 0.1
+shader_parameter/size = 3.0
+shader_parameter/sharpness = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lg5mm"]
+shader = ExtResource("5_gchci")
+shader_parameter/radius = 3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fnhdb"]
+shader = ExtResource("6_pfssk")
+shader_parameter/clarity_amount = 4.0
+shader_parameter/detail_radius = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bgtkm"]
+shader = ExtResource("7_lh14w")
+shader_parameter/intensity = 0.75
+shader_parameter/smoothness = 0.3
+shader_parameter/roundness = 0.4
+shader_parameter/chromatic_aberration = 0.01
+shader_parameter/vignette_color = Color(0, 0, 0, 1)
+shader_parameter/texture_opacity = 0.0
+
+[sub_resource type="Shader" id="Shader_rlbq7"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform float time;
+
+uniform float intensity: hint_range(.0, 1.) = .3;
+uniform float grain_size: hint_range(1., 20.) = 3.;
+uniform bool monochrome = true;
+
+void fragment() {
+	vec4 color = texture(TEXTURE, UV);
+	
+	vec2 grain_uv = floor(UV / (TEXTURE_PIXEL_SIZE * grain_size)) * (TEXTURE_PIXEL_SIZE * grain_size);
+	
+	float luminance = get_luminance(color.rgb);
+	float mask = pow(luminance, .5) * (1. - luminance);
+	
+	vec3 noise_output;
+	if (monochrome) {
+		float noise = random(grain_uv + fract(time));
+		noise_output = vec3(noise);
+	} else {
+		noise_output = vec3(
+			random(grain_uv + fract(time + .1)),
+			random(grain_uv + fract(time + .2)),
+			random(grain_uv + fract(time + .3))
+		);
+	}
+	
+	color.rgb += (noise_output - .5) * intensity * (mask * 4.);
+	
+	COLOR = color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0qjtk"]
+shader = SubResource("Shader_rlbq7")
+shader_parameter/time = 0.0
+shader_parameter/intensity = 0.3
+shader_parameter/grain_size = 3.0
+shader_parameter/monochrome = true
+
+[sub_resource type="Shader" id="Shader_0qjtk"]
+code = "shader_type canvas_item;
+
+uniform float aspect_ratio: hint_range(-1., 1.) = .2; 
+uniform float smoothness: hint_range(.0, 1.) = .0;
+uniform float curve_strength: hint_range(-5., 5.) = .0;
+uniform float rotation_degrees = .0;
+uniform vec4 bars_color: source_color = vec4(.0, .0, .0, 1.);
+
+void fragment() {
+	float angle = radians(rotation_degrees);
+	vec2 uv = UV - .5;
+	float cos_a = cos(angle);
+	float sin_a = sin(angle);
+	mat2 rotation_matrix = mat2(vec2(cos_a, -sin_a), vec2(sin_a, cos_a));
+	uv = rotation_matrix * uv + .5;
+	vec4 color = texture(TEXTURE, UV);
+	float x_dist = abs(uv.x - .5);
+	float offset = pow(x_dist, 2.) * curve_strength;
+	float low = (aspect_ratio * .5) + offset;
+	float high = 1. - low;
+	float mask = smoothstep(low, low + smoothness, uv.y) * (1. - smoothstep(high - smoothness, high, uv.y));
+	color.rgb = mix(bars_color.rgb, color.rgb, mask);
+	COLOR = color;
+}
+
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4vwar"]
+shader = SubResource("Shader_0qjtk")
+shader_parameter/aspect_ratio = 0.2
+shader_parameter/smoothness = 0.0
+shader_parameter/curve_strength = 0.0
+shader_parameter/rotation_degrees = 0.0
+shader_parameter/bars_color = Color(0, 0, 0, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aubky"]
+shader = ExtResource("11_6dp28")
+shader_parameter/grid_columns = 64
+shader_parameter/grid_rows = 64
+shader_parameter/led_brightness = 2.5
+shader_parameter/led_radius = 0.4
+shader_parameter/glow_size = 0.3
+shader_parameter/glow_strength = 0.5
+shader_parameter/color_quantization = 0.0
+shader_parameter/background_color = Color(0, 0, 0, 1)
+shader_parameter/background_opacity = 0.9
+shader_parameter/glow_pulse = 0.0
+shader_parameter/curvature = 0.05
+shader_parameter/enable_dither = true
+shader_parameter/enable_flicker = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_g51k6"]
+shader = ExtResource("11_okykx")
+shader_parameter/time = 0.0
+shader_parameter/power = 0.03
+shader_parameter/rate = 0.2
+shader_parameter/speed = 5.0
+shader_parameter/block_size = 30.5
+shader_parameter/color_rate = 0.01
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ifpln"]
+shader = ExtResource("12_838q0")
+shader_parameter/time = 0.0
+shader_parameter/glitch_chance = 0.2
+shader_parameter/glitch_speed = 7.0
+shader_parameter/slice_density = 14.0
+shader_parameter/slice_strength = 0.38
+shader_parameter/shake_strength = 0.02
+shader_parameter/chroma_offset = 0.016
+shader_parameter/noise_strength = 0.2
+shader_parameter/color_flash_strength = 0.4
+shader_parameter/scanline_strength = 0.18
+shader_parameter/local_warp_strength = 0.14
+shader_parameter/flip_chance = 0.15
+
+[sub_resource type="Gradient" id="Gradient_inflt"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0.15444015, 0.24710424, 0.43629342)
+colors = PackedColorArray(0, 0, 0, 1, 7.70092e-06, 0.59496397, 0.577821, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_l6s8s"]
+gradient = SubResource("Gradient_inflt")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iov73"]
+shader = ExtResource("10_fnhdb")
+shader_parameter/levels = 256.0
+shader_parameter/use_gradient = true
+shader_parameter/gradient = SubResource("GradientTexture1D_l6s8s")
+shader_parameter/filter_radius = 5.0
+shader_parameter/filter_quality = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ml21d"]
+shader = ExtResource("12_ovi4m")
+shader_parameter/size = 23.355
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gchci"]
+shader = ExtResource("14_54dnw")
+shader_parameter/size = 32.0
+shader_parameter/randomness = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7u3qs"]
+shader = ExtResource("16_gchci")
+shader_parameter/offset = Vector2(0, 0)
+shader_parameter/size = 64.0
+shader_parameter/value_multiplier = 0.6
+shader_parameter/dot_color = Color(1, 1, 1, 1)
+shader_parameter/back_color = Color(0, 0, 0, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qibr1"]
+shader = ExtResource("18_gchci")
+shader_parameter/line_thickness = 2.000000095
+shader_parameter/sensitivity = 0.2
+shader_parameter/line_color = Color(0.014779999, 0.0146, 0.02, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rlbq7"]
+shader = ExtResource("20_7u3qs")
+shader_parameter/line_strength = 2.0
+shader_parameter/hatch_strength = 0.5
+shader_parameter/hatch_density = 500.0
+shader_parameter/hatch_weight = 0.1
+shader_parameter/ink_color = Color(0, 0, 0, 1)
+shader_parameter/paper_color = Color(0.8, 0.8, 0.8, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pfssk"]
+shader = ExtResource("21_ml21d")
+shader_parameter/light_dir = Vector2(1, 0)
+shader_parameter/intensity = 0.005
+shader_parameter/highlight_color = Color(1, 1, 1, 1)
+shader_parameter/shadow_color = Color(0, 0, 0, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ak67c"]
+shader = ExtResource("23_bgtkm")
+shader_parameter/pixel_size = 32
+
+[sub_resource type="Shader" id="Shader_hxy6b"]
+code = "shader_type canvas_item;
+
+uniform float rot_degrees = .0;
+uniform float blur_scale: hint_range(.0, 1.) = .01;
+uniform float weight: hint_range(.0, 1.) = .5;
+
+void fragment() {
+	vec4 color = texture(TEXTURE, UV);
+	
+	float angle2 = rot_degrees + PI / 2.;
+	vec2 offset1 = vec2(cos(rot_degrees), sin(rot_degrees)) * blur_scale;
+	vec2 offset2 = vec2(cos(angle2), sin(angle2)) * blur_scale;
+	
+	vec4 top = texture(TEXTURE, UV + offset1);
+	vec4 down = texture(TEXTURE, UV - offset1);
+	vec4 right = texture(TEXTURE, UV + offset2);
+	vec4 left = texture(TEXTURE, UV - offset2);
+	
+	color += (top + down + right + left) * weight;
+	color.rgb /= 1. + (4. * weight);
+	
+	COLOR = color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_n0gsr"]
+shader = SubResource("Shader_hxy6b")
+shader_parameter/rot_degrees = 0.0
+shader_parameter/blur_scale = 0.01
+shader_parameter/weight = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ews87"]
+shader = ExtResource("13_tdrvq")
+shader_parameter/blur_amount = 0.02
+shader_parameter/quality = 4
+shader_parameter/transparancy = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7ke4e"]
+shader = ExtResource("13_8pbat")
+shader_parameter/dir = Vector2(1, 0)
+shader_parameter/power = 0.05
+shader_parameter/quality = 4
+shader_parameter/clip_border = false
+shader_parameter/transparancy = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nrhsr"]
+shader = ExtResource("14_2p7gi")
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/blur_amount = 0.05
+shader_parameter/quality = 8
+shader_parameter/clip_border = false
+shader_parameter/transparency = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qbhgp"]
+shader = ExtResource("15_vh7e3")
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/power = 0.2
+shader_parameter/quality = 12
+shader_parameter/edge_scale = 0.8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2p7gi"]
+shader = ExtResource("17_vh7e3")
+shader_parameter/blur_amount = 96.0
+shader_parameter/circular = true
+shader_parameter/quality = 2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vh7e3"]
+shader = ExtResource("18_ak67c")
+shader_parameter/blur_amount = 1.0
+shader_parameter/circular = false
+shader_parameter/quality = 4
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_efobh"]
+shader = ExtResource("32_qibr1")
+shader_parameter/force = 0.2
+shader_parameter/zoom = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aao0d"]
+shader = ExtResource("33_efobh")
+shader_parameter/time = 0.0
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/force = 0.05
+shader_parameter/size = 0.5
+shader_parameter/thickness = 0.1
+shader_parameter/speed = 10.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_r4gls"]
+shader = ExtResource("34_aao0d")
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/rotation = 3.0
+shader_parameter/radius = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xoael"]
+shader = ExtResource("35_r4gls")
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/force = 0.5
+shader_parameter/radius = 0.5
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_tdf7u"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_anl0e"]
+width = 256
+height = 256
+noise = SubResource("FastNoiseLite_tdf7u")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ug2v2"]
+shader = ExtResource("36_xoael")
+shader_parameter/time = 0.0
+shader_parameter/noise_texture = SubResource("NoiseTexture2D_anl0e")
+shader_parameter/direction = Vector2(0, 1)
+shader_parameter/speed = 0.050000002375
+shader_parameter/force = 0.002000000095
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6dp28"]
+shader = ExtResource("38_hxy6b")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/power = 4.0
+shader_parameter/radius = 5.0
+shader_parameter/quality = 8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hxy6b"]
+shader = ExtResource("38_lg5mm")
+shader_parameter/position = Vector2(0, 0)
+shader_parameter/tint = Color(1, 0.9, 0.6, 1)
+shader_parameter/brightness = 1.2
+shader_parameter/_length = 0.8
+shader_parameter/threshold = 0.5
+shader_parameter/radius = 1.0
+shader_parameter/darkness = 0.5
+shader_parameter/darkness_threshold = 0.5
+shader_parameter/quality = 32
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_okykx"]
+shader = ExtResource("38_xoael")
+shader_parameter/sun_position = Vector2(0, 0)
+shader_parameter/tint = Vector3(1.4, 1.2, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_p8tll"]
+shader = ExtResource("38_aao0d")
+shader_parameter/direction = Vector2(1, 0)
+shader_parameter/amount = 0.02
+shader_parameter/quality = 8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_838q0"]
+shader = ExtResource("39_r4gls")
+shader_parameter/amount = 1.0
+shader_parameter/quality = 8
 
 [sub_resource type="Shader" id="Shader_dcitl"]
 code = "shader_type canvas_item;
@@ -39,33 +492,513 @@ void fragment() {
         color.g = texture(green_curve, vec2(color.g, 0.5)).g;
         color.b = texture(blue_curve, vec2(color.b, 0.5)).b;
     }
-    
     COLOR = vec4(clamp(color, 0.0, 1.0), tex_color.a);
 }"
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_vfnuj"]
-load_path = "res://.godot/imported/image.png-2de165adb17dfebcee8a7cd6c9833936.ctex"
-
-[sub_resource type="Curve" id="Curve_vfnuj"]
-_data = [Vector2(0.059405945, 0), 0.0, 0.023096787, 0, 0, Vector2(0.2508251, 0.3569519), 0.0, 0.0, 0, 0, Vector2(0.37623763, 0.4872995), 0.0, 0.0, 0, 0, Vector2(0.4719472, 0.5307487), 0.0, 0.0, 0, 0, Vector2(0.9504951, 1), -0.21064195, 0.0, 0, 0]
-point_count = 5
-
-[sub_resource type="CurveTexture" id="CurveTexture_dcitl"]
-curve = SubResource("Curve_vfnuj")
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1tw12"]
 shader = SubResource("Shader_dcitl")
-shader_parameter/temperature = 0.0
+shader_parameter/temperature = 1.0
 shader_parameter/tint = 0.0
-shader_parameter/red_curve = SubResource("CompressedTexture2D_vfnuj")
-shader_parameter/green_curve = SubResource("CompressedTexture2D_vfnuj")
-shader_parameter/blue_curve = SubResource("CompressedTexture2D_vfnuj")
-shader_parameter/rgb_curve = SubResource("CurveTexture_dcitl")
-shader_parameter/use_curves = true
+shader_parameter/use_curves = false
+
+[sub_resource type="Shader" id="Shader_vfnuj"]
+code = "shader_type canvas_item;
+
+uniform float exposure: hint_range(-5., 5.) = .0;
+uniform float contrast: hint_range(.0, 3.) = 1.;
+uniform float offset: hint_range(.0, 1.) = .5;
+uniform float highlights: hint_range(-1., 1.) = .0;
+uniform float shadows: hint_range(-1., 1.) = .0;
+uniform float whites: hint_range(-1., 1.) = .0;
+uniform float blacks: hint_range(-1., 1.) = .0;
+
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 color = tex.rgb;
+	
+	// Exposure
+	color *= pow(2., exposure);
+	
+	// Contrast
+	color = (color - offset) * contrast + offset;
+	
+	float luma = dot(color, vec3(.2126, .7152, .0722));
+	
+	// Highlights
+	float high_mask = smoothstep(.5, 1., luma);
+	color += high_mask * highlights;
+	
+	// Shadows
+	float shadow_mask = 1.0 - high_mask;
+	color += shadow_mask * shadows;
+	
+	// Whites
+	float white_mask = smoothstep(0.8, 1.0, luma);
+	color += white_mask * whites;
+	
+	// Blacks
+	float black_mask = 1.0 - smoothstep(0.0, 0.2, luma);
+	color += black_mask * blacks;
+	
+	COLOR = mix(tex, vec4(color, tex.a), 1.);
+	COLOR.rgb = mix(tex.rgb, color.rgb, 1.);
+}
+
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dcitl"]
+shader = SubResource("Shader_vfnuj")
+shader_parameter/exposure = 0.0
+shader_parameter/contrast = 1.0
+shader_parameter/offset = 0.5
+shader_parameter/highlights = 0.0
+shader_parameter/shadows = 0.0
+shader_parameter/whites = 0.0
+shader_parameter/blacks = 0.0
+
+[sub_resource type="Shader" id="Shader_ehi37"]
+code = "shader_type canvas_item;
+
+uniform vec3 lift : source_color = vec3(0.0);
+uniform vec3 gamma : source_color = vec3(1.0);
+uniform vec3 gain : source_color = vec3(1.0);
+uniform float offset = .0;
+
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 color = tex.rgb;
+	
+	vec3 result = pow(max(vec3(.0), color * gain + lift + offset), 1. / gamma);
+	
+	COLOR.rgb = result;
+}
+
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_inflt"]
+shader = SubResource("Shader_ehi37")
+shader_parameter/lift = Color(0, 0, 0, 1)
+shader_parameter/gamma = Color(1, 1, 1, 1)
+shader_parameter/gain = Color(1, 1, 1, 1)
+shader_parameter/offset = 0.0
+
+[sub_resource type="Shader" id="Shader_1tw12"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform float hue_shift: hint_range(-1., 1.) = .0;
+uniform float saturation: hint_range(.0, 10.) = 1.;
+uniform float vibrance: hint_range(-1., 1.) = .0;
+uniform float luminance: hint_range(.0, 10.) = 1.;
+
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 color = tex.rgb;
+	
+	color = apply_hue(color, hue_shift); // Hue
+	color *= luminance; // Luminance
+	color = apply_sat(color, saturation); // Saturation
+	color = apply_vibrance(color, vibrance); // Vibrance
+	
+	COLOR.rgb = color;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ehi37"]
+shader = SubResource("Shader_1tw12")
+shader_parameter/hue_shift = 0.0
+shader_parameter/saturation = 1.0
+shader_parameter/vibrance = 0.0
+shader_parameter/luminance = 1.0
+
+[sub_resource type="Shader" id="Shader_inflt"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform float sat_red: hint_range(.0, 2.) = 1.;
+uniform float sat_orange: hint_range(.0, 2.) = 1.;
+uniform float sat_yellow: hint_range(.0, 2.) = 1.;
+uniform float sat_green: hint_range(.0, 2.) = 1.;
+uniform float sat_aqua: hint_range(.0, 2.) = 1.;
+uniform float sat_blue: hint_range(.0, 2.) = 1.;
+uniform float sat_purple: hint_range(.0, 2.) = 1.;
+uniform float sat_magenta: hint_range(.0, 2.) = 1.;
+
+uniform float lum_red: hint_range(.0, 2.) = 1.;
+uniform float lum_orange: hint_range(.0, 2.) = 1.;
+uniform float lum_yellow: hint_range(.0, 2.) = 1.;
+uniform float lum_green: hint_range(.0, 2.) = 1.;
+uniform float lum_aqua: hint_range(.0, 2.) = 1.;
+uniform float lum_blue: hint_range(.0, 2.) = 1.;
+uniform float lum_purple: hint_range(.0, 2.) = 1.;
+uniform float lum_magenta: hint_range(.0, 2.) = 1.;
+
+uniform float hue_red: hint_range(-.5, .5) = .0;
+uniform float hue_orange: hint_range(-.5, .5) = .0;
+uniform float hue_yellow: hint_range(-.5, .5) = .0;
+uniform float hue_green: hint_range(-.5, .5) = .0;
+uniform float hue_aqua: hint_range(-.5, .5) = .0;
+uniform float hue_blue: hint_range(-.5, .5) = .0;
+uniform float hue_purple: hint_range(-.5, .5) = .0;
+uniform float hue_magenta: hint_range(-.5, .5) = .0;
+
+uniform float smoothness: hint_range(.1, 1.) = .3;
+
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 color = tex.rgb;
+	
+	float h = .0;
+	float max_c = max(color.r, max(color.g, color.b));
+	float min_c = min(color.r, min(color.g, color.b));
+	float delta = max_c - min_c;
+	
+	if (delta > .0) {
+		if (max_c == color.r) h = mod((color.g - color.b) / delta, 6.);
+		else if (max_c == color.g) h = ((color.b - color.r) / delta) + 2.;
+		else h = ((color.r - color.g) / delta) + 4.;
+		h /= 6.;
+	}
+	
+	float centers[9]  = float[](.0, .08, .15, .31, .50, .64, .79, .92, 1.);
+	
+	float lums[9] = float[](lum_red, lum_orange, lum_yellow, lum_green, lum_aqua, lum_blue, lum_purple, lum_magenta, lum_red);
+	float sats[9] = float[](sat_red, sat_orange, sat_yellow, sat_green, sat_aqua, sat_blue, sat_purple, sat_magenta, sat_red);
+	float hues[9] = float[](hue_red, hue_orange, hue_yellow, hue_green, hue_aqua, hue_blue, hue_purple, hue_magenta, hue_red);
+	
+	float final_lum = .0;
+	float final_sat = .0;
+	float final_hue = .0;
+	float total_weight = .0;
+	
+	for (int i = 0; i < 9; i++) {
+		float dist = abs(h - centers[i]);
+		float weight = 1. - smoothstep(.0, smoothness, dist);
+		
+		final_lum += lums[i] * weight;
+		final_sat += sats[i] * weight;
+		final_hue += hues[i] * weight;
+		total_weight += weight;
+	}
+	
+	final_lum /= total_weight;
+	final_sat /= total_weight;
+	final_hue /= total_weight;
+	
+	if (abs(final_hue) > .001) {
+		color = apply_hue(color, final_hue);
+	}
+	color *= final_lum;
+	color = apply_sat(color, final_sat);
+	
+	COLOR.rgb = color;
+	COLOR.a = tex.a;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_l6s8s"]
+shader = SubResource("Shader_inflt")
+shader_parameter/sat_red = 1.0
+shader_parameter/sat_orange = 1.0
+shader_parameter/sat_yellow = 1.0
+shader_parameter/sat_green = 1.0
+shader_parameter/sat_aqua = 1.0
+shader_parameter/sat_blue = 1.0
+shader_parameter/sat_purple = 1.0
+shader_parameter/sat_magenta = 1.0
+shader_parameter/lum_red = 1.0
+shader_parameter/lum_orange = 1.0
+shader_parameter/lum_yellow = 1.0
+shader_parameter/lum_green = 1.0
+shader_parameter/lum_aqua = 1.0
+shader_parameter/lum_blue = 1.0
+shader_parameter/lum_purple = 1.0
+shader_parameter/lum_magenta = 1.0
+shader_parameter/hue_red = 0.0
+shader_parameter/hue_orange = 0.0
+shader_parameter/hue_yellow = 0.0
+shader_parameter/hue_green = 0.0
+shader_parameter/hue_aqua = 0.0
+shader_parameter/hue_blue = 0.0
+shader_parameter/hue_purple = 0.0
+shader_parameter/hue_magenta = 0.0
+shader_parameter/smoothness = 0.3
 
 [node name="PrototypeShader" type="Node2D" unique_id=1695768259]
-metadata/_edit_horizontal_guides_ = [-717.0]
 
-[node name="WhiteBalance" type="Sprite2D" parent="." unique_id=644170137]
+[node name="Display2D" type="Node2D" parent="." unique_id=673526309]
+visible = false
+
+[node name="Image" type="Node2D" parent="." unique_id=1971762683]
+visible = false
+
+[node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
+visible = false
+
+[node name="Invert" type="Sprite2D" parent="Image/Basic" unique_id=523742155]
+visible = false
+material = SubResource("ShaderMaterial_lh14w")
+texture = ExtResource("5_inflt")
+
+[node name="Perspective" type="Sprite2D" parent="Image/Basic" unique_id=502838103]
+visible = false
+material = SubResource("ShaderMaterial_7erdt")
+texture = ExtResource("5_inflt")
+
+[node name="Enhance" type="Node2D" parent="Image" unique_id=1154040034]
+visible = false
+
+[node name="Sharpen" type="Sprite2D" parent="Image/Enhance" unique_id=1612355291]
+visible = false
+material = SubResource("ShaderMaterial_ruurt")
+texture = ExtResource("5_inflt")
+
+[node name="Denoise" type="Sprite2D" parent="Image/Enhance" unique_id=1584626694]
+visible = false
+material = SubResource("ShaderMaterial_euamy")
+texture = ExtResource("7_qbhgp")
+
+[node name="Kawahara" type="Sprite2D" parent="Image/Enhance" unique_id=281475108]
+visible = false
+material = SubResource("ShaderMaterial_lg5mm")
+texture = ExtResource("7_qbhgp")
+
+[node name="Clarity" type="Sprite2D" parent="Image/Enhance" unique_id=110136805]
+visible = false
+material = SubResource("ShaderMaterial_fnhdb")
+texture = ExtResource("5_inflt")
+
+[node name="Cinematic" type="Node2D" parent="Image" unique_id=1373111679]
+visible = false
+
+[node name="Vignette" type="Sprite2D" parent="Image/Cinematic" unique_id=528484978]
+visible = false
+material = SubResource("ShaderMaterial_bgtkm")
+texture = ExtResource("3_tjshb")
+
+[node name="FilmGrain" type="Sprite2D" parent="Image/Cinematic" unique_id=2091261901]
+visible = false
+material = SubResource("ShaderMaterial_0qjtk")
+texture = ExtResource("3_tjshb")
+
+[node name="Bars" type="Sprite2D" parent="Image/Cinematic" unique_id=251359427]
+visible = false
+material = SubResource("ShaderMaterial_4vwar")
+texture = ExtResource("4_tdf7u")
+
+[node name="Retro" type="Node2D" parent="Image" unique_id=569219503]
+visible = false
+
+[node name="VHS" type="Sprite2D" parent="Image/Retro" unique_id=2113317747]
+visible = false
+material = SubResource("ShaderMaterial_ruurt")
+texture = ExtResource("5_inflt")
+
+[node name="LEDGrid" type="Sprite2D" parent="Image/Retro" unique_id=1048849266]
+visible = false
+material = SubResource("ShaderMaterial_aubky")
+texture = ExtResource("5_inflt")
+
+[node name="Glitch" type="Sprite2D" parent="Image/Retro" unique_id=2004494715]
+visible = false
+material = SubResource("ShaderMaterial_g51k6")
+texture = ExtResource("8_n0gsr")
+
+[node name="GlitchWeird" type="Sprite2D" parent="Image/Retro" unique_id=147866366]
+visible = false
+material = SubResource("ShaderMaterial_ifpln")
+texture = ExtResource("8_n0gsr")
+
+[node name="Artistic" type="Node2D" parent="Image" unique_id=1003054486]
+visible = false
+
+[node name="Posterize" type="Sprite2D" parent="Image/Artistic" unique_id=1045437060]
+visible = false
+material = SubResource("ShaderMaterial_iov73")
+texture = ExtResource("6_l6s8s")
+
+[node name="Hexagon" type="Sprite2D" parent="Image/Artistic" unique_id=1365848781]
+visible = false
+material = SubResource("ShaderMaterial_ml21d")
+texture = ExtResource("3_1tw12")
+
+[node name="Voronoi" type="Sprite2D" parent="Image/Artistic" unique_id=264422171]
+visible = false
+material = SubResource("ShaderMaterial_gchci")
+texture = ExtResource("4_ehi37")
+
+[node name="Halftone" type="Sprite2D" parent="Image/Artistic" unique_id=1574449927]
+visible = false
+material = SubResource("ShaderMaterial_7u3qs")
+texture = ExtResource("10_7ke4e")
+
+[node name="ToonEdge" type="Sprite2D" parent="Image/Artistic" unique_id=415510812]
+visible = false
+material = SubResource("ShaderMaterial_qibr1")
+texture = ExtResource("11_nrhsr")
+
+[node name="Sketch" type="Sprite2D" parent="Image/Artistic" unique_id=881866073]
+visible = false
+material = SubResource("ShaderMaterial_rlbq7")
+texture = ExtResource("10_7ke4e")
+
+[node name="Emboss" type="Sprite2D" parent="Image/Artistic" unique_id=733769963]
+visible = false
+material = SubResource("ShaderMaterial_pfssk")
+texture = ExtResource("8_n0gsr")
+
+[node name="Pixelate" type="Sprite2D" parent="Image/Artistic" unique_id=465014270]
+visible = false
+material = SubResource("ShaderMaterial_ak67c")
+texture = ExtResource("2_dcitl")
+
+[node name="Blur" type="Node2D" parent="Image" unique_id=2147156152]
+visible = false
+
+[node name="BlurLight" type="Sprite2D" parent="Image/Blur" unique_id=511399581]
+visible = false
+material = SubResource("ShaderMaterial_n0gsr")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_1tw12")
+
+[node name="BlurGaussian" type="Sprite2D" parent="Image/Blur" unique_id=1274086664]
+visible = false
+material = SubResource("ShaderMaterial_ews87")
+position = Vector2(-1, 0)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_1tw12")
+
+[node name="BlurMotion" type="Sprite2D" parent="Image/Blur" unique_id=1343309843]
+visible = false
+material = SubResource("ShaderMaterial_7ke4e")
+position = Vector2(-1, 0)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_1tw12")
+
+[node name="BlurRotational" type="Sprite2D" parent="Image/Blur" unique_id=978856454]
+visible = false
+material = SubResource("ShaderMaterial_nrhsr")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_1tw12")
+
+[node name="BlurRay" type="Sprite2D" parent="Image/Blur" unique_id=784399707]
+visible = false
+material = SubResource("ShaderMaterial_qbhgp")
+position = Vector2(-1, 0)
+texture = ExtResource("1_vfnuj")
+
+[node name="BlurMaximum" type="Sprite2D" parent="Image/Blur" unique_id=1784529188]
+visible = false
+material = SubResource("ShaderMaterial_2p7gi")
+position = Vector2(-1, 0)
+texture = ExtResource("4_ehi37")
+
+[node name="BlurMinimum" type="Sprite2D" parent="Image/Blur" unique_id=169885368]
+visible = false
+material = SubResource("ShaderMaterial_vh7e3")
+texture = ExtResource("4_ehi37")
+
+[node name="Distortion" type="Node2D" parent="Image" unique_id=36459734]
+visible = false
+
+[node name="DistLens" type="Sprite2D" parent="Image/Distortion" unique_id=1090635723]
+visible = false
+material = SubResource("ShaderMaterial_efobh")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("6_l6s8s")
+
+[node name="DistRipple" type="Sprite2D" parent="Image/Distortion" unique_id=611357610]
+visible = false
+material = SubResource("ShaderMaterial_aao0d")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("6_l6s8s")
+
+[node name="DistTwirl" type="Sprite2D" parent="Image/Distortion" unique_id=473525937]
+visible = false
+material = SubResource("ShaderMaterial_r4gls")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("6_l6s8s")
+
+[node name="DistBulge" type="Sprite2D" parent="Image/Distortion" unique_id=1489300293]
+visible = false
+material = SubResource("ShaderMaterial_xoael")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("6_l6s8s")
+
+[node name="DistHeat" type="Sprite2D" parent="Image/Distortion" unique_id=1393653724]
+visible = false
+material = SubResource("ShaderMaterial_ug2v2")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("13_anl0e")
+
+[node name="PostProcessing" type="Node2D" parent="Image" unique_id=313666282]
+visible = false
+
+[node name="Glow" type="Sprite2D" parent="Image/PostProcessing" unique_id=1269825665]
+visible = false
+material = SubResource("ShaderMaterial_6dp28")
+texture = ExtResource("39_ug2v2")
+
+[node name="Rays" type="Sprite2D" parent="Image/PostProcessing" unique_id=771301914]
+visible = false
+material = SubResource("ShaderMaterial_hxy6b")
+texture = ExtResource("4_tdf7u")
+
+[node name="LensFlare" type="Sprite2D" parent="Image/PostProcessing" unique_id=1744932123]
+visible = false
+material = SubResource("ShaderMaterial_okykx")
+texture = ExtResource("3_tjshb")
+
+[node name="DirectionalChromaticAberration" type="Sprite2D" parent="Image/PostProcessing" unique_id=1198883697]
+visible = false
+material = SubResource("ShaderMaterial_p8tll")
+texture = ExtResource("3_tjshb")
+
+[node name="RadialChromaticAberration" type="Sprite2D" parent="Image/PostProcessing" unique_id=1231228956]
+visible = false
+material = SubResource("ShaderMaterial_838q0")
+texture = ExtResource("3_tjshb")
+
+[node name="Color" type="Node2D" parent="." unique_id=272918997]
+visible = false
+
+[node name="ColorCorrection" type="Node2D" parent="Color" unique_id=1343180974]
+visible = false
+
+[node name="WhiteBalance" type="Sprite2D" parent="Color/ColorCorrection" unique_id=644170137]
+visible = false
 material = SubResource("ShaderMaterial_1tw12")
 texture = ExtResource("1_vfnuj")
+
+[node name="Tone" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1547323168]
+visible = false
+material = SubResource("ShaderMaterial_dcitl")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_dcitl")
+
+[node name="LGG" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1771112066]
+visible = false
+material = SubResource("ShaderMaterial_inflt")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_dcitl")
+
+[node name="HSL" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1567274153]
+visible = false
+material = SubResource("ShaderMaterial_ehi37")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_dcitl")
+
+[node name="HSLPerColor" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1138738647]
+visible = false
+material = SubResource("ShaderMaterial_l6s8s")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_dcitl")
+
+[node name="ColorGrading" type="Node2D" parent="Color" unique_id=783011805]
+
+[node name="Camera" type="Node2D" parent="." unique_id=759165044]
+visible = false
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1823007627]
+zoom = Vector2(0.25, 0.25)

@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://ch8g8ejbvl72v"]
+
+[sub_resource type="GDScript" id="GDScript_j212v"]
+script/source = "extends RichTextLabel
+
+func _ready() -> void:
+	var effect:= RichTextGhost.new()
+	install_effect(effect)
+
+class RichTextGhost extends RichTextEffect:
+	
+	var bbcode: String = \"ghost\"
+	
+	func _init():
+		resource_name = \"RichTextGhost\"
+	
+	func _process_custom_fx(char_fx: CharFXTransform) -> bool:
+		
+		var speed: float = char_fx.env.get(\"freq\", 5.0)
+		var span: float = char_fx.env.get(\"span\", 10.0)
+		
+		var alpha: float = sin(char_fx.elapsed_time * speed + (char_fx.glyph_index / span)) * 0.5 + 0.5
+		char_fx.color.a = alpha
+		
+		return true
+
+class HideTextFX extends RichTextEffect:
+	
+	var bbcode: String = \"hide\"
+	
+	func _process_custom_fx(char_fx: CharFXTransform):
+		var hide_char: String = char_fx.env.get(\"char\", \"\")
+		
+		if not hide_char or hide_char.length() > 1:
+			return false
+		
+		if char_fx.character == ord(hide_char):
+			char_fx.visible = false
+		
+		return true
+
+
+
+"
+
+[node name="RichTextEffect" type="Control" unique_id=370727082]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="." unique_id=122605709]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+bbcode_enabled = true
+text = "[ghost]Hello World[/ghost]"
+horizontal_alignment = 1
+vertical_alignment = 1
+script = SubResource("GDScript_j212v")

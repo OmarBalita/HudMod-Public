@@ -20,6 +20,13 @@ func get_key_as_path() -> String: return key_as_path
 func get_display_name() -> String: return str(get_type_str(), ":", key_as_path.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(key_as_path).texture
 
+func get_self_main_texture() -> Texture2D:
+	if type == 0:
+		return MediaCache.get_texture(key_as_path)
+	elif type == 1:
+		pass
+	return null
+
 func format_path(paths_for_format: Dictionary[String, String]) -> void:
 	if paths_for_format.has(key_as_path):
 		key_as_path = paths_for_format[key_as_path]

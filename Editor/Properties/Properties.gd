@@ -183,7 +183,7 @@ func update_section_properties(media_clips: Array[MediaClip], focused_media_clip
 		
 		var curr_components_container: BoxContainer = root_container.get_meta("components_container")
 		IS.clear_children(curr_components_container)
-		var section: Array = focused_media_res.get_section_absolute(section_key)
+		var section: Array = focused_media_res.get_section_comps_absolute(section_key)
 		
 		for index: int in section.size():
 			var component: ComponentRes = section[index]
@@ -268,7 +268,7 @@ func on_component_drag_button_button_down(edit_box: IS.EditBoxContainer, compone
 	# Hide Edit Boxe
 	edit_box.modulate.a = .0
 	# identify Dragged Component Info
-	var index_from: int = component.get_owner().get_section_absolute(section_key).find(component)
+	var index_from: int = component.get_owner().get_section_comps_absolute(section_key).find(component)
 	drag_info = {
 		&"drag_enabled": true,
 		&"drag_offset": edit_box.global_position - get_global_mouse_position(),

@@ -245,6 +245,7 @@ func _input(event: InputEvent) -> void:
 							edit_length = clip_res.length
 							clip_panel._update_ui(edit_from, edit_length)
 							layer.update()
+				
 				elif is_editing:
 					input_mouse_motion_func = Callable()
 					edit(true, true)

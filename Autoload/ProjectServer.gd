@@ -94,6 +94,7 @@ func get_project_paths(_project_path: String) -> Dictionary[StringName, String]:
 	}
 
 func open_project(_project_path: String) -> void:
+	
 	var project_paths: Dictionary[StringName, String] = get_project_paths(_project_path)
 	
 	if not FileAccess.file_exists(project_paths.project_res):
@@ -115,17 +116,19 @@ func open_project(_project_path: String) -> void:
 	import_file_system.waveform_path = project_waveform_path
 	
 	make_layers_absolute(PackedInt32Array(range(project_res.root_clip_res.children.size())))
-	# Lazy Load
-	loop_media_clips({},
-		func(layer_index: int, frame_in: int, media_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
-			media_res.loop_components(func(comp: ComponentRes) -> void:
-				comp.set_owner(media_res)
-				comp.loop_animations(frame_in,
-					func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
-						anim_res.update_funcs()
-				)
+	
+	project_res.root_clip_res.loop_children_deep({}, func(children: Dictionary[int, Dictionary], layer_index: int, frame_in: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+		var media_res: MediaClipRes = children[layer_index].media_clips[frame_in]
+		media_res.loop_components(func(comp: ComponentRes) -> void:
+			comp.owner = media_res
+			comp.loop_animations(frame_in,
+				func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
+					anim_res.update_funcs()
 			)
+		)
+		media_res.build_shader_pipeline()
 	)
+	
 	MediaCache.load_media_cache_from_file_system(import_file_system)
 	MediaCache.load_media_cache_from_file_system(preset_file_system)
 
@@ -333,6 +336,17 @@ func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index:
 	imported_clip_res.type = imported_type
 	imported_clip_res.key_as_path = key_as_path
 	
+	match imported_type:
+		0, 1:
+			var comp_transform:= CompTransform2D.new()
+			var comp_offset:= CompOffset.new()
+			imported_clip_res.add_component(&"Display2D", comp_transform)
+			imported_clip_res.add_component(&"Image", comp_offset)
+			comp_transform.set_forced(true)
+			comp_offset.set_forced(true)
+		2:
+			pass
+	
 	var media_length: int = int(MediaServer.get_media_default_length(imported_type, key_as_path) * project_res.fps)
 	add_media_clip(imported_clip_res, media_length, layer_index, frame_in, emit_changes)
 	return imported_clip_res
@@ -340,6 +354,12 @@ func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index:
 func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> ObjectClipRes:
 	var object_clip_res: ObjectClipRes = ObjectClipRes.new()
 	object_clip_res.set_object_res(object_res)
+	
+	if object_res is Object2DRes:
+		var comp_transform:= CompTransform2D.new()
+		object_clip_res.add_component(&"Display2D", comp_transform)
+		comp_transform.set_forced(true)
+	
 	add_media_clip(object_clip_res, EditorServer.editor_settings.media_clip_default_length * project_res.fps, layer_index, frame_in, emit_changes, force_layer_index)
 	return object_clip_res
 
@@ -946,7 +966,7 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 		if root_layer_index == -1: root_layer_index = index
 		
 		if curr_clips.has(index) and new_clip_id == curr_clips[index]: pass
-		else: instance_object(parent_res, media_res, index, new_clip_id, root_layer_index)
+		else: instance_object(parent_res, media_res, index, new_clip_id, root_layer_index, curr_frame)
 		
 		media_res.process(curr_frame - new_clip_id)
 		update_media_res_children(media_res, curr_frame, root_layer_index)
@@ -954,7 +974,7 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 	
 	parent_res.set_curr_clips(new_clips)
 
-func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> Node:
+func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int, global_frame: int) -> Node:
 	var object: Node
 	var instantiate_func: Callable
 	

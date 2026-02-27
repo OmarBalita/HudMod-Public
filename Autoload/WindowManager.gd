@@ -133,7 +133,7 @@ func create_processing_rect(is_hidden: bool = false) -> ColorRect:
 			forward_color = t
 		})
 	else:
-		rect.color = Color(Color.BLACK, .5)
+		rect.color = Color(Color.BLACK, .2)
 	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	return rect
 

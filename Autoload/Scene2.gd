@@ -29,12 +29,19 @@ func start_scene() -> void:
 	camera = Camera2D.new()
 	root.add_child(camera)
 	viewport.add_child(root)
+	update_viewport()
+
+func update_viewport() -> void:
+	viewport.size = ProjectServer.project_res.resolution * EditorServer.editor_settings.viewport_resolution_ratio
 
 func get_curr_objects() -> Dictionary[MediaClipRes, Node]:
 	return curr_objects
 
 func set_curr_objects(new_val: Dictionary[MediaClipRes, Node]) -> void:
 	curr_objects = new_val
+
+func has_object(media_res: MediaClipRes) -> Variant:
+	return curr_objects.has(media_res)
 
 func get_object(media_res: MediaClipRes) -> Variant:
 	return curr_objects.get(media_res)

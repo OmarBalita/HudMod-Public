@@ -1,8 +1,8 @@
 
-- Project Management:
-	Load project
-	Save project
-	Manage AppData and global files
+- Project Management: [+]
+	Load project [+]
+	Save project [+]
+	Manage AppData and global files [+]
 
 - PlayBack:
 	Fix Nodes not removed when MediaClipRes exited
@@ -20,26 +20,172 @@
 	Error: management when required media are unavailable [+]
 	
 	Activate all 2D Objects:
-		Object2D
-		Camera2D
-		Audio2D
+		Object2D [+]
+		Camera2D [+]
+		Audio2D [->]
 		Text2D
+		Shape
 		Particles2D
+		RenderPass
 
 - Properties:
 	same Search System in Media Explorer
-	Copy, Past, and Duplicate Components
+	Copy, Past, and Duplicate UsableRes and Component (Unique ID)
+	Copy, Past any property
 	Reset Property [+]
-	Forced Components
 	Set Property Transition Quickly
 	Transition Component Class
 	Animation In-Out Component Class
-	Color Correction Component Class
 	Masking
+
+- Components:
+	
+	Adding:
+		
+		Display 2D: [+]
+			
+			Transform: [+]
+				Transform [+]
+				Wave [+]
+				Shake [+]
+				Follow [+]
+		
+		Image: [+]
+			
+			Basic: [+]
+				Invert [+]
+				Perspective [+]
+			
+			Enhance: [+]
+				Sharpen [+]
+				Denoise [+]
+				Kawahara [+]
+				Clarity [+]
+			
+			Cinematic: [+]
+				Vignette [+]
+				FilmGrain [+]
+				Scratches [->]
+				Dust [X]
+				Bars [+]
+			
+			Retro:
+				CRT and VHS [+]
+				LEDGrid [+]
+				FilmBurn [X]
+				Glich [+]
+				GlichWeird [+]
+			
+			Artistic: [+]
+				Pixelate [+]
+				Hexagon [+]
+				Voronoi [+]
+				Halftone [+]
+				Posterize [+]
+				CartoonEdge [+]
+				Sketch [+]
+				Emboss [+]
+			
+			Blur: [+]
+				BlurLight [+]
+				BlurGaussian [+]
+				BlurMotion [+]
+				BlurRotational [+]
+				BlurRay [+]
+				BlurMaximum [+]
+				BlurMinimum [+]
+			
+			Distortion:
+				DistLens [+]
+				DistRipple [+]
+				DistWave [->]
+				DistTwirl [+]
+				DistBulge [+]
+				DistHeat [+]
+			
+			PostProcessing: [+]
+				Glow [+]
+				Rays [+]
+				LensFlare [+]
+				DirectionalChromaticAberration [+]
+				RadialChromaticAberration [+]
+		
+		Color:
+			ColorCorrection:
+				pass
+			
+			ColorGrading:
+				pass
+		
+		Text2D:
+			
+			Animation:
+				Shake
+				Wave [+]
+				Swing
+				Bounce
+				Flip
+				Skew
+			
+			AnimationInOut:
+				InOutFade
+				InOutType
+				InOutPop
+				InOutBounce
+				InOutFlip
+			
+			Shape:
+				Curved
+				Extrude
+				Liquid
+			
+			Color:
+				Rainbow
+			
+			Shadow:
+				LongShadow
+			
+			Light:
+				Flicker
+				Ray
+			
+			Generate:
+				pass
+		
+		
+		Particles:
+			Display:
+				pass
+			
+			Physics:
+				pass
+		
+		Masking:
+			pass
+		
+		Animation in-out:
+			pass
+		
+		Camera:
+			
+			Basic:
+				pass
+			
+			PostProcessing (Lite):
+				pass
+		
+		Transition:
+			pass
+	
+	SubCategories for Components [+]
+	Enable / Disable Component with shader [+]
+	Fix Shader Stack Problems [+]
+	Complete the ShaderComponent Build Echo-system [+]
+	Forced Components [+]
 
 - Player:
 	Display Audio [+]
-	create Header Menu Bar (just UI)
+	Create Header Menu Bar (just UI)
 	Draw HurtBox for Displayed Media (Image, Video, Object2D ...) when selected
 	Select and Interact with Player Viewport
 
@@ -48,6 +194,7 @@
 	Fix String Controller, and Integrate MultiLine
 	Fix Array Controller
 	Fix Keyframes Displaying
+	Fix Curve Controller in the timeline
 	Create Path Controller, which support Display imported file
 	Create Preset Font Controller
 	Copy Resource or any Value and past it

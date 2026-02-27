@@ -6,7 +6,7 @@ enum AnchorMode {
 	CENTER
 }
 
-@export var enabled: bool = true
+@export var camera_enabled: bool = true
 @export var offset: Vector2
 @export var anchor_mode: AnchorMode = 1
 @export var ignore_rotation: bool = true
@@ -29,7 +29,7 @@ func _exit() -> void: Scene2.remove_camera_as_object(owner.curr_node)
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
-		&"enabled": export(bool_args(enabled)),
+		&"camera_enabled": export(bool_args(camera_enabled)),
 		&"offset": export(vec2_args(offset)),
 		&"anchor_mode": export(options_args(anchor_mode, AnchorMode)),
 		&"ignore_rotation": export(bool_args(ignore_rotation)),
@@ -37,7 +37,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	}
 
 func _process(frame: int) -> void:
-	submit_stacked_value_with_custom_method(&"enabled", enabled)
+	submit_stacked_value_with_custom_method(&"enabled", camera_enabled)
 	submit_stacked_value(&"offset", offset)
 	submit_stacked_value_with_custom_method(&"anchor_mode", anchor_mode)
 	submit_stacked_value_with_custom_method(&"ignore_rotation", ignore_rotation)

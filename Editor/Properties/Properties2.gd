@@ -6,6 +6,8 @@ signal property_changed()
 @export_subgroup("Texture", "texture")
 @export var texture_add: Texture2D
 @export var texture_search: Texture2D
+@export var texture_enable: Texture2D
+@export var texture_disable: Texture2D
 @export var texture_delete: Texture2D
 @export var texture_drag: Texture2D
 
@@ -46,17 +48,25 @@ func _ready_editor() -> void:
 	clips_selection_group.selected_objects_changed.connect(_on_clips_selection_group_selected_objects_changed)
 
 func popup_section_components(section_key: StringName, pop_from: Control = null) -> void:
-	var part_option: MenuOption = MenuOption.new("Part")
-	var options: Dictionary[MenuOption, Array] = {part_option: []}
-	var section_components: Dictionary[StringName, Dictionary] = ClassServer.comps_get_section_comps(section_key)
-	for comp_classname: StringName in section_components:
-		var comp_info: Dictionary[StringName, Variant] = section_components[comp_classname]
-		var comp_script: Script = comp_info.script
-		options[part_option].append(MenuOption.new(
-			comp_classname,
-			comp_info.icon,
-			add_component.bind(section_key, comp_script)
-		))
+	
+	var options: Dictionary[MenuOption, Array] = {}
+	var section_comps: Dictionary[StringName, Dictionary] = ClassServer.comps_get_section_comps(section_key)
+	
+	for subsection_key: StringName in section_comps:
+		var subsection_comps: Dictionary[StringName, Dictionary] = section_comps[subsection_key]
+		var subsection_menuoption: MenuOption = MenuOption.new(subsection_key)
+		options[subsection_menuoption] = []
+		
+		for comp_classname: StringName in subsection_comps:
+			var comp_info: Dictionary[StringName, Variant] = subsection_comps[comp_classname]
+			var comp_script: Script = comp_info.script
+			
+			options[subsection_menuoption].append(MenuOption.new(
+				comp_classname,
+				comp_info.icon,
+				add_component.bind(section_key, comp_script)
+			))
+	
 	var components_popuped_menu: PopupedCategoriesMenu = IS.create_popuped_categories_menu(options)
 	get_tree().current_scene.add_child(components_popuped_menu)
 	await components_popuped_menu.categories_menu_popuped
@@ -68,6 +78,12 @@ func add_component(section_key: StringName, script: Script) -> void:
 		new_component_res.set_script(script)
 		media_res.add_component(section_key, new_component_res)
 	update_properties(section_key)
+
+func set_component_enabled(comp_info: ComponentInfo) -> void:
+	var target: bool = not comp_info.component_res_owner.enabled
+	for index: int in curr_media_ress.size():
+		var comp_res: ComponentRes = comp_info.components_ress[index]
+		comp_res.set_enabled(target)
 
 func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_box_container: IS.EditBoxContainer = null) -> void:
 	for index: int in curr_media_ress.size():
@@ -328,26 +344,34 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	comp_editor.set_meta(&"component_res", comp_res_owner)
 	comp_editor.keyframable = false
 	
-	var method_controller: OptionController = IS.create_option_controller([
-		{text = "Set"},
-		{text = "Add"},
-		{text = "Sub"},
-		{text = "Multiply"},
-		{text = "Divide"}
-	], "", comp_res_owner.get_method_type())
-	method_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void:
-		update_component_method(section_key, comp_info, id))
-	editor_header.add_child(method_controller)
-	
-	var delete_button: IS.CustomTextureButton = IS.create_texture_button(texture_delete)
-	delete_button.pressed.connect(delete_component.bind(section_key, comp_info, comp_editor))
-	editor_header.add_child(delete_button)
-	
-	if curr_media_ress.size() == 1:
-		var move_button: IS.CustomTextureButton = IS.create_texture_button(texture_drag)
-		move_button.button_down.connect(_on_component_controller_move_button_button_down.bind(section_key, comp_info.index, comp_editor))
-		move_button.button_up.connect(_on_component_controller_move_button_button_up.bind(section_key, comp_editor))
-		editor_header.add_child(move_button)
+	if not comp_res_owner.get_forced():
+		
+		if comp_res_owner.has_method_type():
+			var method_controller: OptionController = IS.create_option_controller([
+				{text = "Set"},
+				{text = "Add"},
+				{text = "Sub"},
+				{text = "Multiply"},
+				{text = "Divide"}
+			], "", comp_res_owner.get_method_type())
+			method_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void:
+				update_component_method(section_key, comp_info, id))
+			editor_header.add_child(method_controller)
+		
+		var enable_button: IS.CustomTextureButton = IS.create_texture_button(texture_enable, null, texture_disable, true)
+		enable_button.button_pressed = not comp_res_owner.enabled
+		enable_button.pressed.connect(set_component_enabled.bind(comp_info))
+		editor_header.add_child(enable_button)
+		
+		var delete_button: IS.CustomTextureButton = IS.create_texture_button(texture_delete)
+		delete_button.pressed.connect(delete_component.bind(section_key, comp_info, comp_editor))
+		editor_header.add_child(delete_button)
+		
+		if curr_media_ress.size() == 1:
+			var move_button: IS.CustomTextureButton = IS.create_texture_button(texture_drag)
+			move_button.button_down.connect(_on_component_controller_move_button_button_down.bind(section_key, comp_info.index, comp_editor))
+			move_button.button_up.connect(_on_component_controller_move_button_button_up.bind(section_key, comp_editor))
+			editor_header.add_child(move_button)
 	
 	sections_controls[section_key].box.add_child(comp_editor)
 	
@@ -525,7 +549,5 @@ class ArrangableBoxContainer extends VBoxContainer:
 	func _free_grabbed_control() -> void:
 		grabbed_control.queue_free()
 		grabbed_control = null
-
-
 
 

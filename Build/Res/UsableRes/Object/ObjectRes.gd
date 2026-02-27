@@ -1,5 +1,8 @@
 class_name ObjectRes extends ComponentRes
 
+func _init() -> void:
+	set_forced(true)
+
 func _enter() -> void: pass
 func _process(frame: int) -> void: pass
 func _exit() -> void: pass
@@ -14,6 +17,9 @@ static func get_object_info() -> Dictionary[StringName, String]:
 		&"description": ""
 	}
 static func get_object_section() -> StringName: return &""
+
+func get_self_main_texture() -> Texture2D:
+	return null
 
 func get_min_from() -> float: return -INF
 func get_max_length() -> float: return +INF

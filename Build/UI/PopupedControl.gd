@@ -15,7 +15,9 @@ var mouse_move_popdown_requested: bool
 
 var tweener:= TweenerComponent.new()
 
+
 func _ready() -> void:
+	
 	# Setup TweenerComponent
 	tweener.easeType = Tween.EASE_OUT
 	add_child(tweener)

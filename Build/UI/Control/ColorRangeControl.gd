@@ -1,26 +1,33 @@
-class_name ColorRangeControl extends PanelContainer
+class_name ColorRangeControl extends Control
 
 signal val_changed()
 
 var color_range_controller: ColorRangeController = ColorRangeController.new()
+var interpolation_mode_button: OptionController
 var xpos_edit: FloatController
 var color_edit: ColorButton
 
 func _ready() -> void:
+	var color_range: ColorRangeRes = color_range_controller.color_range_res
+	
+	custom_minimum_size.y = 190.
 	
 	var margin = IS.create_margin_container()
 	var box = IS.create_box_container(16, true)
 	
 	color_range_controller.custom_minimum_size.y = 20.0
 	
-	xpos_edit = IS.create_float_edit("Key Position", false, true, .0, .0, 1.0, .001)[1]
-	color_edit = IS.create_color_edit("Key Color", Color.BLACK)[0]
+	interpolation_mode_button = IS.create_float_edit.callv(["interpolation_mode"] + UsableRes.options_args(color_range.interpolation_mode, ColorRangeRes.INTERPOLATION_MODE))[0]
+	xpos_edit = IS.create_float_edit("key_position", .0, .0, 1.)[0]
+	color_edit = IS.create_color_edit("key_color", Color.BLACK)[0]
 	
+	interpolation_mode_button.selected_option_changed.connect(on_interpolation_mode_button_selected_option_changed)
 	color_range_controller.selected_key_changed.connect(on_selected_key_changed)
 	xpos_edit.val_changed.connect(on_xpos_edit_val_changed)
 	color_edit.color_changed.connect(on_color_edit_val_changed)
 	
 	box.add_child(color_range_controller)
+	box.add_child(interpolation_mode_button.get_parent())
 	box.add_child(xpos_edit.get_parent())
 	box.add_child(color_edit.get_parent())
 	
@@ -36,6 +43,9 @@ func _update_ui(x_pos: float, color: Color) -> void:
 	xpos_edit.visible = is_key_available
 	color_edit.visible = is_key_available
 
+func on_interpolation_mode_button_selected_option_changed(id: int, option: MenuOption) -> void:
+	color_range_controller.color_range_res.interpolation_mode = id
+
 func on_selected_key_changed(x_pos: float, color: Color) -> void:
 	_update_ui(x_pos, color)
 	val_changed.emit()
@@ -50,20 +60,15 @@ func on_color_edit_val_changed(new_color: Color) -> void:
 	val_changed.emit()
 
 
-
-
-
-
-
-class ColorRangeController extends FocusControl:
+class ColorRangeController extends Control:
 	
 	signal keys_changed()
 	signal selected_key_changed(new_selected_key: Variant, color: Color)
 	
 	@export var color_range_res: ColorRangeRes:
 		set(val):
-			if color_range_res: color_range_res.color_range_changed.disconnect(_on_color_range_changed)
-			if val: val.color_range_changed.connect(_on_color_range_changed)
+			if color_range_res: color_range_res.res_changed.disconnect(_on_res_changed)
+			if val: val.res_changed.connect(_on_res_changed)
 			color_range_res = val
 	
 	var key_button_size: Vector2 = Vector2(20, 15)
@@ -81,9 +86,7 @@ class ColorRangeController extends FocusControl:
 	
 	var is_dragged: bool
 	
-	
 	func _ready():
-		super()
 		
 		if not color_range_res:
 			color_range_res = ColorRangeRes.new()
@@ -94,10 +97,8 @@ class ColorRangeController extends FocusControl:
 	func _draw() -> void:
 		draw_gradient()
 		draw_color_keys()
-		super()
 	
-	func _input(event: InputEvent) -> void:
-		super(event)
+	func _gui_input(event: InputEvent) -> void:
 		
 		if event is InputEventMouse:
 			var mouse_pos = get_local_mouse_position()
@@ -117,22 +118,15 @@ class ColorRangeController extends FocusControl:
 				match event.button_index:
 					
 					MOUSE_BUTTON_LEFT:
-						
-						if is_focus and is_pressed:
-							
-							if rounded_keys.size():
-								selected_key = rounded_keys.keys()[0]
-							else:
-								add_key(x_pos)
-							is_dragged = true
-						
+						if rounded_keys.size():
+							selected_key = rounded_keys.keys()[0]
 						else:
-							is_dragged = false
+							add_key(x_pos)
+						is_dragged = is_pressed
 					
 					MOUSE_BUTTON_RIGHT:
-						if is_focus and is_pressed:
-							if rounded_keys:
-								remove_key(rounded_keys.keys()[0])
+						if rounded_keys:
+							remove_key(rounded_keys.keys()[0])
 			
 			elif event is InputEventMouseMotion:
 				if is_dragged:
@@ -222,15 +216,6 @@ class ColorRangeController extends FocusControl:
 	func get_xpos_from_display_pos(display_pos: float) -> float:
 		return clamp(display_pos / size.x, .0, 1.0)
 	
-	func _on_color_range_changed():
+	func _on_res_changed():
 		queue_redraw()
-
-
-
-
-
-
-
-
-
 

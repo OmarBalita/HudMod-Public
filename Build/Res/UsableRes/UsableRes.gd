@@ -36,7 +36,7 @@ func set_prop(property_key: StringName, property_val: Variant) -> void:
 	set_prop_func.call(property_key, property_val)
 
 func set_and_emit_prop(property_key: StringName, property_val: Variant) -> void:
-	set_prop_func.call(property_key, property_val)
+	set_prop(property_key, property_val)
 	emit_res_changed()
 
 func emit_res_changed() -> void:
@@ -58,7 +58,7 @@ func loop_props(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {}
 
-func _exported_props_controllers_created(props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	pass
 
 # Works when a properties changes comes from the inspector
@@ -112,18 +112,23 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				
 				ExportMethodType.METHOD_CALLABLE:
 					var callable_button: Button = IS.create_button(key, IS.TEXTURE_MEGAPHONE, true)
+					
 					var button_style: StyleBoxFlat = callable_button.get_theme_stylebox(&"normal").duplicate(false)
 					var button_color: Color = ctrlr_args[1]
 					button_style.bg_color = button_color
 					button_style.border_color = button_color.lightened(.3)
 					IS.set_button_style(callable_button, button_style)
-					callable_button.add_theme_stylebox_override(
-						&"normal",
-						button_style
-					)
+					
+					if ctrlr_args[2] != null:
+						callable_button.icon = ctrlr_args[2]
+						callable_button.add_theme_stylebox_override(
+							&"normal",
+							button_style
+						)
 					
 					callable_button.pressed.connect(ctrlr_args[0].bind(usable_ress))
 					curr_box_container.add_child(callable_button)
+					properties_controllers[key] = callable_button
 					control = callable_button
 				
 				ExportMethodType.METHOD_CUSTOM_EXPORT:
@@ -175,7 +180,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 			else:
 				ui_conditions[ui_cond] = [control]
 	
-	usable_res._exported_props_controllers_created(properties_controllers)
+	usable_res._exported_props_controllers_created(edit_box_container, properties_controllers)
 	
 	ui_profile.set_ui_conditions(ui_conditions)
 	ui_profile.update()
@@ -241,6 +246,7 @@ static func color_args(val: Color) -> Array: return [val]
 static func list_args(val: Array, list_classname: StringName, can_add_element: bool = true, can_remove_element: bool = true,
 	can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_elements_count: int = 0) -> Array:
 	return [val, list_classname, can_add_element, can_remove_element, can_duplicate_element, can_change_element_priority, min_elements_count]
+static func mediaclipres_args(val: MediaClipRes, cond_func: Callable) -> Array: return [val, cond_func]
 
 static func method_enter_cat_args(cat_color: Color = Color.BLACK) -> Array: return [cat_color]
 static func method_exit_cat_args() -> Array: return []

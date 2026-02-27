@@ -8,6 +8,7 @@ var draw_indexer: Dictionary[StringName, Callable] = {
 	&"rect": draw_rect,
 	&"circle": draw_circle,
 	&"string": draw_string,
+	&"string_outline": draw_string_outline
 }
 
 func draw_new_line(from: Vector2, to: Vector2, color: Color = Color.WHITE, width: float = 1.0, antialised: bool = false, redraw: bool = true) -> int:
@@ -23,6 +24,10 @@ func draw_new_dashed_line(from: Vector2, to: Vector2, color: Color = Color.WHITE
 func draw_new_rect(rect: Rect2, color: Color = Color.GRAY, filled: bool = true, width: int = -1, antialiased: bool = false, redraw: bool = true) -> int:
 	drawn_entities.append({&"rect": [rect, color, filled, width, antialiased]})
 	if redraw: queue_redraw()
+	return get_entities_back_index()
+
+func draw_new_string_outline(font: Font, pos: Vector2 = Vector2.ZERO, text: String = "", width: float = 0, font_size: int = 16, size: int = 1, modulate: Color = Color.WHITE) -> int:
+	drawn_entities.append({&"string_outline": [font, pos, text, -1, width, font_size, size, modulate]})
 	return get_entities_back_index()
 
 func draw_new_string(font: Font, pos: Vector2 = Vector2.ZERO, text: String = "", width: float = 0, font_size: int = 16, modulate: Color = Color.WHITE, redraw: bool = true) -> int:

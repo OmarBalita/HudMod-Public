@@ -14,6 +14,9 @@ func set_object_res(new_val: ObjectRes, insert_to_comps: bool = true) -> void:
 func get_display_name() -> String: return object_res.get_script().get_global_name()
 func get_thumbnail() -> Texture2D: return ClassServer.object_res_classes[object_res.get_script().get_global_name()].icon
 
+func get_self_main_texture() -> Texture2D:
+	return object_res.get_main_texture()
+
 func duplicate_media_res() -> MediaClipRes:
 	var dupl_res: ObjectClipRes = super()
 	dupl_res.object_res = dupl_res.components[object_res.get_object_section()][0]

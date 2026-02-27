@@ -136,6 +136,7 @@ class HeaderPanel extends PanelContainer:
 		
 		# Step 1: Move Editor Control to Window and Popup it.
 		window = Window.new()
+		window.always_on_top = true
 		var margin_container: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
 		editor_control.reparent(margin_container)
 		window.add_child(margin_container)

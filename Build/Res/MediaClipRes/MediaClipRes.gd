@@ -11,6 +11,7 @@ signal comp_animation_res_removed(comp: ComponentRes, usable_res: UsableRes, pro
 signal comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int)
 signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int)
 
+
 @export var id: String
 
 @export var clip_pos: int
@@ -42,21 +43,27 @@ signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key
 	#index_w: {},
 	#...
 #}
-var curr_clips: Dictionary[int, int] = {}
-
 @export var components: Dictionary[String, Array]
 #{
 	#section_key: [],
 	#section_key2: [],
 	#section_key3: []
 #}
+@export var media_res: MediaClipRes
+
+@export var render_pass_margin: Vector2i
+
+var curr_clips: Dictionary[int, int] = {}
 
 var stacked_values: Dictionary[StringName, Array]
 
 var shader_code: String:
 	set(val):
 		shader_code = val
-		if not shader_code.is_empty():
+		
+		if shader_code.is_empty():
+			shader_material = null
+		else:
 			shader_code_compiled_successfully.emit()
 			var new_shader_material:= ShaderMaterial.new()
 			var new_shader:= Shader.new()
@@ -67,23 +74,22 @@ var shader_code: String:
 var shader_material: ShaderMaterial:
 	set(val):
 		shader_material = val
-		for section_key: StringName in components:
-			for comp_res: ComponentRes in components[section_key]:
-				if comp_res is not ShaderComponentRes:
-					continue
-				var shader_init_params: Dictionary[StringName, Variant] = comp_res._get_shader_init_params()
-				for param_key: StringName in shader_init_params:
-					var param_val: Variant = shader_init_params[param_key]
-					var param_code_key: String = comp_res.get_shader_param_code_name(String(param_key))
-					shader_material.set_shader_parameter(param_code_key, param_val)
-		for section_key: StringName in components:
-			for comp_res: ComponentRes in components[section_key]:
-				if comp_res is ShaderComponentRes:
-					comp_res._ready_shader()
+		
+		if shader_material:
+			for section_key: StringName in components:
+				for comp_res: ComponentRes in components[section_key]:
+					if comp_res is ShaderComponentRes and comp_res.enabled:
+						comp_res._ready_shader()
+		
+		process(curr_frame)
+		shared_data_clear()
 		shader_material_changed.emit()
 
-var curr_node: Node # Curr Node Instanced
-var curr_frame: int: # Curr Frame Locally
+var ppsm: Array[ShaderMaterial] # Ping-Pong ShaderMaterial.
+var ppr: PingPongRenderer
+
+var curr_node: Node
+var curr_frame: int:
 	get():
 		var result: int
 		if curr_frame == -1:
@@ -92,6 +98,8 @@ var curr_frame: int: # Curr Frame Locally
 		else:
 			result = curr_frame
 		return result
+
+var shared_data: Dictionary
 
 
 func is_frame_exists(frame: Variant = null) -> bool:
@@ -104,11 +112,11 @@ func get_frame_or_curr_frame(frame: Variant = null) -> int:
 func get_display_name() -> String: return "MediaClip"
 func get_thumbnail() -> Texture2D: return null
 
-func get_children() -> Dictionary[int, Dictionary]:
-	return children
-
 func set_children(_children: Dictionary[int, Dictionary]) -> void:
 	children = _children
+
+func get_children() -> Dictionary[int, Dictionary]:
+	return children
 
 func has_clips() -> bool:
 	for layer_index: int in children.keys():
@@ -172,58 +180,62 @@ func duplicate_media_res() -> MediaClipRes:
 		for frame_in: int in curr_media_clips:
 			curr_media_clips[frame_in] = curr_media_clips[frame_in].duplicate_media_res()
 	duplicated_res.children = children
+	duplicated_res.build_shader_pipeline()
 	# Return New ONE
 	return duplicated_res
 
 
-func get_section_absolute(section_key: String) -> Array:
+func get_section_comps_absolute(section_key: String) -> Array:
 	return components.get_or_add(section_key, [])
 
 func add_component(section_key: String, component: ComponentRes) -> void:
-	get_section_absolute(section_key).append(component)
+	get_section_comps_absolute(section_key).append(component)
 	component.set_owner(self)
 	if curr_node: component._enter()
-	compile_shader_snips()
+	build_shader_pipeline()
 
 func erase_component(section_key: String, component: ComponentRes) -> void:
-	get_section_absolute(section_key).erase(component)
+	get_section_comps_absolute(section_key).erase(component)
+	build_shader_pipeline()
 	if curr_node:
 		component._exit()
 		process(curr_frame)
-	compile_shader_snips()
 
 func remove_component(section_key: String, component_id: StringName) -> void:
-	for component: ComponentRes in get_section_absolute(section_key):
+	for component: ComponentRes in get_section_comps_absolute(section_key):
 		if component.get_classname() == component_id:
 			erase_component(section_key, component)
 			return
 
 func move_component(section_key: String, index_from: int, index_to: int) -> void:
 	
-	var section: Array = get_section_absolute(section_key)
+	var section: Array = get_section_comps_absolute(section_key)
 	var section_size:= section.size()
 	
 	if index_from < 0 or index_from >= section_size: return
 	if index_to < 0 or index_to >= section_size: return
+	if section[index_to].forced: return
 	
 	var component: ComponentRes = section[index_from]
 	section.remove_at(index_from)
 	section.insert(index_to, component)
 	
+	build_shader_pipeline()
 	process(curr_frame)
-	compile_shader_snips()
 
 func loop_components(method: Callable, args: Array = []) -> void:
 	for section_key: String in components:
 		var section_components: Array = components[section_key]
 		for component: ComponentRes in section_components:
-			method.callv([component] + args)
+			if component.enabled:
+				method.callv([component] + args)
 
 func loop_components_animations_keys(info: Dictionary[StringName, Variant], method: Callable) -> Dictionary[StringName, Variant]:
 	for section_key: String in components:
 		var section_comps: Array = components[section_key]
 		
 		for comp_res: ComponentRes in section_comps:
+			
 			var anims: Dictionary[UsableRes, Dictionary] = comp_res.animations
 			
 			for usable_res: UsableRes in anims:
@@ -253,40 +265,87 @@ func _emit_media_clip_res_updated(_from: int = -1, _length: int = -1) -> void:
 func _emit_component_property_changed(property_key: StringName, property_new_val: Variant) -> void:
 	component_property_changed.emit(property_key, property_new_val)
 
-
 func enter(node: Node) -> void:
 	curr_node = node
 	loop_components(enter_component)
+	if not ppsm.is_empty():
+		ppr = RenderFarm.pingpong_renderer_init(self)
 
 func process(frame: int) -> void:
 	curr_frame = frame
+	
 	clear_stacked_values()
-	loop_components(process_component, [frame])
+	var loop_args: Array = [frame]
+	loop_components(process_component, loop_args)
+	loop_components(postprocess_component, loop_args)
+	
 	if curr_node:
+		if shader_material:
+			await process_material(frame)
 		loop_stacked_values(curr_node.set)
-	process_shader_material(frame)
-
-func process_shader_material(frame: int) -> void:
-	if shader_material:
-		shader_material.set_shader_parameter(&"time", frame)
 
 func exit(node: Node) -> void:
 	curr_frame = -1
-	process(curr_frame)
+	#process(curr_frame)
 	loop_components(exit_component)
+	shared_data_clear()
 	curr_node = null
+	if ppr:
+		RenderFarm.pingpong_renderer_free(self)
+
+func return_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array]:
+	var custom_dict: Dictionary[StringName, Array] = {}
+	for section_key: String in components:
+		var section_components: Array = components[section_key]
+		for component: ComponentRes in section_components:
+			component._apply_custom_stacked_values(frame, custom_dict)
+	return custom_dict
+
+var mat_process_id: int
+
+func process_material(frame: int) -> void:
+	var frame_f: float = float(frame)
+	
+	mat_process_id += 1
+	var curr_mat_process_id: int = mat_process_id
+	
+	if ppsm:
+		for sm: ShaderMaterial in ppsm:
+			sm.set_shader_parameter(&"time", frame_f)
+		
+		var render_scale: float = EditorServer.editor_settings.viewport_effect_ratio
+		add_stacked_value(&"scale", render_scale, ComponentRes.MethodType.DIVIDE)
+		
+		if ppr.is_in_process:
+			await ppr.process_finished
+			if mat_process_id != curr_mat_process_id:
+				return
+			await process_passes_materials(render_scale)
+		else:
+			await process_passes_materials(render_scale)
+	
+	if mat_process_id == curr_mat_process_id:
+		shader_material.set_shader_parameter(&"time", frame_f)
+
+func process_passes_materials(render_scale: float) -> void:
+	var output: Texture2D = await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)
+	if output: curr_node.texture = output
+
+func get_self_main_texture() -> Texture2D:
+	return null
 
 func update() -> void:
 	loop_components(update_component)
-
-
 
 func enter_component(component: ComponentRes) -> void:
 	component._enter()
 
 func process_component(component: ComponentRes, frame: int) -> void:
-	component.request_push_animations_result(frame)
+	component.push_animations_result(frame)
 	component._process(frame)
+
+func postprocess_component(component: ComponentRes, frame: int) -> void:
+	component._postprocess(frame)
 
 func exit_component(component: ComponentRes) -> void:
 	component._exit()
@@ -294,35 +353,56 @@ func exit_component(component: ComponentRes) -> void:
 func update_component(component: ComponentRes, frame: int) -> void:
 	component._update()
 
-func compile_shader_snips() -> String:
-	if components.size() == 0:
-		return shader_code
+func build_shader_pipeline() -> void:
+	
+	ppsm.clear()
+	if components.is_empty():
+		return
 	
 	var used_names: PackedStringArray
-	
 	var global_params_section: String
 	var fragment_section: String
 	var vertex_section: String
 	
-	for section_key: StringName in components.keys():
-		for comp_res: ComponentRes in components[section_key]:
-			if comp_res is not ShaderComponentRes:
+	for section: StringName in components:
+		var section_comps: Array = components[section]
+		for comp_res: ComponentRes in section_comps:
+			
+			if not comp_res.enabled:
 				continue
 			
-			var params_names_list: Dictionary[String, String]
+			if comp_res is PassShaderComponentRes:
+				ppsm.append(comp_res.create_pass_shader_material())
 			
-			var global_params_snip:= _format_shader_snip(comp_res._get_shader_global_params_snip(), params_names_list, used_names, true)
-			var fragment_snip:= _format_shader_snip(comp_res._get_shader_fragment_snip(), params_names_list, used_names, false)
-			var vertex_snip:= _format_shader_snip(comp_res._get_shader_vertex_snip(), params_names_list, used_names, false)
-			
-			if global_params_snip: global_params_section += "\n" + global_params_snip
-			if fragment_snip: fragment_section += "\n" + fragment_snip
-			if vertex_snip: vertex_section += "\n" + vertex_snip
-			
-			comp_res.set_shader_params_names_list(params_names_list)
+			elif comp_res is SnippetShaderComponentRes:
+				var params_names_list: Dictionary[String, String]
+				
+				var global_params_snip: String = _format_shader_snip(comp_res._get_shader_global_params_snip(), params_names_list, used_names, true)
+				var fragment_snip: String = _format_shader_snip(comp_res._get_shader_fragment_snip(), params_names_list, used_names, false)
+				var vertex_snip: String = _format_shader_snip(comp_res._get_shader_vertex_snip(), params_names_list, used_names, false)
+				
+				if global_params_snip: global_params_section += "\n" + global_params_snip
+				if fragment_snip: fragment_section += "\n" + fragment_snip
+				if vertex_snip: vertex_section += "\n" + vertex_snip
+				
+				comp_res.set_shader_params_names_list(params_names_list)
 	
-	fragment_section = "void fragment() {\n" + fragment_section + "\n}"
-	vertex_section = "void vertex() {\n" + vertex_section + "\n}"
+	if Scene2.has_object(self):
+		var has_passes: bool = not ppsm.is_empty()
+		
+		if ppr:
+			if not has_passes:
+				RenderFarm.pingpong_renderer_free(self)
+				curr_node.texture = get_self_main_texture()
+		
+		elif has_passes:
+			ppr = RenderFarm.pingpong_renderer_init(self)
+	
+	if global_params_section.is_empty() and fragment_section.is_empty() and vertex_section.is_empty():
+		return
+	
+	fragment_section = _get_shader_fragment(fragment_section)
+	vertex_section = _get_shader_vertex(vertex_section)
 	shader_code = str(
 		_get_shader_header(), "\n",
 		"\nuniform float time;",
@@ -330,10 +410,30 @@ func compile_shader_snips() -> String:
 		fragment_section, "\n",
 		vertex_section
 	)
-	return shader_code
 
-static func _get_shader_header() -> String:
-	return "shader_type canvas_item;"
+func _get_shader_header() -> String:
+	return "shader_type canvas_item;\n#include \"res://Build/Shader/Global.gdshaderinc\"\n"
+
+func _get_shader_fragment(fragment_section: String) -> String:
+	return "
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 color = tex.rgb;
+	float alpha = tex.a;
+" + fragment_section + "
+	COLOR.rgb = color;
+	COLOR.a = alpha;
+}"
+
+func _get_shader_vertex(vertex_section: String) -> String:
+	return "
+void vertex() {
+	vec2 vertex = VERTEX;
+	vec2 uv = UV;
+	" + vertex_section + "
+	VERTEX = vertex;
+	UV = uv;
+}"
 
 static func _format_shader_snip(shader_snip: String, params_names_list: Dictionary[String, String], used_names: PackedStringArray, is_global: bool) -> String:
 	var gen_id_func: Callable = ProjectServer.generate_new_id.bind(used_names, 12, true)
@@ -365,6 +465,12 @@ func remove_stacked_value(key: StringName, index: int) -> void:
 	stacked_values.get_or_add(key, []).remove_at(index)
 
 func get_stacked_values_key_result(key: StringName) -> Variant:
+	return get_custom_stacked_values_key_result(stacked_values, key)
+
+func loop_stacked_values(method: Callable) -> void:
+	loop_custom_stacked_values(stacked_values, method)
+
+func get_custom_stacked_values_key_result(stacked_values: Dictionary[StringName, Array], key: StringName) -> Variant:
 	var key_stacked_values: Array = stacked_values.get(key)
 	var result: Variant = key_stacked_values[0][0]
 	
@@ -380,11 +486,35 @@ func get_stacked_values_key_result(key: StringName) -> Variant:
 	
 	return result
 
-func loop_stacked_values(method: Callable) -> void:
-	for key: StringName in stacked_values:
-		var key_result: Variant = get_stacked_values_key_result(key)
-		method.call(key, key_result)
 
+func shared_data_add(key: StringName, val: Variant) -> void:
+	shared_data.set(key, val)
+
+func shared_data_get(key: StringName) -> Variant:
+	return shared_data.get(key)
+
+func shared_data_get_or_call(key: StringName, val_func: Callable) -> Variant:
+	if shared_data.has(key):
+		return shared_data.get(key)
+	else:
+		var val: Variant = val_func.call()
+		shared_data.set(key, val)
+		return val
+
+func shared_data_get_stacked_at(frame: int) -> Dictionary[StringName, Array]:
+	return shared_data_get_or_call(&"stacked%s" % str(frame), return_custom_stacked_values_at.bind(frame))
+
+func shared_data_delete(key: StringName) -> bool:
+	return shared_data.erase(key)
+
+func shared_data_clear() -> void:
+	shared_data.clear()
+
+
+func loop_custom_stacked_values(stacked_values: Dictionary[StringName, Array], method: Callable) -> void:
+	for key: StringName in stacked_values:
+		var key_result: Variant = get_custom_stacked_values_key_result(stacked_values, key)
+		method.call(key, key_result)
 
 func loop_children_deep(info: Dictionary[StringName, Variant], media_res_method: Callable, media_ress_pre_method: Callable = Callable(), media_ress_post_method: Callable = Callable()) -> void:
 	var dupl_info: Dictionary[StringName, Variant] = info.duplicate(true)

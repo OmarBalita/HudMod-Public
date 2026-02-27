@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://clqh4uu3cbsck"]
+[gd_scene format=3 uid="uid://clqh4uu3cbsck"]
 
 [ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
 [ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
@@ -18,7 +18,7 @@ func _ready() -> void:
 	EditorServer.drawable_rect = $DrawableRect
 "
 
-[node name="PrototypeControlUI" type="Control"]
+[node name="PrototypeControlUI" type="Control" unique_id=880282941]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,7 +27,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = SubResource("GDScript_3nnli")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2007099016]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -37,7 +37,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.2, 0.2, 0.2, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1287230099]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -45,49 +45,50 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SliderControl" type="HBoxContainer" parent="CenterContainer"]
+[node name="SliderControl" type="HBoxContainer" parent="CenterContainer" unique_id=2021465374]
 visible = false
 layout_mode = 2
 mouse_filter = 0
 script = ExtResource("1_l3tcm")
 
-[node name="ColorController" type="PanelContainer" parent="CenterContainer"]
+[node name="ColorController" type="PanelContainer" parent="CenterContainer" unique_id=1645013488]
 visible = false
 layout_mode = 2
 script = ExtResource("2_7snrv")
 
-[node name="FloatController" type="Button" parent="CenterContainer"]
+[node name="FloatController" type="Button" parent="CenterContainer" unique_id=749788616]
 visible = false
 custom_minimum_size = Vector2(170, 50)
 layout_mode = 2
 mouse_default_cursor_shape = 10
 script = ExtResource("3_3rv65")
 
-[node name="CheckButton" type="CheckButton" parent="CenterContainer"]
+[node name="CheckButton" type="CheckButton" parent="CenterContainer" unique_id=551649261]
 visible = false
 layout_mode = 2
 theme_override_icons/checked = ExtResource("4_bscte")
 theme_override_icons/unchecked = ExtResource("5_kahc7")
 
-[node name="ColorRangeControl" type="PanelContainer" parent="CenterContainer"]
+[node name="ColorRangeControl" type="PanelContainer" parent="CenterContainer" unique_id=69470345]
 visible = false
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 script = ExtResource("6_kahc7")
 
-[node name="ListController" type="PanelContainer" parent="CenterContainer"]
+[node name="ListController" type="PanelContainer" parent="CenterContainer" unique_id=758520032]
 visible = false
 custom_minimum_size = Vector2(450, 300)
 layout_mode = 2
 script = ExtResource("7_ltaws")
 metadata/_custom_type_script = "uid://b35nbh45vdmu1"
 
-[node name="VolumeControl" type="Control" parent="CenterContainer"]
+[node name="VolumeControl" type="Control" parent="CenterContainer" unique_id=330742233]
+visible = false
 custom_minimum_size = Vector2(350, 30)
 layout_mode = 2
 script = ExtResource("8_3nnli")
 
-[node name="CurveController" type="PanelContainer" parent="."]
+[node name="CurveController" type="PanelContainer" parent="." unique_id=387419812]
 visible = false
 clip_contents = true
 layout_mode = 1
@@ -99,7 +100,8 @@ grow_vertical = 2
 script = ExtResource("9_3nnli")
 metadata/_custom_type_script = "uid://dkisgy4jpo1fo"
 
-[node name="DrawableRect" type="ColorRect" parent="." groups=["drawable_rect"]]
+[node name="DrawableRect" type="ColorRect" parent="." unique_id=482706036 groups=["drawable_rect"]]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = -0.000588235

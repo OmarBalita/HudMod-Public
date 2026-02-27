@@ -17,15 +17,16 @@ const CLASSNAME_COMPONENT_RES: StringName = &"ComponentRes"
 const CLASSNAME_OBJECT_RES: StringName = &"ObjectRes"
 
 var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
-	&"Display2D": CompsSectionInfo.new(),
-	&"Image": CompsSectionInfo.new(),
-	&"Color": CompsSectionInfo.new(),
-	&"Transition": CompsSectionInfo.new(),
-	&"Sound": CompsSectionInfo.new(),
-	&"Text": CompsSectionInfo.new(),
-	&"Draw": CompsSectionInfo.new(),
-	&"Particles": CompsSectionInfo.new(),
-	&"Camera": CompsSectionInfo.new()
+	&"Display2D": CompsSectionInfo.new(null, "", [&"Transformation"]),
+	&"Image": CompsSectionInfo.new(null, "", [&"Basic", &"Enhance", &"Cinematic", &"Retro", &"Artistic", &"Blur", &"Distortion", &"PostProcessing"]),
+	&"Color": CompsSectionInfo.new(null, "", [&"ColorCorrection", &"ColorGrading"]),
+	&"Transition": CompsSectionInfo.new(null, "", [&"Basic"]),
+	&"Sound": CompsSectionInfo.new(null, "", [&"Basic"]),
+	&"Layout": CompsSectionInfo.new(null, "", [&"Layout"]),
+	&"Text": CompsSectionInfo.new(null, "", [&"Shape", &"Color", &"Shadow", &"Light", &"Animation"]),
+	#&"Draw": CompsSectionInfo.new(null, "", []),
+	&"Particles": CompsSectionInfo.new(null, "", [&"Display", &"Physics"]),
+	&"Camera": CompsSectionInfo.new(null, "", [&"Basic", &"PostProcessing"])
 }
 
 @onready var base_classes: Dictionary[Variant.Type, BaseClassInfo] = {
@@ -47,16 +48,20 @@ var object_res_classes: Dictionary[StringName, Dictionary] # Just ObjectRes base
 var component_res_sorted_by_sections: Dictionary[StringName, Dictionary] = {}
 
 func _ready() -> void:
-	_build_usable_res_classes()
+	_build_classes()
 
-func _build_usable_res_classes() -> void:
-	const COMPS_BASE_DIR: String = "res://Build/Res/UsableRes/Components"
+func _build_classes() -> void:
+	const COMPS_BASE_DIR: String = "res://Build/Res/UsableRes/Component"
 	var comps_base_dir_length: int = COMPS_BASE_DIR.length()
 	
 	var global_class_list: Array[Dictionary] = ProjectSettings.get_global_class_list()
 	
 	for section_key: StringName in comps_sections_infos:
-		component_res_sorted_by_sections[section_key] = {} as Dictionary[StringName, Dictionary]
+		var comp_section_info: CompsSectionInfo = comps_sections_infos[section_key]
+		var subsections: Dictionary[StringName, Dictionary] = {}
+		component_res_sorted_by_sections[section_key] = subsections
+		for subsection: StringName in comp_section_info.subsections:
+			subsections[subsection] = {} as Dictionary[StringName, Dictionary]
 	
 	for class_builtin_info: Dictionary in global_class_list:
 		var classname: StringName = class_builtin_info.class
@@ -79,11 +84,18 @@ func _build_usable_res_classes() -> void:
 			usable_res_classes[classname] = class_custom_info
 		
 		if inheritance_classnames.has(CLASSNAME_COMPONENT_RES):
+			
 			var base_dir: String = class_builtin_info.path.get_base_dir()
+			
 			if base_dir.begins_with(COMPS_BASE_DIR):
-				var comp_section_key: StringName = base_dir.lstrip(COMPS_BASE_DIR).strip_edges()
-				if not comp_section_key.is_empty():
-					component_res_sorted_by_sections[comp_section_key][classname] = class_custom_info
+				
+				var base_dir_arr: PackedStringArray = base_dir.split("/")
+				var comp_section_key: String = base_dir_arr[-2]
+				
+				if component_res_sorted_by_sections.has(comp_section_key):
+					var comp_subsection_key: String = base_dir_arr[-1]
+					component_res_sorted_by_sections[comp_section_key][comp_subsection_key][classname] = class_custom_info
+			
 			component_res_classes[classname] = class_custom_info
 		
 		if inheritance_classnames.has(CLASSNAME_OBJECT_RES):
@@ -147,6 +159,7 @@ func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_arg
 				nested_usable_ress.append(usable_res.get_prop(prop_name))
 			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress)
 		return []
+	
 	else:
 		return base_classes[prop_type].editor_method.callv([prop_name] + controller_args)
 
@@ -166,7 +179,11 @@ class AnythingInfo extends Resource:
 	func set_description(new_val: String) -> void: description = new_val
 
 class CompsSectionInfo extends AnythingInfo:
-	pass
+	@export var subsections: Array[StringName]
+	
+	func _init(_icon: Texture2D = null, _description: String = "", _subsections: Array[StringName] = []) -> void:
+		super(_icon, _description)
+		subsections = _subsections
 
 class BaseClassInfo extends AnythingInfo:
 	@export var editor_method: Callable

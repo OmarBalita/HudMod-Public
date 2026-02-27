@@ -50,8 +50,15 @@ var keys_keys: Array
 
 var sample_func: Callable = sample
 
-static func preset_linear() -> CurveProfile:
-	var profile: CurveProfile = new_profile_with_ctrlr_sett()
+static func preset_constant_line(min_val: float = .0, max_val: float = 1., val_step: float = .01, min_domain: float = .0, max_domain: float = 256., domain_step: float = 1.) -> CurveProfile:
+	var profile: CurveProfile = new_profile_with_ctrlr_sett(min_val, max_val, val_step, min_domain, max_domain, domain_step)
+	var middle_val: float = (profile.ctrlr_max_val + profile.ctrlr_min_val) / 2.
+	profile.add_key(profile.ctrlr_min_domain, CurveKey.new_bezier_curve(middle_val))
+	profile.add_key(profile.ctrlr_max_domain, CurveKey.new_bezier_curve(middle_val))
+	return profile
+
+static func preset_linear(min_val: float = .0, max_val: float = 1., val_step: float = .01, min_domain: float = .0, max_domain: float = 256., domain_step: float = 1.) -> CurveProfile:
+	var profile: CurveProfile = new_profile_with_ctrlr_sett(min_val, max_val, val_step, min_domain, max_domain, domain_step)
 	profile.add_key(profile.ctrlr_min_domain, CurveKey.new_bezier_curve(profile.ctrlr_min_val))
 	profile.add_key(profile.ctrlr_max_domain, CurveKey.new_bezier_curve(profile.ctrlr_max_val))
 	return profile

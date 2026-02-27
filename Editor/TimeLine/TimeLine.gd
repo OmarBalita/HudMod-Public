@@ -20,7 +20,8 @@ signal timeline_view_changed()
 enum TimelineSelectionModes {
 	SELECT_MODE,
 	SPLIT_MODE,
-	SLIP_MODE
+	SLIP_MODE,
+	NONE,
 }
 
 enum TimelineEditMode {
@@ -158,6 +159,8 @@ var emit_frame_changed: bool = true
 
 var curr_frame: int:
 	set(val):
+		if curr_frame == val:
+			return
 		curr_frame = val
 		EditorServer.set_frame(val)
 		ProjectServer.update_scene_objects()
@@ -887,6 +890,7 @@ func popup_media_clips_menu() -> void:
 		MenuOption.new("Parent Up", null, parent_up),
 		MenuOption.new("Clear Parents", null, clear_parents),
 		MenuOption.new_line(),
+		MenuOption.new("RenderPass Margin", null, popup_renderpass_margin_edit),
 		MenuOption.new("Replace Media", null, replace_media_clips),
 		MenuOption.new("Reverse Clip", null, reverse_media_clips),
 		MenuOption.new("Extract Audio", null, extract_audio),
@@ -895,7 +899,7 @@ func popup_media_clips_menu() -> void:
 		MenuOption.new("Close Graph Editor", null, close_graph_editor),
 		MenuOption.new_line(),
 		MenuOption.new("Save as Global Preset", null, save_presets.bind(true)),
-		MenuOption.new("Save as Project Preset", null, save_presets.bind(false))
+		MenuOption.new("Save as Project Preset", null, save_presets.bind(false)),
 	])
 
 
@@ -950,6 +954,24 @@ func parent_up() -> void:
 
 func clear_parents() -> void:
 	ProjectServer.clear_media_clips_parents(get_selected_clips_meta())
+
+func popup_renderpass_margin_edit() -> void:
+	var focused_res: MediaClipRes = media_clips_selection_group.focused.object.clip_res
+	
+	var vec2_controller: Vector2Controller = IS.create_vec2_edit("render_pass_margin", focused_res.render_pass_margin)[0]
+	
+	var window_cont: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2(400, 200), "Edit Render Pass Margin")
+	window_cont.add_child(vec2_controller.get_parent())
+	
+	vec2_controller.val_changed.connect(
+		func(new_val: Vector2) -> void:
+			loop_selected_media_clips({},
+				func(media_clip: MediaClip, info: Dictionary[StringName, Variant]) -> void:
+					var media_res: MediaClipRes = media_clip.clip_res
+					media_res.render_pass_margin = Vector2i(new_val)
+					media_res.process(media_res.curr_frame),
+			)
+	)
 
 func replace_media_clips() -> void:
 	pass

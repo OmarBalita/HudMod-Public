@@ -3,7 +3,6 @@ class_name GraphEditorControl extends EditorControl
 signal graph_node_options_opened()
 signal graph_node_option_button_pressed(option: MenuOption)
 
-
 @export var graph_node_options: Dictionary[MenuOption, Array]
 
 @onready var graph_edit: GraphEdit = GraphEdit.new()

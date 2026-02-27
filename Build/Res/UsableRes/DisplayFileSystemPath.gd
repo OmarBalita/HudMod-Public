@@ -5,7 +5,10 @@ enum SYSTEM_TYPE {
 	GLOBAL
 }
 
-@export var import_type: ImportedClipRes.ImportedMediaType
+@export var import_type: ImportedClipRes.ImportedMediaType:
+	set(val):
+		import_type = val
+		_update_media_func()
 @export var sys_is_global: bool
 @export var sys_path: Array:
 	set(val):
@@ -13,9 +16,13 @@ enum SYSTEM_TYPE {
 		update_disk_path()
 
 var disk_path: String
+var get_media_func: Callable
 
 func get_disk_path() -> String: return disk_path
 func set_disk_path(new_val: String) -> void: disk_path = new_val
+
+func _init() -> void:
+	_update_media_func()
 
 static func new_sys_path(_import_type: ImportedClipRes.ImportedMediaType = 0, _sys_is_global: bool = false, _sys_path: Array = []) -> DisplayFileSystemPath:
 	var new_one:= DisplayFileSystemPath.new()
@@ -39,8 +46,19 @@ func is_valid_file() -> bool:
 	var file_sys:= get_file_sys()
 	return sys_path and file_sys.path_exists(sys_path) and file_sys.is_file(sys_path)
 
+func get_file_media() -> Variant:
+	if get_media_func.is_valid():
+		return get_media_func.call(disk_path)
+	return null
+
 func get_file_thumb() -> Texture2D:
 	return MediaServer.get_thumbnail(disk_path).texture
+
+func _update_media_func() -> void:
+	match import_type:
+		0: get_media_func = MediaCache.get_texture
+		1: get_media_func = Callable()
+		2: get_media_func = MediaCache.get_audio
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var thumbnail_rect: TextureRect = IS.create_texture_rect(get_file_thumb(), {

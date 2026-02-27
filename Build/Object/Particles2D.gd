@@ -1,2 +1,1 @@
-class_name Particles2D extends Node2D
-
+class_name Particles2D extends MultiMeshInstance2D

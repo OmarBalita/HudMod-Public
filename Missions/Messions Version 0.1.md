@@ -1,9 +1,18 @@
-...
 
-- TimeLine Edit: [+]
-	
+- UI Classes:
+	Create Selection Box [+]
+	New Popuped Menu Node [+]
 	Fix the SelectionGroup System [+]
+
+- TimeLine: [+]
+	
+	Activate Layer Edit [+]
+	Optimize Timeline Drag [+]
+	ToolBar [+]
 	Fix Snapping [->]
+	Snap on Media Clips, Cursor, and TimeMarks [+]
+	Time Markers [+]
+	Drag and Drop Media Files into Project - TimeLine, and File Explorer [+]
 	
 	Nested Sequences/Objects/Clips: [+]
 		Parent and Reparent Clips [+]
@@ -21,6 +30,11 @@
 	
 	Edit Media Clip: [+]
 		
+		Expand Media Clips [+]
+		Cut Media Clips [+]
+		Roll Media Clips [+]
+		Slip Media Clips [+]
+		
 		Fix Copy, Past, Move, and Edit problems [->]
 		Insert Clip betweeen 2 Layers [->]
 		
@@ -31,12 +45,12 @@
 			Insert clip with push the right side clips to add the full new one [+]
 			fit to fill, maybe I can't make it in this version, because i want to change the speed of video and audio [+]
 		
-		Roll Media Clips [+]
-		Slip Media Clips [+]
-		
 		Media Clip MultiEdit Mode [+]
 	
 	Keyframing: [+]
+		new AnimationRes for each property [+]
+		add a new keyframe manually [+]
+		remove keyframe manually [+]
 		Support Bezier Curves [+]
 		create a new CurveController as contains the following: [+]
 			embeded multiselection system [+]
@@ -46,10 +60,10 @@
 			preset interpolation modes [+]
 			bake curves [+]
 
-- ClipNodesExplorer: [X]
-	Remove from it [X]
-	Reparent from it [X]
-	Select and Multiselect from it [X]
+- Media Explorer:
+	Drag and Drop Media [+]
+	File Explorer (Filter + Sort) [+]
+
 
 - Properties: [+]
 	
@@ -58,3 +72,8 @@
 	Fix Keyframing UI View [+]
 	
 	Basic Shaders merge [+]
+
+- Components: [+]
+	Create Component Echo-System, handling from MediaClipRes [+]
+	Generate Component UI from a custom "export" function [+]
+
