@@ -45,6 +45,7 @@ const TEXTURE_FILE: CompressedTexture2D = preload("res://Asset/Icons/document.pn
 const TEXTURE_FOLDER: CompressedTexture2D = preload("res://Asset/Icons/open-file.png")
 const TEXTURE_CHECK: CompressedTexture2D = preload("res://Asset/Icons/check.png")
 const TEXTURE_X_MARK: CompressedTexture2D = preload("res://Asset/Icons/x-mark.png")
+const TEXTURE_SEARCH: CompressedTexture2D = preload("res://Asset/Icons/magnifying-glass.png")
 
 const STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
 const STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")
@@ -145,7 +146,6 @@ func _create_modern_styles():
 	STYLE_BUTTON.content_margin_bottom = 8
 	
 	STYLE_BUTTON_HOVER = STYLE_BUTTON.duplicate()
-	STYLE_BUTTON_HOVER.bg_color = COLOR_DARK_PANEL.lightened(0.1)
 	STYLE_BUTTON_HOVER.border_color = COLOR_ACCENT_BLUE
 	
 	STYLE_BUTTON_PRESSED = STYLE_BUTTON.duplicate()
@@ -928,7 +928,7 @@ func create_text_edit_edit(name: String, placeholder: String = "", text: String 
 	return [text_edit]
 
 func create_float_edit(name: String, val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, controller_type: FloatControllerType = FloatControllerType.TYPE_SPINBOX, options: Dictionary = {}, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> Array[Control]:
-	var box: EditBoxContainer = create_edit_box(name, min_size, false, name_alignment)
+	var box: EditBoxContainer = create_edit_box(name, min_size, controller_type == 1, name_alignment)
 	var controller: Control
 	
 	match controller_type:
@@ -1158,3 +1158,4 @@ func add_children(parent: Node, children: Array[Node]) -> void:
 func clear_children(parent: Node) -> void:
 	for child: Node in parent.get_children():
 		child.queue_free()
+

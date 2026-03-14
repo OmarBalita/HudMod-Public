@@ -14,16 +14,16 @@ const CLASSNAME_BUILTIN_REVERSE_MAP: Dictionary[StringName, Variant.Type] = {
 }
 const CLASSNAME_USABLE_RES: StringName = &"UsableRes"
 const CLASSNAME_COMPONENT_RES: StringName = &"ComponentRes"
-const CLASSNAME_OBJECT_RES: StringName = &"ObjectRes"
+const CLASSNAME_MEDIA_CLIP_RES: StringName = &"MediaClipRes"
 
 var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
-	&"Display2D": CompsSectionInfo.new(null, "", [&"Transformation"]),
+	&"Display2D": CompsSectionInfo.new(null, "", [&"Basic", &"Transformation", &"InOutAnimation"]),
 	&"Image": CompsSectionInfo.new(null, "", [&"Basic", &"Enhance", &"Cinematic", &"Retro", &"Artistic", &"Blur", &"Distortion", &"PostProcessing"]),
 	&"Color": CompsSectionInfo.new(null, "", [&"ColorCorrection", &"ColorGrading"]),
 	&"Transition": CompsSectionInfo.new(null, "", [&"Basic"]),
 	&"Sound": CompsSectionInfo.new(null, "", [&"Basic"]),
 	&"Layout": CompsSectionInfo.new(null, "", [&"Layout"]),
-	&"Text": CompsSectionInfo.new(null, "", [&"Shape", &"Color", &"Shadow", &"Light", &"Animation"]),
+	&"Text": CompsSectionInfo.new(null, "", [&"Basic", &"Shape", &"Color", &"Animation", &"InOutAnimation", &"Generate"]),
 	#&"Draw": CompsSectionInfo.new(null, "", []),
 	&"Particles": CompsSectionInfo.new(null, "", [&"Display", &"Physics"]),
 	&"Camera": CompsSectionInfo.new(null, "", [&"Basic", &"PostProcessing"])
@@ -44,14 +44,14 @@ var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
 var object_classes: Dictionary[StringName, Dictionary] # All Object base
 var usable_res_classes: Dictionary[StringName, Dictionary] # All UsableRes base
 var component_res_classes: Dictionary[StringName, Dictionary] # Just ComponentRes base
-var object_res_classes: Dictionary[StringName, Dictionary] # Just ObjectRes base
+var media_clip_classes: Dictionary[StringName, Dictionary] # Just MediaClipRes base
 var component_res_sorted_by_sections: Dictionary[StringName, Dictionary] = {}
 
 func _ready() -> void:
 	_build_classes()
 
 func _build_classes() -> void:
-	const COMPS_BASE_DIR: String = "res://Build/Res/UsableRes/Component"
+	const COMPS_BASE_DIR: String = "res://Build/Res/Component"
 	var comps_base_dir_length: int = COMPS_BASE_DIR.length()
 	
 	var global_class_list: Array[Dictionary] = ProjectSettings.get_global_class_list()
@@ -98,14 +98,14 @@ func _build_classes() -> void:
 			
 			component_res_classes[classname] = class_custom_info
 		
-		if inheritance_classnames.has(CLASSNAME_OBJECT_RES):
-			object_res_classes[classname] = class_custom_info
+		if inheritance_classnames.has(CLASSNAME_MEDIA_CLIP_RES):
+			media_clip_classes[classname] = class_custom_info
 
 func get_base_classes() -> Dictionary[Variant.Type, BaseClassInfo]: return base_classes
 func get_object_classes() -> Dictionary[StringName, Dictionary]: return object_classes
 func get_usable_res_classes() -> Dictionary[StringName, Dictionary]: return usable_res_classes
 func get_component_res_classes() -> Dictionary[StringName, Dictionary]: return component_res_classes
-func get_object_res_classes() -> Dictionary[StringName, Dictionary]: return object_res_classes
+func get_media_clip_classes() -> Dictionary[StringName, Dictionary]: return media_clip_classes
 
 func builtin_classname_to_type(classname: StringName) -> Variant.Type:
 	return CLASSNAME_BUILTIN_REVERSE_MAP[classname] if CLASSNAME_BUILTIN_REVERSE_MAP.has(classname) else TYPE_OBJECT

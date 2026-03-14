@@ -2,6 +2,14 @@ class_name UsableRes extends Resource
 
 signal res_changed()
 
+enum MethodType {
+	SET,
+	ADD,
+	SUB,
+	MULTIPLY,
+	DIVIDE
+}
+
 @export var properties: Dictionary[StringName, Dictionary] = {}
 # {&"property": {"v": Variant(), "s": Callable(), "g": Callable()}}
 @export var use_global_variables_as_properties: bool = true:
@@ -41,6 +49,7 @@ func set_and_emit_prop(property_key: StringName, property_val: Variant) -> void:
 
 func emit_res_changed() -> void:
 	res_changed.emit()
+
 
 func register_prop(property_key: StringName, property_val: Variant, set_func: StringName = &"_set_prop_default", get_func: StringName = &"_get_prop_default") -> void:
 	properties[property_key] = {"v": property_val, "s": set_func, "g": get_func}
@@ -147,7 +156,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				var changeable: bool = not is_object and ctrlr_info.keyframable
 				
 				edit_box.default_val = usable_res_script.get_property_default_value(key)
-				edit_box.keyframable = changeable
+				edit_box.keyframable = usable_res is ComponentRes and changeable
 				edit_box.resetable = changeable
 				edit_box.set_curr_val(val)
 				properties_controllers[key] = edit_box

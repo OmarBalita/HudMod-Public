@@ -154,26 +154,24 @@ func send_media_clip_expanded_graph_editors(clip_pos: int, expanded_graph_editor
 	set_meta(str("f", clip_pos), expanded_graph_editors)
 
 func spawn_media_clip(clip_pos: int, clip_res: MediaClipRes, select_new_clips: bool = true) -> MediaClip:
-	var clip: MediaClip
+	var clip:= MediaClip.new()
 	
-	if clip_res is ImportedClipRes:
-		clip = ImportedClip.new()
-		var clip_type: int = clip_res.type
-		clip.type = clip_type
-		# Interface Setup
-		var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
-		clip.set_clip_panel(clip_panel_id.new(clip))
+	#if clip_res is ImportedClipRes:
+		#clip = ImportedClip.new()
+		#var clip_type: int = clip_res.type
+		#clip.type = clip_type
+		## Interface Setup
+		#var clip_panel_id: GDScript = MediaServer.imported_clip_info.get(clip_type).clip_panel
+		#clip.set_clip_panel(clip_panel_id.new(clip))
 	
-	elif clip_res is ObjectClipRes:
-		clip = ObjectClip.new()
-		var objectres_classname: StringName = clip_res.object_res.get_script().get_global_name()
-		var clip_panel_id: GDScript = MediaServer.object_clip_info[objectres_classname].get(&"clip_panel")
-		var clip_panel: Variant
-		
-		if clip_panel_id == null: clip_panel = MediaServer.ObjectClipPanel.new(clip)
-		else: clip_panel = clip_panel_id.new(clip)
-		
-		clip.set_clip_panel(clip_panel)
+	var clipres_classname: StringName = clip_res.get_classname()
+	var clip_panel_id: GDScript = MediaServer.object_clip_info[clipres_classname].get(&"clip_panel")
+	var clip_panel: Variant
+	
+	if clip_panel_id == null: clip_panel = MediaServer.ObjectClipPanel.new(clip)
+	else: clip_panel = clip_panel_id.new(clip)
+	
+	clip.set_clip_panel(clip_panel)
 	
 	# Setup Clip Informations
 	ObjectServer.describe(clip, {
@@ -374,7 +372,7 @@ func popup_customization_settings() -> void:
 	var main_custom: Dictionary = ProjectServer.get_layer_customization(index).duplicate(true)
 	var custom_name_controller: LineEdit = IS.create_string_edit("Name", "", main_custom.name)[0]
 	var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custom.color)[0]
-	var custom_size_controller: FloatController = IS.create_float_edit("Size", false, true, main_custom.size, 35.0, 200.0, 5.0, .1)[1]
+	var custom_size_controller: FloatController = IS.create_float_edit("Size", main_custom.get(&"size"), 35, 200, 1, 1, 5, true)[0]
 	
 	custom_color_controller.color_controller_popup_type = 1
 	

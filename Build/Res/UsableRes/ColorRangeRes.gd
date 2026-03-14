@@ -37,6 +37,16 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var colorrange_ctrlr: ColorRangeControl = IS.create_color_range_control(self, {})
 	return {&"self_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [colorrange_ctrlr])}
 
+func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
+	ress_shared.erase(self)
+	self.res_changed.connect(func() -> void:
+		for res: ColorRangeRes in ress_shared:
+			res.keys = keys.duplicate()
+			res.interpolation_mode = interpolation_mode
+	)
+
+
 func get_keys() -> Dictionary:
 	return keys
 

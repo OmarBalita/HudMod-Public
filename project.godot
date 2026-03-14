@@ -53,7 +53,7 @@ project/assembly_name="Edit App"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gde_gozen/plugin.cfg")
+enabled=PackedStringArray()
 
 [file_customization]
 

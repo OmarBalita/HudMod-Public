@@ -99,7 +99,18 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"curve_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [curve_ctrlr]),
 	}
 
-static func new_profile_curve(_keys: Dictionary[float, CurveKey], _bakeable: bool = false) -> CurveProfile:
+func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
+	ress_shared.erase(self)
+	self.res_changed.connect(
+		func() -> void:
+			for res: CurveProfile in ress_shared:
+				var keys_duplicated: Dictionary[float, CurveKey] = duplicate_keys()
+				res.keys = keys_duplicated
+	)
+
+
+static func new_curve_profile(_keys: Dictionary[float, CurveKey], _bakeable: bool = false) -> CurveProfile:
 	#_keys: Dictionary[float, CurveKey], _bakeable: bool = false
 	var curve_profile:= CurveProfile.new()
 	curve_profile.keys = _keys
@@ -311,11 +322,14 @@ func create_image_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(image)
 
 func duplicate_profile() -> CurveProfile:
+	var new_keys: Dictionary[float, CurveKey] = duplicate_keys()
+	var new_profile: CurveProfile = CurveProfile.new_curve_profile(new_keys, bakeable)
+	return new_profile
+
+func duplicate_keys() -> Dictionary[float, CurveKey]:
 	var new_keys: Dictionary[float, CurveKey] = keys.duplicate()
 	for key: float in keys:
 		var a: CurveKey = keys[key]
 		var b: CurveKey = CurveKey.new_curve_key(a.value, a.left_control, a.right_control, a.control_mode, a.interpolation_mode)
 		new_keys[key] = b
-	var new_profile: CurveProfile = CurveProfile.new_profile_curve(new_keys, bakeable)
-	return new_profile
-
+	return new_keys

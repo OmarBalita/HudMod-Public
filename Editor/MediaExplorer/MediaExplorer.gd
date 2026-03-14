@@ -427,7 +427,6 @@ class ImportBox extends CreatedBox:
 		import_card.created_card_type = media_type + 1
 		import_card.info = {
 			&"type": media_type,
-			&"length": int(MediaServer.get_media_default_length(media_type, key) * ProjectServer.fps),
 			&"path": key
 		}
 		return import_card
@@ -570,15 +569,20 @@ class ObjectBox extends MediaBox:
 	
 	func _ready() -> void:
 		super()
-		var cat_object_2d: Category = add_category(&"Object2D", true, Color("6699ff"))
-		var cat_object_3d: Category = add_category(&"Object3D (Coming soon)", true, Color.BLACK)
+		add_category(&"Object", true, Color.LIGHT_GRAY)
+		add_category(&"Object2D", true, Color("6699ff"))
+		add_category(&"Object3D (Coming soon)", true, Color.BLACK)
 		
-		var objects_ress: Dictionary[StringName, Dictionary] = ClassServer.get_object_res_classes()
+		var clips_ress: Dictionary[StringName, Dictionary] = ClassServer.get_media_clip_classes()
 		
-		for object_classname: StringName in objects_ress:
-			var object_info: Dictionary = objects_ress[object_classname]
+		for object_classname: StringName in clips_ress:
+			var object_info: Dictionary = clips_ress[object_classname]
 			var object_script: Script = object_info.script
-			var category_name: StringName = object_script.get_object_category_name()
+			
+			if object_script.is_abstract() or not object_script.is_media_clip_spawnable():
+				continue
+			
+			var category_name: StringName = object_script.get_explorer_section()
 			
 			var category: Category = get_category(category_name)
 			var object_card: ObjectCard = ObjectCard.new()
@@ -590,7 +594,7 @@ class ObjectBox extends MediaBox:
 				&"type": -1,
 				&"name": object_classname,
 				&"thumbnail": object_info.icon,
-				&"object_script": object_script,
+				&"media_clip_script": object_script,
 			}
 			object_card.custom_minimum_size = media_explorer.card_display_size
 			
@@ -800,7 +804,18 @@ class ImportCard extends CreatedCard:
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		if discarded: return
-		ProjectServer.add_imported_clip(info.type, info.path, layer_index, frame_in, true)
+		var clip_res: MediaClipRes
+		match info.type:
+			0:
+				clip_res = ImageClipRes.new()
+				clip_res.image = info.path
+			1:
+				clip_res = VideoClipRes.new()
+				clip_res.video = info.path
+			2:
+				clip_res = AudioClipRes.new()
+				clip_res.stream = info.path
+		ProjectServer.add_media_clip(clip_res, EditorServer.editor_settings.media_clip_default_length_f, layer_index, frame_in, false)
 	
 	func _get_created_card_menu_options() -> Array:
 		return [
@@ -810,7 +825,7 @@ class ImportCard extends CreatedCard:
 		] + super()
 	
 	func popup_move_to_window() -> void:
-		var move_optionbutton: OptionController = IS.create_float_edit.callv(["Move to"] + UsableRes.options_args(0, DisplayFileSystemPath.SYSTEM_TYPE))[0]
+		var move_optionbutton: OptionController = IS.create_float_edit.callv(["Move to"] + UsableRes.options_args(0, {"PROJECT": 0, "GLOBAL": 1}))[0]
 		
 		var move_fake_files_checkbutton: CheckButton = IS.create_bool_edit("Move in Embeded file system ", false)[0]
 		var tree: Tree = IS.create_tree()
@@ -863,11 +878,9 @@ class ImportCard extends CreatedCard:
 
 class FolderCard extends CreatedCard:
 	
-	static var folder_texture: Texture2D = preload("res://Asset/Icons/folder.png")
-	
 	func _ready() -> void:
 		super()
-		_setup_media_card(info.name, folder_texture)
+		_setup_media_card(info.name, IS.TEXTURE_FOLDER)
 		set_metadata({&"type": 0})
 	
 	func _double_click() -> void:
@@ -903,11 +916,11 @@ class ObjectCard extends MediaCard:
 	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
 		super(group, remove, is_drag_selection, emit_change)
 		if not is_drag_selection:
-			EditorServer.properties.update_media_properties(info.object_script.get_object_info())
+			EditorServer.properties.update_media_properties(info.media_clip_script.get_media_clip_info())
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
-		var object_res: ObjectRes = info.object_script.new()
-		ProjectServer.add_object_clip(object_res, layer_index, frame_in, true)
+		var clip_res: MediaClipRes = info.media_clip_script.new()
+		ProjectServer.add_media_clip(clip_res, EditorServer.editor_settings.media_clip_default_length_f, layer_index, frame_in, false)
 
 class TransitionCard extends MediaCard:
 	pass

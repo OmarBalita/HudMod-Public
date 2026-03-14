@@ -16,8 +16,6 @@ const LOAD_ERR_STR: PackedStringArray = [
 @export var videos_info: Dictionary[StringName, Dictionary]
 @export var audio_stream_waves: Dictionary[StringName, AudioStreamWAV]
 @export var preset_media_ress: Dictionary[StringName, MediaClipRes]
-# videos stored many times for each MediaClipRes be on the timeline
-@export var videos: Dictionary[MediaClipRes, Video]
 
 func load_media_cache_from_file_system(file_system: DisplayFileSystemRes) -> void:
 	var thumb_path: String = file_system.thumbnail_path
@@ -37,7 +35,6 @@ func get_images() -> Dictionary[StringName, Image]: return images
 func get_textures() -> Dictionary[StringName, ImageTexture]: return textures
 func get_audio_stream_waves() -> Dictionary[StringName, AudioStreamWAV]: return audio_stream_waves
 func get_videos_info() -> Dictionary[StringName, Dictionary]: return videos_info
-func get_videos() -> Dictionary[MediaClipRes, Video]: return videos
 func get_preset_media_ress() -> Dictionary[StringName, MediaClipRes]: return preset_media_ress
 
 func get_image(key_as_path: StringName) -> Image: return images.get(key_as_path)
@@ -45,7 +42,6 @@ func get_texture(key_as_path: StringName) -> ImageTexture: return textures.get(k
 func get_video_info(path: StringName) -> Dictionary: return videos_info.get(path)
 func get_audio(key_as_path: StringName) -> AudioStreamWAV: return audio_stream_waves.get(key_as_path)
 func get_preset_media_res(key_as_path: StringName) -> MediaClipRes: return preset_media_ress.get(key_as_path)
-func get_video(media_res: MediaClipRes) -> Video: return videos[media_res]
 
 func register_from_path(path: StringName, ids_exists: PackedStringArray, id: String = "", thumbnail_path: String = "", waveform_path: String = "") -> LOAD_ERR:
 	if not FileAccess.file_exists(path):
@@ -53,7 +49,7 @@ func register_from_path(path: StringName, ids_exists: PackedStringArray, id: Str
 	var type: int = MediaServer.get_media_type_from_path(path)
 	match type:
 		0: return register_image(path, ids_exists, id, thumbnail_path)
-		1: return register_video_info(path, ids_exists, id, thumbnail_path, waveform_path)
+		1: return register_video(path, ids_exists, id, thumbnail_path, waveform_path)
 		2: return register_audio(path, ids_exists, id, thumbnail_path, waveform_path)
 		_: return register_preset_media_res(path, ids_exists, thumbnail_path, waveform_path)
 
@@ -68,17 +64,32 @@ func register_image(path: StringName, ids_exists: PackedStringArray, id: String,
 	if image: MediaServer.server_register_image(path, image, ids_exists, id, thumbnail_path)
 	return LOAD_ERR.SUCCESS
 
-func register_video_info(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> LOAD_ERR:
+func register_video(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> LOAD_ERR:
 	if videos_info_has(path):
 		return LOAD_ERR.LOAD_ERR_ALREADY_EXISTS
+	
 	var audio_stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(path)
+	var video_decoder: VideoDecoder = VideoDecoder.new()
+	video_decoder.set_internal_enhance(false)
+	video_decoder.set_video_path(path)
+	video_decoder.open()
+	
+	var total_frames: int = video_decoder.get_total_frames_native()
+	if total_frames < 1: total_frames = video_decoder.get_total_frames_by_timebase()
+	
 	videos_info[path] = {
-		&"frame_count": 0,
-		&"frame_rate": 0,
-		&"resolution": Vector2i.ZERO,
-		&"audio": audio_stream
+		&"resolution": video_decoder.get_resolution(),
+		&"duration": video_decoder.get_duration(),
+		&"fps": video_decoder.get_fps(),
+		&"total_frames": total_frames,
+		&"bit_depth": video_decoder.get_bit_depth(),
+		&"stream": audio_stream
 	}
-	MediaServer.server_register_video(path, audio_stream, ids_exists, id, thumbnail_path, waveform_path)
+	
+	MediaServer.server_register_video(path, video_decoder, audio_stream, ids_exists, id, thumbnail_path, waveform_path)
+	
+	video_decoder.close()
+	
 	return LOAD_ERR.SUCCESS
 
 func register_audio(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> LOAD_ERR:
@@ -107,11 +118,6 @@ func register_preset_media_res(path: StringName, ids_exists: PackedStringArray, 
 	preset_media_ress[path] = preset_media_res
 	return LOAD_ERR.SUCCESS
 
-func push_video(media_res: MediaClipRes, path: StringName) -> void:
-	var video: Video = Video.new()
-	video.open(path)
-	videos[media_res] = video
-
 func replace_path(from: StringName, to: StringName) -> void:
 	match MediaServer.get_media_type_from_path(from):
 		0:
@@ -138,7 +144,7 @@ func replace_path(from: StringName, to: StringName) -> void:
 func deregister_from_path(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	match MediaServer.get_media_type_from_path(path):
 		0: deregister_image(path, id, thumbnail_path)
-		1: deregister_video_info(path, id, thumbnail_path, waveform_path)
+		1: deregister_video(path, id, thumbnail_path, waveform_path)
 		2: deregister_audio(path, id, thumbnail_path, waveform_path)
 		_: deregister_preset_media_res(path, id, thumbnail_path, waveform_path)
 
@@ -148,7 +154,7 @@ func deregister_image(path: StringName, id: String, thumbnail_path: String) -> v
 	images.erase(path)
 	textures.erase(path)
 
-func deregister_video_info(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path)
 	videos_info.erase(path)
 

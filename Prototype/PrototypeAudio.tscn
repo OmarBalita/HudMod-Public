@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://mux1fpwixitk"]
+
+[sub_resource type="GDScript" id="GDScript_2hotk"]
+script/source = "extends Node
+
+func _ready() -> void:
+	var time:= Time.get_ticks_msec()
+	var stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(\"C:/Users/User/Documents/Godot Projects/GDExtension/VideoCodec/demo/video_models/[Cimawbas].How_to_Train_Your_Dragon_1_2010.AR.mp4\")
+	var stream_player: AudioStreamPlayer = AudioStreamPlayer.new()
+	stream_player.stream = stream
+	add_child(stream_player)
+	print(Time.get_ticks_msec() - time)
+	stream_player.play()
+"
+
+[node name="PrototypeAudio" type="Node" unique_id=648757535]
+script = SubResource("GDScript_2hotk")

@@ -4,11 +4,6 @@
 	Save project [+]
 	Manage AppData and global files [+]
 
-- PlayBack:
-	Fix Nodes not removed when MediaClipRes exited
-	Constant interpolation for Booleans, and Unanimatable properties
-	Properties in Nested Arrays be Animatable
-
 - Media Explorer:
 	Global, Projects files [+]
 	Activate Presets: Global, Project [+]
@@ -20,12 +15,16 @@
 	Error: management when required media are unavailable [+]
 	
 	Activate all 2D Objects:
+		
+		Image
+		Video
+		Audio
+		
 		Object2D [+]
 		Camera2D [+]
 		Audio2D [->]
-		Text2D
-		Shape
-		Particles2D
+		Shape2D [+]
+		Text2D [+]
 		RenderPass
 
 - Properties:
@@ -44,11 +43,25 @@
 		
 		Display 2D: [+]
 			
+			Basic:
+				CanvasItem [+]
+				DrawRect [+]
+				DrawCircle [+]
+				DrawPolygon [+]
+				DrawStar [+]
+				DrawArrow [+]
+			
 			Transform: [+]
 				Transform [+]
 				Wave [+]
 				Shake [+]
 				Follow [+]
+			
+			AnimationInOut: [+]
+				Fade [+]
+				Popup [+]
+				Slide [+]
+				Swing [+]
 		
 		Image: [+]
 			
@@ -117,53 +130,35 @@
 			ColorGrading:
 				pass
 		
-		Text2D:
+		Text2D: [+]
 			
-			Animation:
-				Shake
+			Basic: [+]
+				Transform [+]
+				Background [+]
+			
+			Animation: [+]
+				Pulse [+]
+				Shake [+]
 				Wave [+]
-				Swing
-				Bounce
-				Flip
-				Skew
+				Bounce [+]
+				Flip [+]
+				Wind [+]
 			
-			AnimationInOut:
-				InOutFade
-				InOutType
-				InOutPop
-				InOutBounce
-				InOutFlip
+			AnimationInOut: [+]
+				InOutType [+]
 			
-			Shape:
-				Curved
-				Extrude
-				Liquid
+			Shape: [+]
+				Curved [+]
+				Magnet [+]
+				Extrude [+]
 			
-			Color:
-				Rainbow
+			Color: [+]
+				Rainbow [+]
 			
-			Shadow:
-				LongShadow
-			
-			Light:
-				Flicker
-				Ray
-			
-			Generate:
-				pass
-		
-		
-		Particles:
-			Display:
-				pass
-			
-			Physics:
-				pass
+			Generate: [+]
+				ExtractShape [+]
 		
 		Masking:
-			pass
-		
-		Animation in-out:
 			pass
 		
 		Camera:
@@ -191,11 +186,12 @@
 
 - Controllers:
 	Fix float Controllers
-	Fix String Controller, and Integrate MultiLine
+	Fix String Controller, and Integrate MultiLine, DisplayFilePath
 	Fix Array Controller
 	Fix Keyframes Displaying
 	Fix Curve Controller in the timeline
-	Create Path Controller, which support Display imported file
+	MediaClipRes Controller
+	ComponentRes Controller
 	Create Preset Font Controller
 	Copy Resource or any Value and past it
 	Add more int/float Controllers for different editing ways
@@ -221,4 +217,8 @@
 		Move any Editor Panel and window-it [+]
 		Built-in Preset Layout, and Custom Layout [+]
 	Fix popuped Menu Problems, with Back Layout, specifically with Timeline
+
+Decoders: [+]
+	Video Decoder [+]
+	Audio Decoder [+]
 

@@ -46,7 +46,84 @@
 [ext_resource type="Shader" uid="uid://c2jf6mi7fyg06" path="res://Build/Shader/Image/Rays.gdshader" id="38_lg5mm"]
 [ext_resource type="Shader" uid="uid://b4v7edbedp8c7" path="res://Build/Shader/Image/LensFlare.gdshader" id="38_xoael"]
 [ext_resource type="Shader" uid="uid://bqx3vacilvu7e" path="res://Build/Shader/Image/RadialChromaticAberration.gdshader" id="39_r4gls"]
-[ext_resource type="Texture2D" uid="uid://bodxdwiaqu416" path="res://Asset/Icons/Objects/audio-2d.png" id="39_ug2v2"]
+[ext_resource type="Texture2D" uid="uid://bodxdwiaqu416" path="res://Asset/Icons/Objects/audio.png" id="39_ug2v2"]
+
+[sub_resource type="Shader" id="Shader_7erdt"]
+code = "shader_type canvas_item;
+
+uniform int mask_type: hint_enum(\"Circle\", \"Rectangle\", \"Triangle\", \"Mirror\", \"Texture\") = 0;
+uniform vec2 center = vec2(.0, .0);
+uniform float rotation = .0;
+uniform vec2 size = vec2(.2, .2);
+uniform float feather = .0;
+uniform bool reverse = false;
+uniform sampler2D mask_texture: source_color;
+
+void fragment() {
+	vec2 _center = center + vec2(.5, .5);
+	
+	vec2 tex_size = vec2(textureSize(TEXTURE, 0));
+	float aspect = tex_size.x / tex_size.y;
+	
+	vec2 uv_corrected = UV;
+	uv_corrected.x *= aspect;
+	
+	vec2 center_corrected = _center;
+	center_corrected.x *= aspect;
+	
+	vec2 p = uv_corrected - center_corrected;
+
+	float rad = radians(rotation);
+	float cos_a = cos(rad);
+	float sin_a = sin(rad);
+	mat2 rot_mat = mat2(vec2(cos_a, -sin_a), vec2(sin_a, cos_a));
+	p = rot_mat * p;
+
+	float mask = .0;
+
+	switch (mask_type) {
+		case 0: // Circle
+			float dist_circle = length(p / size);
+			mask = smoothstep(1. + feather, 1., dist_circle);
+			break;
+		case 1: // Rectangle
+			vec2 d_rect = abs(p) - size;
+			float dist_rect = length(max(d_rect, .0)) + min(max(d_rect.x, d_rect.y), .0);
+			mask = smoothstep(feather, .0, dist_rect);
+			break;
+		case 2: // Triangle
+			vec2 p_tri = p / size;
+			float dist_tri = max(abs(p_tri.x) * .866025 + p_tri.y * .5, -p_tri.y) - .5;
+			mask = smoothstep(feather, .0, dist_tri);
+			break;
+		case 3: // Mirror
+			float dist_mirror = abs(p.y);
+			mask = smoothstep(size.y + feather, size.y, dist_mirror);
+			break;
+		case 4: // Texture
+			vec2 tex_uv = (p / (size * 2.)) + vec2(.5);
+			if (tex_uv.x < .0 || tex_uv.x > 1. || tex_uv.y < .0 || tex_uv.y > 1.) {
+				mask = .0;
+			} else {
+				mask = texture(mask_texture, tex_uv).a;
+				float edge_f = smoothstep(.5 + feather, .5, length(p/size) - .5);
+				mask *= edge_f;
+			}
+			break;
+	}
+	if (reverse) mask = 1. - mask;
+	COLOR = vec4(COLOR.rgb, COLOR.a * mask);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0ri04"]
+shader = SubResource("Shader_7erdt")
+shader_parameter/mask_type = 0
+shader_parameter/center = Vector2(0.5, 0.5)
+shader_parameter/rotation = 0.0
+shader_parameter/size = Vector2(0.2, 0.2)
+shader_parameter/feather = 0.1
+shader_parameter/reverse = false
 
 [sub_resource type="Shader" id="Shader_iov73"]
 code = "shader_type canvas_item;
@@ -77,6 +154,15 @@ shader_parameter/fov = 90.0
 shader_parameter/cull_back = false
 shader_parameter/y_rot = 0.0
 shader_parameter/x_rot = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kc3nc"]
+shader = SubResource("Shader_7erdt")
+shader_parameter/mask_type = 0
+shader_parameter/center = Vector2(0, 0)
+shader_parameter/rotation = 0.0
+shader_parameter/size = Vector2(0.2, 0.2)
+shader_parameter/feather = 0.0
+shader_parameter/reverse = false
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ruurt"]
 shader = ExtResource("3_p8tll")
@@ -730,11 +816,17 @@ shader_parameter/smoothness = 0.3
 [node name="Display2D" type="Node2D" parent="." unique_id=673526309]
 visible = false
 
-[node name="Image" type="Node2D" parent="." unique_id=1971762683]
+[node name="CanvasItem" type="Node2D" parent="Display2D" unique_id=780710629]
 visible = false
 
-[node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
+[node name="Modulate" type="Sprite2D" parent="Display2D/CanvasItem" unique_id=282085265]
 visible = false
+material = SubResource("ShaderMaterial_0ri04")
+texture = ExtResource("8_n0gsr")
+
+[node name="Image" type="Node2D" parent="." unique_id=1971762683]
+
+[node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
 
 [node name="Invert" type="Sprite2D" parent="Image/Basic" unique_id=523742155]
 visible = false
@@ -745,6 +837,10 @@ texture = ExtResource("5_inflt")
 visible = false
 material = SubResource("ShaderMaterial_7erdt")
 texture = ExtResource("5_inflt")
+
+[node name="Mask" type="Sprite2D" parent="Image/Basic" unique_id=1711998718]
+material = SubResource("ShaderMaterial_kc3nc")
+texture = ExtResource("3_1tw12")
 
 [node name="Enhance" type="Node2D" parent="Image" unique_id=1154040034]
 visible = false

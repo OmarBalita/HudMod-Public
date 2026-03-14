@@ -1,9 +1,7 @@
-class_name Shape2DObject extends Node2D
+class_name Shape2DObject extends DrawShapeNode
+
+var draw_shape_comps: Array[DrawShapeComponentRes]
 
 func _draw() -> void:
-	draw_rect(Rect2(
-		Vector2(-100., -100.),
-		Vector2(200., 200.)
-	), Color.WHITE, true)
-	
-
+	for comp: DrawShapeComponentRes in draw_shape_comps:
+		draw_shape(comp)

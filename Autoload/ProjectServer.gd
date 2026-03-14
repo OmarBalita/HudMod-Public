@@ -120,7 +120,7 @@ func open_project(_project_path: String) -> void:
 	project_res.root_clip_res.loop_children_deep({}, func(children: Dictionary[int, Dictionary], layer_index: int, frame_in: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 		var media_res: MediaClipRes = children[layer_index].media_clips[frame_in]
 		media_res.loop_components(func(comp: ComponentRes) -> void:
-			comp.owner = media_res
+			comp.set_owner_from_loader(media_res)
 			comp.loop_animations(frame_in,
 				func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
 					anim_res.update_funcs()
@@ -131,6 +131,8 @@ func open_project(_project_path: String) -> void:
 	
 	MediaCache.load_media_cache_from_file_system(import_file_system)
 	MediaCache.load_media_cache_from_file_system(preset_file_system)
+	
+	EditorServer.editor_settings.update_app_editor_settings()
 
 
 func save_project() -> void:
@@ -331,37 +333,22 @@ func just_place_clip(layer_index: int, frame_in: int, media_res: MediaClipRes, e
 				layer.displayed_media_clips_clear()
 				layer.update(false)
 
-func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index: int = -1, frame_in: int = 0, emit_changes: bool = false) -> ImportedClipRes:
-	var imported_clip_res: ImportedClipRes = ImportedClipRes.new()
-	imported_clip_res.type = imported_type
-	imported_clip_res.key_as_path = key_as_path
-	
-	match imported_type:
-		0, 1:
-			var comp_transform:= CompTransform2D.new()
-			var comp_offset:= CompOffset.new()
-			imported_clip_res.add_component(&"Display2D", comp_transform)
-			imported_clip_res.add_component(&"Image", comp_offset)
-			comp_transform.set_forced(true)
-			comp_offset.set_forced(true)
-		2:
-			pass
-	
-	var media_length: int = int(MediaServer.get_media_default_length(imported_type, key_as_path) * project_res.fps)
-	add_media_clip(imported_clip_res, media_length, layer_index, frame_in, emit_changes)
-	return imported_clip_res
-
-func add_object_clip(object_res: ObjectRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> ObjectClipRes:
-	var object_clip_res: ObjectClipRes = ObjectClipRes.new()
-	object_clip_res.set_object_res(object_res)
-	
-	if object_res is Object2DRes:
-		var comp_transform:= CompTransform2D.new()
-		object_clip_res.add_component(&"Display2D", comp_transform)
-		comp_transform.set_forced(true)
-	
-	add_media_clip(object_clip_res, EditorServer.editor_settings.media_clip_default_length * project_res.fps, layer_index, frame_in, emit_changes, force_layer_index)
-	return object_clip_res
+#func add_imported_clip(imported_type: int, key_as_path: StringName, layer_index: int = -1, frame_in: int = 0, emit_changes: bool = false) -> ImportedClipRes:
+	#var imported_clip_res: ImportedClipRes = ImportedClipRes.new()
+	#imported_clip_res.type = imported_type
+	#imported_clip_res.key_as_path = key_as_path
+	#
+	#match imported_type:
+		#0, 1:
+			#imported_clip_res.add_component(&"Display2D", CompTransform2D.new(), true)
+			#imported_clip_res.add_component(&"Display2D", CompCanvasItem.new(), true)
+			#imported_clip_res.add_component(&"Image", CompOffset.new(), true)
+		#2:
+			#pass
+	#
+	#var media_length: int = int(MediaServer.get_media_default_length(imported_type, key_as_path) * project_res.fps)
+	#add_media_clip(imported_clip_res, media_length, layer_index, frame_in, emit_changes)
+	#return imported_clip_res
 
 func add_preset_clip(preset_media_res: MediaClipRes, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> MediaClipRes:
 	var new_media_res: MediaClipRes = preset_media_res.duplicate_media_res()
@@ -369,7 +356,8 @@ func add_preset_clip(preset_media_res: MediaClipRes, layer_index: int, frame_in:
 	add_media_clip(new_media_res, new_media_res.length, layer_index, frame_in, emit_changes, force_layer_index)
 	return new_media_res
 
-func add_media_clip(media_res: MediaClipRes, media_length: int, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> void:
+func add_media_clip(media_res: MediaClipRes, media_length: int, layer_index: int, frame_in: int, emit_changes: bool = false, force_layer_index: bool = false) -> MediaClipRes:
+	media_res.layer_index = layer_index
 	media_res.clip_pos = frame_in
 	media_res.id = generate_clip_id()
 	media_res.length = media_length
@@ -379,6 +367,7 @@ func add_media_clip(media_res: MediaClipRes, media_length: int, layer_index: int
 	else: place_media_clip(layer_index, frame_in, media_res, Callable(), emit_changes)
 	
 	update_scene_objects()
+	return media_res
 
 func copy_media_clips(clips_info: Array[Dictionary], cut: bool = false, emit_changes: bool = true) -> void:
 	copied_media_clips = clips_info
@@ -424,6 +413,7 @@ func past_media_clips(target_frames_in: Array, target_layers_indeces: Array = [-
 		if not pasted_layers.has(absolute_target_layer_index):
 			pasted_layers[absolute_target_layer_index] = {}
 		pasted_layers[absolute_target_layer_index][absolute_target_frame_in] = media_res
+		media_res.layer_index = absolute_target_layer_index
 		media_res.clip_pos = absolute_target_frame_in
 		
 		var old_layer: Layer = EditorServer.time_line.get_layer(from_layer_index)
@@ -460,6 +450,7 @@ func edit_media_clip(layer_index: int, frame_in: int, edit_info: Dictionary[Stri
 		target_layer_index = check_layer(layer_index, target_frame_in, edit_info.length, media_ignored)
 	
 	curr_layers[target_layer_index].media_clips[target_frame_in] = media_res
+	media_res.layer_index = target_layer_index
 	media_res.clip_pos = target_frame_in
 	
 	if emit_changes:
@@ -586,8 +577,7 @@ func create_media_clips_parent(focused_clip_info: Dictionary, clips_info: Array[
 	EditorServer.media_clips_selection_group.remove_object(focused_clip_info.clip_res.id)
 	
 	layer_index = check_layer(layer_index, clip_pos, focused_clip_info.clip_res.length)
-	var empty_object_res:= Object2DRes.new()
-	var parent_clip_res: ObjectClipRes = add_object_clip(empty_object_res, layer_index, clip_pos, false, true)
+	var parent_clip_res: Display2DClipRes = add_media_clip(Display2DClipRes.new(), EditorServer.editor_settings.media_clip_default_length_f, layer_index, clip_pos)
 	layers_changed.emit()
 	
 	reparent_media_clips({
@@ -621,6 +611,7 @@ func reparent_media_clips(parent_clip_info: Dictionary, clips_info: Array[Dictio
 		var target_layer: int = check_layer(info.layer_index - layer_index_begin, target_clip_pos, clip_res.length)
 		just_place_clip(target_layer, target_clip_pos, clip_res, false)
 		curr_layers[target_layer].media_clips[target_clip_pos] = clip_res
+		clip_res.layer_index = target_clip_pos
 		clip_res.clip_pos = target_clip_pos
 		frame_ends.append(target_clip_pos + clip_res.length)
 	
@@ -975,22 +966,8 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 	parent_res.set_curr_clips(new_clips)
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int, global_frame: int) -> Node:
-	var object: Node
-	var instantiate_func: Callable
-	
-	if media_res is ImportedClipRes:
-		var media_res_path: String = media_res.key_as_path
-		var media_type: int = media_res.type
-		match media_type:
-			0: instantiate_func = Scene2.instance_sprite
-			1: instantiate_func = Scene2.instance_video_viewer
-			2: instantiate_func = Scene2.instance_audio_stream_player
-	
-	elif media_res is ObjectClipRes:
-		instantiate_func = media_res.object_res.instance_object
-	
-	object = instantiate_func.call(parent_res, media_res, layer_index, frame_in, root_layer_index)
-	
+	var object: Node = media_res.init_node(layer_index, frame_in)
+	Scene2.instance_object(parent_res, media_res, object, layer_index, frame_in, root_layer_index)
 	media_res.enter(object)
 	return object
 

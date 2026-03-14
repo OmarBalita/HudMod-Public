@@ -123,6 +123,9 @@ func has_usable_res_controllers(usable_res: UsableRes) -> bool:
 func clear_usable_res_controllers(usable_res: UsableRes) -> void:
 	usable_ress_controllers.erase(usable_res)
 
+func get_usable_res_shared_ress(usable_res: UsableRes) -> Array[UsableRes]:
+	return usable_ress_controllers[usable_res].usable_ress
+
 func get_usable_res_main_edit(usable_res: UsableRes) -> IS.EditBoxContainer:
 	return usable_ress_controllers[usable_res].edit_box_container
 

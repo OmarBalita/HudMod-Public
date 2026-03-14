@@ -41,7 +41,7 @@ func update_profiles() -> void:
 	if funcs_indexer.has(value_type):
 		profiles_size = funcs_indexer[value_type].p
 	for index: int in profiles_size:
-		profiles.append(CurveProfile.new_profile_curve({} as Dictionary[float, CurveKey]))
+		profiles.append(CurveProfile.new_curve_profile({} as Dictionary[float, CurveKey]))
 
 func duplicate_anim_res() -> AnimationRes:
 	var dupl_anim_res:= duplicate()

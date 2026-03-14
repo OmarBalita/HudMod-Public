@@ -15,11 +15,11 @@ var clips_selection_group: SelectionGroupRes
 
 var curr_media_ress: Array[MediaClipRes]
 var curr_focused_media_res: MediaClipRes
+
 var curr_displayed_components: Dictionary[StringName, Array]
 
 var notification_label: Label
 var sections_menu: Menu
-var components_scroll: ScrollContainer
 var components_body: MarginContainer
 var sections_controls: Dictionary[StringName, Dictionary]
 
@@ -33,12 +33,10 @@ func _ready_editor() -> void:
 	notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_update_notification_label()
 	
-	components_scroll = IS.create_scroll_container()
-	components_body = IS.create_margin_container(0, 12, 0, 0)
-	components_scroll.add_child(components_body)
+	components_body = IS.create_margin_container(0, 0, 0, 0)
 	
 	body.add_child(notification_label)
-	body.add_child(components_scroll)
+	body.add_child(components_body)
 	
 	IS.expand(components_body, true, true)
 	
@@ -63,7 +61,7 @@ func popup_section_components(section_key: StringName, pop_from: Control = null)
 			
 			options[subsection_menuoption].append(MenuOption.new(
 				comp_classname,
-				comp_info.icon,
+				ClassServer.classname_get_icon(comp_classname),
 				add_component.bind(section_key, comp_script)
 			))
 	
@@ -140,6 +138,8 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	var margin_container: MarginContainer = IS.create_margin_container(12, 12, 12, 12)
 	var box_container: BoxContainer = IS.create_box_container(0, true)
 	
+	box_container.clip_contents = true
+	
 	var key_panel_gui_input_func: Callable = func(event: InputEvent, val_as_string: String) -> void:
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
@@ -201,6 +201,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	
 	var new_media_ress: Array[MediaClipRes]
 	var new_displayed_components: Dictionary[StringName, Array]
+	var new_displayed_mediaclipres: Dictionary[StringName, ComponentInfo]
 	
 	for section_key: StringName in ClassServer.comps_sections_infos:
 		
@@ -213,12 +214,13 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 				var component_res: ComponentRes = section_components[index]
 				new_section_components.append(ComponentInfo.new(index, component_res))
 	
+	
 	for key: String in selected_objects.keys():
 		var object: MediaClip = selected_objects.get(key).object
 		var media_res: MediaClipRes = object.clip_res
 		var components: Dictionary[String, Array] = media_res.get_components()
 		
-		var sections: Array = MediaServer.get_clip_sections(object.clip_res)
+		var sections: Array = MediaServer.object_clip_info[media_res.get_classname()].sections
 		var next_displayed_components: Dictionary[StringName, Array]
 		
 		new_media_ress.append(media_res)
@@ -259,10 +261,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	
 	curr_displayed_components = new_displayed_components
 	
-	return {
-		&"new_media_ress": new_media_ress,
-		&"new_focused_media_res": focused_media_res
-	}
+	return {&"new_media_ress": new_media_ress, &"new_focused_media_res": focused_media_res}
 
 func _clear_controls() -> void:
 	if sections_menu:
@@ -302,10 +301,16 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 		sections_controls[section_key].root.queue_free()
 	
 	var split_container: SplitContainer = IS.create_split_container(2, true)
-	var add_and_search_split_container: SplitContainer = IS.create_split_container()
-	var box_container: ArrangableBoxContainer = ArrangableBoxContainer.new(body, components_scroll)
 	
-	box_container.grab_released.connect(func(index_from: int, index_to: Variant) -> void:
+	var add_and_search_split_cont: SplitContainer = IS.create_split_container()
+	
+	var scroll_cont: ScrollContainer = IS.create_scroll_container()
+	var margin_cont: MarginContainer = IS.create_margin_container(0, 12, 0, 0)
+	var header_and_comps_split_cont: SplitContainer = IS.create_split_container(2, true)
+	var header_cont: BoxContainer = IS.create_box_container(2, true)
+	var box_cont: ArrangableBoxContainer = ArrangableBoxContainer.new(body, scroll_cont)
+	
+	box_cont.grab_released.connect(func(index_from: int, index_to: Variant) -> void:
 		_on_section_box_container_grab_released(section_key, index_from, index_to)
 	)
 	
@@ -315,23 +320,52 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	add_component_button.pressed.connect(popup_section_components.bind(section_key, add_component_button))
 	search_line_edit.text_changed.connect(_on_search_line_edit_text_changed)
 	
-	add_and_search_split_container.add_child(add_component_button)
-	add_and_search_split_container.add_child(search_line_edit)
+	add_and_search_split_cont.add_child(add_component_button)
+	add_and_search_split_cont.add_child(search_line_edit)
 	
-	split_container.add_child(add_and_search_split_container)
-	split_container.add_child(box_container)
+	header_and_comps_split_cont.add_child(header_cont)
+	header_and_comps_split_cont.add_child(box_cont)
+	margin_cont.add_child(header_and_comps_split_cont)
+	scroll_cont.add_child(margin_cont)
+	
+	split_container.add_child(add_and_search_split_cont)
+	split_container.add_child(scroll_cont)
 	components_body.add_child(split_container)
-	IS.expand(split_container, true)
+	
+	IS.expand(header_and_comps_split_cont)
+	IS.expand(margin_cont)
+	IS.expand(split_container)
 	
 	sections_controls[section_key] = {
 		&"root": split_container,
-		&"box": box_container
+		&"header": header_cont,
+		&"box": box_cont,
+		&"margin_cont": margin_cont,
+		&"scroll_cont": scroll_cont
 	}
 	
 	var section_components_info: Array = curr_displayed_components[section_key]
 	
 	for comp_info: ComponentInfo in section_components_info:
 		_spawn_component_controller(section_key, comp_info)
+	
+	var media_res_section_key: StringName = curr_focused_media_res.get_properties_section()
+	if media_res_section_key.is_empty() or section_key != media_res_section_key:
+		header_cont.hide()
+		return
+	
+	
+	var main_classname: StringName = curr_focused_media_res.get_classname()
+	
+	for media_res: MediaClipRes in curr_media_ress:
+		if media_res.get_classname() != main_classname:
+			header_cont.hide()
+			return
+	
+	var usable_ress: Array[UsableRes]
+	for media_res: MediaClipRes in curr_media_ress: usable_ress.append(media_res)
+	var mediares_editbox: IS.EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress))
+	header_cont.add_child(mediares_editbox)
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
 	var comp_res_owner: ComponentRes = comp_info.component_res_owner
@@ -395,8 +429,10 @@ func _update_notification_label() -> String:
 
 func _update_margin() -> void:
 	await get_tree().process_frame
-	var activate_margin_cond: bool = components_body.size.y > body.size.y - 24
-	components_body.add_theme_constant_override(&"margin_right", 12 if activate_margin_cond else 0)
+	for section_key: String in sections_controls:
+		var controls: Dictionary = sections_controls[section_key]
+		var activate_margin_cond: bool = controls.header.size.y + controls.margin_cont.size.y > components_body.size.y - 16
+		controls.margin_cont.add_theme_constant_override(&"margin_right", 12 if activate_margin_cond else 0)
 
 func _on_resized() -> void:
 	_update_margin()
@@ -434,16 +470,17 @@ func _on_panel_mouse_exited(panel: PanelContainer) -> void:
 class ComponentInfo extends Resource:
 	@export var index: int
 	@export var component_res_id: StringName
-	@export var component_res_owner: ComponentRes
+	@export var component_res_owner: UsableRes
 	@export var components_ress: Array[UsableRes]
 	
-	func _init(_index: int, _component_res_owner: ComponentRes) -> void:
+	func _init(_index: int, _component_res_owner: UsableRes) -> void:
 		index = _index
 		component_res_id = _component_res_owner.get_classname()
 		component_res_owner = _component_res_owner
 	
-	func append_component_res(value: ComponentRes) -> void:
+	func append_component_res(value: UsableRes) -> void:
 		components_ress.append(value)
+
 
 class ArrangableBoxContainer extends VBoxContainer:
 	

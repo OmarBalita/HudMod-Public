@@ -83,7 +83,7 @@ func _ready() -> void:
 		
 		options_control.add_child(category)
 	
-	options_control.add_child(IS.create_empty_control(.0, 100.))
+	options_control.add_child(IS.create_empty_control(.0, 250.))
 	
 	search_line.text_changed.connect(on_search_line_text_changed)
 	
@@ -104,7 +104,7 @@ func _ready() -> void:
 	
 	left_control.add_child(categories_menu)
 	
-	custom_minimum_size = Vector2(600., 450.)
+	custom_minimum_size = Vector2(600., 400.)
 	
 	IS.expand(right_margin_container)
 	
@@ -183,7 +183,6 @@ func _update_focus_panel_transform(control: Control) -> void:
 		right_scroll_container.scroll_vertical += pos_y - limit_up
 	elif pos_y > limit_down:
 		right_scroll_container.scroll_vertical += pos_y - limit_down + focus_panel.size.y
-
 
 
 func on_search_line_text_changed(new_text: String) -> void:

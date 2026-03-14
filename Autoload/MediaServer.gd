@@ -76,12 +76,15 @@ var imported_clip_info: Dictionary[int, Dictionary] = {
 }
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
-	&"Object2DRes": {sections = [&"Display2D"]},
-	&"Text2DRes": {sections = [&"Display2D", &"Layout", &"Text"]},
-	&"Shape2DRes": {sections = [&"Display2D", &"Shape"]},
-	&"Particles2DRes": {sections = [&"Display2D", &"Particles"]},
-	&"Camera2DRes": {sections = [&"Display2D", &"Camera"]},
-	&"Audio2DRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel}
+	&"Display2DClipRes": {sections = [&"Display2D"]},
+	&"ImageClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
+	&"VideoClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
+	&"AudioClipRes": {sections = [&"Sound"], clip_panel = AudioClipPanel},
+	&"Text2DClipRes": {sections = [&"Display2D", &"Text"]},
+	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"]},
+	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"]},
+	&"Camera2DClipRes": {sections = [&"Display2D", &"Camera"]},
+	&"Audio2DClipRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel}
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
@@ -103,12 +106,12 @@ func server_register_image(path: String, image: Image, ids_exists: PackedStringA
 	if ids_exists.has(id): load_thumbnail(path, thumbnail_path, id)
 	else: create_thumbnail_from_image(path, image, thumbnail_path, id)
 
-func server_register_video(path: String, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func server_register_video(path: String, video_decoder: VideoDecoder, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
 		load_waveform(path, waveform_path, id)
 	else:
-		create_thumbnail_from_video_path(path, thumbnail_path, id)
+		create_thumbnail_from_video(path, video_decoder, thumbnail_path, id)
 		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
 
 func server_register_audio(path: String, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
@@ -251,8 +254,12 @@ func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnai
 	thumbnails[key_as_path] = {&"image": result_image, &"texture": result_texture}
 	return thumbnails[key_as_path]
 
-func create_thumbnail_from_video_path(video_path: StringName, thumbnail_path: String, id: String) -> Dictionary:
-	return {}
+func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDecoder, thumbnail_path: String, id: String) -> Dictionary:
+	if not video_decoder.seek_frame(video_decoder.get_total_frames_by_dur() / 2):
+		return {}
+	video_decoder.update_video_data(1.)
+	var image: Image = Image.create_from_data(video_decoder.get_width(), video_decoder.get_height(), false, Image.FORMAT_RGB8, video_decoder.get_video_data())
+	return create_thumbnail_from_image(key_as_path, image, thumbnail_path, id)
 
 func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV, thumbnail_path: String, id: String) -> Dictionary:
 	var thumbnail_image: Image = generate_waveform_image(audio, .0, INF, draw_waveform_line_thumbnail, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, Color.TRANSPARENT)
@@ -276,6 +283,8 @@ func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Arra
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
 func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV, waveform_path: String, id: String) -> Array[Image]:
+	if not audio:
+		return []
 	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
 	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
 	var total_width: int
@@ -329,14 +338,6 @@ func get_media_default_from_and_length(media_res: MediaClipRes, default_from: in
 			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
 				var audio_wav: AudioStreamWAV = MediaCache.get_audio(key_as_path)
 				if audio_wav: result = Vector2i(-1, audio_wav.get_length() * fps)
-	
-	elif media_res is ObjectClipRes:
-		
-		var object_res: ObjectRes = media_res.object_res
-		result = Vector2i(
-			object_res.get_min_from(),
-			object_res.get_effected_max_length(),
-		)
 	
 	return result
 
@@ -654,19 +655,38 @@ class ImageClipPanel extends ClipPanel:
 
 class VideoClipPanel extends ClipPanel:
 	
-	func _ready() -> void:
-		super()
-		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
-
-class AudioClipPanel extends ClipPanel:
-	
 	@onready var waveform_box_container:= WaveformBoxContainer.new()
 	
 	var texture_rects: Dictionary[int, TextureRect]
 	
-	var curr_waveform_textures_total_width: float
-	var curr_waveform_start_index: Vector2i
-	var curr_waveform_end_index: Vector2i
+	func _ready() -> void:
+		super()
+		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
+	
+	func _ready_ui() -> void:
+		add_child(waveform_box_container)
+		super()
+		thumbnail_rect.modulate.a = .9
+	
+	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
+		var clip_res: VideoClipRes = owner_as_media_clip.clip_res
+		if frame_in == -1: frame_in = clip_res.from
+		if length == -1: length = clip_res.length
+		super(frame_in, length)
+		
+		waveform_box_container.update_ui(clip_res.video, frame_in, length)
+		_update_ui_transform()
+	
+	func _update_ui_transform() -> void:
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		waveform_box_container.position.x = waveform_transform.x
+		waveform_box_container.size.x = waveform_transform.y
+		#waveform_box_container.size.x = waveform_transform.y / owner_as_media_clip.clip_res.object_res.pitch_scale
+		super()
+
+class AudioClipPanel extends ClipPanel:
+	
+	@onready var waveform_box_container:= WaveformBoxContainer.new()
 	
 	func _ready() -> void:
 		super()
@@ -686,7 +706,7 @@ class AudioClipPanel extends ClipPanel:
 		if length == -1: length = clip_res.length
 		super(frame_in, length)
 		
-		waveform_box_container.update_ui(clip_res.key_as_path, frame_in, length)
+		waveform_box_container.update_ui(clip_res.stream, frame_in, length)
 		_update_ui_transform()
 	
 	func _update_ui_transform() -> void:
@@ -712,23 +732,20 @@ class Audio2DClipPanel extends ObjectClipPanel:
 		super()
 	
 	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		var clip_res: ObjectClipRes = owner_as_media_clip.clip_res
+		var clip_res: Audio2DClipRes = owner_as_media_clip.clip_res
 		if frame_in == -1: frame_in = clip_res.from
 		if length == -1: length = clip_res.length
 		super(frame_in, length)
 		
-		var audio2d_res: Audio2DRes = clip_res.object_res
-		var stream: DisplayFileSystemPath = audio2d_res.stream
-		if not stream:
-			return
-		var audio_key_as_path: String = stream.disk_path
+		var audio_key_as_path: String = clip_res.stream
+		
 		waveform_box_container.update_ui(audio_key_as_path, frame_in, length)
 		_update_ui_transform()
 	
 	func _update_ui_transform() -> void:
 		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
 		waveform_box_container.position.x = waveform_transform.x
-		waveform_box_container.size.x = waveform_transform.y / owner_as_media_clip.clip_res.object_res.pitch_scale
+		waveform_box_container.size.x = waveform_transform.y # / owner_as_media_clip.clip_res.pitch_scale
 		super()
 
 class WaveformBoxContainer extends BoxContainer:
@@ -887,9 +904,18 @@ func get_audio_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 	})
 
 func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
-	return get_file_main_info(key_as_path).merged({
-		&"title": "Video"
+	var info: Dictionary = MediaCache.get_video_info(key_as_path)
+	var res: Vector2i = info.resolution
+	var result: Dictionary[StringName, String] = get_file_main_info(key_as_path).merged({
+		&"title": "Video",
+		&"resolution": "(%s x %s)" % [res.x, res.y],
+		&"frame_pixels": str(res.x * res.y),
+		&"duration": "%s s" % info.duration,
+		&"fps": "%s fps" % info.fps,
+		&"total_frames": "%s frame" % info.total_frames,
+		&"bit_depth": str(info.bit_depth, "-bit"),
 	})
+	return result
 
 
 func create_media_res_tree(root_res: MediaClipRes) -> Tree:
@@ -910,12 +936,6 @@ func _tree_children_of(parent_res: MediaClipRes, tree: Tree, parent_tree_item: T
 			tree_item.set_text(0, media_res.get_display_name())
 			tree_item.set_icon(0, media_res.get_thumbnail())
 			_tree_children_of(media_res, tree, tree_item)
-
-
-func get_clip_sections(media_res: MediaClipRes) -> Array:
-	if media_res is ImportedClipRes: return imported_clip_info[media_res.type].sections
-	elif media_res is ObjectClipRes: return object_clip_info[media_res.object_res.get_classname()].sections
-	return []
 
 # Get Media Type
 

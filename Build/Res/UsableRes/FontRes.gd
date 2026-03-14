@@ -55,16 +55,20 @@ func _set_embolden(prop_key: StringName, prop_val: float) -> void: _set_prop_def
 
 func _set_transform_prop(prop_key: StringName, prop_val: float) -> void:
 	_set_prop_default(prop_key, prop_val)
-	get_font().variation_transform = Transform2D(
-		Vector2(get_prop(&"xx"), get_prop(&"xy")),
-		Vector2(get_prop(&"yx"), get_prop(&"yy")),
-		Vector2(get_prop(&"xo"), get_prop(&"yo"))
-	)
+	update_transform()
 
 func _set_glyph(prop_key: StringName, prop_val: int) -> void: _set_prop_default(prop_key, prop_val); get_font().spacing_glyph = prop_val
 func _set_space(prop_key: StringName, prop_val: int) -> void: _set_prop_default(prop_key, prop_val); get_font().spacing_space = prop_val
 func _set_top(prop_key: StringName, prop_val: int) -> void: _set_prop_default(prop_key, prop_val); get_font().spacing_top = prop_val
 func _set_bottom(prop_key: StringName, prop_val: int) -> void: _set_prop_default(prop_key, prop_val); get_font().spacing_bottom = prop_val
+
+
+func update_transform() -> void:
+	get_font().variation_transform = Transform2D(
+		Vector2(get_prop(&"xx"), get_prop(&"xy")),
+		Vector2(get_prop(&"yx"), get_prop(&"yy")),
+		Vector2(get_prop(&"xo"), get_prop(&"yo"))
+	)
 
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:

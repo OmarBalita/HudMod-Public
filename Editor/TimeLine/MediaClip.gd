@@ -196,7 +196,7 @@ func _ready() -> void:
 	add_child(l_expand_button)
 	add_child(r_expand_button)
 	r_expand_button.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	r_expand_button.position.x -= 10.0
+	r_expand_button.position.x -= 10.
 	
 	# Connections
 	clip_res.media_clip_res_updated.connect(on_media_res_updated)

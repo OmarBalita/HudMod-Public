@@ -3,7 +3,7 @@ class_name CurveSampler extends Object
 static var curve_profiles: Array[CurveProfile]
 
 static func create_profile(keys: Dictionary[float, CurveKey]) -> CurveProfile:
-	var profile:= CurveProfile.new_profile_curve(keys)
+	var profile:= CurveProfile.new_curve_profile(keys)
 	curve_profiles.append(profile)
 	return profile
 

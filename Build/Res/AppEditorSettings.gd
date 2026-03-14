@@ -14,7 +14,7 @@ enum Quality {
 
 @export_group("General")
 @export var is_replay: bool
-@export var media_clip_default_length: float = 5. # as seconds
+@export var media_clip_default_length: float = 5.
 @export_subgroup("Scene Viewer")
 var update_video_viewers_on_drag: bool = false
 var update_video_viewers_rate: float = .5
@@ -42,6 +42,8 @@ var update_video_viewers_rate: float = .5
 @export var media_clip_waveform_medium_color: Color = Color(Color.GOLDENROD, .5)
 @export var media_clip_waveform_high_color: Color = Color(Color.CRIMSON, .5)
 
+var media_clip_default_length_f: int
+
 var viewport_resolution_ratio: float
 var viewport_effect_ratio: float
 var render_effect_ratio: float
@@ -49,9 +51,12 @@ var render_effect_ratio: float
 var media_explorer_waveform_gradient: Gradient
 
 func _init() -> void:
-	update_app_editor_settings()
+	#update_app_editor_settings()
+	pass
 
 func update_app_editor_settings() -> void:
+	media_clip_default_length_f = media_clip_default_length * ProjectServer.fps
+	
 	viewport_resolution_ratio = viewport_resolution_scale / 100.
 	viewport_effect_ratio = viewport_effect_quality / 100.
 	render_effect_ratio = render_effect_quality / 100.
@@ -59,4 +64,6 @@ func update_app_editor_settings() -> void:
 	media_explorer_waveform_gradient = Gradient.new()
 	media_explorer_waveform_gradient.add_point(.0, media_explorer_waveform_color_a)
 	media_explorer_waveform_gradient.add_point(.999, media_explorer_waveform_color_b)
+
+
 

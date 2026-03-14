@@ -8,7 +8,11 @@ static func create_stream() -> AudioStreamWAV:
 	return stream
 
 static func create_stream_from_path(path: String) -> AudioStreamWAV:
-	var stream:= create_stream()
-	stream.data = Audio.get_audio_data(path)
-	return stream
+	var data: Array[PackedByteArray] = AudioDecoder.create_data_from_path(path)
+	if data.is_empty():
+		return null
+	else:
+		var stream:= create_stream()
+		stream.data = data[0]
+		return stream
 

@@ -140,21 +140,12 @@ func try_play_func(media_res: MediaClipRes, object: Node) -> void:
 		if object.playing:
 			return
 		object.play((local_frame + start_from) / float(ProjectServer.fps))
-	
-	elif object is VideoViewer:
-		if object.is_playing:
-			return
-		if not object.is_updated():
-			await object.video_updated
-		object.play(curr_frame)
 
 func stop() -> void:
 	loop_objects(stop_func)
 
 func stop_func(media_res: MediaClipRes, object: Object) -> void:
 	if object is AudioStreamPlayer or object is AudioStreamPlayer2D:
-		object.stop()
-	elif object is VideoViewer:
 		object.stop()
 
 func update_visibilities(visibility: Variant = null) -> void:
@@ -172,13 +163,6 @@ func seek_video_viewers_frame(curr_frame: Variant = null) -> void:
 		if object is VideoViewer:
 			video_viewer_count += 1
 	var between_rate: float = editor_settings.update_video_viewers_rate / float(video_viewer_count)
-	
-	loop_objects(
-		func(media_res: MediaClipRes, object: Node) -> void:
-			if object is VideoViewer:
-				object.seek_frame(curr_frame)
-				await get_tree().create_timer(between_rate).timeout
-	)
 	
 	await get_tree().create_timer(editor_settings.update_video_viewers_rate).timeout
 	if update_video_viewers_frame:
