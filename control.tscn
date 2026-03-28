@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://ccl0mp3ci3cpv"]
+[gd_scene format=3 uid="uid://dligjgak2dddh"]
 
 [ext_resource type="Texture2D" uid="uid://drodbed2flhi5" path="res://Asset/Images/run_image.png" id="1_0fbet"]
 
@@ -67,7 +67,7 @@ func _draw():
 		draw_primitive([p], [Color(0, 0, 1, 0.1)], []) # أزرق فاتح قليلاً للوضوح
 "
 
-[node name="Control" type="Control"]
+[node name="Control" type="Control" unique_id=797681204]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

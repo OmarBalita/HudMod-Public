@@ -41,7 +41,7 @@ func update_profiles() -> void:
 	if funcs_indexer.has(value_type):
 		profiles_size = funcs_indexer[value_type].p
 	for index: int in profiles_size:
-		profiles.append(CurveProfile.new_curve_profile({} as Dictionary[float, CurveKey]))
+		profiles.append(CurveProfile.new_curve_profile({} as Dictionary[int, CurveKey]))
 
 func duplicate_anim_res() -> AnimationRes:
 	var dupl_anim_res:= duplicate()
@@ -56,39 +56,39 @@ func duplicate_anim_res() -> AnimationRes:
 func get_profile(index: int) -> CurveProfile:
 	return profiles[index]
 
-func profile_sample(index: int, x: float) -> float:
+func profile_sample(index: int, x: int) -> float:
 	return profiles[index].sample_func.call(x)
 
-func profile_add_key(index: int, x: float, value: float) -> void:
+func profile_add_key(index: int, x: int, value: float) -> void:
 	profiles[index].add_key(x, CurveKey.new_curve_key(value))
 
-func profile_remove_key(index: int, x: float) -> void:
+func profile_remove_key(index: int, x: int) -> void:
 	profiles[index].remove_key(x)
 
-func profile_get_curve_key(index: int, x: float) -> CurveKey:
+func profile_get_curve_key(index: int, x: int) -> CurveKey:
 	return profiles[index].keys[x]
 
-func profile_get_key(index: int, x: float) -> float:
+func profile_get_key(index: int, x: int) -> float:
 	return profile_get_curve_key(index, x).value
 
-func profile_has_key(index: int, x: float) -> bool:
+func profile_has_key(index: int, x: int) -> int:
 	return profiles[index].keys.has(x)
 
 
-func sample(x: float) -> Variant:
+func sample(x: int) -> Variant:
 	return sample_func.call(x)
 
-func add_key(x: float, value: Variant) -> void:
+func add_key(x: int, value: Variant) -> void:
 	add_key_func.call(x, value)
 
-func remove_key(x: float) -> void:
+func remove_key(x: int) -> void:
 	for profile: CurveProfile in profiles:
 		profile.remove_key(x)
 
-func get_key(x: float) -> Variant:
+func get_key(x: int) -> Variant:
 	return get_key_func.call(x)
 
-func has_key(x: float) -> bool:
+func has_key(x: int) -> bool:
 	for profile: CurveProfile in profiles:
 		if profile.keys.has(x): return true
 	return false
@@ -98,22 +98,22 @@ func has_any_key() -> bool:
 		if profile.keys.size(): return true
 	return false
 
-func sample_constant(x: float) -> Variant:
+func sample_constant(x: int) -> Variant:
 	return null
 
-func sample_int(x: float) -> int:
+func sample_int(x: int) -> int:
 	return round(profile_sample(0, x))
 
-func sample_float(x: float) -> float:
+func sample_float(x: int) -> int:
 	return profile_sample(0, x)
 
-func sample_vec2(x: float) -> Vector2:
+func sample_vec2(x: int) -> Vector2:
 	return Vector2(profile_sample(0, x), profile_sample(1, x))
 
-func sample_vec3(x: float) -> Vector3:
+func sample_vec3(x: int) -> Vector3:
 	return Vector3(profile_sample(0, x), profile_sample(1, x), profile_sample(2, x))
 
-func sample_vec4(x: float) -> Vector4:
+func sample_vec4(x: int) -> Vector4:
 	return Vector4(
 		profile_sample(0, x),
 		profile_sample(1, x),
@@ -121,7 +121,7 @@ func sample_vec4(x: float) -> Vector4:
 		profile_sample(3, x)
 	)
 
-func sample_color(x: float) -> Color:
+func sample_color(x: int) -> Color:
 	return Color(
 		profile_sample(0, x),
 		profile_sample(1, x),
@@ -129,53 +129,53 @@ func sample_color(x: float) -> Color:
 		profile_sample(3, x)
 	)
 
-func add_key_constant(x: float, value: Variant) -> void:
+func add_key_constant(x: int, value: Variant) -> void:
 	pass
 
-func add_key_int(x: float, value: int) -> void:
+func add_key_int(x: int, value: int) -> void:
 	profile_add_key(0, x, value)
 
-func add_key_float(x: float, value: float) -> void:
+func add_key_float(x: int, value: float) -> void:
 	profile_add_key(0, x, value)
 
-func add_key_vec2(x: float, value: Vector2) -> void:
+func add_key_vec2(x: int, value: Vector2) -> void:
 	profile_add_key(0, x, value.x)
 	profile_add_key(1, x, value.y)
 
-func add_key_vec3(x: float, value: Vector3) -> void:
+func add_key_vec3(x: int, value: Vector3) -> void:
 	profile_add_key(0, x, value.x)
 	profile_add_key(1, x, value.y)
 	profile_add_key(2, x, value.z)
 
-func add_key_vec4(x: float, value: Vector4) -> void:
+func add_key_vec4(x: int, value: Vector4) -> void:
 	profile_add_key(0, x, value.x)
 	profile_add_key(1, x, value.y)
 	profile_add_key(2, x, value.z)
 	profile_add_key(3, x, value.w)
 
-func add_key_color(x: float, value: Color) -> void:
+func add_key_color(x: int, value: Color) -> void:
 	profile_add_key(0, x, value.r)
 	profile_add_key(1, x, value.g)
 	profile_add_key(2, x, value.b)
 	profile_add_key(3, x, value.a)
 
 
-func get_key_constant(x: float) -> Variant:
+func get_key_constant(x: int) -> Variant:
 	return null
 
-func get_key_int(x: float) -> int:
+func get_key_int(x: int) -> int:
 	return round(profile_get_key(0, x))
 
-func get_key_float(x: float) -> float:
+func get_key_float(x: int) -> float:
 	return profile_get_key(0, x)
 
-func get_key_vec2(x: float) -> Vector2:
+func get_key_vec2(x: int) -> Vector2:
 	return Vector2(profile_get_key(0, x), profile_get_key(1, x))
 
-func get_key_vec3(x: float) -> Vector3:
+func get_key_vec3(x: int) -> Vector3:
 	return Vector3(profile_get_key(0, x), profile_get_key(1, x), profile_get_key(2, x))
 
-func get_key_vec4(x: float) -> Vector4:
+func get_key_vec4(x: int) -> Vector4:
 	return Vector4(
 		profile_get_key(0, x),
 		profile_get_key(1, x),
@@ -183,10 +183,31 @@ func get_key_vec4(x: float) -> Vector4:
 		profile_get_key(3, x)
 	)
 
-func get_key_color(x: float) -> Color:
+func get_key_color(x: int) -> Color:
 	return Color(
 		profile_get_key(0, x),
 		profile_get_key(1, x),
 		profile_get_key(2, x),
 		profile_get_key(3, x)
 	)
+
+
+func find_minmax_vals() -> Vector2:
+	var _min: float = INF
+	var _max: float = -INF
+	
+	for profile: CurveProfile in profiles:
+		var keys: Dictionary[int, CurveKey] = profile.keys
+		
+		if keys.is_empty():
+			continue
+		
+		for key: int in keys:
+			var value: float = keys[key].value
+			_min = min(_min, value)
+			_max = max(_max, value)
+	
+	return Vector2(_min, _max)
+
+
+

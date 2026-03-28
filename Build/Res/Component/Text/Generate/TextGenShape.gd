@@ -92,8 +92,8 @@ func generate_shape() -> void:
 						break
 				if is_master_intersect_with:
 					var closest_points: Vector2i = GeometryHelper.find_closest_two_points(master_path, curr_path)
-					curr_path = ArrHelper.get_reordered_vec2_array(curr_path, closest_points.y)
-					master_path = ArrHelper.insert_packed_vec2_array(master_path, closest_points.x, curr_path)
+					curr_path = ArrHelper.vec2_array_get_reordered(curr_path, closest_points.y)
+					master_path = ArrHelper.vec2_array_insert_packed(master_path, closest_points.x, curr_path)
 				else:
 					result[global_idx].append(curr_path)
 			

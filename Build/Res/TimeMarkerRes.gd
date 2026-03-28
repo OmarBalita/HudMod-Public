@@ -1,9 +1,8 @@
 class_name TimeMarkerRes extends Resource
 
 @export var custom_name: StringName
-@export var custom_color: Color
+@export var custom_color: Color = IS.RAINBOW_COLORS[2]
 @export_multiline var custom_description: String
-
 
 func set_custom_name(new_val: StringName) -> void:
 	custom_name = new_val

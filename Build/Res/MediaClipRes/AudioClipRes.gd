@@ -7,11 +7,15 @@ class_name AudioClipRes extends MediaClipRes
 		if MediaCache.audio_stream_waves_has(stream):
 			audio_stream = MediaCache.get_audio(stream)
 
-var audio_stream: AudioStreamWAV
+var audio_stream: AudioStreamWAV:
+	set(val):
+		audio_stream = val
+		if curr_node:
+			curr_node.stream = audio_stream
 
 static func get_properties_section() -> StringName: return &"Sound"
-
-static func get_media_clip_info() -> Dictionary[StringName, String]: return {
+static func get_media_clip_info() -> Dictionary[StringName, String]:
+	return {
 	&"title": "Audio",
 	&"description": ""
 }
@@ -20,7 +24,7 @@ func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(stream).text
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:
-	return audio_stream.get_length() * ProjectServer.fps if audio_stream else +INF
+	return audio_stream.get_length() * ProjectServer2.fps if audio_stream else +INF
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {&"stream": export(string_args(stream))}
@@ -28,8 +32,8 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 func init_node(layer_idx: int, frame_in: int) -> Node:
 	var player:= AudioStreamPlayer.new()
 	player.bus = ProjectServer.get_bus_name_from_layer_index(layer_idx)
+	player.stream = audio_stream
 	return player
 
 func _process_comps(frame: int) -> void:
-	curr_node.stream = audio_stream
 	super(frame)

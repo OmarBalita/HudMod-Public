@@ -36,6 +36,9 @@ const LABEL_SETTINGS_HEADER = preload("res://UI&UX/LabelSettingsHeader.tres")
 const LABEL_SETTINGS_BOLD = preload("res://UI&UX/LabelSettingsBold.tres")
 const LABEL_SETTINGS_MAIN = preload("res://UI&UX/LabelSettingsMain.tres")
 
+const TEXTURE_ADD: CompressedTexture2D = preload("res://Asset/Icons/add.png")
+const TEXTURE_TRASH: CompressedTexture2D = preload("res://Asset/Icons/trash-can.png")
+
 const TEXTURE_RIGHT: CompressedTexture2D = preload("res://Asset/Icons/right.png")
 const TEXTURE_DOWN: CompressedTexture2D = preload("res://Asset/Icons/down.png")
 const TEXTURE_TOGGLE_BUTTON_CHECKED: CompressedTexture2D = preload("res://Asset/Icons/toggle-button.png")
@@ -46,6 +49,7 @@ const TEXTURE_FOLDER: CompressedTexture2D = preload("res://Asset/Icons/open-file
 const TEXTURE_CHECK: CompressedTexture2D = preload("res://Asset/Icons/check.png")
 const TEXTURE_X_MARK: CompressedTexture2D = preload("res://Asset/Icons/x-mark.png")
 const TEXTURE_SEARCH: CompressedTexture2D = preload("res://Asset/Icons/magnifying-glass.png")
+const TEXTURE_MARKER: CompressedTexture2D = preload("res://Asset/Icons/location-marker.png")
 
 const STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
 const STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")

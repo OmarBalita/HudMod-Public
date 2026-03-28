@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://ckmqu1nrqmxml"]
+[gd_scene format=3 uid="uid://ckmqu1nrqmxml"]
 
 [ext_resource type="Texture2D" uid="uid://71t0sggyev61" path="res://Asset/Images/pexels-creative-vix-9754.jpg" id="1_ersp8"]
 [ext_resource type="Texture2D" uid="uid://yb10nyikmf4a" path="res://Asset/Icons/App/logo2_bg.png" id="3_8x2kx"]
@@ -177,7 +177,7 @@ shadow_color = Color(0, 0, 0, 0.478431)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wx0j5"]
 bg_color = Color(0.324822, 0.534372, 0.841871, 1)
 
-[node name="Run" type="Control"]
+[node name="Run" type="Control" unique_id=1914617672]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -188,7 +188,7 @@ script = SubResource("GDScript_ersp8")
 main_path = &"res://Prototype/PrototypeMain.tscn"
 delay = 0.5
 
-[node name="BGRect" type="TextureRect" parent="."]
+[node name="BGRect" type="TextureRect" parent="." unique_id=396084252]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -199,7 +199,7 @@ texture = ExtResource("1_ersp8")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="SplitContainer" type="SplitContainer" parent="."]
+[node name="SplitContainer" type="SplitContainer" parent="." unique_id=2032181774]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -210,7 +210,7 @@ dragging_enabled = false
 dragger_visibility = 1
 vertical = true
 
-[node name="MarginContainer" type="MarginContainer" parent="SplitContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="SplitContainer" unique_id=1928311354]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/margin_left = 10
@@ -218,25 +218,25 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="HSplitContainer" type="HSplitContainer" parent="SplitContainer/MarginContainer"]
+[node name="HSplitContainer" type="HSplitContainer" parent="SplitContainer/MarginContainer" unique_id=1366915045]
 layout_mode = 2
 size_flags_vertical = 3
 dragging_enabled = false
 dragger_visibility = 1
 
-[node name="LogoRect" type="TextureRect" parent="SplitContainer/MarginContainer/HSplitContainer"]
+[node name="LogoRect" type="TextureRect" parent="SplitContainer/MarginContainer/HSplitContainer" unique_id=1953157315]
 material = SubResource("ShaderMaterial_8x2kx")
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 texture = ExtResource("3_8x2kx")
 stretch_mode = 3
 
-[node name="BoxContainer" type="BoxContainer" parent="SplitContainer/MarginContainer/HSplitContainer"]
+[node name="BoxContainer" type="BoxContainer" parent="SplitContainer/MarginContainer/HSplitContainer" unique_id=997610211]
 layout_mode = 2
 size_flags_vertical = 4
 vertical = true
 
-[node name="NameLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer"]
+[node name="NameLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=1891281627]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -249,14 +249,14 @@ text = "HUDMOD"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ColorRect" type="ColorRect" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer"]
+[node name="ColorRect" type="ColorRect" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=1946479378]
 visible = false
 custom_minimum_size = Vector2(700, 8)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(0.94902, 0.619608, 0.227451, 1)
 
-[node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer"]
+[node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=59249570]
 unique_name_in_owner = true
 layout_mode = 2
 text = "An Eazy and Powerful Video Editor"
@@ -265,7 +265,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="LoadingBar" type="ProgressBar" parent="SplitContainer"]
+[node name="LoadingBar" type="ProgressBar" parent="SplitContainer" unique_id=168497188]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
@@ -273,9 +273,14 @@ theme_override_styles/background = SubResource("StyleBoxEmpty_0vf8b")
 theme_override_styles/fill = SubResource("StyleBoxFlat_wx0j5")
 show_percentage = false
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1292498553]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 expand_mode = 1
 stretch_mode = 5
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=453749576]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

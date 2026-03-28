@@ -123,8 +123,6 @@ func _ready_ui() -> void:
 	ObjectServer.describe(flex_view_control, {
 		size_flags_vertical = Control.SIZE_EXPAND_FILL,
 		draw_focus = false,
-		mouse_entering_calculation = false,
-		rect_calculation = true
 	})
 	var view_container = IS.create_viewport_container({size_flags_vertical = Control.SIZE_EXPAND_FILL})
 	options_container = IS.create_box_container(10, false,

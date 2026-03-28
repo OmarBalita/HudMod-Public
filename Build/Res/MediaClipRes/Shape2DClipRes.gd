@@ -26,8 +26,8 @@ func _process_comps(frame: int) -> void:
 	for draw_comp: DrawShapeComponentRes in draw_comps:
 		draw_comp.min_dirty()
 
-func _emit_media_clip_res_updated(_from: int = -1, _length: int = -1) -> void:
-	super(_from, _length)
+func emit_res_changed() -> void:
+	super()
 	draw_comps.clear()
 	for comp: ComponentRes in components.Display2D:
 		if comp is not DrawShapeComponentRes or not comp.enabled:

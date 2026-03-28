@@ -11,16 +11,20 @@ class_name VideoClipRes extends Display2DClipRes
 		var can_open: bool = video and MediaCache.videos_info_has(video)
 		
 		if can_open:
+			
 			video_decoder.set_video_path(video)
 			video_decoder.set_skip_frame(true)
 			video_decoder.set_internal_enhance(false)
 			video_decoder.open()
+			seek_frame_smart(0)
+			
 			if shader_material:
 				_init_video_shader_params()
 		else:
 			video_decoder.close()
 		
 		is_opening = can_open
+		emit_res_changed()
 
 #@export var speed_scale: float = 1.
 @export var scale_factor: float = 1.
@@ -33,9 +37,6 @@ var texture_y: ImageTexture
 var texture_u: ImageTexture
 var texture_v: ImageTexture
 
-func _init() -> void:
-	build_shader_pipeline()
-
 func get_display_name() -> String: return str("Video:", video.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(video).texture
 
@@ -47,7 +48,7 @@ static func is_media_clip_spawnable() -> bool: return true
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:
-	if is_opening: return video_decoder.get_duration() * ProjectServer.fps
+	if is_opening: return video_decoder.get_duration() * ProjectServer2.fps
 	else: return +INF
 
 func get_self_main_texture() -> Texture2D: return texture_y
@@ -61,12 +62,14 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 
 func init_node(layer_idx: int, frame_in: int) -> Node:
 	var video_viewer: VideoViewer = VideoViewer.new()
+	video_viewer.texture = get_self_texture()
 	return video_viewer
 
 func _process_comps(frame: int) -> void:
 	if is_opening:
 		if frame != video_decoder.get_curr_frame() or scale_factor != latest_scale_factor:
 			seek_frame_smart(frame + from)
+		_update_video_shader_params()
 	super(frame)
 	add_stacked_value(&"scale", scale_factor, MethodType.DIVIDE)
 
@@ -74,7 +77,6 @@ func seek_frame_smart(at: int) -> void:
 	if not video_decoder.seek_frame_smart(at):
 		return
 	_update_video_frame()
-	_update_video_shader_params()
 	latest_scale_factor = scale_factor
 
 func _update_video_frame() -> void:
@@ -99,14 +101,13 @@ func _update_video_frame() -> void:
 	texture_v = ImageTexture.create_from_image(image_v)
 
 func _update_video_shader_params() -> void:
-	curr_node.texture = texture_y
-	shader_material.set_shader_parameter("tex_y", texture_y)
-	shader_material.set_shader_parameter("tex_u", texture_u)
-	shader_material.set_shader_parameter("tex_v", texture_v)
+	shader_material.set_shader_parameter(&"tex_y", texture_y)
+	shader_material.set_shader_parameter(&"tex_u", texture_u)
+	shader_material.set_shader_parameter(&"tex_v", texture_v)
 
 func _init_video_shader_params() -> void:
-	shader_material.set_shader_parameter("color_matrix", video_decoder.get_color_matrix_idx())
-	shader_material.set_shader_parameter("is_full_range", video_decoder.get_color_range() == 2)
+	shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
+	shader_material.set_shader_parameter(&"is_full_range", video_decoder.get_color_range() == 2)
 
 static func get_compatible_format(bit_depth: int) -> Image.Format:
 	return Image.FORMAT_R16 if bit_depth > 8 else Image.FORMAT_R8
@@ -118,7 +119,6 @@ func _set_shader_material(val: ShaderMaterial) -> void:
 	super(val)
 	if is_opening:
 		_init_video_shader_params()
-
 
 func _get_shader_global_param_snip() -> String:
 	return "

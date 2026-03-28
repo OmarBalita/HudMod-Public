@@ -33,8 +33,8 @@ func _ready_editor() -> void:
 		on_media_clips_selection_group_selected_objects_changed
 	)
 
-func _input(event: InputEvent) -> void:
-	super(event)
+func _gui_input(event: InputEvent) -> void:
+	
 	if drag_info.size() and drag_info.drag_enabled:
 		if event is InputEventMouseMotion:
 			

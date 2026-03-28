@@ -81,10 +81,11 @@ var copied_media_clips: Array[Dictionary]
 # ---------------------------------------------------
 
 func _ready() -> void:
-	if not GlobalServer.is_global_cache_loaded:
-		await GlobalServer.global_cache_loaded
-	open_project(EXAMPLE_PATH)
+	#if not GlobalServer.is_global_cache_loaded:
+		#await GlobalServer.global_cache_loaded
+	#open_project(EXAMPLE_PATH)
 	#update_curr_length_and_curr_spacial_frames()
+	pass
 
 func get_project_paths(_project_path: String) -> Dictionary[StringName, String]:
 	return {
@@ -104,6 +105,12 @@ func open_project(_project_path: String) -> void:
 	import_file_system = ResLoadHelper.load_or_save(project_paths.import_sys, DisplayFileSystemRes)
 	preset_file_system = ResLoadHelper.load_or_save(project_paths.preset_sys, DisplayFileSystemRes)
 	
+	import_file_system.thumbnail_path = project_thumbnail_path
+	import_file_system.waveform_path = project_waveform_path
+	
+	MediaCache.load_media_cache_from_file_system(import_file_system)
+	MediaCache.load_media_cache_from_file_system(preset_file_system)
+	
 	var _project_res: Resource = ResourceLoader.load(project_paths.project_res)
 	if _project_res is not ProjectRes:
 		printerr("The project could not be opened.")
@@ -111,9 +118,6 @@ func open_project(_project_path: String) -> void:
 	
 	project_path = _project_path
 	project_res = _project_res
-	
-	import_file_system.thumbnail_path = project_thumbnail_path
-	import_file_system.waveform_path = project_waveform_path
 	
 	make_layers_absolute(PackedInt32Array(range(project_res.root_clip_res.children.size())))
 	
@@ -126,13 +130,11 @@ func open_project(_project_path: String) -> void:
 					anim_res.update_funcs()
 			)
 		)
-		media_res.build_shader_pipeline()
+		if media_res is Display2DClipRes:
+			media_res.build_shader_pipeline()
 	)
 	
-	MediaCache.load_media_cache_from_file_system(import_file_system)
-	MediaCache.load_media_cache_from_file_system(preset_file_system)
-	
-	EditorServer.editor_settings.update_app_editor_settings()
+	EditorServer.editor_settings.update_settings_base_on_project()
 
 
 func save_project() -> void:

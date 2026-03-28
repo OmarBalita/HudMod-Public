@@ -48,6 +48,9 @@ func change_button_text(button: Button, new_text: String) -> void:
 	button.set_text(new_text)
 
 func on_button_pressed(undo_times: int) -> void:
+	
+	await get_tree().process_frame
+	
 	if path.size() == 0:
 		open_root_menu()
 		root_requested.emit()

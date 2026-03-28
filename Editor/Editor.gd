@@ -1,4 +1,4 @@
-class_name EditorControl extends FocusControl
+class_name EditorControl extends Control
 
 signal windowed()
 signal layouted()
@@ -21,14 +21,11 @@ var body_panel: PanelContainer
 
 var shortcut_node: ShortcutNode = IS.create_shortcut_node(&"editor_control_shortcut")
 
-func _init() -> void:
-	draw_focus = false
-
 func _ready() -> void:
 	
 	container = IS.create_split_container(1, true)
 	header = IS.create_margin_container(4, 4, 4, 4)
-	body = IS.create_margin_container()
+	body = IS.create_margin_container(6, 6, 6, 6)
 	
 	header_panel = HeaderPanel.new(self)
 	body_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY, {"z_index": -1, "clip_contents": true})
@@ -40,12 +37,8 @@ func _ready() -> void:
 	container.add_child(header_panel)
 	container.add_child(body_panel)
 	add_child(container)
-	
-	body_panel.mouse_entered.connect(set_is_focus.bind(true))
-	body_panel.mouse_exited.connect(set_is_focus.bind(false))
 
 func _ready_editor() -> void:
-	#add_child(shortcut_node)
 	pass
 
 

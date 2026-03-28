@@ -132,37 +132,37 @@ func _ready_draw_shortcut_node() -> void:
 
 func _ready_edit_shortcut_node() -> void:
 	# Basics
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_X, draw_edit.cut_selected)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_C, draw_edit.copy_selected)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_V, draw_edit.past_selected)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_D, draw_edit.duplicate_selected)
-	edit_shortcut_node.create_key_shortcut(0, KEY_DELETE, draw_edit.delete_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_X, draw_edit.cut_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_C, draw_edit.copy_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_V, draw_edit.past_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_D, draw_edit.duplicate_selected)
+	#edit_shortcut_node.create_key_shortcut(0, KEY_DELETE, draw_edit.delete_selected)
 	
 	# Select
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_A, draw_edit.select_all.bind(true))
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_A, draw_edit.select_all.bind(false))
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_I, draw_edit.select_invert)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_L, draw_edit.select_linked)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_N, draw_edit.select_intermittent.bind(2))
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_R, draw_edit.select_random)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_A, draw_edit.select_all.bind(true))
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_A, draw_edit.select_all.bind(false))
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_I, draw_edit.select_invert)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_L, draw_edit.select_linked)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_N, draw_edit.select_intermittent.bind(2))
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_R, draw_edit.select_random)
 	
 	# Points
-	edit_shortcut_node.create_key_shortcut(0, KEY_G, draw_edit.set_is_editing.bind(1))
-	edit_shortcut_node.create_key_shortcut(0, KEY_R, draw_edit.set_is_editing.bind(2))
-	edit_shortcut_node.create_key_shortcut(0, KEY_S, draw_edit.set_is_editing.bind(3))
-	edit_shortcut_node.create_key_shortcut(0, KEY_K, draw_edit.set_is_editing.bind(4))
-	edit_shortcut_node.create_key_shortcut(0, KEY_X, draw_edit.set_axis_editing.bind(true, false))
-	edit_shortcut_node.create_key_shortcut(0, KEY_Y, draw_edit.set_axis_editing.bind(false, true))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_G, draw_edit.set_is_editing.bind(1))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_R, draw_edit.set_is_editing.bind(2))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_S, draw_edit.set_is_editing.bind(3))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_K, draw_edit.set_is_editing.bind(4))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_X, draw_edit.set_axis_editing.bind(true, false))
+	#edit_shortcut_node.create_key_shortcut(0, KEY_Y, draw_edit.set_axis_editing.bind(false, true))
 	
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_X, draw_edit.mirror.bind(true, false))
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_Y, draw_edit.mirror.bind(false, true))
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_Z, draw_edit.mirror)
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_F, draw_edit.close_selected)
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_T, draw_edit.separate_selected)
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_D, draw_edit.desolve_selected)
-	edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_S, draw_edit.subdivide_selected)
-	edit_shortcut_node.create_key_shortcut(0, KEY_E, draw_edit.extrude_selected)
-	edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_J, draw_edit.join_selected)
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_X, draw_edit.mirror.bind(true, false))
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_Y, draw_edit.mirror.bind(false, true))
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_Z, draw_edit.mirror)
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_F, draw_edit.close_selected)
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_T, draw_edit.separate_selected)
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_D, draw_edit.desolve_selected)
+	#edit_shortcut_node.create_key_shortcut(ALT_MASK, KEY_S, draw_edit.subdivide_selected)
+	#edit_shortcut_node.create_key_shortcut(0, KEY_E, draw_edit.extrude_selected)
+	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_J, draw_edit.join_selected)
 	
 	# Drawing Settings
 	#edit_shortcut_node.create_key_shortcut(CTRL_MASK, KEY_M, open_drawing_settings)
@@ -323,7 +323,7 @@ func _ready_edit_ui() -> void:
 	proportional_edit_connected_only_button.pressed.connect(on_proportional_edit_connected_only_button_pressed)
 
 
-func _input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	super(event)
 	
 	if not is_focus: return

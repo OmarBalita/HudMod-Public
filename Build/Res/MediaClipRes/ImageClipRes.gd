@@ -18,7 +18,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 
 func init_node(layer_idx: int, frame_in: int) -> Node:
 	var sprite: Sprite2D = Sprite2D.new()
-	sprite.texture = get_self_main_texture()
+	sprite.texture = get_self_texture()
 	return sprite
 
 func _process_comps(frame: int) -> void:

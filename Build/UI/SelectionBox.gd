@@ -24,12 +24,7 @@ var select_rect: Rect2
 
 var selected_nodes: Dictionary[String, Control]
 
-
-func _init() -> void:
-	mouse_entering_calculation = false
-	rect_calculation = true
-
-func _input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	
 	super(event)
 	

@@ -51,10 +51,11 @@ func _ready() -> void:
 	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10., .0)})
 	
 	content_panel_container = PanelContainer.new()
-	content_margin_container = IS.create_margin_container(8,8,8,8, {clip_contents = false})
+	content_margin_container = IS.create_margin_container(0, 0, 0, 0, {clip_contents = false})
 	
 	IS.set_font_from_label_settings(header_button, IS.LABEL_SETTINGS_BOLD)
 	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
+	header_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	var panel_style:= StyleBoxFlat.new()
 	panel_style.border_width_top = 1

@@ -1,40 +1,58 @@
 class_name ProjectRes extends Resource
 
 signal resolution_changed(resolution: Vector2i)
-signal curr_length_changed(length: float)
 signal fps_changed(fps: int)
 
-static var default_length: int = 900 # as Frames
+signal timemarker_added(frame: int, timemarker: TimeMarkerRes)
+signal timemarker_removed(frame: int, timemarker: TimeMarkerRes)
+signal timemarker_moved(from_frame: int, to_frame: int, timemarker: TimeMarkerRes)
 
 @export var resolution: Vector2i = Vector2i(1024, 720):
 	set(val):
 		resolution = val
 		resolution_changed.emit(resolution)
-@export var curr_length: int = default_length:
-	set(val):
-		val = max(default_length, val)
-		if curr_length != val:
-			curr_length = val
-			curr_length_changed.emit(curr_length)
 @export var fps: int = 30:
 	set(val):
 		fps = val
 		delta = 1.0 / fps
 		fps_changed.emit(fps)
 
+@export var timemarkers: Dictionary[int, TimeMarkerRes]
 @export var root_clip_res: RootClipRes = RootClipRes.new()
 
 var aspect_ratio: Vector2
-var delta: float = 1.0 / fps
+var delta: float = 1. / fps
 
 func get_resolution() -> Vector2i: return Vector2i(1024, 720)
-func get_curr_length() -> int: return curr_length
 func get_fps() -> int: return fps
 func get_root_clip_res() -> RootClipRes: return root_clip_res
 
 func set_resolution(new_val: Vector2) -> void: resolution = new_val
-func set_curr_length(new_val: int) -> void: curr_length = new_val
 func set_fps(new_val: int) -> void: fps = new_val
 func set_root_clip_res(new_val: RootClipRes) -> void: root_clip_res = new_val
+
+func get_timemarkers() -> Dictionary[int, TimeMarkerRes]: return timemarkers
+func set_timemarkers(new_val: Dictionary[int, TimeMarkerRes]) -> void: timemarkers = new_val
+
+func add_timemarker(frame: int) -> void:
+	if timemarkers.has(frame): return
+	var new_one:= TimeMarkerRes.new()
+	timemarkers[frame] = new_one
+	timemarker_added.emit(frame, new_one)
+
+func remove_timemarker(frame: int) -> void:
+	if not timemarkers.has(frame): return
+	var timemarker: TimeMarkerRes = timemarkers[frame]
+	timemarkers.erase(frame)
+	timemarker_removed.emit(frame, timemarker)
+
+func move_timemarker(from_frame: int, to_frame: int) -> void:
+	if not timemarkers.has(from_frame) or timemarkers.has(to_frame): return
+	var timemarker: TimeMarkerRes = timemarkers[from_frame]
+	timemarkers.erase(timemarker)
+	timemarkers[to_frame] = timemarker
+	timemarker_moved.emit(from_frame, to_frame, timemarker)
+
+
 
 

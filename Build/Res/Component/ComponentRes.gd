@@ -14,7 +14,6 @@ var owner: MediaClipRes: set = _set_owner
 @export var enabled: bool = true:
 	set(val):
 		enabled = val
-		if owner: owner._emit_media_clip_res_updated()
 		emit_res_changed()
 @export var method_type: MethodType = 1:
 	set(val):

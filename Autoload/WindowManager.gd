@@ -156,7 +156,7 @@ class AcceptWindow extends Window:
 	
 	func emit_accept() -> void:
 		accepted.emit()
-		close_requested.emit()
+		queue_free()
 	
 	func emit_cancel() -> void:
 		canceled.emit()

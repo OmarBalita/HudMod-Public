@@ -47,6 +47,7 @@ func register_from_path(path: StringName, ids_exists: PackedStringArray, id: Str
 	if not FileAccess.file_exists(path):
 		return LOAD_ERR.LOAD_ERR_INVALID_PATH
 	var type: int = MediaServer.get_media_type_from_path(path)
+	
 	match type:
 		0: return register_image(path, ids_exists, id, thumbnail_path)
 		1: return register_video(path, ids_exists, id, thumbnail_path, waveform_path)

@@ -5,7 +5,6 @@
 [ext_resource type="Script" uid="uid://drihlu2bp73ud" path="res://Build/UI/Control/FloatController.gd" id="3_3rv65"]
 [ext_resource type="Texture2D" uid="uid://chf0k2wvk1evm" path="res://Asset/Icons/toggle-button.png" id="4_bscte"]
 [ext_resource type="Texture2D" uid="uid://dmyeub87vo8t3" path="res://Asset/Icons/toggle-button2.png" id="5_kahc7"]
-[ext_resource type="Script" uid="uid://m3nuhukc6hqg" path="res://Build/UI/Control/ColorRangeControl.gd" id="6_kahc7"]
 [ext_resource type="Script" uid="uid://b35nbh45vdmu1" path="res://Build/UI/Control/ListController.gd" id="7_ltaws"]
 [ext_resource type="Script" uid="uid://cf831w52f08q4" path="res://Build/UI/VolumeControl.gd" id="8_3nnli"]
 [ext_resource type="Script" uid="uid://lr52jy0j74xg" path="res://Build/UI/Control/CurveController.gd" id="9_3nnli"]
@@ -69,12 +68,6 @@ layout_mode = 2
 theme_override_icons/checked = ExtResource("4_bscte")
 theme_override_icons/unchecked = ExtResource("5_kahc7")
 
-[node name="ColorRangeControl" type="PanelContainer" parent="CenterContainer" unique_id=69470345]
-visible = false
-custom_minimum_size = Vector2(300, 50)
-layout_mode = 2
-script = ExtResource("6_kahc7")
-
 [node name="ListController" type="PanelContainer" parent="CenterContainer" unique_id=758520032]
 visible = false
 custom_minimum_size = Vector2(450, 300)
@@ -89,7 +82,6 @@ layout_mode = 2
 script = ExtResource("8_3nnli")
 
 [node name="CurveController" type="PanelContainer" parent="." unique_id=387419812]
-visible = false
 clip_contents = true
 layout_mode = 1
 anchors_preset = 15
@@ -101,7 +93,6 @@ script = ExtResource("9_3nnli")
 metadata/_custom_type_script = "uid://dkisgy4jpo1fo"
 
 [node name="DrawableRect" type="ColorRect" parent="." unique_id=482706036 groups=["drawable_rect"]]
-visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = -0.000588235

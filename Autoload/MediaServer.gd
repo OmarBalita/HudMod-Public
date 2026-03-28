@@ -69,12 +69,6 @@ const AUDIO_EXTENSIONS: PackedStringArray = ["wav", "ogg", "mp3", "flac", "opus"
 const MEDIA_EXTENSIONS: PackedStringArray = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS + AUDIO_EXTENSIONS
 const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS]
 
-var imported_clip_info: Dictionary[int, Dictionary] = {
-	0: {default_name = "Image", icon = preload("res://Asset/Icons/image.png"), color = Color("ffcb59"), sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
-	1: {default_name = "Video", icon = preload("res://Asset/Icons/video.png"), color = Color("7ae65c"), sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
-	2: {default_name = "Audio", icon = preload("res://Asset/Icons/audio.png"), color = Color("62c4f5"), sections = [&"Sound"], clip_panel = AudioClipPanel},
-}
-
 var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Display2DClipRes": {sections = [&"Display2D"]},
 	&"ImageClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
@@ -178,6 +172,7 @@ func load_waveform(media_path: String, thumbnail_path: String, id: String) -> vo
 	for file_name: String in DirAccess.get_files_at(waveform_port_path):
 		var waveform_image: Image = Image.load_from_file(str(waveform_port_path, file_name))
 		if waveform_image == null: continue
+		waveform_image.generate_mipmaps()
 		waveform_images.append(waveform_image)
 		waveform_textures.append(ImageTexture.create_from_image(waveform_image))
 		total_width += waveform_image.get_width()
@@ -285,7 +280,7 @@ func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Arra
 func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV, waveform_path: String, id: String) -> Array[Image]:
 	if not audio:
 		return []
-	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
+	var waveform_images: Array[Image] = generate_waveform_images(audio, draw_waveform_line_timeline, ProjectServer2.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
 	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
 	var total_width: int
 	var waveform_port_path: String = str(waveform_path, id, "/")
@@ -326,7 +321,7 @@ func get_media_default_from_and_length(media_res: MediaClipRes, default_from: in
 	
 	if media_res is ImportedClipRes:
 		
-		var fps: int = ProjectServer.fps
+		var fps: int = ProjectServer2.fps
 		var key_as_path: StringName = media_res.key_as_path
 		
 		match media_res.type:
@@ -369,7 +364,7 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 	image.fill(bg_color)
 	
 	if stream.format != AudioStreamWAV.FORMAT_16_BITS:
-		push_error("Only 16-bit format is supported")
+		printerr("Only 16-bit format is supported")
 		return image
 	
 	var length: float = stream.get_length()
@@ -404,21 +399,23 @@ func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_
 		
 		var sample_start: int = start_byte + (pixel_x * samples_per_pixel * bytes_per_sample * channels)
 		
-		var max_amplitude: float = 0.0
+		var max_amplitude: float = .0
 		
 		for s: int in samples_per_pixel / samples_step:
 			var index: int = sample_start + (s * samples_step * bytes_per_sample * channels)
 			if index + 1 >= data_size:
 				break
 			
-			var sample_value: float = abs(data.decode_s16(index) / 32768.0)
+			var sample_value: float = absf(data.decode_s16(index) / 32768.)
 			
 			if channels == 2 and index + 3 < data_size:
-				var sample_value2: float = abs(data.decode_s16(index + 2) / 32768.0)
-				sample_value = (sample_value + sample_value2) / 2.0
-			max_amplitude = max(max_amplitude, sample_value)
+				var sample_value2: float = absf(data.decode_s16(index + 2) / 32768.)
+				sample_value = (sample_value + sample_value2) / 2.
+			max_amplitude = maxf(max_amplitude, sample_value)
 		
 		draw_func.call(image, width, height, line_width, pixel_x, max_amplitude)
+	
+	image.generate_mipmaps()
 	
 	return image
 
@@ -452,45 +449,53 @@ func draw_waveform_line_timeline(image: Image, width: int, height: int, line_wid
 	)
 
 
-#func popup_shot_preset_media_res(preset_media_res: MediaClipRes) -> Image:
-	#var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(400, 200), "Preset Shot Thumbnail")
-	#var window: Window = window_margin.get_window()
-	#var viewport:= SubViewport.new()
-	#window.borderless = true
-	#window_margin.add_child(viewport)
-	#
-	#await RenderingServer.frame_post_draw
-	#var shot: Image = viewport.get_texture().get_image()
-	#
-	#window.queue_free()
-	#return shot
 
-class ClipPanel extends Panel:
+class ClipPanel extends PanelContainer:
 	
-	var owner_as_media_clip: MediaClip
+	const STYLE_SELECTED: StyleBoxFlat = preload("uid://kkroptu2c0c1")
+	
+	@onready var margin_container: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
+	@onready var control: Control = IS.create_empty_control(.0, .0)
+	@onready var box_container: BoxContainer = IS.create_box_container(4, true, {})
+	@onready var info_container: BoxContainer = IS.create_box_container(8, false, {})
+	@onready var thumbnail_rect: TextureRect
+	@onready var select_panel: Panel = IS.create_panel(STYLE_SELECTED, {modulate = Color(1., 1., 1., .75)})
+	
 	var is_graph_editor_opened: bool = false
-	var has_clips: bool
-	
-	var curr_frame_in: int
-	var curr_length: int
-	var custom_height: float
-	
-	var margin_container: MarginContainer = IS.create_margin_container(8, 8, 8, 8)
-	var box_container: BoxContainer = IS.create_box_container(0, true, {})
-	var info_container: BoxContainer = IS.create_box_container(8, false, {})
-	var thumbnail_rect: TextureRect
 	var graph_editors: Dictionary[UsableRes, Dictionary]
 	var graph_editors_expanded: Array[bool]
 	
-	func _init(_owner_as_media_clip: MediaClip) -> void:
-		set_owner_as_media_clip(_owner_as_media_clip)
+	var layer_idx: int
+	var frame: int
+	var clip_res: MediaClipRes
+	
+	var has_clips: bool
+	
+	var event_startpos: Vector2
+	
+	func _init(_clip_res: MediaClipRes) -> void:
+		clip_res = _clip_res
 	
 	func _ready() -> void:
-		has_clips = owner_as_media_clip.clip_res.has_clips()
+		update_has_clips()
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		self.set_mouse_filter(Control.MOUSE_FILTER_PASS)
 		_ready_ui()
 		_update_ui()
+	
+	func _gui_input(event: InputEvent) -> void:
+		
+		if event is InputEventMouseButton:
+			var pressed: bool = event.is_pressed()
+			if pressed:
+				event_startpos = event.position
+			else:
+				match event.button_index:
+					MOUSE_BUTTON_LEFT:
+						select(event.alt_pressed, not event.ctrl_pressed)
+					MOUSE_BUTTON_RIGHT:
+						var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
+						select(false, not event.ctrl_pressed and not layers_body.is_val_selected(layer_idx, frame))
+						layers_body.popup_options_menu(layers_body._get_menu_options() + layers_body.clips_menu)
 	
 	func _draw() -> void:
 		if has_clips:
@@ -498,15 +503,26 @@ class ClipPanel extends Panel:
 				size, size - Vector2(30.0, .0), size - Vector2(.0, 30.0),
 			]), PackedColorArray([Color(.0,.0,.0,.6)]))
 	
+	func select(delete: bool, preclear: bool) -> void:
+		var layers_select_cont: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
+		layers_select_cont.manage_val(layer_idx, frame, delete, preclear)
+		layers_select_cont.emit_selected_changed()
+	
+	func update_has_clips() -> void:
+		has_clips = clip_res.has_clips()
+	
 	func _ready_ui() -> void:
+		
+		clip_contents = true
+		control.clip_contents = true
 		info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		
 		var thumbnail: Texture2D = _get_ui_thumbnail()
 		if thumbnail:
 			thumbnail_rect = IS.create_texture_rect(thumbnail, {})
-			thumbnail_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			thumbnail_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH
 			thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			thumbnail_rect.custom_minimum_size.x = THUMBNAIL_TARGET_WIDTH
+			IS.expand(thumbnail_rect)
 			info_container.add_child(thumbnail_rect)
 		
 		var name: String = _get_ui_name()
@@ -520,28 +536,28 @@ class ClipPanel extends Panel:
 			info_container.add_child(name_label)
 		
 		box_container.add_child(info_container)
-		margin_container.add_child(box_container)
+		control.add_child(box_container)
+		margin_container.add_child(control)
 		add_child(margin_container)
+		
+		select_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		select_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(select_panel)
 	
-	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		curr_frame_in = frame_in
-		curr_length = length
+	func _update_ui() -> void:
+		pass
 	
 	func _update_ui_transform() -> void:
-		await get_tree().process_frame
-		var offset: float = max(8, EditorServer.time_line.global_position.x - global_position.x + 298.0)
-		info_container.position.x = offset
+		pass
+	
+	func _update_selection(selection: bool) -> void:
+		select_panel.visible = selection
 	
 	func _get_ui_name() -> String:
-		return owner_as_media_clip.clip_res.get_display_name()
+		return clip_res.get_display_name()
 	
 	func _get_ui_thumbnail() -> Texture2D:
-		return owner_as_media_clip.clip_res.get_thumbnail()
-	
-	func get_owner_as_media_clip() -> MediaClip:
-		return owner_as_media_clip
-	func set_owner_as_media_clip(new_val: MediaClip) -> void:
-		owner_as_media_clip = new_val
+		return clip_res.get_thumbnail()
 	
 	func open_graph_editor() -> void:
 		close_graph_editor()
@@ -549,8 +565,7 @@ class ClipPanel extends Panel:
 		margin_container.add_theme_constant_override(&"margin_left", 0)
 		margin_container.add_theme_constant_override(&"margin_right", 0)
 		
-		var media_res: MediaClipRes = owner_as_media_clip.clip_res
-		var comps: Dictionary[String, Array] = media_res.components
+		var comps: Dictionary[String, Array] = clip_res.components
 		
 		var index: int
 		
@@ -565,15 +580,35 @@ class ClipPanel extends Panel:
 					var usable_res_port: Dictionary[StringName, Category] = graph_editors.get_or_add(usable_res, {} as Dictionary[StringName, Category])
 					
 					for prop_key: StringName in animated_props:
+						
 						var anim_res: AnimationRes = animated_props[prop_key]
 						
-						var graph_category:= IS.create_category(true, str(comp_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.0), false)
+						var graph_category:= IS.create_category(true, str(comp_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.), false)
 						var graph_editor:= CurveController.new()
 						
+						var minmax_vals: Vector2 = anim_res.find_minmax_vals()
+						var length: float = minmax_vals.y - minmax_vals.x
+						
+						if length in [.0, -INF, INF]:
+							minmax_vals.x = -10.
+							minmax_vals.y = 10.
+							length = minmax_vals.y - minmax_vals.x
+						
+						var length_square: float = length * 2.
+						
+						graph_editor.custom_minimum_size.y = 200.
 						graph_editor.curves_profiles = anim_res.profiles
-						graph_editor.min_domain = media_res.from
-						graph_editor.max_domain = media_res.from + media_res.length
-						graph_editor.keys_editing.connect(owner_as_media_clip.focus_panel.update_displayed_keys.bind(true))
+						graph_editor.min_domain = clip_res.from
+						graph_editor.max_domain = clip_res.from + clip_res.length
+						graph_editor.min_val = minmax_vals.x
+						graph_editor.max_val = minmax_vals.y
+						graph_editor.zoom_max = length_square
+						graph_editor.draw_val_step = maxi(1, snappedi(length_square / 10, 1))
+						graph_editor.draw_y_small_step = graph_editor.draw_val_step
+						graph_editor.draw_y_big_step = graph_editor.draw_y_small_step * 2
+						
+						graph_editor.mouse_entered.connect(_on_graph_editor_mouse_entered.bind(graph_editor))
+						graph_editor.mouse_exited.connect(_on_graph_editor_mouse_exited.bind(graph_editor))
 						
 						graph_category.add_content(graph_editor)
 						box_container.add_child(graph_category)
@@ -584,20 +619,19 @@ class ClipPanel extends Panel:
 						IS.expand(graph_editor, true, true)
 						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 						graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
-						graph_category.expand_changed.connect(update_custom_height)
+						graph_category.expand_changed.connect(_on_graph_category_expand_changed)
 						
 						usable_res_port[prop_key] = graph_category
 						
 						index += 1
 		
 		is_graph_editor_opened = true
-		update_custom_height()
 		
 		EditorServer.frame_changed.connect(_on_editor_server_frame_changed)
 	
 	func close_graph_editor() -> void:
-		margin_container.add_theme_constant_override(&"margin_left", 8)
-		margin_container.add_theme_constant_override(&"margin_right", 8)
+		margin_container.add_theme_constant_override(&"margin_left", 4)
+		margin_container.add_theme_constant_override(&"margin_right", 4)
 		
 		for usable_res: UsableRes in graph_editors:
 			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
@@ -606,42 +640,29 @@ class ClipPanel extends Panel:
 		
 		graph_editors.clear()
 		is_graph_editor_opened = false
-		update_custom_height(false)
 		_on_editor_server_frame_changed(EditorServer.frame)
 		
 		EditorServer.frame_changed.disconnect(_on_editor_server_frame_changed)
 	
-	func update_custom_height(update_graph_editors_expanded: bool = true) -> void:
-		if update_graph_editors_expanded:
-			graph_editors_expanded.clear()
+	func _on_graph_editor_mouse_entered(graph_editor: CurveController) -> void:
+		EditorServer.graph_editors_focused.append(graph_editor)
+	
+	func _on_graph_editor_mouse_exited(graph_editor: CurveController) -> void:
+		EditorServer.graph_editors_focused.erase(graph_editor)
+	
+	func _on_graph_category_expand_changed() -> void:
+		var timeline: TimeLine2 = EditorServer.time_line2
+		var layer_res: LayerRes = timeline.opened_clip_res.get_layer(layer_idx)
+		var layer: Layer2 = timeline.get_layer(layer_res)
 		
-		custom_height = ProjectServer.get_layer_customization(owner_as_media_clip.layer_index).size + 16
-		var any_graph_opened: bool
+		for frame: int in layer.clips:
+			layer.get_clip(frame).control.size.y = layer_res.custom_size
 		
-		for usable_res: UsableRes in graph_editors:
-			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
-			
-			for prop_key: StringName in usable_res_port:
-				var category: Category = usable_res_port[prop_key]
-				var category_is_expanded: bool = category.is_expanded
-				custom_height += 20.0
-				if category_is_expanded:
-					category.size_flags_vertical = Control.SIZE_EXPAND_FILL
-					custom_height += 250.0
-					any_graph_opened = true
-				else: category.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-				if update_graph_editors_expanded:
-					graph_editors_expanded.append(category_is_expanded)
-		
-		if any_graph_opened: info_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		else: info_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		
-		owner_as_media_clip.layer.update()
 		await get_tree().process_frame
-		owner_as_media_clip.focus_panel.update_displayed_keys(false)
+		timeline.get_layer(layer_res).update_size()
 	
 	func _on_editor_server_frame_changed(new_frame: int) -> void:
-		var new_local_frame: int = new_frame - owner_as_media_clip.clip_pos + owner_as_media_clip.clip_res.from
+		var new_local_frame: int = new_frame - clip_res.clip_pos + clip_res.from
 		for usable_res: UsableRes in graph_editors:
 			var usable_res_port: Dictionary[StringName, Category] = graph_editors[usable_res]
 			for prop_key: StringName in usable_res_port:
@@ -668,20 +689,15 @@ class VideoClipPanel extends ClipPanel:
 		super()
 		thumbnail_rect.modulate.a = .9
 	
-	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		var clip_res: VideoClipRes = owner_as_media_clip.clip_res
-		if frame_in == -1: frame_in = clip_res.from
-		if length == -1: length = clip_res.length
-		super(frame_in, length)
+	func _update_ui() -> void:
 		
-		waveform_box_container.update_ui(clip_res.video, frame_in, length)
+		waveform_box_container.update_ui(clip_res.video, clip_res.from, clip_res.length)
 		_update_ui_transform()
 	
 	func _update_ui_transform() -> void:
-		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(size, clip_res.length)
 		waveform_box_container.position.x = waveform_transform.x
 		waveform_box_container.size.x = waveform_transform.y
-		#waveform_box_container.size.x = waveform_transform.y / owner_as_media_clip.clip_res.object_res.pitch_scale
 		super()
 
 class AudioClipPanel extends ClipPanel:
@@ -697,20 +713,17 @@ class AudioClipPanel extends ClipPanel:
 		super()
 	
 	func _get_ui_thumbnail() -> Texture2D:
-		var thumb: Texture2D = owner_as_media_clip.clip_res.get_thumbnail()
+		var thumb: Texture2D = clip_res.get_thumbnail()
 		return thumb if thumb == IS.TEXTURE_X_MARK else null
 	
-	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		var clip_res: MediaClipRes = owner_as_media_clip.clip_res
-		if frame_in == -1: frame_in = clip_res.from
-		if length == -1: length = clip_res.length
-		super(frame_in, length)
+	func _update_ui() -> void:
+		var clip_res: MediaClipRes = clip_res
 		
-		waveform_box_container.update_ui(clip_res.stream, frame_in, length)
+		waveform_box_container.update_ui(clip_res.stream, clip_res.from, clip_res.length)
 		_update_ui_transform()
 	
 	func _update_ui_transform() -> void:
-		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(size, clip_res.length)
 		waveform_box_container.position.x = waveform_transform.x
 		waveform_box_container.size.x = waveform_transform.y
 		super()
@@ -731,24 +744,29 @@ class Audio2DClipPanel extends ObjectClipPanel:
 		add_child(waveform_box_container)
 		super()
 	
-	func _update_ui(frame_in: int = -1, length: int = -1) -> void:
-		var clip_res: Audio2DClipRes = owner_as_media_clip.clip_res
-		if frame_in == -1: frame_in = clip_res.from
-		if length == -1: length = clip_res.length
-		super(frame_in, length)
-		
+	func _update_ui() -> void:
 		var audio_key_as_path: String = clip_res.stream
 		
-		waveform_box_container.update_ui(audio_key_as_path, frame_in, length)
+		waveform_box_container.update_ui(audio_key_as_path, clip_res.from, clip_res.length)
 		_update_ui_transform()
 	
 	func _update_ui_transform() -> void:
-		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(owner_as_media_clip.size, curr_length)
+		var waveform_transform: Vector2 = waveform_box_container.calculate_transform(size, clip_res.length)
 		waveform_box_container.position.x = waveform_transform.x
-		waveform_box_container.size.x = waveform_transform.y # / owner_as_media_clip.clip_res.pitch_scale
+		waveform_box_container.size.x = waveform_transform.y
 		super()
 
 class WaveformBoxContainer extends BoxContainer:
+	
+	static var shader_material: ShaderMaterial = _init_shader_material()
+	
+	static func _init_shader_material() -> ShaderMaterial:
+		var sm:= ShaderMaterial.new()
+		sm.shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
+		return sm
+	
+	static func set_pixelate_scale(scale: float = .0) -> void:
+		shader_material.set_shader_parameter(&"pixelate_scale", scale)
 	
 	var texture_rects: Dictionary[int, TextureRect]
 	
@@ -757,6 +775,7 @@ class WaveformBoxContainer extends BoxContainer:
 	var curr_waveform_end_index: Vector2i
 	
 	func _init() -> void:
+		material = shader_material
 		IS.describe_box_container(self, 0, false)
 	
 	func update_ui(audio_key_as_path: String, frame_in: int, length: int) -> void:
@@ -769,6 +788,10 @@ class WaveformBoxContainer extends BoxContainer:
 		
 		var waveform_textures_info: Dictionary = MediaServer.get_timeline_waveform_textures(audio_key_as_path)
 		var waveform_textures: Array = waveform_textures_info.textures
+		
+		if waveform_textures.is_empty():
+			return
+		
 		var ranged_waveform_textures: Array = waveform_textures.slice(waveform_start_index.x, waveform_end_index.x)
 		
 		for index: int in texture_rects.keys():
@@ -806,6 +829,7 @@ class WaveformBoxContainer extends BoxContainer:
 		for time: int in texture_rects.size():
 			var index: int = texture_rects.keys()[time]
 			var texture_rect: TextureRect = texture_rects[index]
+			texture_rect.use_parent_material = true
 			move_child(texture_rect, time)
 		
 		curr_waveform_textures_total_width = curr_total_width

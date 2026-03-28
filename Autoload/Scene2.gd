@@ -16,7 +16,6 @@ func _ready_scene() -> void:
 	start_scene()
 	# Connections
 	var timeline: TimeLine = EditorServer.time_line
-	ProjectServer.layer_property_changed.connect(on_layer_property_changed)
 	timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
 	timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
 	timeline.timeline_played.connect(try_play)
@@ -25,14 +24,14 @@ func _ready_scene() -> void:
 func start_scene() -> void:
 	viewport = EditorServer.player.viewport
 	root = Node.new()
-	curr_objects[ProjectServer.project_res.root_clip_res] = root
+	curr_objects[ProjectServer2.project_res.root_clip_res] = root
 	camera = Camera2D.new()
 	root.add_child(camera)
 	viewport.add_child(root)
 	update_viewport()
 
 func update_viewport() -> void:
-	viewport.size = ProjectServer.project_res.resolution * EditorServer.editor_settings.viewport_resolution_ratio
+	viewport.size = ProjectServer2.project_res.resolution * EditorServer.editor_settings.viewport_resolution_ratio
 
 func get_curr_objects() -> Dictionary[MediaClipRes, Node]:
 	return curr_objects
@@ -73,7 +72,7 @@ func instance_video_viewer(parent_res: MediaClipRes, imported_res: ImportedClipR
 func instance_audio_stream_player(parent_res: MediaClipRes, imported_res: ImportedClipRes, layer_index: int, frame_in: int, root_layer_index: int) -> AudioStreamPlayer:
 	var audio_player:= AudioStreamPlayer.new()
 	audio_player.stream = MediaCache.get_audio(imported_res.key_as_path)
-	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(root_layer_index)
+	audio_player.bus = ProjectServer2.get_bus_name_from_layer_index(root_layer_index)
 	instance_object(parent_res, imported_res, audio_player, layer_index, frame_in, root_layer_index)
 	try_play()
 	return audio_player
@@ -139,7 +138,7 @@ func try_play_func(media_res: MediaClipRes, object: Node) -> void:
 	if object is AudioStreamPlayer or object is AudioStreamPlayer2D:
 		if object.playing:
 			return
-		object.play((local_frame + start_from) / float(ProjectServer.fps))
+		object.play((local_frame + start_from) / float(ProjectServer2.fps))
 
 func stop() -> void:
 	loop_objects(stop_func)

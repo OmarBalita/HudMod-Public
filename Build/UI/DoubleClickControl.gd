@@ -9,7 +9,8 @@ enum ButtonIndeces {MOUSE_BUTTON_LEFT = 1, MOUSE_BUTTON_RIGHT = 2, MOUSE_BUTTON_
 
 var last_click_time: float = 0.0
 
-func _input(event) -> void:
+func _gui_input(event: InputEvent) -> void:
+	
 	super(event)
 	
 	if is_focus and event is InputEventMouseButton:

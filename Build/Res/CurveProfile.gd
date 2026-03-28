@@ -19,7 +19,7 @@ static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringN
 	CurveKey.InterpolationMode.INTERPOLATION_MODE_BOUNCE: &"_interpolate_bounce"
 }
 
-@export var keys: Dictionary[float, CurveKey]:
+@export var keys: Dictionary[int, CurveKey]:
 	set(val):
 		keys = val
 		update_profile()
@@ -30,7 +30,7 @@ static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringN
 		if val: sample_func = sample_baked
 		else: sample_func = sample
 
-@export var baked: Dictionary[float, float]
+@export var baked: Dictionary[int, float]
 
 @export_group(&"Ctrlr Settings")
 @export var ctrlr_min_val: float = .0
@@ -105,23 +105,23 @@ func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_c
 	self.res_changed.connect(
 		func() -> void:
 			for res: CurveProfile in ress_shared:
-				var keys_duplicated: Dictionary[float, CurveKey] = duplicate_keys()
+				var keys_duplicated: Dictionary[int, CurveKey] = duplicate_keys()
 				res.keys = keys_duplicated
 	)
 
 
-static func new_curve_profile(_keys: Dictionary[float, CurveKey], _bakeable: bool = false) -> CurveProfile:
-	#_keys: Dictionary[float, CurveKey], _bakeable: bool = false
+static func new_curve_profile(_keys: Dictionary[int, CurveKey], _bakeable: bool = false) -> CurveProfile:
+	#_keys: Dictionary[int, CurveKey], _bakeable: bool = false
 	var curve_profile:= CurveProfile.new()
 	curve_profile.keys = _keys
 	curve_profile.bakeable = _bakeable
 	curve_profile.update_profile()
 	return curve_profile
 
-func get_key(x: float) -> CurveKey:
+func get_key(x: int) -> CurveKey:
 	return keys.get(x)
 
-func add_key(x: float, curve_key: CurveKey) -> void:
+func add_key(x: int, curve_key: CurveKey) -> void:
 	if keys.has(x):
 		var same_curve_key: CurveKey = keys[x]
 		same_curve_key.value = curve_key.value
@@ -130,42 +130,39 @@ func add_key(x: float, curve_key: CurveKey) -> void:
 	key_added.emit(x, curve_key)
 	update_profile()
 
-func remove_key(x: float) -> void:
+func remove_key(x: int) -> void:
 	keys.erase(x)
 	key_removed.emit(x)
 	update_profile()
 
-func sample(x: float) -> float:
+func sample(x: int) -> float:
 	if not keys: return .0
-	var min_xpos: float = keys_keys[0]
-	var max_xpos: float = keys_keys[-1]
+	var min_xpos: int = keys_keys[0]
+	var max_xpos: int = keys_keys[-1]
 	if x < min_xpos:
 		return get_key(min_xpos).value
 	elif x >= max_xpos:
 		return get_key(max_xpos).value
 	else:
-		var domain: Vector2 = _find_domain(x)
+		var domain: Vector2i = _find_domain(x)
 		var key_a: CurveKey = get_key(domain.x)
 		var key_b: CurveKey = get_key(domain.y)
-		var t: float = (x - domain.x) / (domain.y - domain.x)
+		var t: float = (x - domain.x) / float(domain.y - domain.x)
 		return key_a.interpolation_func.call(domain.x, domain.y, key_a, key_b, t)
 
-func sample_baked(x: float) -> float:
+func sample_baked(x: int) -> float:
 	return baked[x]
 
-func _find_domain(x: float) -> Vector2:
+func _find_domain(x: int) -> Vector2i:
 	var index: int = _find_domain_index(x)
-	# نرجع Vector2 يحتوي على (زمن_البداية، زمن_النهاية)
-	return Vector2(keys_keys[index], keys_keys[index + 1])
+	return Vector2i(keys_keys[index], keys_keys[index + 1])
 
-func _find_domain_index(x: float) -> int:
-	# مصفوفة مفاتيح الزمن
+func _find_domain_index(x: int) -> int:
 	var low: int = 0
-	var high: int = keys_keys.size() - 2 # نبحث عن النقطة "أ" بحيث تكون "ب" هي التالية لها
+	var high: int = keys_keys.size() - 2
 	
 	var best_index: int = 0
 	
-	# الـ Binary Search لإيجاد الفاصل الزمني (Interval) الصحيح
 	while low <= high:
 		var mid: int = (low + high) / 2
 		if keys_keys[mid] <= x:
@@ -202,10 +199,10 @@ func _solve_for_t(target_x: float, p0x: float, p1x: float, p2x: float, p3x: floa
 	
 	return t
 
-func _interpolate_constant(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_constant(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return a.value
 
-func _interpolate_linear(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_linear(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return lerp(a.value, b.value, t)
 
 func _interpolate_cubic_bezier_curve(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
@@ -218,48 +215,48 @@ func _interpolate_cubic_bezier_curve(time_a: float, time_b: float, a: CurveKey, 
 	# t = t_linear
 	# تذكر: t هو الزمن النسبي الذي تريده (مثلاً 0.5)
 	# نحن بحاجة للبحث عن t_bezier التي تجعل x مساوياً للزمن المطلوب
-	var target_x: float = lerp(time_a, time_b, t)
+	var target_x: float = lerpf(time_a, time_b, t)
 	var t_bezier: float = _solve_for_t(target_x, p0.x, p1.x, p2.x, p3.x)
 	
 	# الآن نستخدم t_bezier للحصول على الـ y الصحيح
 	return bezier_interpolate(p0.y, p1.y, p2.y, p3.y, t_bezier)
 
-func _interpolate_ease_in(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_ease_in(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return lerp(a.value, b.value, t * t)
 
-func _interpolate_ease_out(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_ease_out(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var t_ratio: float = 1. - t
 	var u:= 1. - t_ratio * t_ratio
 	return lerp(a.value, b.value, u)
 
-func _interpolate_ease_in_out(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_ease_in_out(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var u: float
 	if t < 0.5: u = 2.0 * t * t
 	else: u = 1.0 - pow(-2.0 * t + 2.0, 2.0) * 0.5
 	return lerp(a.value, b.value, u)
 
-func _interpolate_expo_in_out(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_expo_in_out(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var u: float
 	if t < 0.5: u = pow(2.0, 20.0 * t - 10.0) * 0.5
 	else: u = (2.0 - pow(2.0, -20.0 * t + 10.0)) * 0.5
 	return lerp(a.value, b.value, u)
 
-func _interpolate_circ_in_out(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_circ_in_out(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var u: float
 	if t < 0.5: u = (1.0 - sqrt(1.0 - pow(2.0 * t, 2.0))) * 0.5
 	else: u = (sqrt(1.0 - pow(-2.0 * t + 2.0, 2.0)) + 1.0) * 0.5
 	return lerp(a.value, b.value, u)
 
-func _interpolate_cubic(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_cubic(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return lerp(a.value, b.value, t * t * t)
 
-func _interpolate_quart(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_quart(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return lerp(a.value, b.value, t * t * t * t)
 
-func _interpolate_quint(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_quint(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	return lerp(a.value, b.value, pow(t, 5))
 
-func _interpolate_elastic(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_elastic(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var u: float
 	if t == 0.0:
 		u = 0.0
@@ -269,19 +266,19 @@ func _interpolate_elastic(time_a: float, time_b: float, a: CurveKey, b: CurveKey
 		u = pow(2.0, -10.0 * t) * sin((10.0 * t - 0.75) * TAU / 3.0) + 1.0
 	return lerp(a.value, b.value, u)
 
-func _interpolate_bounce(time_a: float, time_b: float, a: CurveKey, b: CurveKey, t: float) -> float:
+func _interpolate_bounce(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
 	var u: float
-	if t < 1.0 / 2.75:
+	if t < 1. / 2.75:
 		u = 7.5625 * t * t
-	elif t < 2.0 / 2.75:
+	elif t < 2. / 2.75:
 		t -= 1.5 / 2.75
-		u = 7.5625 * t * t + 0.75
+		u = 7.5625 * t * t + .75
 	elif t < 2.5 / 2.75:
 		t -= 2.25 / 2.75
-		u = 7.5625 * t * t + 0.9375
+		u = 7.5625 * t * t + .9375
 	else:
 		t -= 2.625 / 2.75
-		u = 7.5625 * t * t + 0.984375
+		u = 7.5625 * t * t + .984375
 	return lerp(a.value, b.value, u)
 
 func update_profile() -> void:
@@ -291,12 +288,12 @@ func update_profile() -> void:
 	var left_dir: Vector2 = Vector2.LEFT
 	
 	for index: int in keys.size():
-		var key: float = keys_keys[index]
+		var key: int = keys_keys[index]
 		var curve_key: CurveKey = keys[key]
 		var coord: Vector2 = Vector2(key, curve_key.value)
 		var right_dir: Vector2
 		if index < keys_keys.size() - 1:
-			var after_key: float = keys_keys[index + 1]
+			var after_key: int = keys_keys[index + 1]
 			right_dir = Vector2(after_key, keys[after_key].value) - coord
 		else:
 			right_dir = Vector2.RIGHT
@@ -322,13 +319,13 @@ func create_image_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(image)
 
 func duplicate_profile() -> CurveProfile:
-	var new_keys: Dictionary[float, CurveKey] = duplicate_keys()
+	var new_keys: Dictionary[int, CurveKey] = duplicate_keys()
 	var new_profile: CurveProfile = CurveProfile.new_curve_profile(new_keys, bakeable)
 	return new_profile
 
-func duplicate_keys() -> Dictionary[float, CurveKey]:
-	var new_keys: Dictionary[float, CurveKey] = keys.duplicate()
-	for key: float in keys:
+func duplicate_keys() -> Dictionary[int, CurveKey]:
+	var new_keys: Dictionary[int, CurveKey] = keys.duplicate()
+	for key: int in keys:
 		var a: CurveKey = keys[key]
 		var b: CurveKey = CurveKey.new_curve_key(a.value, a.left_control, a.right_control, a.control_mode, a.interpolation_mode)
 		new_keys[key] = b

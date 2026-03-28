@@ -18,12 +18,9 @@ func _ready() -> void:
 	body.add_child(graph_edit)
 	IS.set_base_settings(graph_edit)
 	# Shortcuts
-	shortcut_node.create_key_shortcut(SHIFT_MASK, KEY_A, open_graph_node_options)
+	#shortcut_node.create_key_shortcut(SHIFT_MASK, KEY_A, open_graph_node_options)
 
-func _input(event: InputEvent) -> void:
-	super(event)
-	if not is_focus:
-		return
+func _gui_input(event: InputEvent) -> void:
 	
 	if picked_graph_node:
 		if event is InputEventMouseMotion:

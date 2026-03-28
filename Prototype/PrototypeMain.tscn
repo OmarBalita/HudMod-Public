@@ -38,6 +38,7 @@
 [ext_resource type="Texture2D" uid="uid://y14al8cbxy4t" path="res://Asset/Icons/visible.png" id="32_t8vbk"]
 [ext_resource type="Script" uid="uid://d2t1uchaqp6v3" path="res://Build/Functionality/TweenerComponent.gd" id="36_t7s5e"]
 [ext_resource type="Script" uid="uid://uupil02s5ia4" path="res://Editor/ColorCorrection/ColorScopeEditor.gd" id="37_t8vbk"]
+[ext_resource type="Script" uid="uid://dqqk0jf0ddsai" path="res://Editor/TimeLine/TimeLine2.gd" id="38_bn3x6"]
 
 [sub_resource type="GDScript" id="GDScript_sruw6"]
 script/source = "extends HBoxContainer
@@ -59,7 +60,8 @@ editors = {
 &"media_explorer": NodePath("EditorsFolder/MediaExplorer"),
 &"player": NodePath("EditorsFolder/Player"),
 &"properties": NodePath("EditorsFolder/Properties"),
-&"time_line": NodePath("EditorsFolder/TimeLine")
+&"time_line": NodePath("EditorsFolder/TimeLine"),
+&"time_line2": NodePath("EditorsFolder/TimeLine2")
 }
 preset_layouts = Array[ExtResource("2_x7e6b")]([ExtResource("2_s30d6"), ExtResource("5_cd0xf"), ExtResource("4_t7s5e")])
 
@@ -276,8 +278,21 @@ size_flags_horizontal = 3
 script = ExtResource("37_t8vbk")
 metadata/_custom_type_script = "uid://uupil02s5ia4"
 
+[node name="TimeLine2" type="Control" parent="EditorsFolder" unique_id=1222751837 groups=["time_line2"]]
+custom_minimum_size = Vector2(300, 300)
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("38_bn3x6")
+metadata/_custom_type_script = "uid://dqqk0jf0ddsai"
+
 [node name="TweenerComponent" type="Node" parent="." unique_id=1035604091 groups=["tweener"]]
 unique_name_in_owner = true
 script = ExtResource("36_t7s5e")
 transType = 7
 metadata/_custom_type_script = "uid://d2t1uchaqp6v3"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=7623207]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

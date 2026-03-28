@@ -13,22 +13,32 @@ signal shader_material_changed()
 
 var shader_code: String:
 	set(val):
+		await RenderingServer.frame_post_draw
 		shader_code = val
-		await EditorServer.get_tree().process_frame
 		
 		if shader_code.is_empty():
 			shader_material = null
 		else:
 			shader_code_compiled_successfully.emit()
-			var new_shader_material:= ShaderMaterial.new()
+			var new_shader_mat:= ShaderMaterial.new()
 			var new_shader:= Shader.new()
 			new_shader.set_code(shader_code)
-			new_shader_material.set_shader(new_shader)
-			shader_material = new_shader_material
+			new_shader_mat.set_shader(new_shader)
+			
+			shader_material = new_shader_mat
+			
+			if ppsm.is_empty():
+				node_shader_material = new_shader_mat
+			else:
+				node_shader_material = null
+				ppsm.insert(0, new_shader_mat)
+			
+			if curr_node:
+				curr_node.texture = get_self_texture()
 
 var shader_material: ShaderMaterial: set = _set_shader_material
-
-var ppsm: Array[ShaderMaterial] # Ping-Pong ShaderMaterials.
+var node_shader_material: ShaderMaterial: set = _set_node_shader_material
+var ppsm: Array[ShaderMaterial]
 var ppr: PingPongRenderer
 
 var mat_process_id: int
@@ -51,12 +61,16 @@ func _set_shader_material(val: ShaderMaterial) -> void:
 					comp_res._ready_shader()
 	
 	shared_data_clear()
-	if curr_node:
-		await curr_node.get_tree().process_frame
-		curr_node.material = shader_material
-		process_here()
 	
 	shader_material_changed.emit()
+
+func _set_node_shader_material(val: ShaderMaterial) -> void:
+	node_shader_material = val
+	
+	if curr_node:
+		await curr_node.get_tree().process_frame
+		curr_node.material = node_shader_material
+		process_here()
 
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
@@ -86,9 +100,8 @@ func init_node(layer_idx: int, frame_in: int) -> Node:
 	return Node2D.new()
 
 func enter(node: Node) -> void:
-	curr_node.material = shader_material
-	if not ppsm.is_empty():
-		ppr = RenderFarm.pingpong_renderer_init(self)
+	curr_node.material = node_shader_material
+	if ppsm: ppr = RenderFarm.pingpong_renderer_init(self)
 	super(node)
 
 func _process_comps(frame: int) -> void:
@@ -99,20 +112,22 @@ func _process_comps(frame: int) -> void:
 	super(frame)
 
 func _after_process_comps(frame: int) -> void:
-	if shader_material:
-		await process_material(frame)
+	await process_material(frame)
 	super(frame)
 
 func exit(node: Node) -> void:
 	super(node)
 	if ppr: RenderFarm.pingpong_renderer_free(self)
 
-
 func process_material(frame: int) -> void:
 	var frame_f: float = float(frame)
 	
 	mat_process_id += 1
 	var curr_mat_process_id: int = mat_process_id
+	
+	#if mat_process_id == curr_mat_process_id:
+	if shader_material:
+		shader_material.set_shader_parameter(&"time", frame_f)
 	
 	if ppsm:
 		for sm: ShaderMaterial in ppsm:
@@ -126,16 +141,12 @@ func process_material(frame: int) -> void:
 			if mat_process_id != curr_mat_process_id:
 				return
 		await process_passes_materials(render_scale)
-	
-	if mat_process_id == curr_mat_process_id:
-		shader_material.set_shader_parameter(&"time", frame_f)
 
 func process_passes_materials(render_scale: float) -> void:
-	var output: Texture2D = await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)
-	if output:
-		curr_node.texture = output
+	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)
 
 func get_self_main_texture() -> Texture2D: return null
+func get_self_texture() -> Texture2D: return ppr.get_output_texture() if ppr else get_self_main_texture()
 
 func build_shader_pipeline() -> void:
 	
@@ -193,6 +204,7 @@ func build_shader_pipeline() -> void:
 		vertex_section
 	)
 
+
 func _get_shader_header() -> String:
 	return "shader_type canvas_item;\n#include \"res://Build/Shader/Global.gdshaderinc\"\n"
 
@@ -221,7 +233,6 @@ func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
 
 
-
 static func _format_shader_snip(shader_snip: String, params_names_list: Dictionary[String, String], used_names: PackedStringArray, is_global: bool) -> String:
 	var gen_id_func: Callable = ProjectServer.generate_new_id.bind(used_names, 12, true)
 	var shader_placeholders: PackedStringArray = StringHelper.extract_placeholders(shader_snip)
@@ -240,10 +251,8 @@ static func _format_shader_snip(shader_snip: String, params_names_list: Dictiona
 	
 	return shader_snip.format(format_values)
 
-
-func _emit_media_clip_res_updated(_from: int = -1, _length: int = -1) -> void:
+func emit_res_changed() -> void:
 	build_shader_pipeline()
-	super(_from, _length)
-
+	super()
 
 

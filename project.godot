@@ -35,9 +35,11 @@ MediaCache="*res://Autoload/MediaCache.gd"
 EditorServer="*res://Autoload/EditorServer.gd"
 RenderFarm="*uid://c5f64ojkvdmyt"
 ProjectServer="*res://Autoload/ProjectServer.gd"
+ProjectServer2="*uid://drg3giwe03g6n"
 GlobalServer="*res://Autoload/GlobalServer.gd"
 MediaServer="*res://Autoload/MediaServer.gd"
 Scene2="*res://Autoload/Scene2.gd"
+PlaybackServer="*uid://brc2dsofjh0ds"
 WindowManager="*res://Autoload/WindowManager.gd"
 
 [display]
@@ -80,6 +82,7 @@ drawable_rect=""
 color_correction=""
 color_scope=""
 tweener=""
+time_line2=""
 
 [input]
 

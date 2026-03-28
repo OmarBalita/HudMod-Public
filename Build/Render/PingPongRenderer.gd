@@ -99,3 +99,7 @@ func request_process_output(input_tex: Texture2D, shader_materials: Array[Shader
 	
 	return viewport_c.get_texture()
 
+func get_output_texture() -> ViewportTexture:
+	return viewport_c.get_texture()
+
+

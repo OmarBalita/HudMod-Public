@@ -27,22 +27,22 @@ var keys_info: Array[Dictionary] = [
 	set(val):
 		curves_profiles = val
 		for index: int in curves_profiles.size():
-			add_selectable_object(index, {})
+			add_selectable_port(index, {})
 			
 			var profile: CurveProfile = curves_profiles[index]
 			
-			var keys: Dictionary[float, CurveKey] = profile.keys
+			var keys: Dictionary[int, CurveKey] = profile.keys
 			var values: Array[float]
 			
-			for key: float in keys:
+			for key: int in keys:
 				var curve_key: CurveKey = keys[key]
 				values.append(curve_key.value)
 				_on_profile_key_added(index, key, curve_key)
 			
-			profile.key_added.connect(func(x: float, curve_key: CurveKey) -> void:
+			profile.key_added.connect(func(x: int, curve_key: CurveKey) -> void:
 				_on_profile_key_added(index, x, curve_key)
 			)
-			profile.key_removed.connect(func(x: float) -> void:
+			profile.key_removed.connect(func(x: int) -> void:
 				_on_profile_key_removed(index, x)
 			)
 
@@ -99,19 +99,19 @@ func set_cursor_pos(new_val: int) -> void:
 	cursor_pos = new_val
 	queue_redraw()
 
-func format_x(x: float) -> float:
-	return clamp(snapped(x, domain_step), min_domain, max_domain)
+func format_x(x: int) -> int:
+	return clamp(x, min_domain, max_domain)
 
-func keys_get(keys_index: int) -> Dictionary[float, CurveKey]:
+func keys_get(keys_index: int) -> Dictionary[int, CurveKey]:
 	return curves_profiles[keys_index].keys
 
-func keys_set(keys_index: int, keys: Dictionary[float, CurveKey]) -> void:
+func keys_set(keys_index: int, keys: Dictionary[int, CurveKey]) -> void:
 	curves_profiles[keys_index].keys = keys
 
-func keys_has(keys_index: int, x: float) -> bool:
+func keys_has(keys_index: int, x: int) -> bool:
 	return curves_profiles[keys_index].keys.has(x)
 
-func keys_add(keys_index: int, x: float, curve_key: CurveKey, sort_keys: bool, redraw: bool = true) -> void:
+func keys_add(keys_index: int, x: int, curve_key: CurveKey, sort_keys: bool, redraw: bool = true) -> void:
 	if keys_index < 0: return
 	x = format_x(x)
 	curve_key.value = curve_key.value
@@ -121,29 +121,29 @@ func keys_add(keys_index: int, x: float, curve_key: CurveKey, sort_keys: bool, r
 	if sort_keys:
 		curves_profiles[keys_index].update_profile()
 		keys_editing.emit()
-	add_selectable_point(keys_index, x, curve_key, get_display_pos_from_coord(Vector2(x, curve_key.value)))
+	add_selectable_val(keys_index, x, curve_key)
 	if redraw:
 		queue_redraw()
 
-func keys_delete(keys_index: int, x: float, deselect_key: bool, sort_keys: bool = false, redraw: bool = true) -> void:
+func keys_delete(keys_index: int, x: int, deselect_key: bool, sort_keys: bool = false, redraw: bool = true) -> void:
 	if keys_index < 0: return
 	var keys:= keys_get(keys_index)
 	keys.erase(x)
 	if sort_keys:
 		curves_profiles[keys_index].update_profile()
 		keys_editing.emit()
-	delete_selectable_point(keys_index, x)
+	delete_selectable_val(keys_index, x)
 	if deselect_key:
-		deselect_point(keys_index, x)
+		deselect_val(keys_index, x)
 	if redraw:
 		queue_redraw()
 
-func keys_move(keys_index: int, x_from: float, to: Vector2, sort_keys: bool = true, redraw: bool = true) -> bool:
+func keys_move(keys_index: int, x_from: int, to: Vector2, sort_keys: bool = true, redraw: bool = true) -> bool:
 	if keys_index < 0: return false
 	x_from = format_x(x_from)
 	to.x = format_x(to.x)
-	var same_x:= x_from == to.x
-	var has_key:= keys_has(keys_index, to.x)
+	var same_x: bool = x_from == to.x
+	var has_key: bool = keys_has(keys_index, to.x)
 	var can_move_to: bool = (not same_x and not has_key) or (same_x and has_key) or (to.x in [min_domain, max_domain])
 	if can_move_to:
 		var curve_key: CurveKey = keys_get(keys_index)[x_from]
@@ -152,7 +152,7 @@ func keys_move(keys_index: int, x_from: float, to: Vector2, sort_keys: bool = tr
 		keys_add(keys_index, to.x, curve_key, sort_keys, redraw)
 	return can_move_to
 
-func keys_merge(keys_index: int, new_keys: Dictionary[float, CurveKey]) -> void:
+func keys_merge(keys_index: int, new_keys: Dictionary[int, CurveKey]) -> void:
 	var keys:= keys_get(keys_index)
 	keys_get(keys_index)
 	keys.merge(new_keys)
@@ -195,7 +195,7 @@ func keys_merge(keys_index: int, new_keys: Dictionary[float, CurveKey]) -> void:
 		#result = Vector2.RIGHT
 	#return result
 
-func curve_key_move_control_mode(keys_index: int, key: float) -> void:
+func curve_key_move_control_mode(keys_index: int, key: int) -> void:
 	keys_get(keys_index)[key].move_control_mode()
 	curves_profiles[keys_index].update_profile()
 
@@ -206,12 +206,12 @@ func update_curve_profiles_keys() -> void:
 func keys_find_key(keys_index: int, mouse_pos: Vector2, ignored_keys: Dictionary) -> Variant:
 	var keys:= keys_get(keys_index)
 	var result: Variant = null
-	for key: float in keys:
+	for key: int in keys:
 		if ignored_keys.has(key):
 			continue
 		var val: float = keys[key].value
 		var coord:= Vector2(key, val)
-		if get_display_pos_from_coord(coord).distance_to(mouse_pos) <= control_close_distance:
+		if get_display_pos_from_coord(coord).distance_to(mouse_pos) <= control_close_dist:
 			result = coord
 			break
 	return result
@@ -236,8 +236,8 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 	if disabled:
 		return default_result
 	else:
-		return loop_selected_points(default_result,
-			func(object: Variant, key: float, info: Dictionary[StringName, Variant]) -> bool:
+		return loop_selected_vals(default_result,
+			func(object: Variant, key: int, info: Dictionary[StringName, Variant]) -> bool:
 				if not keys_info[object].v:
 					return false
 				
@@ -251,10 +251,10 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 				var dist_to_left: float = get_display_pos_from_coord(left_coord).distance_to(mouse_pos)
 				
 				if key_index > 0:
-					var before_key: float = curve_profile.keys_keys[key_index - 1]
+					var before_key: int = curve_profile.keys_keys[key_index - 1]
 					var before_curve_key: CurveKey = curve_profile.keys[before_key]
 					if before_curve_key.interpolation_mode == 2:
-						if dist_to_left <= control_close_distance:
+						if dist_to_left <= control_close_dist:
 							info.curve_key = curve_key
 							info.control_type = 1
 							info.keys_index = object
@@ -268,7 +268,7 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 				
 				if key_index < curve_profile.keys.size() - 1:
 					if curve_key.interpolation_mode == 2:
-						if dist_to_right <= control_close_distance:
+						if dist_to_right <= control_close_dist:
 							info.curve_key = curve_key
 							info.control_type = 2
 							info.keys_index = object
@@ -332,7 +332,6 @@ func get_display_pos_from_domain(domain_step: float) -> float:
 func navigate_value(offset: float) -> void:
 	min_val += offset
 	max_val += offset
-	update_selectable_points_display_poss()
 
 func zoom_value(scale: float) -> void:
 	var val_size:= max_val - min_val
@@ -342,11 +341,6 @@ func zoom_value(scale: float) -> void:
 	scale *= (val_size) / 100.
 	min_val -= scale
 	max_val += scale
-	update_selectable_points_display_poss()
-
-func update_selectable_points_display_poss_func(point_key: float, point_info: LocalPointInfo) -> Vector2:
-	return get_display_pos_from_coord(Vector2(point_key, point_info.point_val.value))
-
 
 func update_navigation_offset(mouse_pos: Vector2) -> void:
 	var navigation_offset: float = .0
@@ -356,25 +350,26 @@ func update_navigation_offset(mouse_pos: Vector2) -> void:
 		navigation_offset = navigate_speed
 	set_meta(&"navigation_offset", navigation_offset)
 
-
-func on_point_delete(object: Variant, key: float) -> void:
-	keys_get(object).erase(key)
-
-func on_delete_ended() -> void:
+func delete_selected_vals() -> void:
+	super()
 	update_curve_profiles_keys()
-	keys_editing.emit()
+	queue_redraw()
 
-func on_point_past(object: Variant, key: float) -> void:
-	var new_key: float = format_x(cursor_pos + key - start_copied_point)
-	var copied_k: CurveKey = copied_points[object][key].point_val
+func past_selected_vals() -> void:
+	super()
+	update_curve_profiles_keys()
+	queue_redraw()
+
+func _delete_val(port_idx: int, idx: int) -> void:
+	keys_get(port_idx).erase(idx)
+
+func _past_val(port_idx: int, idx: int) -> void:
+	var new_idx: int = format_x(cursor_pos + idx - copied_start)
+	var copied_k: CurveKey = copied[port_idx][idx]
 	var pasted_k: CurveKey = CurveKey.new_curve_key(copied_k.value, copied_k.left_control, copied_k.right_control, copied_k.control_mode)
-	keys_add(object, new_key, pasted_k, false, false)
+	keys_add(port_idx, new_idx, pasted_k, false, false)
 
-func on_past_ended() -> void:
-	update_curve_profiles_keys()
-	keys_editing.emit()
-
-func get_menu_options() -> Array:
+func _get_menu_options() -> Array:
 	var super_options: Array = super()
 	var control_option:= MenuOption.new("Control Mode", null)
 	var interpolation_option:= MenuOption.new("Interpolation Mode", null)
@@ -407,19 +402,23 @@ func get_menu_options() -> Array:
 		MenuOption.new_line()
 	] + super_options
 
+func _request_selection_box_select(port_idx: int, port_object: Object, idx: int) -> bool:
+	return selectbox_rect.has_point(get_display_pos_from_coord(Vector2(idx, keys_get(port_idx)[idx].value)))
+
+
 func set_keys_control_mode(mode: CurveKey.ControlMode) -> void:
-	loop_selected_points({},
-		func(object: Variant, key: float, info: Dictionary[StringName, Variant]) -> void:
-			curves_profiles[object].keys[key].set_control_mode(mode),
-		func(object: Variant) -> void: curves_profiles[object].update_profile()
+	loop_selected_vals({},
+		func(port_idx: int, idx: int, info: Dictionary[StringName, Variant]) -> void:
+			curves_profiles[port_idx].keys[idx].set_control_mode(mode),
+		func(port_idx: int) -> void: curves_profiles[port_idx].update_profile()
 	)
 	queue_redraw()
 
 func set_keys_transition_mode(mode: CurveKey.InterpolationMode) -> void:
-	loop_selected_points({},
-		func(object: Variant, key: float, info: Dictionary[StringName, Variant]) -> void:
-			curves_profiles[object].keys[key].set_interpolation_mode(mode),
-		func(object: Variant) -> void: curves_profiles[object].update_profile()
+	loop_selected_vals({},
+		func(port_idx: int, idx: int, info: Dictionary[StringName, Variant]) -> void:
+			curves_profiles[port_idx].keys[idx].set_interpolation_mode(mode),
+		func(port_idx: int) -> void: curves_profiles[port_idx].update_profile()
 	)
 	queue_redraw()
 
@@ -429,11 +428,12 @@ func change_channel_visibility(channel_index: int) -> void:
 	queue_redraw()
 
 
+func _request_box_selection() -> bool:
+	return focused_keys_index == -1 and not is_cursor_focused and not is_control_focused
+
+
 func _init() -> void:
 	super()
-	
-	selection_box_cond = func() -> bool:
-		return focused_keys_index == -1 and not is_cursor_focused and not is_control_focused
 	
 	clip_contents = true
 	add_theme_stylebox_override("panel", IS.STYLE_CORNERLESS)
@@ -461,7 +461,7 @@ func _gui_input(event: InputEvent) -> void:
 		
 		var curr_motion_mode: int = get_meta(&"motion_mode", 0)
 		
-		var finded_key: Dictionary[StringName, Variant] = find_key(mouse_pos, selected_points if curr_motion_mode == 3 else {})
+		var finded_key: Dictionary[StringName, Variant] = find_key(mouse_pos, selected if curr_motion_mode == 3 else {})
 		var is_key_finded: bool = finded_key.keys_index != -1
 		
 		var finded_control: Dictionary[StringName, Variant] = find_control(mouse_pos, curr_motion_mode == 2)
@@ -474,7 +474,7 @@ func _gui_input(event: InputEvent) -> void:
 			coord = finded_key.coord
 			curr_focused_keys_index = finded_key.keys_index
 		
-		is_cursor_focused = abs(mouse_pos.x - get_display_pos_from_domain(cursor_pos)) <= control_drag_distance
+		is_cursor_focused = abs(mouse_pos.x - get_display_pos_from_domain(cursor_pos)) <= control_drag_dist
 		is_control_focused = is_control_finded
 		
 		if event is InputEventMouseButton:
@@ -509,7 +509,7 @@ func _gui_input(event: InputEvent) -> void:
 							popup_options_menu()
 				
 				_:
-					if event.shift_pressed:
+					if event.ctrl_pressed:
 						if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 							zoom_value(5.0)
 						elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -527,13 +527,13 @@ func _gui_input(event: InputEvent) -> void:
 							pass
 						else:
 							keys_add(curr_focused_keys_index, coord.x, CurveKey.new_curve_key(value), true)
-					select_point(curr_focused_keys_index, coord.x, not has_key_already)
+					select_val(curr_focused_keys_index, coord.x)
 					set_meta(&"keys_index", curr_focused_keys_index)
 					set_meta(&"point_coord", Vector2(coord.x, value))
 					motion_mode = 4 if motion_mode == 4 else 3
 			else:
 				if curr_motion_mode == 3:
-					manage_point(
+					manage_val(
 						find_key(mouse_pos, {}).keys_index,
 						get_meta(&"point_coord").x,
 						event.alt_pressed,
@@ -571,13 +571,15 @@ func _gui_input(event: InputEvent) -> void:
 							set_control_func = func(curve_key: CurveKey, new_val: Vector2) -> void:
 								curve_key.set_right_control(new_val)
 						set_control_func.call(curve_key, control_target_coord)
-						if EditorServer.time_line.timeline_edit_mode:
-							loop_selected_points({},
-								func(object: Variant, key: float, info: Dictionary[StringName, Variant]) -> void:
-									var curr_curve_key: CurveKey = keys_get(object)[key]
+						
+						if EditorServer.time_line2.edit_multiple_btn.selected_id == 1:
+							loop_selected_vals({},
+								func(port_idx: int, idx: int, info: Dictionary[StringName, Variant]) -> void:
+									var curr_curve_key: CurveKey = keys_get(port_idx)[idx]
 									if curr_curve_key.interpolation_mode == 2:
 										set_control_func.call(curr_curve_key, control_target_coord)
 							)
+						
 						update_navigation_offset(mouse_pos)
 						curves_profiles[get_meta(&"keys_index")].update_profile()
 				
@@ -610,33 +612,33 @@ func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
 	
 	if keys_move(init_point_keys_index, init_point_coord.x, coord, false, false):
 		
-		for object: Variant in selected_points:
-			var object_selected_points: Dictionary = selected_points[object]
+		for port_idx: int in selected:
+			var port_selected_vals: Dictionary = selected[port_idx]
 			
-			var profile: CurveProfile = curves_profiles[object]
+			var profile: CurveProfile = curves_profiles[port_idx]
 			var point_new_coord: Vector2
 			
 			var replaced_keys: Dictionary[float, float]
 			
-			for key: float in object_selected_points:
-				if key == init_point_coord.x:
+			for idx: int in port_selected_vals:
+				if idx == init_point_coord.x:
 					continue
-				elif not object_selected_points.has(key):
+				elif not port_selected_vals.has(idx):
 					continue
-				point_new_coord = Vector2(key, object_selected_points[key].point_val.value) + init_point_coord_delta
+				point_new_coord = Vector2(idx, port_selected_vals[idx].value) + init_point_coord_delta
 				point_new_coord.x = format_x(point_new_coord.x)
-				if keys_move(object, key, point_new_coord, false, false):
-					replaced_keys[key] = point_new_coord.x
+				if keys_move(port_idx, idx, point_new_coord, false, false):
+					replaced_keys[idx] = point_new_coord.x
 			
-			curves_profiles[object].update_profile()
+			curves_profiles[port_idx].update_profile()
 			
-			for from_key: float in replaced_keys:
-				var new_key: float = replaced_keys[from_key]
-				deselect_point(object, from_key)
-				select_point(object, new_key, false)
+			for from_idx: int in replaced_keys:
+				var to_idx: float = replaced_keys[from_idx]
+				deselect_val(port_idx, from_idx)
+				select_val(port_idx, to_idx)
 		
-		deselect_point(init_point_keys_index, init_point_coord.x)
-		select_point(init_point_keys_index, coord.x, false)
+		deselect_val(init_point_keys_index, init_point_coord.x)
+		select_val(init_point_keys_index, coord.x)
 		
 		set_meta(&"point_coord", coord)
 	
@@ -646,6 +648,7 @@ func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
 
 
 var latest_mouse_pos: Vector2
+
 func _process(delta: float) -> void:
 	var nav_offset: float = get_meta(&"navigation_offset")
 	var val_size:= max_val - min_val
@@ -699,7 +702,7 @@ func _draw() -> void:
 			continue
 		
 		var profile: CurveProfile = curves_profiles[keys_index]
-		var keys: Dictionary[float, CurveKey] = profile.keys
+		var keys: Dictionary[int, CurveKey] = profile.keys
 		var keys_keys: Array = profile.keys_keys
 		var color_alpha: float
 		
@@ -716,8 +719,8 @@ func _draw() -> void:
 		var latest_draw_control: bool
 		for index: int in range(0, keys.size() - 1):
 			
-			var key_a: float = keys_keys[index]
-			var key_b: float = keys_keys[index + 1]
+			var key_a: int = keys_keys[index]
+			var key_b: int = keys_keys[index + 1]
 			
 			var curve_key: CurveKey = keys.get(key_a)
 			
@@ -728,7 +731,7 @@ func _draw() -> void:
 			var latest_display_pos:= get_display_pos_from_coord(latest_coord)
 			
 			var draw_control: bool = curve_key.interpolation_mode == 2
-			_draw_key(latest_coord, keys[key_a], latest_draw_control, draw_control, latest_display_pos, is_point_selected(keys_index, key_a), color_alpha)
+			_draw_key(latest_coord, keys[key_a], latest_draw_control, draw_control, latest_display_pos, is_val_selected(keys_index, key_a), color_alpha)
 			latest_draw_control = draw_control
 			
 			var display_pos_a:= get_display_pos_from_coord(Vector2(key_a, val_a))
@@ -759,7 +762,7 @@ func _draw() -> void:
 			var back_pos:= get_display_pos_from_coord(back_coord)
 			draw_line(Vector2(.0, front_pos.y), front_pos, keys_color, 2.0)
 			draw_line(back_pos, Vector2(size.x, back_pos.y), keys_color, 2.0)
-			_draw_key(back_coord, back_curve_key, latest_draw_control, false, back_pos, is_point_selected(keys_index, keys_keys.back()), color_alpha)
+			_draw_key(back_coord, back_curve_key, latest_draw_control, false, back_pos, is_val_selected(keys_index, keys_keys.back()), color_alpha)
 		else:
 			var val_pos:= get_display_pos_from_val(0)
 			draw_line(Vector2(.0, val_pos), Vector2(size.x, val_pos), keys_color, 2.0)
@@ -831,11 +834,11 @@ func _on_mouse_exited() -> void:
 	EditorServer.graph_editors_focused.erase(self)
 
 func _on_profile_key_added(profile_index: int, x: float, curve_key: CurveKey) -> void:
-	add_selectable_point(profile_index, x, curve_key, get_display_pos_from_coord(Vector2(x, curve_key.value)))
+	add_selectable_val(profile_index, x, curve_key)
 	queue_redraw()
 
 func _on_profile_key_removed(profile_index: int, x: float) -> void:
-	delete_selectable_point(profile_index, x)
+	delete_selectable_val(profile_index, x)
 	queue_redraw()
 
 

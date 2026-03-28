@@ -60,7 +60,7 @@ func update() -> void:
 		i.queue_free()
 	
 	buttons_container = IS.create_box_container(12, is_vertical)
-	IS.expand(buttons_container)
+	IS.expand(buttons_container, true, true)
 	focus_panel = IS.create_panel(focus_style)
 	
 	add_child(focus_panel)

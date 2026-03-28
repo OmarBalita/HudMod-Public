@@ -12,16 +12,6 @@ signal drag_finished()
 
 signal dragged_rect_created(dragged_rect: Control)
 
-
-const NONE_MASK: int = 0
-const CTRL_MASK: int = 268435456
-const SHIFT_MASK: int = 33554432
-const ALT_MASK: int = 67108864
-
-@export_group("Custom Properties")
-@export var mouse_entering_calculation: bool = true
-@export var rect_calculation: bool
-
 @export_subgroup("Selection")
 @export var selectable: bool
 @export var selection_group: SelectionGroupRes
@@ -87,16 +77,15 @@ func set_is_focus(new_val: bool) -> void:
 	is_focus = new_val
 
 
-# Background Called Functions
+# Background Calling Functions
 # ---------------------------------------------------
 
 func _ready() -> void:
 	# Connections
-	if mouse_entering_calculation:
-		mouse_entered.connect(set_is_focus.bind(true))
-		mouse_exited.connect(set_is_focus.bind(false))
+	mouse_entered.connect(set_is_focus.bind(true))
+	mouse_exited.connect(set_is_focus.bind(false))
 
-func _input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	
 	if event is InputEventMouse:
 		var mouse_pos: Vector2 = event.position
@@ -136,10 +125,6 @@ func _input(event: InputEvent) -> void:
 				if dragged_rect:
 					dragged_rect.global_position = mouse_pos - start_drag_dist
 				dragging.emit()
-			
-			if rect_calculation:
-				set_is_focus(get_rect().has_point(get_local_mouse_position()))
-
 
 func _draw() -> void:
 	var rect: Rect2 = Rect2(Vector2(-draw_width, -draw_width) / 2.0, size + Vector2(draw_width, draw_width))
@@ -214,12 +199,6 @@ func _create_dragged_rect() -> void:
 	if dragged_rect:
 		get_tree().current_scene.add_child(dragged_rect)
 		dragged_rect_created.emit(dragged_rect)
-
-func focus_enter() -> void:
-	pass
-
-func focus_exit() -> void:
-	pass
 
 func get_id_key() -> String:
 	if not id_key:

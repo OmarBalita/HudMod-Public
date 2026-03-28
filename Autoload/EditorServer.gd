@@ -48,6 +48,7 @@ var main: Control
 
 var player: Player
 var time_line: TimeLine
+var time_line2: TimeLine2
 var media_explorer: MediaExplorer
 var properties: Properties2
 var color_correction_editor: ColorCorrectionEditor
@@ -58,7 +59,6 @@ var global_controls: Dictionary[Window, Control]
 
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
 
-var media_clips_focused: Array[MediaClip]
 var graph_editors_focused: Array[CurveController]
 var roll_buttons_spawned: Array[Button]
 
@@ -76,15 +76,12 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	properties = editors.properties
 	color_correction_editor = editors.color_correction
 	color_scope_editor = editors.color_scope
+	time_line2 = editors.time_line2
 	
 	drawable_rect = get_tree().get_first_node_in_group("drawable_rect")
 	
-	player._ready_editor()
-	time_line._ready_editor()
-	media_explorer._ready_editor()
-	properties._ready_editor()
-	color_correction_editor._ready_editor()
-	color_scope_editor._ready_editor()
+	for editor_name: StringName in editors:
+		editors[editor_name]._ready_editor()
 	
 	var window: Window = get_window()
 	window.focus_entered.connect(on_window_focus_entered)
@@ -101,6 +98,11 @@ func get_frame() -> int:
 
 func set_frame(new_frame: int) -> void:
 	frame = new_frame
+
+# ---------------------------------------------------
+
+func layers_body_shortcut_node_cond_func() -> bool:
+	return graph_editors_focused.is_empty()
 
 # Controllers Handling
 # ---------------------------------------------------
@@ -155,17 +157,6 @@ func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, p
 	var property_container:= get_usable_res_property_controller(usable_res, property_key)
 	if property_container: property_container.set_keyframe_method(int(has_keyframe))
 
-# Media Clips
-# ---------------------------------------------------
-
-func is_timeline_selection_enabled() -> bool:
-	return media_clips_focused.is_empty() and\
-	graph_editors_focused.is_empty() and\
-	roll_buttons_spawned.is_empty()
-
-func is_media_clip_selection_enabled() -> bool:
-	return graph_editors_focused.is_empty() and\
-	roll_buttons_spawned.is_empty()
 
 # Directories: Save Load Handling
 # ---------------------------------------------------
@@ -254,14 +245,14 @@ func get_ids_from_pathes(pathes: PackedStringArray) -> PackedStringArray:
 	return used_ids
 
 func save() -> void:
-	ProjectServer.save_project()
+	ProjectServer2.save_project()
 	GlobalServer.save_global()
 	MediaServer.save_not_saved_yet()
 	MediaServer.delete_not_deleted_yet()
 
 func scan_media_existent() -> void:
-	var project_imp_sys:= ProjectServer.import_file_system
-	var project_pres_sys:= ProjectServer.preset_file_system
+	var project_imp_sys:= ProjectServer2.import_file_system
+	var project_pres_sys:= ProjectServer2.preset_file_system
 	var global_imp_sys:= GlobalServer.import_file_system
 	var global_pres_sys:= GlobalServer.preset_file_system
 	

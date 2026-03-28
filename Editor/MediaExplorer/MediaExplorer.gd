@@ -14,7 +14,7 @@ class_name MediaExplorer extends EditorControl
 @export var texture_undo_path: Texture2D = preload("res://Asset/Icons/up-arrow.png")
 @export var texture_reload: Texture = preload("res://Asset/Icons/reload.png")
 @export_subgroup("Constant")
-@export var card_display_size: Vector2 = Vector2(140, 140)
+@export var card_display_size: Vector2 = Vector2(140., 140.)
 
 var curr_media_box: int:
 	set(val):
@@ -221,10 +221,6 @@ class CreatedBox extends MediaBox:
 	func get_true_file_system(global: bool) -> DisplayFileSystemRes:
 		return global_file_system if global else project_file_system
 	
-	func _init(_media_explorer: MediaExplorer) -> void:
-		display_file_system = project_file_system
-		super(_media_explorer)
-	
 	func _ready_options() -> void:
 		
 		var filter_options: Array[Dictionary] = _get_filter_options()
@@ -395,11 +391,6 @@ class ImportBox extends CreatedBox:
 	var progress_list: ItemList
 	var progress_bar: ProgressBar
 	
-	func _init(_media_explorer: MediaExplorer) -> void:
-		project_file_system = ProjectServer.import_file_system
-		global_file_system = GlobalServer.import_file_system
-		super(_media_explorer)
-	
 	func _ready() -> void:
 		super()
 		#load_files(PackedStringArray([
@@ -407,6 +398,9 @@ class ImportBox extends CreatedBox:
 			#"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/App/logo2_512.png",
 			#"C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
 		#]))
+		project_file_system = ProjectServer2.import_file_system
+		global_file_system = GlobalServer.import_file_system
+		display_file_system = project_file_system
 		update()
 	
 	func _ready_options() -> void:
@@ -611,12 +605,13 @@ class PresetBox extends CreatedBox:
 	var preset_category: Category
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
-		project_file_system = ProjectServer.preset_file_system
-		global_file_system = GlobalServer.preset_file_system
 		super(_media_explorer)
 	
 	func _ready() -> void:
 		super()
+		project_file_system = ProjectServer2.preset_file_system
+		global_file_system = GlobalServer.preset_file_system
+		display_file_system = project_file_system
 		update()
 	
 	func _ready_options() -> void:
@@ -673,8 +668,7 @@ class MediaCard extends DoubleClickControl:
 		return
 	
 	func _double_click() -> void:
-		add_media(-1, EditorServer.frame)
-		EditorServer.media_clips_selection_group.selected_objects_changed.emit()
+		add_media_res(0, EditorServer.frame)
 		super()
 	
 	func _setup_media_card(name: StringName, thumbnail_texture: Texture2D) -> void:
@@ -706,12 +700,14 @@ class MediaCard extends DoubleClickControl:
 		display_name = name
 		display_texture = thumbnail_texture
 	
-	func add_media(layer_index: int, frame_in: int) -> void:
-		pass
+	func get_media_ress() -> Array[MediaClipRes]:
+		return []
+	
+	func add_media_res(layer_index: int, frame_in: int) -> void:
+		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, get_media_ress(), EditorServer.time_line2.overlay_menu.focus_index)
 	
 	func on_add_button_pressed() -> void:
-		add_media(0, EditorServer.frame)
-		EditorServer.media_clips_selection_group.selected_objects_changed.emit()
+		add_media_res(0, PlaybackServer.position)
 	
 	func on_drag_started() -> void:
 		if not following_drag:
@@ -802,20 +798,29 @@ class ImportCard extends CreatedCard:
 			var imported_info: Dictionary[StringName, String] = MediaServer.get_imported_file_info(info.path, info.type)
 			EditorServer.properties.update_media_properties(imported_info)
 	
-	func add_media(layer_index: int, frame_in: int) -> void:
-		if discarded: return
+	static func get_imported_res_from_type(type: int, path: String) -> MediaClipRes:
 		var clip_res: MediaClipRes
-		match info.type:
+		var default_length: int = EditorServer.editor_settings.media_clip_default_length_f
+		match type:
 			0:
 				clip_res = ImageClipRes.new()
-				clip_res.image = info.path
+				clip_res.image = path
+				clip_res.length = default_length
 			1:
 				clip_res = VideoClipRes.new()
-				clip_res.video = info.path
+				clip_res.video = path
+				clip_res.length = MediaCache.get_video_info(path).duration * ProjectServer2.fps
+				#print(clip_res.length)
+				#print(MediaCache.get_video_info(path).duration * ProjectServer2.fps)
 			2:
 				clip_res = AudioClipRes.new()
-				clip_res.stream = info.path
-		ProjectServer.add_media_clip(clip_res, EditorServer.editor_settings.media_clip_default_length_f, layer_index, frame_in, false)
+				clip_res.stream = path
+				clip_res.length = MediaCache.get_audio(path).get_length() * ProjectServer2.fps
+		return clip_res
+	
+	func get_media_ress() -> Array[MediaClipRes]:
+		if discarded: return []
+		return [get_imported_res_from_type(info.type, info.path)]
 	
 	func _get_created_card_menu_options() -> Array:
 		return [
@@ -890,15 +895,14 @@ class FolderCard extends CreatedCard:
 		super(group, remove, is_drag_selection, emit_change)
 		EditorServer.properties._clear_controls()
 	
-	func add_media(layer_index: int, frame_in: int) -> void:
+	func get_media_ress() -> Array[MediaClipRes]:
+		var result: Array[MediaClipRes] = []
 		var forward: Dictionary = info.forward
 		for key: String in forward:
 			var key_info: Dictionary = forward.get(key)
 			if key_info.type == "file":
 				var media_type: int = key_info.media_type
-				ProjectServer.add_imported_clip(media_type, key, layer_index, frame_in)
-		
-		ProjectServer.emit_media_clips_change()
+		return result
 	
 	func _get_created_card_name_or_path() -> String:
 		return info.name
@@ -913,14 +917,18 @@ class ObjectCard extends MediaCard:
 		_setup_media_card(info.name, info.thumbnail)
 		set_metadata(info)
 	
-	func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
-		super(group, remove, is_drag_selection, emit_change)
-		if not is_drag_selection:
-			EditorServer.properties.update_media_properties(info.media_clip_script.get_media_clip_info())
+	func _gui_input(event: InputEvent) -> void:
+		pass
 	
-	func add_media(layer_index: int, frame_in: int) -> void:
+	#func select(group: bool, remove: bool, is_drag_selection: bool = false, emit_change: bool = true) -> void:
+		#super(group, remove, is_drag_selection, emit_change)
+		#if not is_drag_selection:
+			#EditorServer.properties.update_media_properties(info.media_clip_script.get_media_clip_info())
+	
+	func get_media_ress() -> Array[MediaClipRes]:
 		var clip_res: MediaClipRes = info.media_clip_script.new()
-		ProjectServer.add_media_clip(clip_res, EditorServer.editor_settings.media_clip_default_length_f, layer_index, frame_in, false)
+		clip_res.length = EditorServer.editor_settings.media_clip_default_length_f
+		return [clip_res]
 
 class TransitionCard extends MediaCard:
 	pass

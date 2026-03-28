@@ -11,10 +11,10 @@ signal property_changed()
 @export var texture_delete: Texture2D
 @export var texture_drag: Texture2D
 
-var clips_selection_group: SelectionGroupRes
-
-var curr_media_ress: Array[MediaClipRes]
+var curr_clip_ress: Array[MediaClipRes]
 var curr_focused_media_res: MediaClipRes
+
+var curr_shown_section: StringName
 
 var curr_displayed_components: Dictionary[StringName, Array]
 
@@ -42,8 +42,22 @@ func _ready_editor() -> void:
 	
 	resized.connect(_on_resized)
 	
-	clips_selection_group = EditorServer.media_clips_selection_group
-	clips_selection_group.selected_objects_changed.connect(_on_clips_selection_group_selected_objects_changed)
+	EditorServer.time_line2.layers_body.selected_changed.connect(_on_layers_body_selected_changed)
+
+func _gui_input(event: InputEvent) -> void:
+	
+	if event is InputEventMouseButton:
+		
+		if event.ctrl_pressed:
+			return
+		
+		var scroll_cont: ScrollContainer = sections_controls[curr_shown_section].scroll_cont
+		
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			scroll_cont.scroll_vertical += 30.
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			scroll_cont.scroll_vertical -= 30.
+
 
 func popup_section_components(section_key: StringName, pop_from: Control = null) -> void:
 	
@@ -71,7 +85,7 @@ func popup_section_components(section_key: StringName, pop_from: Control = null)
 	components_popuped_menu.popup(pop_from.global_position + Vector2(0, pop_from.size.y))
 
 func add_component(section_key: StringName, script: Script) -> void:
-	for media_res: MediaClipRes in curr_media_ress:
+	for media_res: MediaClipRes in curr_clip_ress:
 		var new_component_res:= ComponentRes.new()
 		new_component_res.set_script(script)
 		media_res.add_component(section_key, new_component_res)
@@ -79,13 +93,13 @@ func add_component(section_key: StringName, script: Script) -> void:
 
 func set_component_enabled(comp_info: ComponentInfo) -> void:
 	var target: bool = not comp_info.component_res_owner.enabled
-	for index: int in curr_media_ress.size():
+	for index: int in curr_clip_ress.size():
 		var comp_res: ComponentRes = comp_info.components_ress[index]
 		comp_res.set_enabled(target)
 
 func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_box_container: IS.EditBoxContainer = null) -> void:
-	for index: int in curr_media_ress.size():
-		var media_res: MediaClipRes = curr_media_ress[index]
+	for index: int in curr_clip_ress.size():
+		var media_res: MediaClipRes = curr_clip_ress[index]
 		media_res.erase_component(section_key, comp_info.components_ress[index])
 	if edit_box_container:
 		edit_box_container.queue_free()
@@ -94,7 +108,7 @@ func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_bo
 		update_properties(section_key)
 
 func move_component(section_key: StringName, index_from: int, index_to: int) -> void:
-	var media_res_as_owner: MediaClipRes = curr_media_ress.get(0)
+	var media_res_as_owner: MediaClipRes = curr_clip_ress.get(0)
 	media_res_as_owner.move_component(section_key, index_from, index_to)
 	update_properties(section_key)
 
@@ -105,27 +119,27 @@ func update_component_method(section_key: StringName, comp_info: ComponentInfo, 
 func navigate_to_section(section_key: StringName) -> void:
 	for _section_key: StringName in sections_controls:
 		sections_controls.get(_section_key).root.visible = section_key == _section_key
+	curr_shown_section = section_key
 	_update_margin()
 
 func update_properties(section_key: StringName = &"") -> void:
-	clips_selection_group.clear_previously_freed_instances()
 	
 	var update_info: Dictionary[StringName, Variant] = _update_displayed_components()
 	
-	var new_media_ress: Array[MediaClipRes] = update_info.new_media_ress
-	var new_focused_media_res: MediaClipRes = update_info.new_focused_media_res
+	var new_clip_res: Array[MediaClipRes] = update_info.new_clip_res
+	var new_focused_clip_res: MediaClipRes = update_info.new_focused_clip_res
 	
 	if section_key.is_empty():
-		if curr_media_ress != new_media_ress or curr_focused_media_res != new_focused_media_res:
-			curr_media_ress = new_media_ress
-			curr_focused_media_res = new_focused_media_res
+		if curr_clip_ress != new_clip_res or curr_focused_media_res != new_focused_clip_res:
+			curr_clip_ress = new_clip_res
+			curr_focused_media_res = new_focused_clip_res
 			_display_components_by_sections()
 	else: _display_section_components(section_key, true)
 	
 	_update_margin()
 
 func update_media_properties(info: Dictionary[StringName, String]) -> void:
-	curr_media_ress.clear()
+	curr_clip_ress.clear()
 	
 	_clear_controls()
 	
@@ -182,24 +196,21 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	media_properties_panel_container = panel_container
 
 func _update_displayed_components() -> Dictionary[StringName, Variant]:
-	var selected_objects: Dictionary[String, Dictionary] = clips_selection_group.selected_objects
+	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
+	var selected_clips: Dictionary[int, Dictionary] = layers_body.selected
 	
 	curr_displayed_components.clear()
 	
-	if not selected_objects:
+	if selected_clips.is_empty() or not layers_body.is_focused_exists():
 		return {
-			&"new_media_ress": [] as Array[MediaClipRes],
-			&"new_focused_media_res": null
+			&"new_clip_res": [] as Array[MediaClipRes],
+			&"new_focused_clip_res": null
 		}
 	
-	if clips_selection_group.focused.is_empty():
-		clips_selection_group.set_default_focused()
+	var focused_clip_res: MediaClipRes = layers_body.get_focused_val()
+	var focused_components: Dictionary[String, Array] = focused_clip_res.get_components()
 	
-	var focused_object: MediaClip = clips_selection_group.focused.object
-	var focused_media_res: MediaClipRes = focused_object.clip_res
-	var focused_components: Dictionary[String, Array] = focused_media_res.get_components()
-	
-	var new_media_ress: Array[MediaClipRes]
+	var new_clip_res: Array[MediaClipRes]
 	var new_displayed_components: Dictionary[StringName, Array]
 	var new_displayed_mediaclipres: Dictionary[StringName, ComponentInfo]
 	
@@ -215,53 +226,57 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 				new_section_components.append(ComponentInfo.new(index, component_res))
 	
 	
-	for key: String in selected_objects.keys():
-		var object: MediaClip = selected_objects.get(key).object
-		var media_res: MediaClipRes = object.clip_res
-		var components: Dictionary[String, Array] = media_res.get_components()
+	for layer_idx: int in selected_clips:
 		
-		var sections: Array = MediaServer.object_clip_info[media_res.get_classname()].sections
-		var next_displayed_components: Dictionary[StringName, Array]
+		var port: Dictionary = selected_clips[layer_idx]
 		
-		new_media_ress.append(media_res)
+		for frame: int in port:
 		
-		for section_key: StringName in sections:
-			if new_displayed_components.has(section_key):
-				
-				var next_section_components: Array
-				
-				if components.has(section_key):
+			var clip_res: MediaClipRes = port[frame]
+			var components: Dictionary[String, Array] = clip_res.get_components()
+			
+			var sections: Array = MediaServer.object_clip_info[clip_res.get_classname()].sections
+			var next_displayed_components: Dictionary[StringName, Array]
+			
+			new_clip_res.append(clip_res)
+			
+			for section_key: StringName in sections:
+				if new_displayed_components.has(section_key):
 					
-					var section_components: Array = components.get(section_key)
-					var finded_comps_by_ids: Dictionary[StringName, Array]
+					var next_section_components: Array
 					
-					for component_res: ComponentRes in section_components:
-						finded_comps_by_ids.get_or_add(component_res.get_classname(), []).append(component_res)
+					if components.has(section_key):
+						
+						var section_components: Array = components.get(section_key)
+						var finded_comps_by_ids: Dictionary[StringName, Array]
+						
+						for component_res: ComponentRes in section_components:
+							finded_comps_by_ids.get_or_add(component_res.get_classname(), []).append(component_res)
+						
+						for component_info: ComponentInfo in new_displayed_components[section_key]:
+							var target_comp_res_id: StringName = component_info.component_res_id
+							
+							if not finded_comps_by_ids.has(target_comp_res_id):
+								continue
+							
+							var finded_comps_by_id: Array = finded_comps_by_ids.get(target_comp_res_id)
+							
+							if not finded_comps_by_id:
+								continue
+							
+							var finded_comp_res: ComponentRes = finded_comps_by_id[0]
+							finded_comps_by_id.remove_at(0)
+							
+							component_info.append_component_res(finded_comp_res)
+							next_section_components.append(component_info)
 					
-					for component_info: ComponentInfo in new_displayed_components[section_key]:
-						var target_comp_res_id: StringName = component_info.component_res_id
-						
-						if not finded_comps_by_ids.has(target_comp_res_id):
-							continue
-						
-						var finded_comps_by_id: Array = finded_comps_by_ids.get(target_comp_res_id)
-						
-						if not finded_comps_by_id:
-							continue
-						
-						var finded_comp_res: ComponentRes = finded_comps_by_id[0]
-						finded_comps_by_id.remove_at(0)
-						
-						component_info.append_component_res(finded_comp_res)
-						next_section_components.append(component_info)
-				
-				next_displayed_components[section_key] = next_section_components
-		
-		new_displayed_components = next_displayed_components
+					next_displayed_components[section_key] = next_section_components
+			
+			new_displayed_components = next_displayed_components
 	
 	curr_displayed_components = new_displayed_components
 	
-	return {&"new_media_ress": new_media_ress, &"new_focused_media_res": focused_media_res}
+	return {&"new_clip_res": new_clip_res, &"new_focused_clip_res": focused_clip_res}
 
 func _clear_controls() -> void:
 	if sections_menu:
@@ -310,6 +325,8 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	var header_cont: BoxContainer = IS.create_box_container(2, true)
 	var box_cont: ArrangableBoxContainer = ArrangableBoxContainer.new(body, scroll_cont)
 	
+	scroll_cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
 	box_cont.grab_released.connect(func(index_from: int, index_to: Variant) -> void:
 		_on_section_box_container_grab_released(section_key, index_from, index_to)
 	)
@@ -354,16 +371,15 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 		header_cont.hide()
 		return
 	
-	
 	var main_classname: StringName = curr_focused_media_res.get_classname()
 	
-	for media_res: MediaClipRes in curr_media_ress:
+	for media_res: MediaClipRes in curr_clip_ress:
 		if media_res.get_classname() != main_classname:
 			header_cont.hide()
 			return
 	
 	var usable_ress: Array[UsableRes]
-	for media_res: MediaClipRes in curr_media_ress: usable_ress.append(media_res)
+	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
 	var mediares_editbox: IS.EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress))
 	header_cont.add_child(mediares_editbox)
 
@@ -401,7 +417,7 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 		delete_button.pressed.connect(delete_component.bind(section_key, comp_info, comp_editor))
 		editor_header.add_child(delete_button)
 		
-		if curr_media_ress.size() == 1:
+		if curr_clip_ress.size() == 1:
 			var move_button: IS.CustomTextureButton = IS.create_texture_button(texture_drag)
 			move_button.button_down.connect(_on_component_controller_move_button_button_down.bind(section_key, comp_info.index, comp_editor))
 			move_button.button_up.connect(_on_component_controller_move_button_button_up.bind(section_key, comp_editor))
@@ -421,7 +437,7 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 func _update_notification_label() -> String:
 	var notif_text: String
 	if not curr_displayed_components:
-		if curr_media_ress: notif_text = "The clips you selected do not have any shared property."
+		if curr_clip_ress: notif_text = "The clips you selected do not have any shared property."
 		else: notif_text = "At least one Clip must be selected to display its properties."
 	notification_label.text = notif_text
 	notification_label.visible = not notif_text.is_empty()
@@ -437,8 +453,7 @@ func _update_margin() -> void:
 func _on_resized() -> void:
 	_update_margin()
 
-func _on_clips_selection_group_selected_objects_changed() -> void:
-	await get_tree().process_frame
+func _on_layers_body_selected_changed() -> void:
 	update_properties()
 
 func _on_sections_menu_option_pressed(section_key: StringName) -> void:
@@ -480,111 +495,5 @@ class ComponentInfo extends Resource:
 	
 	func append_component_res(value: UsableRes) -> void:
 		components_ress.append(value)
-
-
-class ArrangableBoxContainer extends VBoxContainer:
-	
-	signal grab_started(element: Control, index_from: int)
-	signal grab_released(index_from: int, index_to: Variant)
-	
-	@export var owner_control: MarginContainer
-	@export var scroll_container: ScrollContainer
-	@export_group(&"Theme")
-	@export_subgroup(&"Constant")
-	@export var scroll_speed: float = 800.0
-	
-	var is_element_grabbed: bool
-	
-	var element: Control:
-		set(val):
-			
-			var index_from: int = get_meta(&"index_from")
-			var index_to: Variant = get_meta(&"index_to")
-			
-			if val:
-				_instance_grabbed_control(val)
-				val.modulate.a = .0
-				grab_started.emit(element, index_from)
-			
-			else:
-				_free_grabbed_control()
-				element.modulate.a = 1.0
-				grab_released.emit(index_from, index_to)
-			
-			is_element_grabbed = val != null
-			element = val
-	
-	var grabbed_control: Control
-	
-	func _init(_owner_control: Control, _scroll_container: ScrollContainer) -> void:
-		add_theme_constant_override(&"separation", 12)
-		owner_control = _owner_control
-		scroll_container = _scroll_container
-	
-	func _input(event: InputEvent) -> void:
-		if element:
-			
-			if event is InputEventMouseMotion:
-				var mouse_pos: Vector2 = get_global_mouse_position()
-				
-				grabbed_control.global_position.y = mouse_pos.y + get_meta(&"drag_offset").y
-				
-				var nav_dir: int
-				if mouse_pos.y < owner_control.global_position.y + 64.: nav_dir = -1
-				elif mouse_pos.y > owner_control.global_position.y + owner_control.size.y - 64.: nav_dir = 1
-				set_meta(&"nav_dir", nav_dir)
-				
-				var drawable_rect: DrawableRect = get_tree().get_first_node_in_group(&"drawable_rect")
-				
-				drawable_rect.clear_drawn_entities()
-				
-				for index: int in get_child_count():
-					var comp_edit: IS.EditBoxContainer = get_child(index)
-					var rect: Rect2 = comp_edit.get_global_rect()
-					if rect.has_point(mouse_pos):
-						drawable_rect.draw_new_theme_rect(rect)
-						set_meta(&"index_to", index)
-						break
-	
-	func grab_element(element_as_child: Control, index_from: int) -> void:
-		index_from = max(0, index_from)
-		set_meta(&"index_from", index_from)
-		
-		element = element_as_child
-		
-		var drag_offset: Vector2 = element.global_position - get_global_mouse_position()
-		set_meta(&"drag_offset", drag_offset)
-		set_meta(&"nav_dir", .0)
-		
-		while element:
-			
-			grabbed_control.global_position.y = clamp(
-				grabbed_control.global_position.y,
-				global_position.y,
-				global_position.y + size.y - grabbed_control.size.y
-			)
-			
-			var scroll_offset: float = get_meta(&"nav_dir") * scroll_speed * get_process_delta_time()
-			scroll_container.scroll_vertical += scroll_offset
-			
-			await get_tree().process_frame
-	
-	func release_element() -> void:
-		if is_element_grabbed:
-			element = null
-			var drawable_rect: DrawableRect = get_tree().get_first_node_in_group(&"drawable_rect")
-			drawable_rect.clear_drawn_entities()
-	
-	func _instance_grabbed_control(from: Control) -> void:
-		var new_grabbed_control: Control = from.duplicate()
-		ObjectServer.call_method_deep(new_grabbed_control, &"set_script", [null])
-		new_grabbed_control.global_position = from.global_position
-		new_grabbed_control.size = from.size
-		get_tree().current_scene.add_child(new_grabbed_control)
-		grabbed_control = new_grabbed_control
-	
-	func _free_grabbed_control() -> void:
-		grabbed_control.queue_free()
-		grabbed_control = null
 
 
