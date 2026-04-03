@@ -20,7 +20,7 @@ metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
 [sub_resource type="Resource" id="Resource_pqc6d"]
 script = ExtResource("1_70ktj")
-editor_1_name = &"time_line"
+editor_1_name = &"time_line2"
 editor_2_name = &"color_correction"
 split_offset = 150
 metadata/_custom_type_script = "uid://cis86m6ws6jio"

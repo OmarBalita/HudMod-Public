@@ -1,6 +1,5 @@
 class_name LayerRes extends Resource
 
-
 @export var clips: Dictionary[int, MediaClipRes]
 
 @export var locked: bool
@@ -10,6 +9,9 @@ class_name LayerRes extends Resource
 @export var custom_name: StringName
 @export var custom_color: Color = Color.GRAY
 @export var custom_size: int = 50
+
+var displayed_frame: int
+var displayed_clip_res: MediaClipRes
 
 func get_clips() -> Dictionary[int, MediaClipRes]: return clips
 func set_clips(new_val: Dictionary[int, MediaClipRes]) -> void: clips = new_val
@@ -32,16 +34,26 @@ func add_clip_res(frame: int, clip_res: MediaClipRes) -> void:
 	clips[frame] = clip_res
 
 func remove_clip_res(frame: int) -> void:
+	if frame == displayed_frame and displayed_clip_res:
+		PlaybackServer.free_clip(displayed_clip_res)
+		displayed_clip_res = null
 	clips.erase(frame)
 
-func is_place_unoccupied(frame: int, media_length: int, media_ignored: Array = []) -> bool:
+func pop_clip_res(frame: int) -> MediaClipRes:
+	var clip_res: MediaClipRes = clips[frame]
+	remove_clip_res(frame)
+	return clip_res
+
+
+
+func is_place_unoccupied(frame: int, media_length: int, ignored_clips: Array[MediaClipRes] = []) -> bool:
 	
 	var frame_out: int = frame + media_length
 	
 	for other_frame: int in clips.keys():
-		var media: MediaClipRes = clips.get(other_frame)
-		if media_ignored.has(media): continue
-		var time_end: int = other_frame + media.length
+		var clip_res: MediaClipRes = clips.get(other_frame)
+		if ignored_clips.has(clip_res): continue
+		var time_end: int = other_frame + clip_res.length
 		if not (time_end <= frame or frame_out <= other_frame):
 			return false
 	

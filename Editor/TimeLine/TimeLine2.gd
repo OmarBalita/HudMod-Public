@@ -46,6 +46,7 @@ const SMALL_STEP_BY_FPS: Dictionary[int, int] = {
 @onready var timemark_panel: TimeMarkPanelContainer = TimeMarkPanelContainer.new(self)
 @onready var layers_body: LayersSelectContainer = LayersSelectContainer.new(self)
 @onready var scroll_cont: ScrollContainer = IS.create_scroll_container()
+@onready var layers_margin_split: SplitContainer = IS.create_split_container(0, true)
 @onready var layers_cont: ArrangableBoxContainer = ArrangableBoxContainer.new(layers_body, scroll_cont)
 @onready var margin_control: Control = IS.create_empty_control(.0, 100.)
 @onready var h_scrollbar: HScrollBar = HScrollBar.new()
@@ -56,11 +57,12 @@ const SMALL_STEP_BY_FPS: Dictionary[int, int] = {
 @export var zoom_min: float = .01
 @export var zoom_max: float = 10.
 
-@export var edges_scale: float = 100.
+@export var edges_h_scale: float = 100.
+@export var edges_v_scale: float = 50.
 @export var edges_speed_factor_h: float = .1
 @export var edges_speed_factor_v: float = 10.
 
-@export var dist_to_snap: float = .2
+@export var dist_to_snap: float = .1
 
 @export var margin_size: float = 3.
 
@@ -142,6 +144,9 @@ func _ready_editor() -> void:
 	
 	edit_mode_btn.selected_option_changed.connect(_on_mode_btn_selected_option_changed)
 	edit_multiple_btn.selected_option_changed.connect(_on_edit_multiple_btn_selected_option_changed)
+	split_left_btn.pressed.connect(_on_split_left_button_pressed)
+	split_btn.pressed.connect(_on_split_button_pressed)
+	split_right_btn.pressed.connect(_on_split_right_button_pressed)
 	add_layer_btn.pressed.connect(_on_add_layer_btn_pressed)
 	marker_btn.pressed.connect(_on_marker_btn_pressed)
 	clip_path_ctrlr.undo_requested.connect(_on_clip_path_ctrlr_undo_requested)
@@ -154,8 +159,9 @@ func _ready_editor() -> void:
 	body.add_child(body_boxcont)
 	IS.add_children(body_boxcont, [timemark_panel, layers_body, h_scrollbar])
 	layers_body.add_child(scroll_cont)
-	scroll_cont.add_child(layers_cont)
-	layers_cont.add_child(margin_control)
+	scroll_cont.add_child(layers_margin_split)
+	layers_margin_split.add_child(layers_cont)
+	layers_margin_split.add_child(margin_control)
 	
 	clip_contents = true
 	
@@ -169,9 +175,8 @@ func _ready_editor() -> void:
 	
 	IS.expand(body_boxcont, true, true)
 	IS.expand(layers_body, true, true)
-	IS.expand(layers_cont, true, true)
+	IS.expand(layers_margin_split, true, true)
 	
-	body_boxcont.gui_input.connect(_body_boxcont_gui_input)
 	body.gui_input.connect(_body_gui_input)
 	
 	layers_body.resized.connect(update_timeline_view)
@@ -187,13 +192,14 @@ func _ready_editor() -> void:
 	open_clip_res(ProjectServer2.opened_clip_res_path.back())
 	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
 	ProjectServer2.opened_clip_res_changed.connect(_on_project_server_opened_clip_res_changed)
+	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 	
 	update_timeline_view()
 	update_all_spacial_frames()
 	
 	_update_process_enabling()
 
-func _body_boxcont_gui_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		update_edges_navs_velocity()
 
@@ -269,12 +275,12 @@ func update_edges_navs_velocity() -> void:
 	var dist_h:= Vector2(mouse_pos.x, layers_body.size.x - mouse_pos.x) # Vector2(dist_left, dist_right)
 	var dist_v:= Vector2(mouse_pos.y, layers_body.size.y - mouse_pos.y) # Vector2(dist_up, dist_down)
 	
-	if dist_h.x < edges_scale: edges_nav_velocity.x = dist_h.x - edges_scale
-	elif dist_h.y < edges_scale: edges_nav_velocity.x = edges_scale - dist_h.y
+	if dist_h.x < edges_h_scale: edges_nav_velocity.x = dist_h.x - edges_h_scale
+	elif dist_h.y < edges_h_scale: edges_nav_velocity.x = edges_h_scale - dist_h.y
 	else: edges_nav_velocity.x = .0
 	
-	if dist_v.x < edges_scale: edges_nav_velocity.y = dist_v.x - edges_scale
-	elif dist_v.y < edges_scale: edges_nav_velocity.y = edges_scale - dist_v.y
+	if dist_v.x < edges_v_scale: edges_nav_velocity.y = dist_v.x - edges_v_scale
+	elif dist_v.y < edges_v_scale: edges_nav_velocity.y = edges_v_scale - dist_v.y
 	else: edges_nav_velocity.y = .0
 
 func apply_edges_navs(delta: float) -> void:
@@ -282,7 +288,6 @@ func apply_edges_navs(delta: float) -> void:
 	
 	if edges_nav_horizontal and edges_nav_velocity.x:
 		center += edges_nav_velocity.x * zoom_factor * edges_speed_factor_h * ProjectServer2.project_res.fps * delta
-		PlaybackServer.position = snap_frame(get_frame_from_mouse_pos(), true, false)
 		is_dirty = true
 	
 	if edges_nav_vertical and edges_nav_velocity.y:
@@ -358,6 +363,12 @@ func _update_waveforms_pixelate_scale() -> void:
 	MediaServer.WaveformBoxContainer.set_pixelate_scale(pixel_scale)
 
 
+func switch_edit_mode() -> void:
+	edit_mode_btn.selected_id += 1
+	if edit_mode_btn.selected_id > edit_mode_btn.options.size() - 1:
+		edit_mode_btn.selected_id = 0
+
+
 func get_display_pos_from_frame(frame: int) -> float:
 	return displ_timemark_size_h + (frame - center) * displ_frame_size
 
@@ -370,7 +381,11 @@ func get_frame_from_display_pos(pos: float) -> int:
 func get_frame_from_mouse_pos() -> int:
 	return get_frame_from_display_pos(get_local_mouse_position().x)
 
+func get_snapped_frame_from_display_pos(pos: float) -> int:
+	return snap_frame(get_frame_from_display_pos(pos), false, false)
 
+func get_snapped_frame_from_mouse_pos() -> int:
+	return snap_frame(get_frame_from_mouse_pos(), false, false)
 
 
 class TimeMarkPanelContainer extends PanelContainer:
@@ -401,7 +416,8 @@ class TimeMarkPanelContainer extends PanelContainer:
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT:
 				cursor_is_dragging = event.is_pressed()
-				playback_position_follow_mouse_position()
+				if cursor_is_dragging:
+					playback_position_follow_mouse_position()
 		elif event is InputEventMouseMotion:
 			if cursor_is_dragging:
 				playback_position_follow_mouse_position()
@@ -459,8 +475,8 @@ class TimeMarkPanelContainer extends PanelContainer:
 		displayed_frames.sort()
 	
 	func playback_position_follow_mouse_position() -> void:
+		PlaybackServer.stop()
 		PlaybackServer.position = timeline.snap_frame(timeline.get_frame_from_mouse_pos(), true, false)
-		timeline.update_timeline_view()
 	
 	func open_project_res(project_res: ProjectRes) -> void:
 		if not project_res:
@@ -525,9 +541,8 @@ class TimeMarkPanelContainer extends PanelContainer:
 
 class LayersSelectContainer extends SelectContainer:
 	
-	var timeline: TimeLine2
-	
-	var clips_fordelete: Array[Vector2i]
+	signal clips_start_move()
+	signal clips_end_move()
 	
 	var clips_menu: Array = [
 		#MenuOption.new_line(),
@@ -551,17 +566,41 @@ class LayersSelectContainer extends SelectContainer:
 		MenuOption.new("Extract Audio", null, extract_audio)
 	]
 	
+	var timeline: TimeLine2
+	
+	var clips_fordelete: Array[Vector2i]
+	
+	var min_selected_layer: int
+	var max_selected_layer: int
+	
+	var clips_moving: bool
+	var move_start_coords: Vector2i
+	var move_layer_delta: int
+	var move_frame_delta: int
+	var move_insert_dir: int
+	
 	func _init(_timeline: TimeLine2) -> void:
 		timeline = _timeline
 	
 	func _ready() -> void:
 		super()
+		
+		shortcut_node.register_shortcut_quickly(&"switch_edit_mode", timeline.switch_edit_mode, [ShortcutNode.new_event_key(Key.KEY_TAB)])
+		
 		shortcut_node.register_shortcut_quickly(&"enter_clip", enter_clip, [ShortcutNode.new_event_key(Key.KEY_ENTER)])
 		shortcut_node.register_shortcut_quickly(&"exit_clip", exit_clip, [ShortcutNode.new_event_key(Key.KEY_BACKSPACE)])
+		
 		shortcut_node.register_shortcut_quickly(&"create_parent", create_parent, [ShortcutNode.new_event_key(Key.KEY_P, false, true)])
 		shortcut_node.register_shortcut_quickly(&"reparent", reparent_clip, [ShortcutNode.new_event_key(Key.KEY_R, false, true)])
 		shortcut_node.register_shortcut_quickly(&"parent_up", parent_up.bind(1), [ShortcutNode.new_event_key(Key.KEY_U, false, true)])
 		shortcut_node.register_shortcut_quickly(&"clear_parents", clear_parents, [ShortcutNode.new_event_key(Key.KEY_C, false, true)])
+		
+		shortcut_node.register_shortcut_quickly(&"open_graph", open_graph_editors, [ShortcutNode.new_event_key(Key.KEY_G, true)])
+		shortcut_node.register_shortcut_quickly(&"close_graph", close_graph_editors, [ShortcutNode.new_event_key(Key.KEY_G, false, false, true)])
+		
+		shortcut_node.register_shortcut_quickly(&"split_l", timeline.split_clips.bind(true, false), [ShortcutNode.new_event_key(Key.KEY_Z)])
+		shortcut_node.register_shortcut_quickly(&"split", timeline.split_clips.bind(true, true), [ShortcutNode.new_event_key(Key.KEY_X)])
+		shortcut_node.register_shortcut_quickly(&"split_r", timeline.split_clips.bind(false, true), [ShortcutNode.new_event_key(Key.KEY_C)])
 		
 		shortcut_node.cond_func = EditorServer.layers_body_shortcut_node_cond_func
 	
@@ -572,6 +611,144 @@ class LayersSelectContainer extends SelectContainer:
 				if event.is_pressed():
 					popup_options_menu()
 	
+	func is_moving_clips() -> bool:
+		return clips_moving
+	
+	func start_clips_moving(start_layer_idx: int, start_frame: int) -> void:
+		
+		_set_selected_clips_modulate(Color.TRANSPARENT)
+		
+		clips_moving = true
+		move_start_coords = Vector2i(start_layer_idx, start_frame)
+		
+		timeline.edges_nav_horizontal = true
+		timeline.edges_nav_vertical = true
+		timeline.update_layers_clips(true)
+		timeline.update_clips_spacial_frames(selected_to_vals())
+		timeline.update_spacial_frames()
+		
+		move_clips(start_layer_idx, 0, start_frame)
+		clips_start_move.emit()
+	
+	func move_clips(target_layer_idx: int, insert_dir: int, target_frame: int) -> void:
+		
+		if target_layer_idx != -1:
+			var selectables_keys: Array[int] = selectables.keys()
+			move_layer_delta = target_layer_idx - move_start_coords.x
+			move_layer_delta = mini(move_layer_delta, selectables_keys.max() - max_selected_layer)
+			move_layer_delta = maxi(move_layer_delta, selectables_keys.min() - min_selected_layer)
+			if selected.size() == 1:
+				move_insert_dir = insert_dir
+		
+		move_frame_delta = target_frame - move_start_coords.y
+		
+		var snap_delta: float = INF
+		
+		for layer_idx: int in selected:
+			
+			var port: Dictionary = selected[layer_idx]
+			
+			for frame: int in port:
+				
+				var clip_res: MediaClipRes = port[frame]
+				
+				var new_frame: int = frame + move_frame_delta
+				var snapped_frame: int = timeline.snap_frame(new_frame, false, false)
+				var new_snap_delta: int = snapped_frame - new_frame
+				
+				if new_snap_delta < snap_delta:
+					snap_delta = new_snap_delta
+				
+				var new_end_frame: int = frame + clip_res.length + move_frame_delta
+				var snapped_end_frame: int = timeline.snap_frame(new_end_frame, false, false)
+				var new_end_snap_delta: int = snapped_end_frame - new_end_frame
+				
+				if new_end_snap_delta < snap_delta:
+					snap_delta = new_end_snap_delta
+		
+		if snap_delta != INF:
+			move_frame_delta += snap_delta
+		
+		draw_moved_clips()
+	
+	func draw_moved_clips() -> void:
+		
+		var drawable_rect: DrawableRect = EditorServer.drawable_rect
+		drawable_rect.clear_drawn_entities()
+		
+		if move_insert_dir:
+			
+			var port: Dictionary = selected[move_start_coords.x]
+			var layer: Layer2 = timeline.get_layer_from_idx(move_start_coords.x)
+			var target_layer: Layer2 = timeline.get_layer_from_idx(move_start_coords.x + move_layer_delta)
+			
+			for frame: int in port:
+				var clip_res: MediaClipRes = port[frame]
+				var clip: MediaServer.ClipPanel = layer.get_clip(frame)
+				var frame_displ_pos: float = timeline.global_position.x + timeline.get_display_pos_from_frame(frame + move_frame_delta)
+				drawable_rect.draw_new_theme_rect(Rect2(frame_displ_pos, target_layer.global_position.y + (.0 if move_insert_dir == 1 else target_layer.size.y) , clip.size.x, 10.))
+		
+		else:
+			
+			for layer_idx: int in selected:
+				
+				var port: Dictionary = selected[layer_idx]
+				
+				var new_layer_idx: int = layer_idx + move_layer_delta
+				
+				var layer: Layer2 = timeline.get_layer_from_idx(layer_idx)
+				var new_layer: Layer2 = timeline.get_layer_from_idx(new_layer_idx)
+				
+				var layer_posy: float = new_layer.global_position.y
+				
+				for frame: int in port:
+					var clip: MediaServer.ClipPanel = layer.get_clip(frame)
+					var frame_displ_pos: float = timeline.global_position.x + timeline.get_display_pos_from_frame(frame + move_frame_delta)
+					var rect: Rect2 = Rect2(Vector2(frame_displ_pos, layer_posy), clip.size)
+					drawable_rect.draw_new_theme_rect(rect, IS.COLOR_ACCENT_BLUE, false)
+		
+		drawable_rect.queue_redraw()
+	
+	func end_clips_moving(cancel: bool) -> void:
+		
+		EditorServer.drawable_rect.clear_drawn_entities()
+		_set_selected_clips_modulate(Color.WHITE)
+		
+		if cancel:
+			timeline.update_clips_spacial_frames()
+			timeline.update_spacial_frames()
+		else:
+			move_clips_now()
+		
+		clips_moving = false
+		
+		timeline.edges_nav_horizontal = false
+		timeline.edges_nav_vertical = false
+		
+		clips_end_move.emit()
+	
+	func move_clips_now() -> void:
+		
+		var from_coords: Array[Vector2i] = selected_to_coords()
+		var to_coords: Array[Vector2i] = []
+		
+		var insert_offset: int = maxi(0, move_insert_dir)
+		
+		if move_insert_dir:
+			var new_layer_idx: int = move_start_coords.x + move_layer_delta + insert_offset
+			timeline.opened_clip_res.add_layer(new_layer_idx)
+			
+			if new_layer_idx <= move_start_coords.x:
+				for idx: int in from_coords.size():
+					from_coords[idx].x += 1
+				insert_offset -= 1
+		
+		for coord: Vector2i in from_coords:
+			to_coords.append(coord + Vector2i(move_layer_delta + insert_offset, move_frame_delta))
+		
+		timeline.opened_clip_res.move_clips(from_coords, to_coords, timeline.overlay_menu.focus_index)
+	
+	
 	func _get_port_obj(port_idx: int) -> Object:
 		return timeline.get_layer_from_idx(port_idx)
 	
@@ -581,11 +758,10 @@ class LayersSelectContainer extends SelectContainer:
 	func _set_focused(new_val: Vector2i) -> void:
 		if has_selectable_val(focused.x, focused.y):
 			var latest_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(focused.x).get_clip(focused.y)
-			if latest_clip: latest_clip.select_panel.modulate = Color.WHITE.lerp(latest_clip.get_theme_stylebox(&"panel").bg_color, .5)
+			if latest_clip: latest_clip.select_panel.modulate.a = .7
 		var new_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(new_val.x).get_clip(new_val.y)
-		if new_clip: new_clip.select_panel.modulate = Color.WHITE
+		if new_clip: new_clip.select_panel.modulate.a = 1.
 		super(new_val)
-	
 	
 	func delete_selected_vals() -> void:
 		super()
@@ -709,12 +885,37 @@ class LayersSelectContainer extends SelectContainer:
 	func save_presets(global: bool) -> void:
 		pass
 	
+	func emit_selected_changed() -> void:
+		super()
+		
+		var selected_layers: Array[int] = selected.keys()
+		if selected_layers:
+			min_selected_layer = selected_layers.min()
+			max_selected_layer = selected_layers.max()
+		
+		for layer_idx: int in selected:
+			
+			var port: Dictionary = selected[layer_idx]
+			var layer: Layer2 = timeline.get_layer_from_idx(layer_idx)
+			
+			for frame: int in port:
+				layer.get_clip(frame).update_spacial_frames()
+		
+		timeline.update_clips_spacial_frames()
+		timeline.update_spacial_frames()
 	
 	func update_layers_size() -> void:
 		await get_tree().process_frame
 		for layer_idx: int in selected:
 			timeline.get_layer_from_idx(layer_idx).update_size()
 	
+	
+	func _set_selected_clips_modulate(to: Color) -> void:
+		for layer_idx: int in selected:
+			var port: Dictionary = selected[layer_idx]
+			var layer: Layer2 = timeline.get_layer_from_idx(layer_idx)
+			for frame: int in port:
+				layer.get_clip(frame).modulate = to
 	
 	func _get_min_indices(dict: Dictionary[int, Dictionary]) -> Vector2i:
 		
@@ -746,7 +947,7 @@ class LayersSelectContainer extends SelectContainer:
 		return new_dict
 
 
-func update_clips_spacial_frames() -> void:
+func update_clips_spacial_frames(ignored_clips: Array = []) -> void:
 	clips_spacial_frames.clear()
 	
 	frame_start = opened_clip_res.clip_pos
@@ -758,8 +959,23 @@ func update_clips_spacial_frames() -> void:
 	for layer_res: LayerRes in opened_clip_res.layers:
 		var clips: Dictionary[int, MediaClipRes] = layer_res.clips
 		for frame: int in clips:
+			var clip_res: MediaClipRes = clips[frame]
+			if ignored_clips.has(clip_res):
+				continue
 			clips_spacial_frames.append(frame)
-			clips_spacial_frames.append(frame + clips[frame].length)
+			clips_spacial_frames.append(frame + clip_res.length)
+	
+	var selected_clips: Dictionary[int, Dictionary] = layers_body.selected
+	
+	for layer_idx: int in selected_clips:
+		var port: Dictionary = selected_clips[layer_idx]
+		var layer: Layer2 = get_layer_from_idx(layer_idx)
+		for frame: int in port:
+			if ignored_clips.has(port[frame]):
+				continue
+			var clip_spacial_frames: PackedInt32Array = layer.get_clip(frame).select_panel.get_spacial_frames()
+			for spacial_frame: int in clip_spacial_frames:
+				clips_spacial_frames.append(frame + spacial_frame)
 	
 	clips_spacial_frames.append(frame_start)
 	clips_spacial_frames.append(frame_end)
@@ -781,15 +997,13 @@ func update_all_spacial_frames() -> void:
 	update_timemarkers_spacial_frames()
 	update_spacial_frames()
 
+
 func snap_frame(frame: int, ignore_cursor: bool, ignore_timemarkers: bool, ignore_frames: PackedInt32Array = []) -> int:
-	var _dist_to_snap: float = (dist_to_snap * ProjectServer2.project_res.fps) * zoom_factor
+	var _dist_to_snap: float = (dist_to_snap * ProjectServer2.fps) * zoom_factor
 	var dist: float = INF
 	
 	if snap_timemarks_btn.button_pressed:
-		var snap_frame: int = snap_with_timemarks(frame)
-		var new_dist: int = absi(snap_frame - frame)
-		if new_dist < _dist_to_snap:
-			frame = snap_frame
+		frame = snap_with_timemarks(frame)
 	
 	if snap_clips_btn.button_pressed:
 		var snap_frame: int = snap_with_clips(frame)
@@ -808,17 +1022,7 @@ func snap_frame(frame: int, ignore_cursor: bool, ignore_timemarkers: bool, ignor
 	return frame
 
 func snap_with_timemarks(frame: int) -> int:
-	var target_frame: int
-	var target_dist: float = INF
-	var displayed_frames: Dictionary[int, float] = timemark_panel.displayed_frames
-	
-	for new_frame: int in displayed_frames:
-		var dist_to: int = absi(new_frame - frame)
-		if dist_to < target_dist:
-			target_frame = new_frame
-			target_dist = dist_to
-	
-	return target_frame
+	return snappedi(frame, domain_small_step)
 
 func snap_with_clips(frame: int) -> int:
 	if clips_spacial_frames.is_empty():
@@ -921,7 +1125,7 @@ func open_clip_res(clip_res: MediaClipRes) -> void:
 		string_path.append(path_clip_res.get_display_name())
 	clip_path_ctrlr.update(string_path)
 	
-	sort_layers()
+	await sort_layers()
 	update_layers_clips(true)
 	update_when_clips_changed()
 
@@ -932,6 +1136,7 @@ func _disconnect_clip_res(clip_res: MediaClipRes) -> void:
 	clip_res.clips_added.disconnect(_on_clip_res_clips_added)
 	clip_res.clips_removed.disconnect(_on_clip_res_clips_removed)
 	clip_res.clips_moved.disconnect(_on_clip_res_clips_moved)
+	clip_res.clips_splited.disconnect(_on_clip_res_clips_splited)
 	clip_res.clips_updated.disconnect(_on_clip_res_clips_updated)
 
 func _connect_clip_res(clip_res: MediaClipRes) -> void:
@@ -941,6 +1146,7 @@ func _connect_clip_res(clip_res: MediaClipRes) -> void:
 	clip_res.clips_added.connect(_on_clip_res_clips_added)
 	clip_res.clips_removed.connect(_on_clip_res_clips_removed)
 	clip_res.clips_moved.connect(_on_clip_res_clips_moved)
+	clip_res.clips_splited.connect(_on_clip_res_clips_splited)
 	clip_res.clips_updated.connect(_on_clip_res_clips_updated)
 
 
@@ -966,6 +1172,16 @@ func free_layer(layer_res: LayerRes) -> void:
 func is_layer_hidden(layer: Layer2) -> bool:
 	return not get_global_rect().intersects(layer.get_global_rect())
 
+func find_layer_that_contains_mouse() -> Layer2:
+	var mouse_glob_pos: Vector2 = get_global_mouse_position()
+	
+	for layer_res: LayerRes in layers:
+		var layer: Layer2 = layers[layer_res]
+		if layer.get_global_rect().has_point(mouse_glob_pos):
+			return layer
+	
+	return null
+
 func sort_layers() -> void:
 	
 	layers_body.clear_selectable_ports()
@@ -981,11 +1197,11 @@ func sort_layers() -> void:
 		layer.layer_idx = layer_idx
 		
 		layers_cont.move_child(layer, layers_size - layer_idx - 1)
+		layer.update_clips_coords()
 		layer.update_customization()
 		
-		layers_body.add_selectable_port(layer_idx, layer_res.get_clips())
-	
-	layers_cont.move_child(margin_control, layers_size)
+		layers_body.add_selectable_port(layer_idx, layer_res.get_clips().duplicate())
+
 
 func update_layers_clips(force_update: bool = false) -> void:
 	var layer_skip_cond: Callable
@@ -998,7 +1214,7 @@ func update_layers_clips(force_update: bool = false) -> void:
 		var layer: Layer2 = get_layer_from_idx(idx)
 		if layer_skip_cond.call(layer):
 			continue
-		layer.update_clips(self)
+		layer.update_clips_transform()
 
 func update_layers_clips_selection() -> void:
 	var layers_ress: Array[LayerRes] = opened_clip_res.layers
@@ -1018,6 +1234,9 @@ func update_when_clips_changed() -> void:
 	update_clips_spacial_frames()
 	update_spacial_frames()
 	_update_horizontal_scrollbar()
+	await get_tree().process_frame
+	PlaybackServer.seek_here()
+
 
 
 func spawn_clips(clips: Dictionary[Vector2i, MediaClipRes]) -> void:
@@ -1025,26 +1244,41 @@ func spawn_clips(clips: Dictionary[Vector2i, MediaClipRes]) -> void:
 		var clip_res: MediaClipRes = clips[coord]
 		var layer: Layer2 = get_layer_from_idx(coord.x)
 		layer.spawn_clip(coord.y, clip_res, false)
+		layers_body.add_selectable_val(coord.x, coord.y, clip_res)
 
 func free_clips(clips_coords: Array[Vector2i]) -> void:
 	for coord: Vector2i in clips_coords:
 		var layer: Layer2 = get_layer_from_idx(coord.x)
 		if layer.has_clip(coord.y):
 			layer.free_clip(coord.y)
+			layers_body.delete_selectable_val(coord.x, coord.y)
+			if layers_body.selected.has(coord.x):
+				layers_body.selected[coord.x].erase(coord.y)
 
 func update_clips(clips_coords: Array[Vector2i]) -> void:
 	for coord: Vector2i in clips_coords:
 		get_layer_from_idx(coord.x).update_clip_ui(coord.y)
 
 
+func split_clips(accept_left: bool, accept_right: bool) -> void:
+	opened_clip_res.split_clips(layers_body.selected_to_coords(), PlaybackServer.position, accept_left, accept_right)
+
+
 func _on_mode_btn_selected_option_changed(id: int, option: MenuOption) -> void:
-	match id:
-		0: body.mouse_default_cursor_shape = Control.CURSOR_ARROW
-		1: body.mouse_default_cursor_shape = Control.CURSOR_IBEAM
-		2: body.mouse_default_cursor_shape = Control.CURSOR_HSIZE
+	pass
 
 func _on_edit_multiple_btn_selected_option_changed(id: int, option: MenuOption) -> void:
 	pass
+
+
+func _on_split_left_button_pressed() -> void:
+	split_clips(true, false)
+
+func _on_split_button_pressed() -> void:
+	split_clips(true, true)
+
+func _on_split_right_button_pressed() -> void:
+	split_clips(false, true)
 
 func _on_add_layer_btn_pressed() -> void:
 	await get_tree().process_frame
@@ -1074,6 +1308,11 @@ func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 func _on_project_server_opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
 	open_clip_res(new_one)
 
+func _on_playback_server_position_changed(position: int) -> void:
+	if PlaybackServer.is_playing():
+		navigate_to_cursor(-1)
+	update_timeline_view()
+
 func _on_clip_res_layer_added(layer_idx: int, layer: LayerRes) -> void:
 	spawn_layer(layer_idx, layer)
 	sort_layers()
@@ -1095,10 +1334,20 @@ func _on_clip_res_clips_removed(clips_coords: Array[Vector2i]) -> void:
 func _on_clip_res_clips_moved(from_coords: Array[Vector2i], to: Dictionary[Vector2i, MediaClipRes]) -> void:
 	free_clips(from_coords)
 	spawn_clips(to)
+	sort_layers()
 	update_when_clips_changed()
+
+func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[Vector2i], new_clips: Dictionary[Vector2i, MediaClipRes], split_pos: int, accept_left: bool, accept_right: bool) -> void:
+	
+	layers_body.select_vals_by_method(
+		func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+			var coord: Vector2i = Vector2i(port_idx, idx)
+			return coords.has(coord) or new_clips.has(coord), false
+	)
 
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
 	update_clips(coords)
+
 
 
 

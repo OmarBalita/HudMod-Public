@@ -50,6 +50,7 @@ const TEXTURE_CHECK: CompressedTexture2D = preload("res://Asset/Icons/check.png"
 const TEXTURE_X_MARK: CompressedTexture2D = preload("res://Asset/Icons/x-mark.png")
 const TEXTURE_SEARCH: CompressedTexture2D = preload("res://Asset/Icons/magnifying-glass.png")
 const TEXTURE_MARKER: CompressedTexture2D = preload("res://Asset/Icons/location-marker.png")
+const TEXTURE_KEYFRAME: CompressedTexture2D = preload("res://Asset/Icons/keyframe.png")
 
 const STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
 const STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")

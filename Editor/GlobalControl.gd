@@ -33,7 +33,10 @@ func frame_spacial(step: int) -> void:
 	EditorServer.time_line2.update_timeline_view()
 
 func play_and_stop() -> void:
-	pass
+	if PlaybackServer.is_playing():
+		PlaybackServer.stop()
+	else:
+		PlaybackServer.play()
 
 func save() -> void:
 	EditorServer.save()

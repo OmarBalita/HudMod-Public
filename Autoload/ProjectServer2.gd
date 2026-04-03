@@ -71,6 +71,8 @@ func open_project(_project_path: String) -> void:
 		{},
 		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 			var clip_res: MediaClipRes = layer.clips[frame]
+			clip_res.layer_index = layer_idx
+			clip_res.clip_pos = frame
 			clip_res.loop_components(
 				func(comp: ComponentRes) -> void:
 					comp.set_owner_from_loader(clip_res)

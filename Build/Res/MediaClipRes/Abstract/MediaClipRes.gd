@@ -2,6 +2,8 @@
 
 signal processed(frame: int)
 
+signal clip_res_changed()
+
 signal comp_animation_res_added(comp: ComponentRes, usable_res: UsableRes, property_key: StringName, animation_res: AnimationRes)
 signal comp_animation_res_removed(comp: ComponentRes, usable_res: UsableRes, property_key: StringName)
 signal comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int)
@@ -14,14 +16,16 @@ signal layer_moved(from_idx: int, to_idx: int, layer: LayerRes)
 signal clips_added(clips: Dictionary[Vector2i, MediaClipRes])
 signal clips_removed(coords: Array[Vector2i])
 signal clips_moved(from_coords: Array[Vector2i], to: Dictionary[Vector2i, MediaClipRes])
-signal clips_updated(coords: Array[Vector2i])
+signal clips_splited(coords: Array[Vector2i], deleted_coords: Array[Vector2i], new_clips: Dictionary[Vector2i, MediaClipRes], accept_left: bool, accept_right: bool)
+signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var id: String
 
 @export var from: int = 0:
 	set(val):
 		if GlobalServer.is_global_cache_loaded:
-			from = max(get_min_from(), val)
+			from = maxf(get_min_from(), val)
+			from = minf(from, get_max_length() - length)
 			update()
 		else:
 			from = val
@@ -29,7 +33,7 @@ signal clips_updated(coords: Array[Vector2i])
 @export var length: int = 10:
 	set(val):
 		if GlobalServer.is_global_cache_loaded:
-			length = clamp(val, 1, get_max_length() - from)
+			length = clampf(val, 1., get_max_length() - from)
 			update()
 		else:
 			length = val
@@ -37,16 +41,16 @@ signal clips_updated(coords: Array[Vector2i])
 @export var layers: Array[LayerRes]
 @export var components: Dictionary[String, Array]
 
-var curr_clips: Dictionary[int, int] = {}
-
 var stacked_values: Dictionary[StringName, Array]
 
+var prenodes: Array[Node]
+var postnodes: Array[Node]
 var curr_node: Node
 var curr_frame: int:
 	get():
 		var result: int
 		if curr_frame == -1:
-			var global_frame: int = EditorServer.get_frame()
+			var global_frame: int = PlaybackServer.position
 			result = clamp(global_frame - clip_pos, 0, length)
 		else:
 			result = curr_frame
@@ -56,6 +60,7 @@ var shared_data: Dictionary
 
 var layer_index: int
 var clip_pos: int
+
 
 
 static func get_explorer_section() -> StringName: return &"Object"
@@ -71,6 +76,10 @@ func get_min_from() -> float: return -INF
 func get_max_length() -> float: return +INF
 func get_minmax() -> Vector2: return Vector2(-get_min_from(), get_max_length())
 
+
+func emit_clip_res_changed() -> void:
+	emit_res_changed()
+	clip_res_changed.emit()
 
 func emit_res_changed() -> void:
 	update()
@@ -88,23 +97,23 @@ func has_clips() -> bool:
 			return true
 	return false
 
-func get_curr_clips() -> Dictionary[int, int]:
-	return curr_clips
-
-func set_curr_clips(_curr_clips: Dictionary[int, int]) -> void:
-	curr_clips = _curr_clips
-
 func get_components() -> Dictionary[String, Array]:
 	return components
 
 func set_components(_components: Dictionary[String, Array]) -> void:
 	components = _components
 
-func get_curr_frame() -> int: return curr_frame
-func set_curr_frame(new_frame: int) -> void: curr_frame = new_frame
+func get_prenodes() -> Array[Node]: return prenodes
+func set_prenodes(new_nodes: Array[Node]) -> void: prenodes = new_nodes
+
+func get_postnodes() -> Array[Node]: return postnodes
+func set_postnodes(new_nodes: Array[Node]) -> void: postnodes = new_nodes
 
 func get_curr_node() -> Node: return curr_node
 func set_curr_node(new_node: Node) -> void: curr_node = new_node
+
+func get_curr_frame() -> int: return curr_frame
+func set_curr_frame(new_frame: int) -> void: curr_frame = new_frame
 
 func call_node_method_if(method_name: StringName, args: Array = []) -> void:
 	if curr_node: curr_node.callv(method_name, args)
@@ -137,7 +146,7 @@ func duplicate_media_res() -> MediaClipRes:
 		dupl_layers.append(layer.duplicate_layer_res())
 	
 	duplicated.layers = dupl_layers
-	duplicated.emit_res_changed()
+	duplicated.emit_clip_res_changed()
 	
 	# Return New One
 	return duplicated
@@ -149,7 +158,7 @@ func add_component(section_key: String, component: ComponentRes, forced: bool = 
 	get_section_comps_absolute(section_key).append(component)
 	component.set_owner(self)
 	component.set_forced(forced)
-	emit_res_changed()
+	emit_clip_res_changed()
 	
 	if curr_node:
 		component._enter()
@@ -157,7 +166,7 @@ func add_component(section_key: String, component: ComponentRes, forced: bool = 
 
 func erase_component(section_key: String, component: ComponentRes) -> void:
 	get_section_comps_absolute(section_key).erase(component)
-	emit_res_changed()
+	emit_clip_res_changed()
 	if curr_node:
 		component._delete()
 		process_here()
@@ -181,7 +190,7 @@ func move_component(section_key: String, index_from: int, index_to: int) -> void
 	section.remove_at(index_from)
 	section.insert(index_to, component)
 	
-	emit_res_changed()
+	emit_clip_res_changed()
 	process(curr_frame)
 
 func loop_components(method: Callable, args: Array = []) -> void:
@@ -211,7 +220,6 @@ func loop_components_animations_keys(info: Dictionary[StringName, Variant], meth
 						
 						for key_pos: int in anim_keys:
 							method.call(
-								anim_key,
 								key_pos,
 								anim_keys[key_pos],
 								info
@@ -223,7 +231,7 @@ func wait_until_media_res_processed(media_res: MediaClipRes) -> int:
 		return await media_res.processed
 	return -1
 
-func init_node(layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
 	return null
 
 func enter(node: Node) -> void:
@@ -255,7 +263,6 @@ func exit(node: Node) -> void:
 	curr_frame = -1
 	loop_components(exit_component)
 	shared_data_clear()
-	curr_node = null
 
 func return_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array]:
 	var custom_dict: Dictionary[StringName, Array] = {}
@@ -632,6 +639,31 @@ func just_get_insert_offset(frame: int, intersected_infos: Array[Dictionary]) ->
 	return 0
 
 
+func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, accept_right: bool) -> Dictionary[StringName, Variant]:
+	
+	var result: Dictionary[StringName, Variant] = _create_empty_edit_data()
+	
+	var layer_res: LayerRes = get_layer(layer_idx)
+	
+	var left_clip_res: MediaClipRes = layer_res.get_clip_res(frame)
+	var right_clip_res: MediaClipRes = left_clip_res.duplicate_media_res()
+	
+	var local_split_pos: int = split_pos - frame
+	left_clip_res.length = local_split_pos
+	
+	right_clip_res.from += local_split_pos
+	right_clip_res.length -= local_split_pos
+	
+	if not accept_left:
+		result.fordelete.append(Vector2i(layer_idx, frame))
+	
+	if accept_right:
+		result.foradd[Vector2i(layer_idx, split_pos)] = right_clip_res
+	
+	return result
+
+
+
 func add_clips(layer_idx: int, frame: int, clips_ress: Array[MediaClipRes], place_method_idx: int = 0, emit_add: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
 	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
 	for clip_res: MediaClipRes in clips_ress:
@@ -657,23 +689,46 @@ func remove_clips(coords: Array[Vector2i], emit_remove: bool = true) -> void:
 
 func move_clips(from_coords: Array[Vector2i], to_coords: Array[Vector2i], place_method_idx: int, emit_move: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
 	
+	var clips_formove: Array[MediaClipRes]
 	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
 	
-	for idx: int in range(from_coords.size() - 1, -1, -1):
-		
-		var from: Vector2i = from_coords[idx]
-		var to: Vector2i = to_coords[idx]
-		
+	for from: Vector2i in from_coords:
 		var from_layer: LayerRes = get_layer(from.x)
-		var clip_res: MediaClipRes = from_layer.get_clip_res(from.y)
+		clips_formove.append(from_layer.pop_clip_res(from.y))
+	
+	for idx: int in to_coords.size():
 		
-		from_layer.remove_clip_res(from.y)
+		var to: Vector2i = to_coords[idx]
+		var clip_res: MediaClipRes = clips_formove[idx]
+		
 		placed_clips_ress[place_clip(to.x, to.y, clip_res, place_method_idx)] = clip_res
 	
 	if emit_move:
 		clips_moved.emit(from_coords, placed_clips_ress)
 	
 	return placed_clips_ress
+
+
+func split_clips(coords: Array[Vector2i], split_pos: int, accept_left: bool, accept_right: bool) -> void:
+	
+	var clips_foradd: Dictionary[Vector2i, MediaClipRes]
+	var coords_fordelete: Array[Vector2i]
+	
+	for coord: Vector2i in coords:
+		
+		var layer: LayerRes = get_layer(coord.x)
+		var clip_res: MediaClipRes = layer.get_clip_res(coord.y)
+		
+		if split_pos > coord.y and split_pos < coord.y + clip_res.length:
+			var result: Dictionary[StringName, Variant] = split_clip(coord.x, coord.y, split_pos, accept_left, accept_right)
+			clips_foradd.merge(result.foradd)
+			coords_fordelete.append_array(result.fordelete)
+	
+	remove_clips(coords_fordelete)
+	add_clips_by_coords(clips_foradd)
+	
+	clips_splited.emit(coords, coords_fordelete, clips_foradd, split_pos, accept_left, accept_right)
+
 
 
 func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Callable, premethod:= Callable(), postmethod:= Callable()) -> void:
@@ -696,5 +751,11 @@ func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Ca
 			postmethod.call(layers, layer_idx, dupl_info)
 
 
+
+static func _create_empty_edit_data() -> Dictionary[StringName, Variant]:
+	return {
+		&"foradd": {} as Dictionary[Vector2i, MediaClipRes],
+		&"fordelete": [] as Array[Vector2i]
+	}
 
 

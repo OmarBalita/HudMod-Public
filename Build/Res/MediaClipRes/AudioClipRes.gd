@@ -29,11 +29,16 @@ func get_max_length() -> float:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {&"stream": export(string_args(stream))}
 
-func init_node(layer_idx: int, frame_in: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
 	var player:= AudioStreamPlayer.new()
-	player.bus = ProjectServer.get_bus_name_from_layer_index(layer_idx)
 	player.stream = audio_stream
 	return player
 
-func _process_comps(frame: int) -> void:
-	super(frame)
+func enter(node: Node) -> void:
+	super(node)
+	Scene2.add_stream_player(self)
+
+func exit(node: Node) -> void:
+	super(node)
+	Scene2.remove_stream_player(self)
+

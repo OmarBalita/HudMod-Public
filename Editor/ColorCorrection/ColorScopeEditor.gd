@@ -78,9 +78,9 @@ func _ready_editor() -> void:
 	body.add_child(sub_editors_container)
 	
 	ProjectServer.media_clips_changed.connect(_on_project_server_media_clips_changed)
-	EditorServer.frame_changed.connect(_on_editor_server_frame_changed)
-	EditorServer.time_line.timeline_played.connect(_on_timeline_played)
-	EditorServer.time_line.timeline_stoped.connect(_on_timeline_stoped)
+	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
+	PlaybackServer.played.connect(_on_playback_server_played)
+	PlaybackServer.stopped.connect(_on_playback_server_stopped)
 	EditorServer.properties.property_changed.connect(_on_properties_property_changed)
 	
 	visibility_changed.connect(_on_visibility_changed)
@@ -89,7 +89,7 @@ func _ready_editor() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if (EditorServer.properties.get_global_rect().has_point(get_global_mouse_position()) and Input.get_mouse_button_mask() == 1) or EditorServer.time_line.is_playing:
+	if (EditorServer.properties.get_global_rect().has_point(get_global_mouse_position()) and Input.get_mouse_button_mask() == 1) or PlaybackServer.is_playing():
 		curr_samples_down_scale = inplay_samples_down_scale
 	else:
 		curr_samples_down_scale = samples_down_scale
@@ -438,13 +438,13 @@ class VectorScopeViewer extends ColorScopeViewer:
 func _on_project_server_media_clips_changed() -> void:
 	curr_samples_down_scale = inplay_samples_down_scale
 
-func _on_editor_server_frame_changed(frame: int) -> void:
+func _on_playback_server_position_changed(position: int) -> void:
 	request_calculate()
 
-func _on_timeline_played() -> void:
+func _on_playback_server_played(at: int) -> void:
 	curr_samples_down_scale = inplay_samples_down_scale
 
-func _on_timeline_stoped() -> void:
+func _on_playback_server_stopped(at: int) -> void:
 	curr_samples_down_scale = samples_down_scale
 
 func _on_properties_property_changed() -> void:

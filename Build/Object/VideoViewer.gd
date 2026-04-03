@@ -1,1 +1,2 @@
-class_name VideoViewer extends Sprite2D
+class_name VideoViewer extends ImageViewer
+

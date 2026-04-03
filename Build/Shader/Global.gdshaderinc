@@ -64,3 +64,26 @@ float normpdf3(vec3 v, float s) {
 float random(vec2 uv) {
 	return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
 }
+
+
+float overlay(float base, float blend) {
+	return base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend));
+}
+
+float soft_light(float base, float blend) {
+	return blend < 0.5 ? 
+		(2.0 * base * blend + base * base * (1.0 - 2.0 * blend)) : 
+		(sqrt(base) * (2.0 * blend - 1.0) + 2.0 * base * (1.0 - blend));
+}
+
+float color_dodge(float base, float blend) {
+	return blend == 1.0 ? blend : min(1.0, base / (1.0 - blend));
+}
+
+float color_burn(float base, float blend) {
+	return blend == 0.0 ? blend : max(0.0, 1.0 - (1.0 - base) / blend);
+}
+
+float vivid_light(float base, float blend) {
+	return blend < 0.5 ? color_burn(base, 2.0 * blend) : color_dodge(base, 2.0 * (blend - 0.5));
+}

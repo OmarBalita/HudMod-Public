@@ -119,11 +119,109 @@ void fragment() {
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0ri04"]
 shader = SubResource("Shader_7erdt")
 shader_parameter/mask_type = 0
-shader_parameter/center = Vector2(0.5, 0.5)
+shader_parameter/center = Vector2(0, 0)
 shader_parameter/rotation = 0.0
 shader_parameter/size = Vector2(0.2, 0.2)
-shader_parameter/feather = 0.1
+shader_parameter/feather = 0.0
 shader_parameter/reverse = false
+
+[sub_resource type="Shader" id="Shader_6dp28"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform vec4 modulate: source_color = vec4(1., 1., 1., 1.);
+uniform int blend_mode: hint_range(0, 15) = 0;
+uniform float blend_opacity: hint_range(.0, 1.) = 1.;
+
+uniform sampler2D SCREEN_TEXTURE: hint_screen_texture, filter_linear_mipmap;
+
+
+void fragment() {
+	vec4 texture_col = texture(TEXTURE, UV);
+	
+	texture_col.rgb *= modulate.rgb;
+	texture_col.a *= modulate.a;
+	
+	
+	vec4 screen_col = texture(SCREEN_TEXTURE, SCREEN_UV);
+	
+	vec3 base = screen_col.rgb;
+	vec3 blend = texture_col.rgb;
+	vec3 result = blend;
+	
+	switch (blend_mode) {
+		case 0: // Normal
+			result = blend;
+			break;
+		
+		case 1: // Darken
+			result = min(base, blend);
+			break;
+		case 2: // Multiply
+			result = base * blend;
+			break;
+		case 3: // Color Burn
+			result = vec3(color_burn(base.r, blend.r), color_burn(base.g, blend.g), color_burn(base.b, blend.b));
+			break;
+		case 4: // Linear Burn
+			result = max(vec3(0.0), base + blend - vec3(1.0));
+			break;
+			
+		case 5: // Lighten
+			result = max(base, blend);
+			break;
+		case 6: // Screen
+			result = 1.0 - (1.0 - base) * (1.0 - blend);
+			break;
+		case 7: // Color Dodge
+			result = vec3(color_dodge(base.r, blend.r), color_dodge(base.g, blend.g), color_dodge(base.b, blend.b));
+			break;
+		case 8: // Linear Dodge (Add)
+			result = min(vec3(1.0), base + blend);
+			break;
+		
+		case 9: // Overlay
+			result = vec3(overlay(base.r, blend.r), overlay(base.g, blend.g), overlay(base.b, blend.b));
+			break;
+		case 10: // Soft Light
+			result = vec3(soft_light(base.r, blend.r), soft_light(base.g, blend.g), soft_light(base.b, blend.b));
+			break;
+		case 11: // Hard Light
+			result = vec3(overlay(blend.r, base.r), overlay(blend.g, base.g), overlay(blend.b, base.b));
+			break;
+		case 12: // Vivid Light
+			result = vec3(vivid_light(base.r, blend.r), vivid_light(base.g, blend.g), vivid_light(base.b, blend.b));
+			break;
+			
+		case 13: // Difference
+			result = abs(base - blend);
+			break;
+		case 14: // Exclusion
+			result = base + blend - 2.0 * base * blend;
+			break;
+		case 15: // Subtract
+			result = max(vec3(0.0), base - blend);
+			break;
+	}
+	
+	float final_alpha = texture_col.a * blend_opacity;
+	
+	if (blend_mode == 0) {
+		COLOR.rgb = texture_col.rgb;
+		COLOR.a = final_alpha;
+	} else {
+		COLOR.rgb = mix(base, clamp(result, .0, 1.), final_alpha);
+		COLOR.a = texture_col.a;
+	}
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3k21i"]
+shader = SubResource("Shader_6dp28")
+shader_parameter/modulate = Color(1, 1, 1, 1)
+shader_parameter/blend_mode = 0
+shader_parameter/blend_opacity = 1.0
 
 [sub_resource type="Shader" id="Shader_iov73"]
 code = "shader_type canvas_item;
@@ -814,19 +912,23 @@ shader_parameter/smoothness = 0.3
 [node name="PrototypeShader" type="Node2D" unique_id=1695768259]
 
 [node name="Display2D" type="Node2D" parent="." unique_id=673526309]
-visible = false
 
 [node name="CanvasItem" type="Node2D" parent="Display2D" unique_id=780710629]
-visible = false
 
 [node name="Modulate" type="Sprite2D" parent="Display2D/CanvasItem" unique_id=282085265]
 visible = false
 material = SubResource("ShaderMaterial_0ri04")
 texture = ExtResource("8_n0gsr")
 
+[node name="Blending" type="Sprite2D" parent="Display2D/CanvasItem" unique_id=306135075]
+material = SubResource("ShaderMaterial_3k21i")
+texture = ExtResource("8_n0gsr")
+
 [node name="Image" type="Node2D" parent="." unique_id=1971762683]
+visible = false
 
 [node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
+visible = false
 
 [node name="Invert" type="Sprite2D" parent="Image/Basic" unique_id=523742155]
 visible = false
@@ -940,7 +1042,6 @@ material = SubResource("ShaderMaterial_rlbq7")
 texture = ExtResource("10_7ke4e")
 
 [node name="Emboss" type="Sprite2D" parent="Image/Artistic" unique_id=733769963]
-visible = false
 material = SubResource("ShaderMaterial_pfssk")
 texture = ExtResource("8_n0gsr")
 

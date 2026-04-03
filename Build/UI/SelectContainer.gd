@@ -98,15 +98,15 @@ func select_val(port_idx: int, idx: int) -> void:
 		selected[port_idx][idx] = val
 	focused = Vector2i(port_idx, idx)
 
-func deselect_val(port_idx: int, idx: int) -> void:
+func deselect_val(port_idx: int, idx: int, update_focus: bool = false) -> void:
 	if is_val_selected(port_idx, idx):
 		selected[port_idx].erase(idx)
-	update_focused()
+	if update_focus: update_focused()
 
 func manage_val(port_idx: int, idx: int, delete: bool, preclear: bool) -> void:
 	if delete:
 		if is_val_selected(port_idx, idx):
-			deselect_val(port_idx, idx)
+			deselect_val(port_idx, idx, true)
 	else:
 		if preclear: clear_selected_vals()
 		select_val(port_idx, idx)
@@ -149,8 +149,8 @@ func loop_selected_vals(info: Dictionary[StringName, Variant], method: Callable,
 
 func delete_selected_vals() -> void:
 	loop_selected_vals({}, func(port_idx: int, idx: int, info: Dictionary[StringName, Variant]) -> bool:
-		delete_selectable_val(port_idx, idx)
 		_delete_val(port_idx, idx)
+		delete_selectable_val(port_idx, idx)
 		return false
 	)
 	clear_selected_vals()
@@ -212,9 +212,9 @@ func get_invert_vals_method(port_idx: int, port_obj: Object, idx: int, metadata:
 func get_linked_vals_method(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary = {}) -> bool: return selected.has(port_idx) and not selected[port_idx].is_empty()
 func get_random_vals_method(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary = {}) -> bool: return bool(randi_range(0, 1))
 
-func select_vals_by_method(method: Callable, metadata: Dictionary = {}) -> void:
+func select_vals_by_method(method: Callable, preclear: bool = true, metadata: Dictionary = {}) -> void:
 	var coords: Dictionary[int, PackedInt32Array] = get_vals_coords_by_method(method, metadata)
-	select_vals(coords, true)
+	select_vals(coords, preclear)
 	emit_selected_changed()
 
 func get_vals_coords_by_method(cond_method: Callable, metadata: Dictionary) -> Dictionary[int, PackedInt32Array]:
@@ -242,6 +242,14 @@ func selected_to_coords() -> Array[Vector2i]:
 		for idx: int in port:
 			coords.append(Vector2i(port_idx, idx))
 	return coords
+
+func selected_to_vals() -> Array[Variant]:
+	var vals: Array[Variant]
+	for port_idx: int in selected:
+		var port: Dictionary = selected[port_idx]
+		for idx: int in port:
+			vals.append(port[idx])
+	return vals
 
 
 func popup_options_menu(options: Array = []) -> void:

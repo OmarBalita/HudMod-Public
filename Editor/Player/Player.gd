@@ -18,14 +18,6 @@ signal curr_frame_changed(new_frame: int)
 
 # RealTime Variables
 
-var curr_frame: int:
-	set(val):
-		curr_frame = val
-		update_timecode()
-		time_slider.slider_controller.set_curr_val_manually(val)
-		update_object_editor()
-
-
 var is_full_screen: bool:
 	set(val):
 		is_full_screen = val
@@ -66,18 +58,7 @@ var more_button: TextureButton
 
 var slider_panel: PanelContainer
 var slider_time_code_label: Label
-var time_slider: SliderControl
 var cancel_full_screen_button: TextureButton
-
-var curr_object_editor: Control:
-	set(val):
-		curr_object_editor = val
-		if val:
-			hide_slider_panel()
-		var has_object_editor: bool = curr_object_editor == null
-		options_container.visible = has_object_editor
-		flex_view_control.enabled = has_object_editor
-
 
 
 # ---------------------------------------------------
@@ -85,26 +66,19 @@ var curr_object_editor: Control:
 
 func _ready_editor() -> void:
 	
-	# Describe Player
 	_ready_ui()
 	
-	# Connections
+	PlaybackServer.played.connect(_on_playback_server_played)
+	PlaybackServer.stopped.connect(_on_playback_server_stopped)
+	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 	
-	EditorServer.media_clips_selection_group.selected_objects_changed.connect(on_media_clips_selection_selected_objects_changed)
-	EditorServer.time_line.curr_frame_changed.connect(on_timeline_curr_frame_changed)
-	EditorServer.time_line.timeline_stoped.connect(on_timeline_stopped)
+	play_button.pressed.connect(_on_play_button_pressed)
+	replay_button.pressed.connect(_on_replay_button_pressed)
+	full_screen_button.pressed.connect(_on_full_screen_button_pressed)
+	ratio_button.pressed.connect(_on_ratio_button_pressed)
+	more_button.pressed.connect(_on_more_button_pressed)
 	
-	play_button.pressed.connect(on_play_button_pressed)
-	replay_button.pressed.connect(on_replay_button_pressed)
-	full_screen_button.pressed.connect(on_full_screen_button_pressed)
-	ratio_button.pressed.connect(on_ratio_button_pressed)
-	more_button.pressed.connect(on_more_button_pressed)
-	
-	time_slider.slider_controller.val_changed.connect(on_time_slider_val_changed)
-	time_slider.slider_controller.grab_finished.connect(on_time_slider_grab_finished)
-	cancel_full_screen_button.pressed.connect(on_cancel_full_screen_button_pressed)
-	
-	flex_view_control.focus_changed.connect(on_flex_view_focus_changed)
+	cancel_full_screen_button.pressed.connect(_on_cancel_full_screen_button_pressed)
 	
 	# Update
 	update_ui()
@@ -147,7 +121,6 @@ func _ready_ui() -> void:
 	more_button = IS.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
-	#time_container.add_child(IS.create_v_line_panel(15))
 	time_container.add_child(max_time_label)
 	time_panel.add_child(time_container)
 	
@@ -175,17 +148,9 @@ func _ready_ui() -> void:
 	var slider_box = IS.create_box_container()
 	
 	slider_time_code_label = IS.create_label("")
-	time_slider = IS.create_slider_control(curr_frame, 0, ProjectServer.curr_length, 1)
-	IS.expand(time_slider)
-	ObjectServer.describe(time_slider.slider_controller, {
-		rounded_corners = false,
-		bg_color = Color(Color.GRAY, .2),
-		grabber_main_color = IS.COLOR_ACCENT_BLUE.lightened(.2)
-	})
 	cancel_full_screen_button = IS.create_texture_button(texture_cancel_full_screen)
 	
 	slider_box.add_child(slider_time_code_label)
-	slider_box.add_child(time_slider)
 	slider_box.add_child(cancel_full_screen_button)
 	
 	slider_margin.add_child(slider_box)
@@ -197,122 +162,55 @@ func _ready_ui() -> void:
 	slider_panel.modulate.a = .0
 
 
-func get_curr_frame() -> int:
-	return curr_frame
-
-func set_curr_frame(new_frame: int) -> void:
-	curr_frame = new_frame
-
 func get_is_full_screen() -> bool:
 	return is_full_screen
 
 func set_is_full_screen(it_is: bool) -> void:
 	is_full_screen = it_is
 
-func show_slider_panel() -> void:
-	if curr_object_editor: return
-	slider_panel.show()
-	tweener.play(slider_panel, "modulate:a", [1.0], [.1])
-
-func hide_slider_panel() -> void:
-	tweener.play(slider_panel, "modulate:a", [.0], [.1])
-	var tween = tweener.tween
-	await tween.finished
-	if tween == tweener.tween:
-		slider_panel.hide()
-
 func update_ui() -> void:
 	slider_time_code_label.visible = is_full_screen
 	cancel_full_screen_button.visible = is_full_screen
-	time_slider.slider_controller.max_val = ProjectServer.curr_length
 	update_timecode()
 
 func update_timecode() -> void:
-	var curr_frame_timecode:= TimeServer.frame_to_timecode(curr_frame)
-	var video_length_timecode:= TimeServer.frame_to_timecode(ProjectServer.curr_length)
+	var curr_frame_timecode:= TimeServer.frame_to_timecode(PlaybackServer.position)
+	var video_length_timecode:= TimeServer.frame_to_timecode(ProjectServer2.project_res.root_clip_res.length)
 	time_code_label.set_text(curr_frame_timecode)
 	max_time_label.set_text(video_length_timecode)
 	slider_time_code_label.set_text(curr_frame_timecode + " / " + video_length_timecode)
 
-func update_object_editor() -> void:
-	#var focus = EditorServer.media_clips_selection_group.focused
-	#if focus:
-		#var focus_metadata: Dictionary = focus.metadata
-		#var object: Node = Scene2.get_object(focus_metadata.clip_res)
-		#
-		#var object_editor: Control
-		#
-		#if object is GDDraw:
-			#draw_editor.draw_node = object
-			#object_editor = draw_editor_control
-		#
-		#var is_frame_entered_media: bool = ProjectServer.is_frame_on_media(curr_frame, focus_metadata.clip_pos, focus_metadata.clip_res.length)
-		#if object_editor:
-			#object_editor.set_enabling(is_frame_entered_media)
-			#curr_object_editor = object_editor
-		#else:
-			#disable_curr_object_editor()
-	#else:
-		#disable_curr_object_editor()
-	pass
+
+func _on_playback_server_played(at: int) -> void:
+	play_button.button_pressed = true
+
+func _on_playback_server_stopped(at: int) -> void:
+	play_button.button_pressed = false
 
 
-func disable_curr_object_editor() -> void:
-	if curr_object_editor:
-		curr_object_editor.set_enabling(false)
-		curr_object_editor = null
+func _on_playback_server_position_changed(position: int) -> void:
+	update_timecode()
 
-
-
-func on_media_clips_selection_selected_objects_changed() -> void:
-	update_object_editor()
-
-func on_timeline_curr_frame_changed(new_frame: int) -> void:
-	volume_control.update()
-	set_curr_frame(new_frame)
-
-func on_timeline_stopped() -> void:
-	volume_control.stop()
-
-func on_play_button_pressed() -> void:
-	var timeline: TimeLine = EditorServer.time_line
-	if play_button.button_pressed:
-		timeline.play()
+func _on_play_button_pressed() -> void:
+	if PlaybackServer.is_playing():
+		PlaybackServer.stop()
 	else:
-		timeline.stop()
+		PlaybackServer.play()
 
-func on_replay_button_pressed() -> void:
+func _on_replay_button_pressed() -> void:
 	EditorServer.editor_settings.is_replay = replay_button.button_pressed
 
-func on_full_screen_button_pressed() -> void:
+func _on_full_screen_button_pressed() -> void:
 	set_is_full_screen(true)
 
-func on_ratio_button_pressed() -> void:
+func _on_ratio_button_pressed() -> void:
 	pass
 
-func on_more_button_pressed() -> void:
+func _on_more_button_pressed() -> void:
 	pass
 
-func on_time_slider_val_changed(new_val: float) -> void:
-	curr_frame = new_val
-	EditorServer.set_frame(new_val)
-	curr_frame_changed.emit(new_val)
-
-func on_time_slider_grab_finished() -> void:
-	if not flex_view_control.is_focus:
-		hide_slider_panel()
-
-func on_cancel_full_screen_button_pressed() -> void:
+func _on_cancel_full_screen_button_pressed() -> void:
 	set_is_full_screen(false)
-
-func on_flex_view_focus_changed(is_focus: bool) -> void:
-	if is_focus: show_slider_panel()
-	elif not time_slider.slider_controller.is_grab:
-		hide_slider_panel()
-
-
-
-
 
 
 

@@ -8,5 +8,6 @@ void fragment() {
 	
 	float lod = log2(pixelate_scale); 
 	
-	COLOR = textureLod(TEXTURE, vec2(pixel_uv, UV.y), lod);
+	COLOR.rgb = textureLod(TEXTURE, vec2(pixel_uv, UV.y), lod).rgb;
+	COLOR.a = min(1. - step(.001, COLOR.r), .5);
 }

@@ -918,8 +918,7 @@ func remove_time_marker(frame_in: int) -> void:
 # ---------------------------------------------------
 
 func is_frame_on_media(curr_frame: int, time_begin: int, clip_length: int) -> bool:
-	var time_end: int = time_begin + clip_length
-	return curr_frame >= time_begin and curr_frame < time_end
+	return curr_frame >= time_begin and curr_frame < time_begin + clip_length
 
 func update_scene_objects(curr_frame: int = -1) -> void:
 	if curr_frame < 0: curr_frame = EditorServer.frame
@@ -968,7 +967,7 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 	parent_res.set_curr_clips(new_clips)
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int, global_frame: int) -> Node:
-	var object: Node = media_res.init_node(layer_index, frame_in)
+	var object: Node = media_res.init_node(root_layer_index, layer_index, frame_in)
 	Scene2.instance_object(parent_res, media_res, object, layer_index, frame_in, root_layer_index)
 	media_res.enter(object)
 	return object

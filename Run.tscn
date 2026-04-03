@@ -272,15 +272,3 @@ layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxEmpty_0vf8b")
 theme_override_styles/fill = SubResource("StyleBoxFlat_wx0j5")
 show_percentage = false
-
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1292498553]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-expand_mode = 1
-stretch_mode = 5
-
-[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=453749576]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0

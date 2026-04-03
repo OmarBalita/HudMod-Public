@@ -17,3 +17,4 @@ func get_shader_param_code_name(display_name: String) -> String:
 func _get_shader_global_params_snip() -> String: return ""
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
+

@@ -9,9 +9,10 @@ var options: Array
 var selected_id: int:
 	set(val):
 		selected_id = val
-		selected_option = options[val]
-		if is_node_ready():
-			update_display_option(val)
+		if options.size() > val:
+			selected_option = options[val]
+			if is_node_ready():
+				update_display_option(val)
 
 var selected_option: MenuOption
 

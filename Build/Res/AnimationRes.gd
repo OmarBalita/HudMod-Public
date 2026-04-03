@@ -104,7 +104,7 @@ func sample_constant(x: int) -> Variant:
 func sample_int(x: int) -> int:
 	return round(profile_sample(0, x))
 
-func sample_float(x: int) -> int:
+func sample_float(x: int) -> float:
 	return profile_sample(0, x)
 
 func sample_vec2(x: int) -> Vector2:

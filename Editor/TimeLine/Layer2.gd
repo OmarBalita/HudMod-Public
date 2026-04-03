@@ -14,17 +14,17 @@ class_name Layer2 extends HSplitContainer
 @onready var clips_panel: ClipsPanelContainer = ClipsPanelContainer.new(self)
 @onready var clips_body: Control = Control.new()
 
+static var timeline: TimeLine2
+
 var layer_idx: int
 var layer_res: LayerRes
 
 var clips: Dictionary[int, MediaServer.ClipPanel]
-
+var locked_clips: Dictionary[int, MediaServer.ClipPanel]
 
 func _ready() -> void:
 	
-	
 	dragging_enabled = false
-	
 	clips_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clips_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
@@ -84,30 +84,54 @@ func free_clip(frame: int) -> void:
 	clips[frame].queue_free()
 	clips.erase(frame)
 
-func update_clip_ui(frame: int) -> void:
-	clips[frame]._update_ui()
+func lock_clip(frame: int) -> void:
+	if clips.has(frame):
+		var clip: MediaServer.ClipPanel = clips[frame]
+		locked_clips[frame] = clip
+		clips.erase(frame)
 
-func update_clips(timeline: TimeLine2) -> void:
+func unlock_clip(frame: int) -> void:
+	if locked_clips.has(frame):
+		var clip: MediaServer.ClipPanel = locked_clips[frame]
+		clips[frame] = clip
+		clips.erase(frame)
+
+func update_clip_transform(frame: int, clip: MediaServer.ClipPanel, displacement: float) -> void:
+	var clip_res: MediaClipRes = clip.clip_res
+	
+	var displ_begin_pos: float = timeline.get_display_pos_from_frame(frame) + displacement
+	var displ_end_pos: float = timeline.get_display_pos_from_frame(frame + clip_res.length) + displacement
+	
+	clip.position = Vector2(displ_begin_pos, .0)
+	clip.size = Vector2(displ_end_pos - displ_begin_pos, size.y)
+	
+	clip._update_ui_transform()
+
+func update_clip_ui(frame: int) -> void:
+	var clip: MediaServer.ClipPanel = clips[frame]
+	update_clip_transform(frame, clip, timeline.global_position.x - clips_body.global_position.x)
+	clip._update_ui()
+
+func update_clips_transform() -> void:
 	
 	var displacement: float = timeline.global_position.x - clips_body.global_position.x
 	
 	for frame: int in clips:
 		var clip: MediaServer.ClipPanel = clips[frame]
-		var clip_res: MediaClipRes = clip.clip_res
-		
-		var displ_begin_pos: float = timeline.get_display_pos_from_frame(frame) + displacement
-		var displ_end_pos: float = timeline.get_display_pos_from_frame(frame + clip_res.length) + displacement
-		
-		clip.position = Vector2(displ_begin_pos, .0)
-		clip.size = Vector2(displ_end_pos - displ_begin_pos, size.y)
-		clip._update_ui_transform()
+		update_clip_transform(frame, clip, displacement)
 	
 	clips_panel.queue_redraw()
 
 func update_clips_selection(layer_port_selections: Dictionary) -> void:
 	for frame: int in clips:
-		var clip: MediaServer.ClipPanel = clips[frame]
-		clip._update_selection(layer_port_selections.has(frame))
+		clips[frame]._update_selection(layer_port_selections.has(frame))
+
+func update_clips_coords() -> void:
+	for frame: int in clips:
+		var clip:= clips[frame]
+		clip.layer_idx = layer_idx
+		clip.frame = frame
+
 
 func update_customization() -> void:
 	name_label.text = "Layer %s" % layer_idx if layer_res.custom_name.is_empty() else layer_res.custom_name
@@ -142,14 +166,14 @@ func move_down() -> void:
 	move_to(layer_idx - 1)
 
 func move_to(target_idx: int) -> void:
-	EditorServer.time_line2.opened_clip_res.move_layer(layer_idx, target_idx)
+	timeline.opened_clip_res.move_layer(layer_idx, target_idx)
 
 func delete() -> void:
-	EditorServer.time_line2.opened_clip_res.remove_layer(layer_idx)
+	timeline.opened_clip_res.remove_layer(layer_idx)
 
 
 func popup_move_to() -> void:
-	var max_layer_index: int = EditorServer.time_line2.opened_clip_res.layers.size()
+	var max_layer_index: int = timeline.opened_clip_res.layers.size()
 	var index_to_controller: FloatController = IS.create_float_edit(&"index", layer_idx, 0, max_layer_index - 1, 1, .1, 5, true)[0]
 	
 	var window_container: BoxContainer = WindowManager.popup_accept_window(
@@ -261,12 +285,10 @@ class ClipsPanelContainer extends PanelContainer:
 		var pos_start: float = timeline.get_display_pos_from_frame(timeline.frame_start) + displacement
 		var rect2_start: Rect2 = Rect2(Vector2.ZERO, Vector2(pos_start, size.y))
 		draw_rect(rect2_start, color)
-		#draw_line(Vector2(pos_start, .0), Vector2(pos_start, size.y), Color.BLACK, 2.)
 		
 		var pos_end: float = timeline.get_display_pos_from_frame(timeline.frame_end) + displacement
 		var rect2_end: Rect2 = Rect2(Vector2(pos_end, .0), Vector2(size.x - pos_end, size.y))
 		draw_rect(rect2_end, color)
-		#draw_line(Vector2(pos_end, .0), Vector2(pos_end, size.y), Color.BLACK, 2.)
 
 
 

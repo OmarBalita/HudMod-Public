@@ -27,12 +27,12 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"zoom": export(vec2_args(zoom))
 	} as Dictionary[StringName, ExportInfo].merged(super())
 
-func init_node(layer_idx: int, frame_in: int) -> Node:
-	return Camera2D.new()
+func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+	return _init_node2d(root_layer_idx, layer_idx, frame, Camera2D.new())
 
 func enter(node: Node) -> void:
 	super(node)
-	Scene2.add_camera_as_object(node)
+	Scene2.add_camera(self)
 
 func _process_comps(frame: int) -> void:
 	curr_node.enabled = camera_enabled
@@ -44,5 +44,6 @@ func _process_comps(frame: int) -> void:
 	super(frame)
 
 func exit(node: Node) -> void:
-	Scene2.remove_camera_as_object(node)
+	super(node)
+	Scene2.remove_camera(self)
 

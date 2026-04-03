@@ -16,6 +16,12 @@ const LOAD_ERR_STR: PackedStringArray = [
 @export var videos_info: Dictionary[StringName, Dictionary]
 @export var audio_stream_waves: Dictionary[StringName, AudioStreamWAV]
 @export var preset_media_ress: Dictionary[StringName, MediaClipRes]
+@export var videos_cache: Dictionary[StringName, VideoCache]
+
+
+func _ready() -> void:
+	EditorServer.editor_settings.settings_updated.connect(_on_editor_settings_settings_updated)
+
 
 func load_media_cache_from_file_system(file_system: DisplayFileSystemRes) -> void:
 	var thumb_path: String = file_system.thumbnail_path
@@ -25,6 +31,7 @@ func load_media_cache_from_file_system(file_system: DisplayFileSystemRes) -> voi
 		if file_info.type == "file":
 			register_from_path(path_or_name, ids_exists, file_info.id, thumb_path, waveform_path)
 	)
+	update_videos_cache_max_cache_size()
 
 func images_has(key_as_path: StringName) -> bool: return images.has(key_as_path)
 func videos_info_has(key_as_path: StringName) -> bool: return videos_info.has(key_as_path)
@@ -66,6 +73,7 @@ func register_image(path: StringName, ids_exists: PackedStringArray, id: String,
 	return LOAD_ERR.SUCCESS
 
 func register_video(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> LOAD_ERR:
+	
 	if videos_info_has(path):
 		return LOAD_ERR.LOAD_ERR_ALREADY_EXISTS
 	
@@ -73,19 +81,25 @@ func register_video(path: StringName, ids_exists: PackedStringArray, id: String,
 	var video_decoder: VideoDecoder = VideoDecoder.new()
 	video_decoder.set_internal_enhance(false)
 	video_decoder.set_video_path(path)
-	video_decoder.open()
+	
+	if not video_decoder.open():
+		return LOAD_ERR.LOAD_ERR_CANT_OPEN
 	
 	var total_frames: int = video_decoder.get_total_frames_native()
-	if total_frames < 1: total_frames = video_decoder.get_total_frames_by_timebase()
+	if total_frames < 1:
+		total_frames = video_decoder.get_total_frames_by_timebase()
+		if total_frames < 1:
+			total_frames = video_decoder.get_total_frames_by_dur()
 	
 	videos_info[path] = {
 		&"resolution": video_decoder.get_resolution(),
 		&"duration": video_decoder.get_duration(),
 		&"fps": video_decoder.get_fps(),
 		&"total_frames": total_frames,
-		&"bit_depth": video_decoder.get_bit_depth(),
-		&"stream": audio_stream
+		&"bit_depth": video_decoder.get_bit_depth()
 	}
+	videos_cache[path] = VideoCache.new()
+	audio_stream_waves[path] = audio_stream
 	
 	MediaServer.server_register_video(path, video_decoder, audio_stream, ids_exists, id, thumbnail_path, waveform_path)
 	
@@ -158,6 +172,7 @@ func deregister_image(path: StringName, id: String, thumbnail_path: String) -> v
 func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path)
 	videos_info.erase(path)
+	videos_cache.erase(path)
 
 func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path)
@@ -167,6 +182,72 @@ func deregister_preset_media_res(path: StringName, id: String, thumbnail_path: S
 	preset_media_ress.erase(path)
 
 
+
+func get_video_cache(path: StringName) -> VideoCache:
+	return videos_cache[path]
+
+func get_frame_from_video_cache(path: StringName, frame: int) -> Array[Texture2D]:
+	return videos_cache[path].get_frame(frame)
+
+func push_frame_to_video_cache(path: StringName, frame: int, textures: Array[Texture2D]) -> void:
+	if videos_cache.has(path):
+		videos_cache[path].push_frame(frame, textures)
+
+func clear_video_cache_frames(path: StringName) -> void:
+	videos_cache[path].clear_frames()
+
+func update_videos_cache_max_cache_size() -> void:
+	
+	var size_remained: int = EditorServer.editor_settings.video_max_frame_cache
+	var size_per_video: int = size_remained / maxi(1, videos_info.size())
+	
+	for path: StringName in videos_cache:
+		
+		var video_total_frames: int = get_video_info(path).total_frames
+		var video_cache: VideoCache = videos_cache[path]
+		var max_cache_size: int = mini(size_per_video, video_total_frames)
+		video_cache.max_cache_size = max_cache_size
+		
+		size_remained -= max_cache_size
+
+
+class VideoCache extends Resource:
+	
+	@export var max_cache_size: int:
+		set(val):
+			max_cache_size = maxi(50, val)
+			clear_excess_frames()
+	
+	@export var cache: Dictionary = {}
+	
+	@export var frames: PackedInt32Array
+	
+	func has_frame(frame: int) -> bool:
+		return frames.has(frame)
+	
+	func get_frame(frame: int) -> Array[Texture2D]:
+		return cache.get(frame, [] as Array[Texture2D])
+	
+	func push_frame(frame: int, frame_textures: Array[Texture2D]) -> void:
+		cache[frame] = frame_textures
+		
+		if cache.size() >= max_cache_size:
+			var oldest_frame: int = frames[0]
+			cache.erase(oldest_frame)
+			frames.remove_at(0)
+		
+		frames.append(frame)
+	
+	func clear_frames() -> void:
+		cache.clear()
+	
+	func clear_excess_frames() -> void:
+		var excess_frames_count: int = maxi(0, frames.size() - max_cache_size)
+
+
+
+func _on_editor_settings_settings_updated() -> void:
+	update_videos_cache_max_cache_size()
 
 
 

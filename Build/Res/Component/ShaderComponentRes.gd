@@ -75,6 +75,9 @@ const SHADER_PARAM_TYPE_STRING_INDEXER: Dictionary[int, String] = {
 	ShaderParamType.PARAM_TYPE_USAMPLER_3D: "usampler3D"
 }
 
+func has_method_type() -> bool:
+	return false
+
 func _ready_shader() -> void:
 	pass
 

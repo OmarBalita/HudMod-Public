@@ -4,44 +4,16 @@ class_name Display2DClipRes extends MediaClipRes
 signal shader_code_compiled_successfully()
 signal shader_material_changed()
 
-@export var position: Vector2 = Vector2.ZERO
-@export var rotation_degrees: float = .0
-@export var scale: Vector2 = Vector2.ONE
-@export var skew: float
-
 @export var render_pass_margin: Vector2
 
-var shader_code: String:
-	set(val):
-		await RenderingServer.frame_post_draw
-		shader_code = val
-		
-		if shader_code.is_empty():
-			shader_material = null
-		else:
-			shader_code_compiled_successfully.emit()
-			var new_shader_mat:= ShaderMaterial.new()
-			var new_shader:= Shader.new()
-			new_shader.set_code(shader_code)
-			new_shader_mat.set_shader(new_shader)
-			
-			shader_material = new_shader_mat
-			
-			if ppsm.is_empty():
-				node_shader_material = new_shader_mat
-			else:
-				node_shader_material = null
-				ppsm.insert(0, new_shader_mat)
-			
-			if curr_node:
-				curr_node.texture = get_self_texture()
-
+var shader_code: String: set = _set_shader_code
 var shader_material: ShaderMaterial: set = _set_shader_material
 var node_shader_material: ShaderMaterial: set = _set_node_shader_material
 var ppsm: Array[ShaderMaterial]
 var ppr: PingPongRenderer
 
 var mat_process_id: int
+
 
 static func get_explorer_section() -> StringName: return &"Object2D"
 static func get_properties_section() -> StringName: return &"Display2D"
@@ -50,6 +22,27 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 		&"title": "Object2D",
 		&"Description": ""
 	}
+
+func _set_shader_code(val: String) -> void:
+	await RenderingServer.frame_post_draw
+	shader_code = val
+	
+	if shader_code.is_empty():
+		shader_material = null
+	else:
+		shader_code_compiled_successfully.emit()
+		var new_shader_mat:= ShaderMaterial.new()
+		var new_shader:= Shader.new()
+		new_shader.set_code(shader_code)
+		new_shader_mat.set_shader(new_shader)
+		
+		shader_material = new_shader_mat
+		
+		if ppsm.is_empty():
+			node_shader_material = new_shader_mat
+		else:
+			node_shader_material = null
+			ppsm.insert(0, new_shader_mat)
 
 func _set_shader_material(val: ShaderMaterial) -> void:
 	shader_material = val
@@ -68,19 +61,13 @@ func _set_node_shader_material(val: ShaderMaterial) -> void:
 	node_shader_material = val
 	
 	if curr_node:
-		await curr_node.get_tree().process_frame
+		await Engine.get_main_loop().process_frame
 		curr_node.material = node_shader_material
 		process_here()
 
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
-		&"Transform": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
-		&"position": export(vec2_args(position)),
-		&"rotation_degrees": export(float_args(rotation_degrees)),
-		&"scale": export(vec2_args(scale)),
-		&"skew": export(float_args(skew)),
-		&"_Transform": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 		&"render_pass_margin": export(vec2_args(render_pass_margin)),
 	}
 
@@ -96,8 +83,18 @@ func get_shader_material() -> ShaderMaterial:
 func set_shader_material(new_shader_material: ShaderMaterial) -> void:
 	shader_material = new_shader_material
 
-func init_node(layer_idx: int, frame_in: int) -> Node:
-	return Node2D.new()
+func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+	return _init_node2d(root_layer_idx, layer_idx, frame, Node2D.new())
+
+func _init_node2d(root_layer_idx: int, layer_idx: int, frame: int, node2d: Node2D) -> Node2D:
+	node2d.z_index = layer_idx
+	
+	if components[&"Display2D"][0].blend_mode != 0:
+		var back_buffer_copy:= BackBufferCopy.new()
+		back_buffer_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+		prenodes.append(back_buffer_copy)
+	
+	return node2d
 
 func enter(node: Node) -> void:
 	curr_node.material = node_shader_material
@@ -105,10 +102,6 @@ func enter(node: Node) -> void:
 	super(node)
 
 func _process_comps(frame: int) -> void:
-	add_stacked_value(&"position", position)
-	add_stacked_value(&"rotation_degrees", rotation_degrees)
-	add_stacked_value(&"scale", scale)
-	add_stacked_value(&"skew", skew)
 	super(frame)
 
 func _after_process_comps(frame: int) -> void:
@@ -120,12 +113,12 @@ func exit(node: Node) -> void:
 	if ppr: RenderFarm.pingpong_renderer_free(self)
 
 func process_material(frame: int) -> void:
+	
 	var frame_f: float = float(frame)
 	
 	mat_process_id += 1
 	var curr_mat_process_id: int = mat_process_id
 	
-	#if mat_process_id == curr_mat_process_id:
 	if shader_material:
 		shader_material.set_shader_parameter(&"time", frame_f)
 	
@@ -134,7 +127,7 @@ func process_material(frame: int) -> void:
 			sm.set_shader_parameter(&"time", frame_f)
 		
 		var render_scale: float = EditorServer.editor_settings.viewport_effect_ratio
-		add_stacked_value(&"scale", render_scale, ComponentRes.MethodType.DIVIDE)
+		curr_node.texture_scale = Vector2.ONE / render_scale
 		
 		if ppr.is_in_process:
 			await ppr.process_finished
@@ -146,7 +139,8 @@ func process_passes_materials(render_scale: float) -> void:
 	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)
 
 func get_self_main_texture() -> Texture2D: return null
-func get_self_texture() -> Texture2D: return ppr.get_output_texture() if ppr else get_self_main_texture()
+func get_self_texture() -> Texture2D:
+	return ppr.get_output_texture() if ppr else get_self_main_texture()
 
 func build_shader_pipeline() -> void:
 	
@@ -180,13 +174,13 @@ func build_shader_pipeline() -> void:
 				
 				comp_res.set_shader_params_names_list(params_names_list)
 	
-	if Scene2.has_object(self):
+	if Scene2.curr_nodes_has(self):
 		var has_passes: bool = not ppsm.is_empty()
 		
 		if ppr:
 			if not has_passes:
 				RenderFarm.pingpong_renderer_free(self)
-				curr_node.texture = get_self_main_texture()
+				ppr = null
 		
 		elif has_passes:
 			ppr = RenderFarm.pingpong_renderer_init(self)
@@ -251,8 +245,7 @@ static func _format_shader_snip(shader_snip: String, params_names_list: Dictiona
 	
 	return shader_snip.format(format_values)
 
-func emit_res_changed() -> void:
+func emit_clip_res_changed() -> void:
 	build_shader_pipeline()
 	super()
-
 

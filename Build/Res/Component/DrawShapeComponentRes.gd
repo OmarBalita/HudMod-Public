@@ -15,7 +15,7 @@
 var dirty_level: int = 2 ## When dirty_level > 0: redraw, and when it > 1: gen_points
 var all_points: Array[PackedVector2Array]
 
-var draw_node: DrawShapeChild
+var draw_node: DrawShapeNode
 var redraw_func: Callable
 
 func set_prop(property_key: StringName, property_val: Variant) -> void:
@@ -41,8 +41,7 @@ func min_dirty() -> void: dirty_level = 0
 func mid_dirty() -> void: dirty_level = 1
 func max_dirty() -> void: dirty_level = 2
 
-func _update_draw_node_visibility() -> void:
-	draw_node.visible = enabled
+func has_method_type() -> bool: return false
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var draw_cond: Array = [get.bind(&"just_store"), [false]]
@@ -67,16 +66,23 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 
 func emit_res_changed() -> void:
 	super()
-	if draw_node and not enabled:
-		draw_node.queue_free()
-		draw_node = null
-	elif not draw_node and enabled:
-		_init_draw_node()
+	
+	if owner.curr_node: _init_draw_node()
+	
+	if enabled: all_points = _transform_points(_gen_points())
+	else: all_points.clear()
+	
+	if draw_node: draw_node.queue_redraw()
+
 
 func _init_draw_node() -> void:
-	if owner.curr_node is DrawShapeNode:
+	
+	if owner is Shape2DClipRes:
+		draw_node = owner.curr_node
 		redraw_func = _redraw_none
 	else:
+		if draw_node:
+			draw_node.queue_free()
 		_spawn_draw_node()
 		redraw_func = _redraw_node
 
@@ -86,8 +92,12 @@ func _spawn_draw_node() -> void:
 	draw_node.draw_shape_comp = self
 	owner.curr_node.add_child(draw_node)
 
+func _set_owner(new_owner: MediaClipRes) -> void:
+	super(new_owner)
+	if owner.curr_node:
+		_init_draw_node()
+
 func _enter() -> void:
-	print("init")
 	_init_draw_node()
 
 func _process(frame: int) -> void:

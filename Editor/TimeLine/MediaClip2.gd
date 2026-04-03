@@ -1,1 +1,0 @@
-class_name MediaClip2 extends PanelContainer

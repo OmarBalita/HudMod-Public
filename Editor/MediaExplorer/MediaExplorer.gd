@@ -61,10 +61,13 @@ func import_media(file_path: String, update: bool = true) -> void:
 
 func delete_file_or_folder(path_or_name: String, update: bool = true) -> void:
 	import_box.delete_file_or_folder(import_box.curr_display_path, path_or_name)
-	if update: update()
+	if update:
+		MediaCache.update_videos_cache_max_cache_size()
+		update()
 
 func update() -> void:
 	import_box.update()
+
 
 
 class MediaBox extends Container:
@@ -180,7 +183,6 @@ class MediaBox extends Container:
 				return func(a: CreatedCard, b: CreatedCard) -> bool: return a.create_date < b.create_date
 			_:
 				return Callable()
-
 
 class CreatedBox extends MediaBox:
 	
@@ -356,6 +358,7 @@ class CreatedBox extends MediaBox:
 	func delete_selected(delete_real_files: bool = false) -> void:
 		var paths_or_names: PackedStringArray = _get_selected_paths_or_names()
 		delete_files_or_folders(curr_display_path, paths_or_names, delete_real_files)
+		MediaCache.update_videos_cache_max_cache_size()
 	
 	func _on_folder_clicked(folder_name: String) -> void:
 		curr_display_path.append(folder_name)
@@ -518,8 +521,10 @@ class ImportBox extends CreatedBox:
 		thread.start(_thread_create_files.bind(paths, curr_display_path))
 	
 	func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) -> void:
+		
 		var load_errs: Array[MediaCache.LOAD_ERR]
 		var total: int = paths.size()
+		
 		for index: int in total:
 			var path: String = paths.get(index)
 			_report_start.call_deferred(index, path)
@@ -527,6 +532,8 @@ class ImportBox extends CreatedBox:
 			_report_progress.call_deferred(index, total, path, load_err == 0)
 			
 			load_errs.append(load_err)
+		
+		MediaCache.update_videos_cache_max_cache_size()
 	
 	func _report_start(index: int, path: String) -> void:
 		progress_list.add_item(path, texture_wait)
@@ -704,7 +711,13 @@ class MediaCard extends DoubleClickControl:
 		return []
 	
 	func add_media_res(layer_index: int, frame_in: int) -> void:
-		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, get_media_ress(), EditorServer.time_line2.overlay_menu.focus_index)
+		var media_ress: Array[MediaClipRes] = get_media_ress()
+		
+		for clip_res: MediaClipRes in media_ress:
+			if clip_res is Display2DClipRes:
+				clip_res.add_component(&"Display2D", CompCanvasItem.new(), true)
+		
+		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, media_ress, EditorServer.time_line2.overlay_menu.focus_index)
 	
 	func on_add_button_pressed() -> void:
 		add_media_res(0, PlaybackServer.position)
@@ -810,8 +823,6 @@ class ImportCard extends CreatedCard:
 				clip_res = VideoClipRes.new()
 				clip_res.video = path
 				clip_res.length = MediaCache.get_video_info(path).duration * ProjectServer2.fps
-				#print(clip_res.length)
-				#print(MediaCache.get_video_info(path).duration * ProjectServer2.fps)
 			2:
 				clip_res = AudioClipRes.new()
 				clip_res.stream = path

@@ -51,6 +51,9 @@ func _gui_input(event: InputEvent) -> void:
 		if event.ctrl_pressed:
 			return
 		
+		if not sections_controls.has(curr_shown_section):
+			return
+		
 		var scroll_cont: ScrollContainer = sections_controls[curr_shown_section].scroll_cont
 		
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
@@ -430,9 +433,9 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 		var new_local_frame: int = clamp(new_frame - media_res.clip_pos, 0, media_res.length)
 		comp_res_owner.update_controllers(new_local_frame)
 	
-	update_usable_ress_func.call(EditorServer.get_frame())
-	EditorServer.frame_changed.connect(update_usable_ress_func)
-	comp_editor.tree_exited.connect(func() -> void: EditorServer.frame_changed.disconnect(update_usable_ress_func))
+	update_usable_ress_func.call(PlaybackServer.position)
+	PlaybackServer.position_changed.connect(update_usable_ress_func)
+	comp_editor.tree_exited.connect(func() -> void: PlaybackServer.position_changed.disconnect(update_usable_ress_func))
 
 func _update_notification_label() -> String:
 	var notif_text: String

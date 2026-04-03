@@ -11,10 +11,7 @@ var owner: MediaClipRes: set = _set_owner
 	#...
 #}
 @export var forced: bool = false
-@export var enabled: bool = true:
-	set(val):
-		enabled = val
-		emit_res_changed()
+@export var enabled: bool = true: set = _set_enabled
 @export var method_type: MethodType = 1:
 	set(val):
 		if owner and method_type != val:
@@ -44,6 +41,11 @@ func set_owner_from_loader(new_owner: MediaClipRes) -> void:
 
 func _set_owner(new_owner: MediaClipRes) -> void:
 	owner = new_owner
+
+func _set_enabled(new_enabled: bool) -> void:
+	enabled = new_enabled
+	if owner:
+		owner.emit_clip_res_changed()
 
 func get_forced() -> bool:
 	return forced
@@ -235,4 +237,8 @@ func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: Usabl
 
 func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	request_animation_keyframe(usable_res, param_key, param_new_val)
+
+
+
+
 

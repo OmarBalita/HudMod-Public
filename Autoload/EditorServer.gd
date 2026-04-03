@@ -1,10 +1,5 @@
 extends Node
 
-# Signals
-# ---------------------------------------------------
-
-signal frame_changed(new_frame: int)
-
 # Constants
 # ---------------------------------------------------
 
@@ -33,12 +28,6 @@ var time_markers_selection_group:= SelectionGroupRes.new()
 # RealTime Variables
 # ---------------------------------------------------
 
-var frame: int:
-	set(val):
-		if frame != val:
-			frame = val
-			frame_changed.emit(val)
-
 var message_history: Array[Dictionary]
 
 # RealTime Nodes
@@ -47,7 +36,6 @@ var message_history: Array[Dictionary]
 var main: Control
 
 var player: Player
-var time_line: TimeLine
 var time_line2: TimeLine2
 var media_explorer: MediaExplorer
 var properties: Properties2
@@ -71,12 +59,14 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	main = get_tree().get_current_scene()
 	
 	player = editors.player
-	time_line = editors.time_line
 	media_explorer = editors.media_explorer
 	properties = editors.properties
 	color_correction_editor = editors.color_correction
 	color_scope_editor = editors.color_scope
 	time_line2 = editors.time_line2
+	
+	MediaServer.ClipPanel.timeline = time_line2
+	Layer2.timeline = time_line2
 	
 	drawable_rect = get_tree().get_first_node_in_group("drawable_rect")
 	
@@ -89,15 +79,6 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	
 	scan_media_existent()
 
-
-# Frame Get Set
-# ---------------------------------------------------
-
-func get_frame() -> int:
-	return frame
-
-func set_frame(new_frame: int) -> void:
-	frame = new_frame
 
 # ---------------------------------------------------
 
@@ -143,7 +124,9 @@ func update_usable_res_ui_profile(usable_res: UsableRes) -> void:
 func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> Control:
 	if usable_ress_controllers.has(usable_res):
 		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
-		var property_container: Control = curr_properties_containers[property_key]
+		var property_container: Variant = curr_properties_containers[property_key]
+		if not is_instance_valid(property_container):
+			return null
 		return property_container
 	return null
 
@@ -370,30 +353,30 @@ func on_window_focus_entered() -> void:
 	scan_media_existent()
 
 func on_window_files_dropped(files_pathes: Array[String]) -> void:
-	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
-	var target_layer: Layer = time_line.get_layer_by_pos(mouse_pos)
-	var target_layer_index: int = target_layer.index if target_layer else -1
-	var target_frame_index: int = time_line.get_frame_from_display_pos(mouse_pos.x).keys()[0]
-	
-	var import_func: Callable = func(insert_media: bool = false) -> void:
-		for file_path: String in files_pathes:
-			media_explorer.import_media(file_path, false)
-			if insert_media:
-				ProjectServer.add_imported_clip(
-					MediaServer.get_media_type_from_path(file_path),
-					file_path, target_layer_index, target_frame_index
-				)
-	
-	if media_explorer.get_global_rect().has_point(mouse_pos):
-		import_func.call()
-	elif time_line.get_global_rect().has_point(mouse_pos):
-		import_func.call(true)
-	else:
-		return
-	
-	media_explorer.update()
-	ProjectServer.emit_media_clips_change()
-
+	#var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	#var target_layer: Layer = time_line.get_layer_by_pos(mouse_pos)
+	#var target_layer_index: int = target_layer.index if target_layer else -1
+	#var target_frame_index: int = time_line.get_frame_from_display_pos(mouse_pos.x).keys()[0]
+	#
+	#var import_func: Callable = func(insert_media: bool = false) -> void:
+		#for file_path: String in files_pathes:
+			#media_explorer.import_media(file_path, false)
+			#if insert_media:
+				#ProjectServer.add_imported_clip(
+					#MediaServer.get_media_type_from_path(file_path),
+					#file_path, target_layer_index, target_frame_index
+				#)
+	#
+	#if media_explorer.get_global_rect().has_point(mouse_pos):
+		#import_func.call()
+	#elif time_line.get_global_rect().has_point(mouse_pos):
+		#import_func.call(true)
+	#else:
+		#return
+	#
+	#media_explorer.update()
+	#ProjectServer.emit_media_clips_change()
+	pass
 
 
 
