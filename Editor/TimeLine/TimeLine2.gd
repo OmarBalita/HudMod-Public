@@ -369,8 +369,8 @@ func switch_edit_mode() -> void:
 		edit_mode_btn.selected_id = 0
 
 
-func get_display_pos_from_frame(frame: int) -> float:
-	return displ_timemark_size_h + (frame - center) * displ_frame_size
+func get_display_pos_from_frame(frame: int, control: Control = self) -> float:
+	return displ_timemark_size_h + (frame - center) * displ_frame_size + global_position.x - control.global_position.x
 
 func get_display_pos_from_cursor() -> float:
 	return get_display_pos_from_frame(PlaybackServer.position)
@@ -1200,7 +1200,8 @@ func sort_layers() -> void:
 		layer.update_clips_coords()
 		layer.update_customization()
 		
-		layers_body.add_selectable_port(layer_idx, layer_res.get_clips().duplicate())
+		if not layer_res.locked:
+			layers_body.add_selectable_port(layer_idx, layer_res.get_clips().duplicate())
 
 
 func update_layers_clips(force_update: bool = false) -> void:

@@ -366,4 +366,5 @@ func on_points_changed() -> void:
 
 
 func get_brush_thumbnail_path() -> String:
-	return ProjectServer.brush_thumbnails_path + "/" + brush_name + ".jpeg"
+	#return ProjectServer.brush_thumbnails_path + "/" + brush_name + ".jpeg"
+	return ""

@@ -176,7 +176,7 @@ func save_custom_layouts(custom_layouts: Array[LayoutRootInfo], clear_old: bool 
 	for layout: LayoutRootInfo in custom_layouts:
 		var id: String
 		if generate_ids:
-			id = ProjectServer.generate_new_id(used_ids, 12)
+			id = StringHelper.generate_new_id(used_ids, 12)
 		else:
 			id = layout.get_meta(&"id")
 		ResourceSaver.save(layout, str(editor_layout_path, id, ".res"), ResourceSaver.FLAG_COMPRESS)
@@ -208,7 +208,7 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 	var used_ids: PackedStringArray = DirAccess.get_files_at(target_path)
 	var save_pathes: PackedStringArray
 	for preset_media_res: MediaClipRes in presets:
-		var id: String = ProjectServer.generate_new_id(used_ids, 12)
+		var id: String = StringHelper.generate_new_id(used_ids, 12)
 		var save_path: String = str(target_path, id, ".res")
 		MediaServer.store_not_saved_resource(save_path, preset_media_res)
 		used_ids.append(id)
@@ -216,10 +216,10 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 	return save_pathes
 
 func get_presets_path(global: bool) -> String:
-	return GlobalServer.global_preset_path if global else ProjectServer.project_preset_path
+	return GlobalServer.global_preset_path if global else ProjectServer2.project_preset_path
 
 func get_media_path(global: bool) -> String:
-	return GlobalServer.global_media_path if global else ProjectServer.project_media_path
+	return GlobalServer.global_media_path if global else ProjectServer2.project_media_path
 
 func get_ids_from_pathes(pathes: PackedStringArray) -> PackedStringArray:
 	var used_ids: PackedStringArray
@@ -269,22 +269,22 @@ func scan_media_existent() -> void:
 	media_explorer.preset_box.update()
 
 func replace_paths(paths_for_replace: Dictionary[String, String], discard_option: bool) -> void:
-	ProjectServer.import_file_system.replace_paths(paths_for_replace, discard_option)
+	ProjectServer2.import_file_system.replace_paths(paths_for_replace, discard_option)
 	GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
 	format_paths(paths_for_replace)
 
 func discard_paths(paths: PackedStringArray) -> void:
-	ProjectServer.import_file_system.discard_paths(paths)
+	ProjectServer2.import_file_system.discard_paths(paths)
 	GlobalServer.import_file_system.discard_paths(paths)
 
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
-	ProjectServer.format_media_clips_paths(paths_for_format)
-	ProjectServer.preset_file_system.preset_media_ress_format_paths(paths_for_format)
+	#ProjectServer2.format_media_clips_paths(paths_for_format)
+	ProjectServer2.preset_file_system.preset_media_ress_format_paths(paths_for_format)
 	GlobalServer.preset_file_system.preset_media_ress_format_paths(paths_for_format)
 
 
-func get_import_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.import_file_system if global else ProjectServer.import_file_system
-func get_preset_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.preset_file_system if global else ProjectServer.preset_file_system
+func get_import_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.import_file_system if global else ProjectServer2.import_file_system
+func get_preset_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.preset_file_system if global else ProjectServer2.preset_file_system
 
 
 # Popup Windows

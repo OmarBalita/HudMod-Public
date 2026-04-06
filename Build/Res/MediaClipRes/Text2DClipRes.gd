@@ -88,10 +88,10 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Shadow": export_method(ExportMethodType.METHOD_EXIT_CATEGORY)
 	} as Dictionary[StringName, ExportInfo].merged(super())
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var text_2d:= Text2D.new()
 	text_2d.text_clip_res = self
-	return _init_node2d(root_layer_idx, layer_idx, frame, text_2d)
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, text_2d)
 
 func _process_comps(frame: int) -> void:
 	

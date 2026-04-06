@@ -22,9 +22,9 @@ static func get_media_clip_info() -> Dictionary[StringName, String]: return {
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {&"image": export(string_args(image))} as Dictionary[StringName, ExportInfo].merged(super())
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var image_viewer:= ImageViewer.new()
-	return _init_node2d(root_layer_idx, layer_idx, frame, image_viewer)
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, image_viewer)
 
 func enter(node: Node) -> void:
 	super(node)

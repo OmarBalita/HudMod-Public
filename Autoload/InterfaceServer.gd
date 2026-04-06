@@ -1031,15 +1031,6 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 	return edit_box
 
 
-func create_layer(id: int, is_root_layer: bool, y_size: float, side_panel_x_size: float, color: Color, more: Dictionary = {}) -> Layer:
-	var layer = Layer.new(id, is_root_layer)
-	ObjectServer.describe(layer, {
-		curr_y_size = y_size,
-		side_panel_x_size = side_panel_x_size,
-		color = color
-	}.merged(more))
-	return layer
-
 func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0)) -> GraphNode:
 	var graph_node:= GraphNode.new()
 	graph_node.title = title

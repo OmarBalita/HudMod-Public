@@ -201,8 +201,8 @@ func _create_dragged_rect() -> void:
 		dragged_rect_created.emit(dragged_rect)
 
 func get_id_key() -> String:
-	if not id_key:
-		id_key = ProjectServer.generate_new_id(selection_group.selected_objects.keys())
+	#if not id_key:
+		#id_key = ProjectServer.generate_new_id(selection_group.selected_objects.keys())
 	return id_key
 
 func get_metadata() -> Dictionary:

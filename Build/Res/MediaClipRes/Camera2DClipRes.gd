@@ -27,8 +27,8 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"zoom": export(vec2_args(zoom))
 	} as Dictionary[StringName, ExportInfo].merged(super())
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
-	return _init_node2d(root_layer_idx, layer_idx, frame, Camera2D.new())
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, Camera2D.new())
 
 func enter(node: Node) -> void:
 	super(node)

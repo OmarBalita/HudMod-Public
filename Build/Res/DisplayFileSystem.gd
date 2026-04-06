@@ -34,7 +34,7 @@ func create_folder_at(dir: Dictionary, folder_name: String) -> void:
 
 func create_file(display_path: Array, file_path: String) -> MediaCache.LOAD_ERR:
 	var used_ids: PackedStringArray = get_used_ids()
-	var new_id: String = ProjectServer.generate_new_id(used_ids, 8)
+	var new_id: String = StringHelper.generate_new_id(used_ids, 8)
 	return create_file_at(get_dir(display_path), file_path, used_ids, new_id)
 
 func create_files(display_path: Array, files_pathes: PackedStringArray) -> Array[MediaCache.LOAD_ERR]:
@@ -44,7 +44,7 @@ func create_files(display_path: Array, files_pathes: PackedStringArray) -> Array
 	var used_ids: PackedStringArray = get_used_ids()
 	
 	for file_path: String in files_pathes:
-		var new_id: String = ProjectServer.generate_new_id(used_ids, 8)
+		var new_id: String = StringHelper.generate_new_id(used_ids, 8)
 		create_file_at(curr_dir, file_path, used_ids, new_id)
 	
 	return result

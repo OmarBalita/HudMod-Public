@@ -83,11 +83,12 @@ func get_shader_material() -> ShaderMaterial:
 func set_shader_material(new_shader_material: ShaderMaterial) -> void:
 	shader_material = new_shader_material
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
-	return _init_node2d(root_layer_idx, layer_idx, frame, Node2D.new())
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, Node2D.new())
 
-func _init_node2d(root_layer_idx: int, layer_idx: int, frame: int, node2d: Node2D) -> Node2D:
+func _init_node2d(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int, node2d: Node2D) -> Node2D:
 	node2d.z_index = layer_idx
+	node2d.visible = not layer_res.hidden
 	
 	if components[&"Display2D"][0].blend_mode != 0:
 		var back_buffer_copy:= BackBufferCopy.new()
@@ -228,7 +229,7 @@ func _get_shader_vertex_snip() -> String: return ""
 
 
 static func _format_shader_snip(shader_snip: String, params_names_list: Dictionary[String, String], used_names: PackedStringArray, is_global: bool) -> String:
-	var gen_id_func: Callable = ProjectServer.generate_new_id.bind(used_names, 12, true)
+	var gen_id_func: Callable = StringHelper.generate_new_id.bind(used_names, 12, true)
 	var shader_placeholders: PackedStringArray = StringHelper.extract_placeholders(shader_snip)
 	var format_values: Dictionary[String, String] = {}
 	

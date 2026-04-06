@@ -75,12 +75,13 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		#&"scale_factor": export(float_args(scale_factor, .1, 1., .1, .01, .1)),
 	} as Dictionary[StringName, ExportInfo].merged(super())
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var video_viewer: VideoViewer = VideoViewer.new()
 	stream_player = AudioStreamPlayer.new()
 	stream_player.stream = audio_stream
+	stream_player.bus = PlaybackServer.root_layer_get_bus_unique_name(root_layer_idx)
 	video_viewer.add_child(stream_player)
-	return _init_node2d(root_layer_idx, layer_idx, frame, video_viewer)
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, video_viewer)
 
 func enter(node: Node) -> void:
 	super(node)
@@ -143,8 +144,12 @@ func _update_video_shader_params() -> void:
 	shader_material.set_shader_parameter(&"tex_v", texture_v)
 
 func _init_video_shader_params() -> void:
+	var bit_depth: int = video_decoder.get_bit_depth()
+	
 	shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
 	shader_material.set_shader_parameter(&"is_full_range", video_decoder.get_color_range() == 2)
+	shader_material.set_shader_parameter(&"bit_depth", bit_depth)
+	shader_material.set_shader_parameter(&"bit_max_val", pow(2., 16 if bit_depth > 8 else 8))
 
 static func get_compatible_format(bit_depth: int) -> Image.Format:
 	return Image.FORMAT_R16 if bit_depth > 8 else Image.FORMAT_R8
@@ -162,41 +167,53 @@ func _get_shader_global_param_snip() -> String:
 uniform sampler2D tex_y;
 uniform sampler2D tex_u;
 uniform sampler2D tex_v;
-uniform int color_space;
+
+uniform float bit_depth; // 8, 10, 12, 16
+uniform float bit_max_val;
+
 uniform bool is_full_range;
+uniform int color_space; // 0=BT.709, 1=BT.2020, 2=BT.601
 "
 
 func _get_shader_fragment_snip() -> String:
 	return "
-	// قراءة البيانات بدقة عالية (إذا كانت التكستشر 16-bit ستكون القيمة دقيقة جداً)
 	float {y} = texture(tex_y, UV).r;
-	float {u} = texture(tex_u, UV).r - .5;
-	float {v} = texture(tex_v, UV).r - .5;
+	float {u} = texture(tex_u, UV).r;
+	float {v} = texture(tex_v, UV).r;
 	
-	// 1. تصحيح المدى (Range Correction)
-	if (!is_full_range) {
-		{y} = ({y} - (16. / 255.)) * (255. / (235. - 16.));
-		{u} = ({u} * (255. / 224.));
-		{v} = ({v} * (255. / 224.));
+	// تصحيح التطبيع — FORMAT_R16 يقسم على 65535 لكن القيم 10-bit (max 1023)
+	float {bit_scale} = (exp2(bit_depth) - 1.0) / bit_max_val;
+	{y} /= {bit_scale};
+	{u} /= {bit_scale};
+	{v} /= {bit_scale};
+	
+	float {max_val}   = exp2(bit_depth) - 1.0;
+	float {uv_offset} = exp2(bit_depth - 1.0);
+	float {y_min}     = exp2(bit_depth - 4.0);
+	float {y_range}   = exp2(bit_depth - 4.0) * 219.0 / 16.0;
+	float {uv_range}  = exp2(bit_depth - 4.0) * 224.0 / 16.0;
+	
+	if (is_full_range) {
+		{u} -= {uv_offset} / {max_val};
+		{v} -= {uv_offset} / {max_val};
+	} else {
+		{y} = ({y} - {y_min}     / {max_val}) / ({y_range}  / {max_val});
+		{u} = ({u} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
+		{v} = ({v} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
 	}
 	
-	// 2. اختيار مصفوفة التحويل (Color Space Matrix)
-	vec3 {rgb};
-	if (color_space == 0) { // BT.709 (HD)
-		{rgb}.r = {y} + 1.5748 * {v};
-		{rgb}.g = {y} - .1873 * {u} - .4681 * {v};
-		{rgb}.b = {y} + 1.8556 * {u};
-	} else if (color_space == 1) { // BT.2020 (HDR)
-		{rgb}.r = {y} + 1.4746 * {v};
-		{rgb}.g = {y} - .1645 * {u} - .5713 * {v};
-		{rgb}.b = {y} + 1.8814 * {u};
-	} else { // BT.601 (SD)
-		{rgb}.r = {y} + 1.402 * {v};
-		{rgb}.g = {y} - .344 * {u} - .714 * {v};
-		{rgb}.b = {y} + 1.772 * {u};
+	if (color_space == 0) {        // BT.709
+		color.r = {y} + 1.5748 * {v};
+		color.g = {y} - 0.1873 * {u} - 0.4681 * {v};
+		color.b = {y} + 1.8556 * {u};
+	} else if (color_space == 1) { // BT.2020
+		color.r = {y} + 1.4746 * {v};
+		color.g = {y} - 0.1645 * {u} - 0.5713 * {v};
+		color.b = {y} + 1.8814 * {u};
+	} else {                       // BT.601
+		color.r = {y} + 1.402 * {v};
+		color.g = {y} - 0.344 * {u} - 0.714 * {v};
+		color.b = {y} + 1.772 * {u};
 	}
-	
-	// 3. إذا كانت الشاشة HDR، يمكننا عرض ألوان تتجاوز الـ 1.0 هنا
-	color.rgb = {rgb};
 "
 

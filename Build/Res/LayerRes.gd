@@ -1,9 +1,26 @@
 class_name LayerRes extends Resource
 
-@export var clips: Dictionary[int, MediaClipRes]
+signal lock_changed(to: bool)
+signal hidden_changed(to: bool)
 
-@export var locked: bool
-@export var hidden: bool
+@export var clips: Dictionary[int, MediaClipRes]:
+	set(val):
+		clips = val
+		clips.sort()
+
+@export var locked: bool:
+	set(val):
+		locked = val
+		lock_changed.emit(val)
+
+@export var hidden: bool:
+	set(val):
+		
+		hidden = val
+		hidden_changed.emit(val)
+		
+		if displayed_clip_res and displayed_clip_res is Display2DClipRes:
+			(displayed_clip_res.curr_node as CanvasItem).visible = not hidden
 
 @export_group("Customization", "custom")
 @export var custom_name: StringName
@@ -32,6 +49,7 @@ func get_clip_res(frame: int) -> MediaClipRes:
 
 func add_clip_res(frame: int, clip_res: MediaClipRes) -> void:
 	clips[frame] = clip_res
+	clips.sort()
 
 func remove_clip_res(frame: int) -> void:
 	if frame == displayed_frame and displayed_clip_res:
@@ -57,7 +75,24 @@ func is_place_unoccupied(frame: int, media_length: int, ignored_clips: Array[Med
 		if not (time_end <= frame or frame_out <= other_frame):
 			return false
 	
-	return true
+	return not locked
+
+
+func get_left_limit_at(pos: int) -> float:
+	var target: float = -INF
+	for frame: int in clips:
+		var end: int = frame + clips[frame].length
+		if end > pos:
+			break
+		target = end
+	return target
+
+func get_right_limit_at(pos: int) -> float:
+	for frame: int in clips:
+		if frame >= pos:
+			return frame
+	return INF
+
 
 func duplicate_layer_res() -> LayerRes:
 	

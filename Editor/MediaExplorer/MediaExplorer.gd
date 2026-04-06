@@ -297,7 +297,7 @@ class CreatedBox extends MediaBox:
 				folder_card.created_card_type = -1
 				folder_card.info = {
 					&"type": -1,
-					&"length": int(EditorServer.editor_settings.media_clip_default_length * ProjectServer.fps),
+					&"length": int(EditorServer.editor_settings.media_clip_default_length * ProjectServer2.fps),
 					&"name": key,
 					&"forward": info.forward
 				}
@@ -725,11 +725,11 @@ class MediaCard extends DoubleClickControl:
 	func on_drag_started() -> void:
 		if not following_drag:
 			selection_group.clear_previously_freed_instances()
-			EditorServer.time_line.clips_start_move(
-				TimeLine.ClipsMoveMode.MOVE_ADD,
-				selection_group.selected_objects.values(),
-				selection_group.selected_objects[get_id_key()]
-			)
+			#EditorServer.time_line.clips_start_move(
+				#TimeLine.ClipsMoveMode.MOVE_ADD,
+				#selection_group.selected_objects.values(),
+				#selection_group.selected_objects[get_id_key()]
+			#)
 	
 	func on_drag_finished() -> void:
 		if not following_drag:
@@ -959,7 +959,7 @@ class PresetCard extends CreatedCard:
 	
 	func add_media(layer_index: int, frame_in: int) -> void:
 		if discarded: return
-		ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
+		#ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
 	
 	func delete() -> void:
 		created_box.delete_selected(true)

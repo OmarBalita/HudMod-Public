@@ -29,9 +29,10 @@ func get_max_length() -> float:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {&"stream": export(string_args(stream))}
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var player:= AudioStreamPlayer.new()
 	player.stream = audio_stream
+	player.bus = PlaybackServer.root_layer_get_bus_unique_name(root_layer_idx)
 	return player
 
 func enter(node: Node) -> void:

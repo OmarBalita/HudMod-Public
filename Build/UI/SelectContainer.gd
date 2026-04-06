@@ -23,6 +23,8 @@ var selectables: Dictionary[int, Dictionary]
 var selected: Dictionary[int, Dictionary]
 var focused: Vector2i: set = _set_focused
 
+var ignored_ports_to_select: PackedInt32Array
+
 var copied: Dictionary[int, Dictionary]
 var copied_start_port: int
 var copied_start: int
@@ -91,11 +93,16 @@ func get_selected_val(port_idx: int, idx: int) -> Variant:
 	return selected[port_idx][idx]
 
 func select_val(port_idx: int, idx: int) -> void:
+	
+	if ignored_ports_to_select.has(port_idx):
+		return
+	
 	if has_selectable_val(port_idx, idx):
 		var val: Variant = get_selectable_val(port_idx, idx)
 		if not selected.has(port_idx):
 			selected[port_idx] = {}
 		selected[port_idx][idx] = val
+	
 	focused = Vector2i(port_idx, idx)
 
 func deselect_val(port_idx: int, idx: int, update_focus: bool = false) -> void:
@@ -114,10 +121,16 @@ func manage_val(port_idx: int, idx: int, delete: bool, preclear: bool) -> void:
 func select_vals(coords: Dictionary[int, PackedInt32Array], preclear: bool) -> void:
 	if preclear: clear_selected_vals()
 	for port_idx: int in coords:
+		
+		if ignored_ports_to_select.has(port_idx):
+			continue
+		
 		var port_indeces: PackedInt32Array = coords[port_idx]
 		var port: Dictionary = selected.get_or_add(port_idx, {})
+		
 		for idx: int in port_indeces:
 			port[idx] = get_selectable_val(port_idx, idx)
+	
 	update_focused()
 
 func deselect_vals(coords: Dictionary[int, PackedInt32Array]) -> void:

@@ -17,10 +17,23 @@ class_name Layer2 extends HSplitContainer
 static var timeline: TimeLine2
 
 var layer_idx: int
-var layer_res: LayerRes
+var layer_res: LayerRes: set = _set_layer_res
 
 var clips: Dictionary[int, MediaServer.ClipPanel]
 var locked_clips: Dictionary[int, MediaServer.ClipPanel]
+
+func _set_layer_res(val: LayerRes) -> void:
+	if layer_res:
+		layer_res.lock_changed.disconnect(_on_layer_res_lock_changed)
+		layer_res.hidden_changed.disconnect(_on_layer_res_hidden_changed)
+		if layer_res is RootLayerRes:
+			layer_res.mute_changed.disconnect(_on_layer_res_mute_changed)
+	if val:
+		val.lock_changed.connect(_on_layer_res_lock_changed)
+		val.hidden_changed.connect(_on_layer_res_hidden_changed)
+		if val is RootLayerRes:
+			val.mute_changed.connect(_on_layer_res_mute_changed)
+	layer_res = val
 
 func _ready() -> void:
 	
@@ -57,7 +70,10 @@ func _ready() -> void:
 
 
 func get_clip(frame: int) -> MediaServer.ClipPanel:
-	return clips.get(frame)
+	return clips[frame]
+
+func get_locked_clip(frame: int) -> MediaServer.ClipPanel:
+	return locked_clips[frame]
 
 func has_clip(frame: int) -> bool:
 	return clips.has(frame)
@@ -94,31 +110,29 @@ func unlock_clip(frame: int) -> void:
 	if locked_clips.has(frame):
 		var clip: MediaServer.ClipPanel = locked_clips[frame]
 		clips[frame] = clip
-		clips.erase(frame)
+		locked_clips.erase(frame)
 
-func update_clip_transform(frame: int, clip: MediaServer.ClipPanel, displacement: float) -> void:
+func update_clip_transform(frame: int, clip: MediaServer.ClipPanel) -> void:
 	var clip_res: MediaClipRes = clip.clip_res
 	
-	var displ_begin_pos: float = timeline.get_display_pos_from_frame(frame) + displacement
-	var displ_end_pos: float = timeline.get_display_pos_from_frame(frame + clip_res.length) + displacement
+	var displ_begin_pos: float = timeline.get_display_pos_from_frame(frame, clips_body)
+	var displ_end_pos: float = timeline.get_display_pos_from_frame(frame + clip_res.length, clips_body)
 	
-	clip.position = Vector2(displ_begin_pos, .0)
+	clip.position.x = displ_begin_pos
 	clip.size = Vector2(displ_end_pos - displ_begin_pos, size.y)
 	
 	clip._update_ui_transform()
 
 func update_clip_ui(frame: int) -> void:
 	var clip: MediaServer.ClipPanel = clips[frame]
-	update_clip_transform(frame, clip, timeline.global_position.x - clips_body.global_position.x)
+	update_clip_transform(frame, clip)
 	clip._update_ui()
 
 func update_clips_transform() -> void:
 	
-	var displacement: float = timeline.global_position.x - clips_body.global_position.x
-	
 	for frame: int in clips:
 		var clip: MediaServer.ClipPanel = clips[frame]
-		update_clip_transform(frame, clip, displacement)
+		update_clip_transform(frame, clip)
 	
 	clips_panel.queue_redraw()
 
@@ -226,7 +240,6 @@ func popup_customization() -> void:
 
 func _on_lock_btn_pressed() -> void:
 	layer_res.locked = lock_btn.button_pressed
-	clips_panel.update_ui()
 
 func _on_hide_btn_pressed() -> void:
 	layer_res.hidden = hide_btn.button_pressed
@@ -248,6 +261,16 @@ func _on_more_btn_pressed() -> void:
 		MenuOption.new("Customization", null, popup_customization)
 	], more_btn, get_window())
 
+
+func _on_layer_res_lock_changed(to: bool) -> void:
+	timeline.sort_layers()
+	clips_panel.update_ui()
+
+func _on_layer_res_hidden_changed(to: bool) -> void:
+	pass
+
+func _on_layer_res_mute_changed(to: bool) -> void:
+	pass
 
 class ClipsPanelContainer extends PanelContainer:
 	
@@ -289,7 +312,6 @@ class ClipsPanelContainer extends PanelContainer:
 		var pos_end: float = timeline.get_display_pos_from_frame(timeline.frame_end) + displacement
 		var rect2_end: Rect2 = Rect2(Vector2(pos_end, .0), Vector2(size.x - pos_end, size.y))
 		draw_rect(rect2_end, color)
-
 
 
 

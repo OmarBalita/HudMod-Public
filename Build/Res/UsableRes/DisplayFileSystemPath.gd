@@ -5,7 +5,7 @@ enum SYSTEM_TYPE {
 	GLOBAL
 }
 
-@export var import_type: ImportedClipRes.ImportedMediaType:
+@export var import_type: int:
 	set(val):
 		import_type = val
 		_update_media_func()
@@ -24,7 +24,7 @@ func set_disk_path(new_val: String) -> void: disk_path = new_val
 func _init() -> void:
 	_update_media_func()
 
-static func new_sys_path(_import_type: ImportedClipRes.ImportedMediaType = 0, _sys_is_global: bool = false, _sys_path: Array = []) -> DisplayFileSystemPath:
+static func new_sys_path(_import_type: int = 0, _sys_is_global: bool = false, _sys_path: Array = []) -> DisplayFileSystemPath:
 	var new_one:= DisplayFileSystemPath.new()
 	new_one.import_type = _import_type
 	new_one.sys_is_global = _sys_is_global

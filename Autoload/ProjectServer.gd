@@ -967,7 +967,7 @@ func update_media_res_children(parent_res: MediaClipRes, curr_frame: int, root_l
 	parent_res.set_curr_clips(new_clips)
 
 func instance_object(parent_res: MediaClipRes, media_res: MediaClipRes, layer_index: int, frame_in: int, root_layer_index: int, global_frame: int) -> Node:
-	var object: Node = media_res.init_node(root_layer_index, layer_index, frame_in)
+	var object: Node = media_res.init_node(root_layer_index, layer_index, null, frame_in)
 	Scene2.instance_object(parent_res, media_res, object, layer_index, frame_in, root_layer_index)
 	media_res.enter(object)
 	return object

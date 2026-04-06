@@ -48,7 +48,6 @@ enum TextureRepeat {
 @export var scale: Vector2 = Vector2.ONE
 @export var skew: float
 
-@export var visible: bool = true
 @export var modulate: Color = Color.WHITE
 @export var blend_mode: BlendMode
 @export var opacity: float = 1.
@@ -73,7 +72,6 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Transform": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 		
 		&"Visibility": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
-		&"visible": export(bool_args(visible)),
 		&"modulate": export(color_args(modulate)),
 		&"blend_mode": export(options_args(blend_mode, BlendMode)),
 		&"opacity": export(float_args(opacity, .0, 1., .001, .01, .1, IS.FloatControllerType.TYPE_SLIDER)),
@@ -95,7 +93,6 @@ func _process(frame: int) -> void:
 	submit_stacked_value(&"scale", scale)
 	submit_stacked_value(&"skew", skew)
 	
-	submit_stacked_value_with_custom_method(&"visible", visible)
 	submit_stacked_value_with_custom_method(&"show_behind_parent", show_behind_parent)
 	submit_stacked_value_with_custom_method(&"top_level", top_level)
 	submit_stacked_value(&"clip_children", clip_children)

@@ -231,7 +231,7 @@ func wait_until_media_res_processed(media_res: MediaClipRes) -> int:
 		return await media_res.processed
 	return -1
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	return null
 
 func enter(node: Node) -> void:
@@ -638,6 +638,21 @@ func just_get_insert_offset(frame: int, intersected_infos: Array[Dictionary]) ->
 			return frame_offset
 	return 0
 
+func find_unlocked_layer(default_layer_idx: int) -> int:
+	var loop_times: int
+	var target_layer_idx: int
+	
+	while true:
+		target_layer_idx = default_layer_idx + loop_times
+		if not get_layer_absolute(target_layer_idx).locked:
+			break
+		elif loop_times <= default_layer_idx:
+			target_layer_idx = default_layer_idx - loop_times
+			if not get_layer_absolute(target_layer_idx).locked:
+				break
+		loop_times += 1
+	
+	return target_layer_idx
 
 func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, accept_right: bool) -> Dictionary[StringName, Variant]:
 	
@@ -651,8 +666,8 @@ func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, a
 	var local_split_pos: int = split_pos - frame
 	left_clip_res.length = local_split_pos
 	
-	right_clip_res.from += local_split_pos
 	right_clip_res.length -= local_split_pos
+	right_clip_res.from += local_split_pos
 	
 	if not accept_left:
 		result.fordelete.append(Vector2i(layer_idx, frame))
@@ -666,6 +681,9 @@ func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, a
 
 func add_clips(layer_idx: int, frame: int, clips_ress: Array[MediaClipRes], place_method_idx: int = 0, emit_add: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
 	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
+	
+	layer_idx = find_unlocked_layer(layer_idx)
+	
 	for clip_res: MediaClipRes in clips_ress:
 		placed_clips_ress[place_clip(layer_idx, frame, clip_res, place_method_idx)] = clip_res
 	if emit_add:
@@ -676,7 +694,7 @@ func add_clips_by_coords(clips_ress: Dictionary[Vector2i, MediaClipRes], place_m
 	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
 	for coord: Vector2i in clips_ress:
 		var clip_res: MediaClipRes = clips_ress[coord]
-		placed_clips_ress[place_clip(coord.x, coord.y, clip_res, place_method_idx)] = clip_res
+		placed_clips_ress[place_clip(find_unlocked_layer(coord.x), coord.y, clip_res, place_method_idx)] = clip_res
 	if emit_add:
 		clips_added.emit(placed_clips_ress)
 	return placed_clips_ress
@@ -701,7 +719,7 @@ func move_clips(from_coords: Array[Vector2i], to_coords: Array[Vector2i], place_
 		var to: Vector2i = to_coords[idx]
 		var clip_res: MediaClipRes = clips_formove[idx]
 		
-		placed_clips_ress[place_clip(to.x, to.y, clip_res, place_method_idx)] = clip_res
+		placed_clips_ress[place_clip(find_unlocked_layer(to.x), to.y, clip_res, place_method_idx)] = clip_res
 	
 	if emit_move:
 		clips_moved.emit(from_coords, placed_clips_ress)

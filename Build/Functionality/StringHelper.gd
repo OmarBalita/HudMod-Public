@@ -20,3 +20,23 @@ static func fuzzy_search(search_query: String, text: String) -> bool:
 		text_index += 1
 	
 	return query_index == search_query.length()
+
+
+static func generate_new_id(used_ids: PackedStringArray, id_length: int = 12, append_new_id: bool = false) -> String:
+	const ID_KEYS: String = "_abcdefghijklmnopqrstuvwxyz"
+	var keys_max: int = ID_KEYS.length() - 1
+	
+	var result_id: String
+	
+	while not result_id or result_id in used_ids:
+		result_id = ""
+		for time in id_length:
+			var rand_char: String = ID_KEYS[randi_range(0, keys_max)]
+			if randi_range(0, 1):
+				rand_char = rand_char.to_upper()
+			result_id += rand_char
+	
+	if append_new_id:
+		used_ids.append(result_id)
+	
+	return result_id

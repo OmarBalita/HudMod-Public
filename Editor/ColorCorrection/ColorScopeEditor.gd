@@ -77,7 +77,6 @@ func _ready_editor() -> void:
 	header.add_child(header_scroll_container)
 	body.add_child(sub_editors_container)
 	
-	ProjectServer.media_clips_changed.connect(_on_project_server_media_clips_changed)
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 	PlaybackServer.played.connect(_on_playback_server_played)
 	PlaybackServer.stopped.connect(_on_playback_server_stopped)
@@ -434,9 +433,6 @@ class VectorScopeViewer extends ColorScopeViewer:
 		var circle_radius: float = min(size.x, size.y) / 2.
 		draw_circle(center_pos, circle_radius, Color.DIM_GRAY, false, 2.)
 		draw_circle(center_pos, 5., Color.WHITE, true, -1., true)
-
-func _on_project_server_media_clips_changed() -> void:
-	curr_samples_down_scale = inplay_samples_down_scale
 
 func _on_playback_server_position_changed(position: int) -> void:
 	request_calculate()

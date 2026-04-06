@@ -12,10 +12,10 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 func get_draw_comps() -> Array[DrawShapeComponentRes]: return draw_comps
 func set_draw_comps(new_val: Array[DrawShapeComponentRes]) -> void: draw_comps = new_val
 
-func init_node(root_layer_idx: int, layer_idx: int, frame: int) -> Node:
+func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var shape_2d:= Shape2DObject.new()
 	shape_2d.draw_shape_comps = draw_comps
-	return _init_node2d(root_layer_idx, layer_idx, frame, shape_2d)
+	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, shape_2d)
 
 func _process_comps(frame: int) -> void:
 	super(frame)

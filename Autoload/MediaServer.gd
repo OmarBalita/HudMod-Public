@@ -308,39 +308,6 @@ func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
 		frame_in % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH
 	)
 
-func get_media_default_length(media_type: int, key_as_path: StringName, default_length: float = editor_settings.media_clip_default_length) -> float:
-	var media_length: float
-	match media_type:
-		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
-			var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
-			media_length = video_info.frame_count * video_info.frame_rate
-		
-		ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
-			var audio_wav: AudioStreamWAV = MediaCache.get_audio(key_as_path)
-			if audio_wav: media_length = MediaCache.get_audio(key_as_path).get_length()
-		_:
-			media_length = default_length
-	return media_length
-
-func get_media_default_from_and_length(media_res: MediaClipRes, default_from: int = -INF, default_length: int = INF) -> Vector2i:
-	var result: Vector2i = Vector2i(default_from, default_length)
-	
-	if media_res is ImportedClipRes:
-		
-		var fps: int = ProjectServer2.fps
-		var key_as_path: StringName = media_res.key_as_path
-		
-		match media_res.type:
-			
-			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_VIDEO:
-				var video_info: Dictionary = MediaCache.get_video_info(key_as_path)
-				result = Vector2i(-1, video_info.frame_count * video_info.frame_rate * fps)
-			
-			ImportedClipRes.ImportedMediaType.MEDIA_TYPE_AUDIO:
-				var audio_wav: AudioStreamWAV = MediaCache.get_audio(key_as_path)
-				if audio_wav: result = Vector2i(-1, audio_wav.get_length() * fps)
-	
-	return result
 
 # Written by Omar TOP and edited by Claude AI
 func generate_waveform_images(stream: AudioStreamWAV, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
@@ -674,7 +641,6 @@ class ClipPanel extends Panel:
 		add_child(box_container)
 		
 		select_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		select_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 		add_child(select_panel)
 	
 	func _update_ui() -> void:
@@ -764,6 +730,8 @@ class ClipPanel extends Panel:
 						
 						index += 1
 		
+		select_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
 		is_graph_editor_opened = true
 		
 		_on_playback_server_position_changed(PlaybackServer.position)
@@ -778,6 +746,8 @@ class ClipPanel extends Panel:
 		
 		graph_editors.clear()
 		is_graph_editor_opened = false
+		
+		select_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 		
 		PlaybackServer.position_changed.disconnect(_on_playback_server_position_changed)
 	
@@ -831,7 +801,9 @@ class ClipPanel extends Panel:
 		
 		var button_event: InputEventMouseButton
 		
-		var drag_start_pos: int
+		var drag_start_poss: Vector3i
+		var drag_limits: Vector2
+		var drag_target_poss: Vector3i
 		
 		func get_spacial_frames() -> PackedInt32Array:
 			return spacial_frames
@@ -865,13 +837,28 @@ class ClipPanel extends Panel:
 		
 		func _gui_input(event: InputEvent) -> void:
 			
+			var drag_idx: int = get_meta(_DRAG_IDX_KEY, 0)
+			
 			if event is InputEventMouseButton:
+				
 				button_event = event
+				
+				match event.button_index:
+					MOUSE_BUTTON_LEFT:
+						
+						if event.is_pressed():
+							match drag_idx:
+								1: _init_drag_left()
+								2: _init_drag_right()
+						
+						else:
+							match drag_idx:
+								1: _end_drag_left()
+								2: _end_drag_right()
 			
 			elif event is InputEventMouseMotion:
 				
 				if ClipPanel._is_left_press_event(button_event):
-					var drag_idx: int = get_meta(_DRAG_IDX_KEY, 0)
 					if drag_idx == 1:
 						_drag_left(event)
 					elif drag_idx == 2:
@@ -879,10 +866,8 @@ class ClipPanel extends Panel:
 				
 				else:
 					if event.position.x < 10.:
-						_init_drag_left(event)
 						set_meta(_DRAG_IDX_KEY, 1)
 					elif event.position.x > size.x - 10.:
-						_init_drag_right(event)
 						set_meta(_DRAG_IDX_KEY, 2)
 					else:
 						remove_meta(_DRAG_IDX_KEY)
@@ -903,38 +888,217 @@ class ClipPanel extends Panel:
 				var pos: Vector2 = Vector2(xpos, ypos)
 				draw_texture_rect(keyframe_tex, Rect2(pos, KEYFRAME_SIZE), false)
 		
-		func _init_drag_left(event: InputEventMouseMotion) -> void:
-			drag_start_pos = owner_as_clip.clip_res.from
 		
-		func _init_drag_right(event: InputEventMouseMotion) -> void:
-			drag_start_pos = owner_as_clip.clip_res.length
+		static func is_edit_multiple() -> bool:
+			return ClipPanel.timeline.edit_multiple_btn.get_selected_id() == 1
 		
-		func _drag_left(event: InputEventMouseMotion) -> void:
-			__drag_left(event)
-		
-		func _drag_right(event: InputEventMouseMotion) -> void:
-			__drag_right(event)
-			EditorServer.time_line2.update_clips([Vector2i(owner_as_clip.layer_idx, owner_as_clip.frame)])
-		
-		func __drag_left(event: InputEventMouseMotion) -> void:
-			var timeline: TimeLine2 = EditorServer.time_line2
-			
-			var frame: int = owner_as_clip.frame
-			var frame_delta: int = (event.position.x - button_event.position.x) / timeline.displ_frame_size
-			
+		func format_frame_when_drag(frame: int) -> int:
 			var clip_res: MediaClipRes = owner_as_clip.clip_res
+			var min_frame: float = drag_start_poss.x - (drag_start_poss.y - clip_res.get_min_from())
+			var max_frame: float = drag_start_poss.x + drag_start_poss.z - 1
+			return floori(clampf(frame, maxf(min_frame, drag_limits.x), max_frame))
 		
-		func __drag_right(event: InputEventMouseMotion) -> void:
-			var timeline: TimeLine2 = EditorServer.time_line2
+		
+		func _init_drag_left() -> void:
+			
+			ClipPanel.timeline.edges_nav_horizontal = true
+			
+			if is_edit_multiple():
+				
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						layer.get_clip(frame).select_panel._init_drag()
+						layer.lock_clip(frame)
+			
+			else:
+				_init_drag()
+				ClipPanel.timeline.get_layer_from_idx(owner_as_clip.layer_idx).lock_clip(owner_as_clip.frame)
+			
+			_drag_left(button_event)
+		
+		func _init_drag_right() -> void:
+			
+			ClipPanel.timeline.edges_nav_horizontal = true
+			
+			if is_edit_multiple():
+				
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						layer.get_clip(frame).select_panel._init_drag()
+			
+			else:
+				_init_drag()
+			
+			_drag_right(button_event)
+		
+		func _init_drag() -> void:
+			var clip_res: MediaClipRes = owner_as_clip.clip_res
+			var layer_res: LayerRes = ClipPanel.timeline.opened_clip_res.get_layer(owner_as_clip.layer_idx)
+			
+			drag_start_poss = Vector3i(
+				owner_as_clip.frame,
+				clip_res.from,
+				clip_res.length
+			)
+			drag_limits = Vector2(
+				layer_res.get_left_limit_at(owner_as_clip.frame),
+				layer_res.get_right_limit_at(owner_as_clip.frame + clip_res.length)
+			)
+		
+		func _drag_left(event: InputEventMouse) -> void:
+			
+			__drag_left(button_event, event)
+			var frame_delta: int = drag_target_poss.x - drag_start_poss.x
+			
+			if is_edit_multiple():
+				
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						var select_panel: SelectPanel = layer.get_locked_clip(frame).select_panel
+						select_panel._update_target_poss_by_delta(frame_delta)
+						select_panel._owner_as_clip_update_ui()
+						select_panel.update_spacial_frames()
+			else:
+				_update_target_poss_by_delta(frame_delta)
+				_owner_as_clip_update_ui()
+				update_spacial_frames()
+		
+		func _drag_right(event: InputEventMouse) -> void:
+			
+			var clips_forupdate: Array[Vector2i]
+			
+			__drag_right(button_event, event)
+			var length_delta: int = owner_as_clip.clip_res.length - drag_start_poss.z
+			
+			if is_edit_multiple():
+				
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						var clip: ClipPanel = layer.get_clip(frame)
+						var select_panel: SelectPanel = clip.select_panel
+						clip.clip_res.length = minf(select_panel.drag_start_poss.z + length_delta, select_panel.drag_limits.y - select_panel.drag_start_poss.x)
+						clips_forupdate.append(Vector2i(layer_idx, frame))
+			else:
+				owner_as_clip.clip_res.length = minf(drag_start_poss.z + length_delta, drag_limits.y - drag_start_poss.x)
+				clips_forupdate.append(Vector2i(owner_as_clip.layer_idx, owner_as_clip.frame))
+			
+			ClipPanel.timeline.update_clips(clips_forupdate)
+		
+		func __drag_left(button_event: InputEventMouseButton, event: InputEventMouse) -> void:
 			
 			var frame: int = owner_as_clip.frame
-			var frame_delta: int = (event.position.x - button_event.position.x) / timeline.displ_frame_size
+			var frame_delta: int = (event.global_position.x - button_event.global_position.x) / ClipPanel.timeline.displ_frame_size
 			
-			var target_length: int = drag_start_pos + frame_delta
-			var snapped_frame: int = timeline.snap_frame(target_length + frame, false, false)
+			var target_frame: int = drag_start_poss.x + frame_delta
+			var snapped_frame: int = ClipPanel.timeline.snap_frame(target_frame, false, false)
+			var snap_by_start_delta: int = snapped_frame - drag_start_poss.x
+			
+			_update_target_poss(snapped_frame, drag_start_poss.y + snap_by_start_delta, drag_start_poss.z - snap_by_start_delta)
+			_owner_as_clip_update_ui()
+		
+		func __drag_right(button_event: InputEventMouseButton, event: InputEventMouse) -> void:
+			
+			var frame: int = owner_as_clip.frame
+			var frame_delta: int = (event.position.x - button_event.position.x) / ClipPanel.timeline.displ_frame_size
+			
+			var target_length: int = drag_start_poss.z + frame_delta
+			var snapped_frame: int = ClipPanel.timeline.snap_frame(target_length + frame, false, false)
 			var snap_delta: int = snapped_frame - target_length
 			
-			owner_as_clip.clip_res.length = target_length + snap_delta - frame
+			owner_as_clip.clip_res.length = minf(target_length - frame + snap_delta, drag_limits.y - drag_start_poss.x)
+		
+		func _end_drag_left() -> void:
+			
+			ClipPanel.timeline.edges_nav_horizontal = false
+			
+			var coords_fordelete: Array[Vector2i]
+			var clips_foradd: Dictionary[Vector2i, MediaClipRes]
+			
+			if is_edit_multiple():
+				
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						
+						var clip: ClipPanel = layer.get_locked_clip(frame)
+						layer.unlock_clip(frame)
+						
+						var target_coord: Vector2i = Vector2i(layer_idx, clip.select_panel.drag_target_poss.x)
+						coords_fordelete.append(Vector2i(layer_idx, frame))
+						clips_foradd[target_coord] = clip.clip_res
+			
+			else:
+				var layer_idx: int = owner_as_clip.layer_idx
+				
+				var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+				layer.unlock_clip(drag_start_poss.x)
+				
+				coords_fordelete.append(Vector2i(layer_idx, drag_start_poss.x))
+				clips_foradd[Vector2i(layer_idx, drag_target_poss.x)] = owner_as_clip.clip_res
+			
+			var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
+			opened_clip_res.remove_clips(coords_fordelete)
+			opened_clip_res.add_clips_by_coords(clips_foradd)
+			
+			ClipPanel.timeline.layers_body.select_vals_by_method(
+				func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+					return clips_foradd.has(Vector2i(port_idx, idx)), false
+			)
+		
+		func _end_drag_right() -> void:
+			ClipPanel.timeline.edges_nav_horizontal = false
+		
+		func _update_target_poss_by_delta(delta: int) -> void:
+			var clip_res: MediaClipRes = owner_as_clip.clip_res
+			
+			var frame: int = drag_start_poss.x + delta
+			var formated_frame: int = format_frame_when_drag(frame)
+			var format_delta: int = formated_frame - frame
+			
+			owner_as_clip.frame = formated_frame
+			clip_res.from = drag_start_poss.y + delta + format_delta
+			clip_res.length = drag_start_poss.z - delta - format_delta
+			
+			drag_target_poss = Vector3i(owner_as_clip.frame, clip_res.from, clip_res.length)
+		
+		func _update_target_poss(frame: int, from: int, length: int) -> void:
+			
+			var clip_res: MediaClipRes = owner_as_clip.clip_res
+			
+			owner_as_clip.frame = format_frame_when_drag(frame)
+			clip_res.from = from
+			clip_res.length = length
+			
+			drag_target_poss = Vector3i(owner_as_clip.frame, clip_res.from, clip_res.length)
+		
+		func _owner_as_clip_update_ui() -> void:
+			
+			var clips_body: Control = ClipPanel.timeline.get_layer_from_idx(owner_as_clip.layer_idx).clips_body
+			var displ_start_pos: float = ClipPanel.timeline.get_display_pos_from_frame(owner_as_clip.frame, clips_body)
+			var displ_end_pos: float = ClipPanel.timeline.get_display_pos_from_frame(owner_as_clip.frame + owner_as_clip.clip_res.length, clips_body)
+			
+			owner_as_clip.position.x = displ_start_pos
+			owner_as_clip.size.x = displ_end_pos - displ_start_pos
+			owner_as_clip._update_ui()
 		
 		func _on_visiblity_changed() -> void:
 			mouse_default_cursor_shape = Control.CURSOR_ARROW
