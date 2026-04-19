@@ -82,7 +82,7 @@ class_name Properties extends EditorControl
 				#drag_info["index_to"] = index_to
 				#var drawable_rect:= EditorServer.drawable_rect
 				#var rect2:= target_edit_box.get_global_rect()
-				#var color:= IS.COLOR_ACCENT_BLUE
+				#var color:= IS.color_accent
 				#drawable_rect.clear_drawn_entities()
 				#drawable_rect.draw_new_theme_rect(rect2)
 #

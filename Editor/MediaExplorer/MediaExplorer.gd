@@ -95,7 +95,7 @@ class MediaBox extends Container:
 	func _ready() -> void:
 		
 		body_container = IS.create_box_container(10, true)
-		options_container = IS.create_box_container()
+		options_container = IS.create_box_container(8)
 		var scroll_container = IS.create_scroll_container(1,1, {size_flags_vertical = Control.PRESET_FULL_RECT})
 		var margin_container = IS.create_margin_container(12, 12, 12, 12)
 		media_categories_box = IS.create_box_container(12, true, {})
@@ -213,6 +213,10 @@ class CreatedBox extends MediaBox:
 	var reload_button: TextureButton
 	var path_controller: PathController
 	
+	func _ready() -> void:
+		super()
+		ProjectServer2.project_opened.connect(_on_project_server_project_opened)
+	
 	func get_display_file_system() -> DisplayFileSystemRes:
 		return display_file_system
 	
@@ -284,10 +288,9 @@ class CreatedBox extends MediaBox:
 		if created_box_cat == null: return
 		created_box_cat.remove_all_contents()
 		
-		for index: int in files_and_folders.size():
+		for key: String in files_and_folders:
 			
-			var key: String = files_and_folders.keys()[index]
-			var info: Dictionary = files_and_folders.values()[index]
+			var info: Dictionary = files_and_folders[key]
 			var type: String = info.type
 			
 			var card: CreatedCard
@@ -297,7 +300,7 @@ class CreatedBox extends MediaBox:
 				folder_card.created_card_type = -1
 				folder_card.info = {
 					&"type": -1,
-					&"length": int(EditorServer.editor_settings.media_clip_default_length * ProjectServer2.fps),
+					&"length": int(EditorServer.editor_settings.edit.default_clip_duration_frame),
 					&"name": key,
 					&"forward": info.forward
 				}
@@ -378,6 +381,9 @@ class CreatedBox extends MediaBox:
 		box.move_child(name_line, 0)
 		name_line.select()
 		name_line.grab_focus()
+	
+	func _on_project_server_project_opened(project_res: ProjectRes) -> void:
+		pass
 
 class ImportBox extends CreatedBox:
 	
@@ -393,18 +399,6 @@ class ImportBox extends CreatedBox:
 	var progress_window: Window
 	var progress_list: ItemList
 	var progress_bar: ProgressBar
-	
-	func _ready() -> void:
-		super()
-		#load_files(PackedStringArray([
-			#"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/icon.svg",
-			#"C:/Users/User/Documents/Godot Projects/edit-app/Asset/Icons/App/logo2_512.png",
-			#"C:/Users/User/Documents/Godot Projects/edit-app/35mm-film-projector-start-99740.mp3"
-		#]))
-		project_file_system = ProjectServer2.import_file_system
-		global_file_system = GlobalServer.import_file_system
-		display_file_system = project_file_system
-		update()
 	
 	func _ready_options() -> void:
 		super()
@@ -486,12 +480,12 @@ class ImportBox extends CreatedBox:
 	
 	func on_import_button_pressed() -> void:
 		var file_dialog: FileDialog = WindowManager.create_file_dialog_window(
-			get_tree().current_scene,
+			get_window(),
 			FileDialog.FILE_MODE_OPEN_FILES,
 			MediaServer.MEDIA_EXTENSIONS
 		)
 		file_dialog.files_selected.connect(on_file_dialog_files_selected)
-		file_dialog.popup_centered()
+		file_dialog.popup_file_dialog()
 	
 	func on_file_dialog_files_selected(paths: PackedStringArray) -> void:
 		load_files(paths)
@@ -565,6 +559,13 @@ class ImportBox extends CreatedBox:
 	
 	func _get_created_box_category() -> Category:
 		return import_category
+	
+	func _on_project_server_project_opened(project_res: ProjectRes) -> void:
+		await get_tree().process_frame
+		project_file_system = ProjectServer2.import_file_system
+		global_file_system = GlobalServer.import_file_system
+		display_file_system = project_file_system
+		update()
 
 class ObjectBox extends MediaBox:
 	
@@ -604,6 +605,7 @@ class ObjectBox extends MediaBox:
 			
 			object_card.selection_group = selection_group
 
+
 class TransitionBox extends MediaBox:
 	pass
 
@@ -613,13 +615,6 @@ class PresetBox extends CreatedBox:
 	
 	func _init(_media_explorer: MediaExplorer) -> void:
 		super(_media_explorer)
-	
-	func _ready() -> void:
-		super()
-		project_file_system = ProjectServer2.preset_file_system
-		global_file_system = GlobalServer.preset_file_system
-		display_file_system = project_file_system
-		update()
 	
 	func _ready_options() -> void:
 		super()
@@ -644,7 +639,12 @@ class PresetBox extends CreatedBox:
 		set_display_file_system(get_true_file_system(global))
 		create_files(curr_display_path, preset_files_pathes)
 		update()
-
+	
+	func _on_project_server_project_opened(project_res: ProjectRes) -> void:
+		project_file_system = ProjectServer2.preset_file_system
+		global_file_system = GlobalServer.preset_file_system
+		display_file_system = project_file_system
+		update()
 
 
 class MediaCard extends DoubleClickControl:
@@ -675,7 +675,7 @@ class MediaCard extends DoubleClickControl:
 		return
 	
 	func _double_click() -> void:
-		add_media_res(0, EditorServer.frame)
+		add_media_ress(0, EditorServer.frame)
 		super()
 	
 	func _setup_media_card(name: StringName, thumbnail_texture: Texture2D) -> void:
@@ -684,7 +684,7 @@ class MediaCard extends DoubleClickControl:
 		add_button = IS.create_texture_button(add_texture)
 		thumbnail_texture_rect = IS.create_texture_rect(thumbnail_texture, {})
 		
-		var panel_container:= IS.create_panel_container(Vector2.ZERO, IS.STYLE_PANEL)
+		var panel_container:= IS.create_panel_container(Vector2.ZERO, IS.style_panel)
 		var margin_container:= IS.create_margin_container()
 		var split_container:= IS.create_split_container(2, true)
 		var split_container2:= IS.create_split_container()
@@ -710,17 +710,18 @@ class MediaCard extends DoubleClickControl:
 	func get_media_ress() -> Array[MediaClipRes]:
 		return []
 	
-	func add_media_res(layer_index: int, frame_in: int) -> void:
+	func add_media_ress(layer_index: int, frame_in: int, auto_init: bool = true) -> void:
+		
 		var media_ress: Array[MediaClipRes] = get_media_ress()
 		
 		for clip_res: MediaClipRes in media_ress:
-			if clip_res is Display2DClipRes:
+			if auto_init and clip_res is Display2DClipRes:
 				clip_res.add_component(&"Display2D", CompCanvasItem.new(), true)
 		
 		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, media_ress, EditorServer.time_line2.overlay_menu.focus_index)
 	
 	func on_add_button_pressed() -> void:
-		add_media_res(0, PlaybackServer.position)
+		add_media_ress(0, PlaybackServer.position)
 	
 	func on_drag_started() -> void:
 		if not following_drag:
@@ -813,12 +814,11 @@ class ImportCard extends CreatedCard:
 	
 	static func get_imported_res_from_type(type: int, path: String) -> MediaClipRes:
 		var clip_res: MediaClipRes
-		var default_length: int = EditorServer.editor_settings.media_clip_default_length_f
 		match type:
 			0:
 				clip_res = ImageClipRes.new()
 				clip_res.image = path
-				clip_res.length = default_length
+				clip_res.length = EditorServer.editor_settings.edit.default_clip_duration_frame
 			1:
 				clip_res = VideoClipRes.new()
 				clip_res.video = path
@@ -826,7 +826,7 @@ class ImportCard extends CreatedCard:
 			2:
 				clip_res = AudioClipRes.new()
 				clip_res.stream = path
-				clip_res.length = MediaCache.get_audio(path).get_length() * ProjectServer2.fps
+				clip_res.length = MediaCache.get_audio_data(path).get_length() * ProjectServer2.fps
 		return clip_res
 	
 	func get_media_ress() -> Array[MediaClipRes]:
@@ -938,7 +938,7 @@ class ObjectCard extends MediaCard:
 	
 	func get_media_ress() -> Array[MediaClipRes]:
 		var clip_res: MediaClipRes = info.media_clip_script.new()
-		clip_res.length = EditorServer.editor_settings.media_clip_default_length_f
+		clip_res.length = EditorServer.editor_settings.edit.default_clip_duration_frame
 		return [clip_res]
 
 class TransitionCard extends MediaCard:
@@ -957,10 +957,18 @@ class PresetCard extends CreatedCard:
 		super(group, remove, is_drag_selection, emit_change)
 		EditorServer.properties._clear_controls()
 	
-	func add_media(layer_index: int, frame_in: int) -> void:
-		if discarded: return
-		#ProjectServer.add_preset_clip(info.preset_media_res, layer_index, frame_in, true)
+	func get_media_ress() -> Array[MediaClipRes]:
+		if discarded: return []
+		var copy_clip_res: MediaClipRes = info.preset_media_res.duplicate_media_res()
+		return [copy_clip_res]
+	
+	func add_media_ress(layer_index: int, frame_in: int, auto_init: bool = true) -> void:
+		super(layer_index, frame_in, false)
 	
 	func delete() -> void:
 		created_box.delete_selected(true)
 		created_box.update()
+
+
+
+

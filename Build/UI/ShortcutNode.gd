@@ -1,37 +1,36 @@
 class_name ShortcutNode extends Control
 
-@export var shortcuts: Dictionary[Shortcut, ShortcutInfo]
+signal shortcut_performed(key: StringName)
+
+@export var key: StringName = &""
+@export var shortcuts: Dictionary
 @export var enabled: bool = true
 
+var methods_object: Object = self
 var cond_func: Callable
 
-static func new_event_key(key_code: Key, ctrl_pressed: bool = false, shift_pressed: bool = false, alt_pressed: bool = false) -> InputEventKey:
+
+func load_shortcuts_from_settings() -> void:
+	EditorServer.editor_settings.shortcuts.load_shortcuts_to(self)
+
+static func new_shortcut(key_code: Key, ctrl_pressed: bool = false, shift_pressed: bool = false, alt_pressed: bool = false) -> Shortcut:
+	var shortcut: Shortcut = Shortcut.new()
 	var event_key:= InputEventKey.new()
 	event_key.keycode = key_code
 	event_key.ctrl_pressed = ctrl_pressed
 	event_key.shift_pressed = shift_pressed
 	event_key.alt_pressed = alt_pressed
-	return event_key
-
-static func new_shortcut(events: Array) -> Shortcut:
-	var shortcut:= Shortcut.new()
-	shortcut.events = events
+	shortcut.events = [event_key]
 	return shortcut
 
-func get_shortcuts() -> Dictionary[Shortcut, ShortcutInfo]:
+func get_shortcuts() -> Dictionary:
 	return shortcuts
 
-func set_shortcuts(new_val: Dictionary[Shortcut, ShortcutInfo]) -> void:
+func set_shortcuts(new_val: Dictionary) -> void:
 	shortcuts = new_val
 
-func register_shortcut_quickly(name: StringName, function: Callable, events: Array) -> void:
-	register_shortcut(new_shortcut(events), ShortcutInfo.new(name, function))
-
-func register_shortcut(key_as_shortcut: Shortcut, val_as_shortcut_info: ShortcutInfo) -> void:
-	shortcuts[key_as_shortcut] = val_as_shortcut_info
-
-func register_shortcuts(new_shortcuts: Dictionary[Shortcut, ShortcutInfo]) -> void:
-	shortcuts.merge(new_shortcuts)
+func get_shortcut(key: StringName) -> Shortcut:
+	return shortcuts[key][0]
 
 func _init() -> void:
 	set_process_input(false)
@@ -42,6 +41,7 @@ func _init() -> void:
 	IS.expand(self, true, true)
 
 func _input(event: InputEvent) -> void:
+	
 	if cond_func.is_valid() and not cond_func.call():
 		return
 	
@@ -49,8 +49,24 @@ func _input(event: InputEvent) -> void:
 		return
 	
 	if event is InputEventKey:
-		if event.is_pressed():
-			for shortcut: Shortcut in shortcuts:
-				if shortcut.matches_event(event):
-					shortcuts[shortcut].function.call()
+		
+		if not event.is_pressed():
+			return
+		
+		for key: StringName in shortcuts:
+			
+			var info: Array = shortcuts[key]
+			var shortcut: Shortcut = info[0]
+			
+			if shortcut.matches_event(event):
+				
+				var method_name: StringName = info[1]
+				methods_object.callv(method_name, info[2] if info.size() >= 3 else [])
+				
+				shortcut_performed.emit(key)
+				return
+
+
+
+
 

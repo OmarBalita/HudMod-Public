@@ -101,19 +101,19 @@ func _ready() -> void:
 	var is_custom_properties = func() -> bool: return custom_properties_check_button.button_pressed
 	var can_stabilized = func(): return get_draw_mode.call() in [0, 1]
 	
-	ui_profile.set_ui_conditions({
-		[get_editor_mode, [1]]: [edit_ui_box, edit_shortcut_node],
-		[get_editor_mode, [0]]: [draw_ui_box, draw_left_side_panel, draw_shortcut_node],
-		[get_draw_mode, [0, 1, 3]]: [brush_options_button],
-		[is_custom_properties, [true]]: [custom_color_button.get_parent(), custom_fill_color_button.get_parent(), custom_width_controller.get_parent(), custom_strength_controller.get_parent()],
-		[can_stabilized, [true]]: [pen_stabilize_check_button.get_parent()],
-		[func() -> bool: return can_stabilized.call() and draw_edit.pen_is_stabilize, [true]]: [stiffness_controller.get_parent()],
-		[get_draw_mode, [2]]: [eraser_scale_controller.get_parent()],
-		[get_draw_mode, [3]]: [fill_grid_size_controller.get_parent()],
-		[get_draw_mode, [4]]: [draw_shape_mode_button, draw_shape_is_centered_button.get_parent()],
-		[func() -> bool: return get_draw_mode.call() == 4 and draw_edit.draw_shape_mode == 2, [true]]: [circle_subdv_controller.get_parent()],
-		[func() -> bool: return draw_edit.edit_is_proportional, [true]]: [proportional_edit_options_button, proportional_edit_scale_controller, proportional_edit_connected_only_button.get_parent()]
-	})
+	#ui_profile.set_ui_conditions({
+		#[get_editor_mode, [1]]: [edit_ui_box, edit_shortcut_node],
+		#[get_editor_mode, [0]]: [draw_ui_box, draw_left_side_panel, draw_shortcut_node],
+		#[get_draw_mode, [0, 1, 3]]: [brush_options_button],
+		#[is_custom_properties, [true]]: [custom_color_button.get_parent(), custom_fill_color_button.get_parent(), custom_width_controller.get_parent(), custom_strength_controller.get_parent()],
+		#[can_stabilized, [true]]: [pen_stabilize_check_button.get_parent()],
+		#[func() -> bool: return can_stabilized.call() and draw_edit.pen_is_stabilize, [true]]: [stiffness_controller.get_parent()],
+		#[get_draw_mode, [2]]: [eraser_scale_controller.get_parent()],
+		#[get_draw_mode, [3]]: [fill_grid_size_controller.get_parent()],
+		#[get_draw_mode, [4]]: [draw_shape_mode_button, draw_shape_is_centered_button.get_parent()],
+		#[func() -> bool: return get_draw_mode.call() == 4 and draw_edit.draw_shape_mode == 2, [true]]: [circle_subdv_controller.get_parent()],
+		#[func() -> bool: return draw_edit.edit_is_proportional, [true]]: [proportional_edit_options_button, proportional_edit_scale_controller, proportional_edit_connected_only_button.get_parent()]
+	#})
 	ui_profile.update()
 	
 	# Connections
@@ -211,9 +211,9 @@ func _ready_ui() -> void:
 
 func _ready_draw_ui() -> void:
 	
-	var min_size = Vector2(250, 0)
+	var min_size:= Vector2(250, 0)
 	
-	brush_options_button = IS.create_button("Brush", null, false, false, {custom_minimum_size = min_size, expand_icon = true})
+	brush_options_button = IS.create_button("Brush", null, false, false, false, {custom_minimum_size = min_size, expand_icon = true})
 	custom_properties_check_button = IS.create_bool_edit("Custom Properites", false, min_size, 1)[0]
 	custom_color_button = IS.create_color_edit("Line Color", draw_edit.custom_line_color, min_size, 1)[0]
 	custom_fill_color_button = IS.create_color_edit("Fill Color", draw_edit.custom_fill_color, min_size, 1)[0]

@@ -10,7 +10,7 @@ signal selection_canceled()
 @export var id_key_function_name: StringName
 
 @export_group("Theme")
-@export var color: Color = IS.COLOR_ACCENT_BLUE:
+@export var color: Color = IS.color_accent:
 	set(val):
 		color = val
 		fill_color = Color(color, transparancy)
@@ -59,7 +59,7 @@ func _draw() -> void:
 			if not is_instance_valid(node): continue
 			draw_selecting_rect(node.get_global_rect())
 
-func draw_selecting_rect(rect: Rect2, color: Color = IS.COLOR_ACCENT_BLUE) -> void:
+func draw_selecting_rect(rect: Rect2, color: Color = IS.color_accent) -> void:
 	rect = Rect2(rect.position - global_position, rect.size)
 	var start_pos = rect.position
 	var end_pos = start_pos + rect.size

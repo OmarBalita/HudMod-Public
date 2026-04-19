@@ -3,12 +3,16 @@
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="Script" uid="uid://d2qybm5ehn5ha" path="res://Editor/Main.gd" id="1_30lmd"]
 [ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Editor/Player/Player.gd" id="2_7i47x"]
+[ext_resource type="Texture2D" uid="uid://lvvrg1inxx60" path="res://Asset/Images/banner-mid.jpg" id="2_k2li5"]
 [ext_resource type="Resource" uid="uid://cgukcm1eovxk" path="res://Resources/Layout/LayoutDefault.tres" id="2_s30d6"]
 [ext_resource type="Script" uid="uid://defvdj348ta82" path="res://Build/Res/Layout/LayoutRootInfo.gd" id="2_x7e6b"]
 [ext_resource type="Resource" uid="uid://6qv1nryowska" path="res://Resources/Layout/LayoutColorCorrection.tres" id="4_t7s5e"]
 [ext_resource type="Resource" uid="uid://bbwxn0hatvia6" path="res://Resources/Layout/LayoutPlayer.tres" id="5_cd0xf"]
+[ext_resource type="Resource" uid="uid://5y7dbynprvcx" path="res://Resources/Layout/LayoutExport.tres" id="6_k2li5"]
 [ext_resource type="Texture2D" uid="uid://drrpumpojwc7y" path="res://Asset/Icons/add.png" id="6_t7s5e"]
 [ext_resource type="Script" uid="uid://cxhg0wsinlupc" path="res://Editor/ColorCorrection/ColorCorrectionEditor.gd" id="10_x7e6b"]
+[ext_resource type="Script" uid="uid://dt1yr8e1g6vi8" path="res://Editor/RenderProperties/RenderProperties.gd" id="21_13ga7"]
+[ext_resource type="Script" uid="uid://jyhrc5jyau06" path="res://Editor/RenderViewer/RenderViewer.gd" id="22_kg1lx"]
 [ext_resource type="Script" uid="uid://4jnese7xpyxa" path="res://Editor/Properties/Properties2.gd" id="23_pajpo"]
 [ext_resource type="Texture2D" uid="uid://dno5kf805dotb" path="res://Asset/Icons/plus.png" id="24_sruw6"]
 [ext_resource type="Texture2D" uid="uid://cqat0ylr2kw0w" path="res://Asset/Icons/magnifying-glass.png" id="25_gck3f"]
@@ -18,7 +22,6 @@
 [ext_resource type="Script" uid="uid://bnu877glq6rrg" path="res://Editor/GlobalControl.gd" id="30_sruw6"]
 [ext_resource type="Texture2D" uid="uid://uo6vskc2rhkf" path="res://Asset/Icons/eye.png" id="32_cd0xf"]
 [ext_resource type="Texture2D" uid="uid://y14al8cbxy4t" path="res://Asset/Icons/visible.png" id="32_t8vbk"]
-[ext_resource type="Script" uid="uid://d2t1uchaqp6v3" path="res://Build/Functionality/TweenerComponent.gd" id="36_t7s5e"]
 [ext_resource type="Script" uid="uid://uupil02s5ia4" path="res://Editor/ColorCorrection/ColorScopeEditor.gd" id="37_t8vbk"]
 [ext_resource type="Script" uid="uid://dqqk0jf0ddsai" path="res://Editor/TimeLine/TimeLine2.gd" id="38_bn3x6"]
 
@@ -36,25 +39,32 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_30lmd")
+version_name = &"1.0.0.alpha"
+version_banner = ExtResource("2_k2li5")
+banner_owner = &"Erik Karits"
+banner_owner_link = &"https://www.pexels.com/@erik-karits-2093459/"
+support_link = &"https://www.patreon.com/10610068/join"
 editors = {
 &"color_correction": NodePath("EditorsFolder/ColorCorrectionEditor"),
 &"color_scope": NodePath("EditorsFolder/ColorScopeEditor"),
 &"media_explorer": NodePath("EditorsFolder/MediaExplorer"),
 &"player": NodePath("EditorsFolder/Player"),
 &"properties": NodePath("EditorsFolder/Properties"),
+&"render_properties": NodePath("EditorsFolder/RenderProperties"),
+&"render_viewer": NodePath("EditorsFolder/RenderViewer"),
 &"time_line2": NodePath("EditorsFolder/TimeLine2")
 }
-preset_layouts = Array[ExtResource("2_x7e6b")]([ExtResource("2_s30d6"), ExtResource("5_cd0xf"), ExtResource("4_t7s5e")])
+preset_layouts = Array[ExtResource("2_x7e6b")]([ExtResource("2_s30d6"), ExtResource("5_cd0xf"), ExtResource("4_t7s5e"), ExtResource("6_k2li5")])
 
-[node name="BG" type="ColorRect" parent="." unique_id=1809441321]
-z_index = -2
+[node name="BGPanelContainer" type="PanelContainer" parent="." unique_id=1556992348]
+unique_name_in_owner = true
+z_index = -1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.08, 0.08, 0.08, 1)
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1552990746]
 layout_mode = 1
@@ -80,6 +90,7 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
 [node name="Bottom" type="PanelContainer" parent="Margin/Box" unique_id=206862263]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
@@ -132,29 +143,6 @@ theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("26_s30d6")
 flat = true
 
-[node name="GlobalControl" type="Control" parent="." unique_id=957362020]
-layout_mode = 1
-anchors_preset = 0
-mouse_filter = 2
-script = ExtResource("30_sruw6")
-shortcuts = null
-enabled = null
-metadata/_custom_type_script = "uid://dhcmxesxndwle"
-
-[node name="DrawableRect" type="ColorRect" parent="." unique_id=1023361327 groups=["drawable_rect"]]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = -0.000588235
-anchor_right = 0.999412
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(1, 1, 1, 0)
-script = ExtResource("25_ig1nw")
-metadata/_custom_type_script = "uid://d1jx0qooyty3l"
-metadata/_edit_use_anchors_ = true
-
 [node name="EditorsFolder" type="Control" parent="." unique_id=320146041]
 unique_name_in_owner = true
 visible = false
@@ -164,11 +152,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("10_x7e6b")
 
 [node name="Properties" type="Control" parent="EditorsFolder" unique_id=691186840]
 clip_contents = true
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(400, 400)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -187,7 +174,7 @@ texture_drag = ExtResource("27_30lmd")
 
 [node name="Player" type="Control" parent="EditorsFolder" unique_id=2134777024]
 clip_contents = true
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(400, 400)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -201,7 +188,7 @@ script = ExtResource("2_7i47x")
 
 [node name="MediaExplorer" type="Control" parent="EditorsFolder" unique_id=2118222730]
 clip_contents = true
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(400, 400)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -212,7 +199,7 @@ size_flags_vertical = 3
 script = ExtResource("1_7i47x")
 
 [node name="ColorCorrectionEditor" type="Control" parent="EditorsFolder" unique_id=1872380720]
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(400, 300)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -225,7 +212,7 @@ script = ExtResource("10_x7e6b")
 metadata/_custom_type_script = "uid://cxhg0wsinlupc"
 
 [node name="ColorScopeEditor" type="Control" parent="EditorsFolder" unique_id=1611740222]
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(400, 400)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -236,16 +223,69 @@ size_flags_horizontal = 3
 script = ExtResource("37_t8vbk")
 metadata/_custom_type_script = "uid://uupil02s5ia4"
 
-[node name="TimeLine2" type="Control" parent="EditorsFolder" unique_id=1222751837 groups=["time_line2"]]
+[node name="TimeLine2" type="Control" parent="EditorsFolder" unique_id=1222751837]
 custom_minimum_size = Vector2(1300, 300)
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("38_bn3x6")
 metadata/_custom_type_script = "uid://dqqk0jf0ddsai"
 
-[node name="TweenerComponent" type="Node" parent="." unique_id=1035604091 groups=["tweener"]]
+[node name="RenderProperties" type="Control" parent="EditorsFolder" unique_id=1029277106]
+custom_minimum_size = Vector2(400, 400)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("21_13ga7")
+metadata/_custom_type_script = "uid://dt1yr8e1g6vi8"
+
+[node name="RenderViewer" type="Control" parent="EditorsFolder" unique_id=923174807]
+custom_minimum_size = Vector2(400, 400)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("22_kg1lx")
+metadata/_custom_type_script = "uid://jyhrc5jyau06"
+
+[node name="GlobalControl" type="Control" parent="." unique_id=957362020]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("30_sruw6")
+metadata/_custom_type_script = "uid://dhcmxesxndwle"
+
+[node name="DrawableRect" type="ColorRect" parent="." unique_id=1023361327 groups=["drawable_rect"]]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.000588235
+anchor_right = 0.999412
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+script = ExtResource("25_ig1nw")
+metadata/_custom_type_script = "uid://d1jx0qooyty3l"
+metadata/_edit_use_anchors_ = true
+
+[node name="FreezeRect" type="ColorRect" parent="." unique_id=659660207]
 unique_name_in_owner = true
-script = ExtResource("36_t7s5e")
-transType = 7
-metadata/_custom_type_script = "uid://d2t1uchaqp6v3"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.39215687)

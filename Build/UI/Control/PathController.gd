@@ -21,7 +21,7 @@ func update(_path: Array) -> void:
 	for time: int in path.size() + 1:
 		time -= 1
 		
-		var button: Button = IS.create_button("", null, false, false, {flat = true})
+		var button: Button = IS.create_button("", null, false, false, false, {flat = true})
 		var folder_name: String = root_name
 		
 		if time > -1:

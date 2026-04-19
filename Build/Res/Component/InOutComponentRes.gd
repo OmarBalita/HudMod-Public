@@ -21,6 +21,10 @@ var t_ratio: float
 
 func _init() -> void:
 	method_type = MethodType.ADD
+	
+	in_duration = EditorServer.editor_settings.edit.default_fade_duration
+	out_duration = in_duration
+	
 	curve.res_changed.connect(emit_res_changed)
 
 func has_method_type() -> bool: return false

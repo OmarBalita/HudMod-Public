@@ -23,7 +23,8 @@ func set_layout_image(new_val: Texture2D) -> void:
 func open(editors: Dictionary[StringName, EditorControl]) -> Dictionary[StringName, Variant]:
 	var windows: Array[Window]
 	for windowed_info: WindowedInfo in windowed_infos:
-		editors[windowed_info.editor_name].header_panel.to_window(windowed_info, false, false)
+		var header_panel: EditorControl.HeaderPanel = editors[windowed_info.editor_name].header_panel
+		header_panel.to_window(windowed_info, false, false)
 	return super.open(editors).merged({&"windows": windows})
 
 static func parse(split_container: SplitContainer, layout_id: Object = LayoutRootInfo) -> LayoutRootInfo:

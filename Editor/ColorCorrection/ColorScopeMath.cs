@@ -64,7 +64,7 @@ public partial class ColorScopeMath : GodotObject
 				lImg.SetPixel(x, invY, new Color(1, 1, 1, val.W));
 			}
 		}
-
+		
 		return new()
 		{
 			{ "resolution", new Vector2I(width, height) },

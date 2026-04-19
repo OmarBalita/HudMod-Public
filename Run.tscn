@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://ckmqu1nrqmxml"]
 
-[ext_resource type="Texture2D" uid="uid://71t0sggyev61" path="res://Asset/Images/pexels-creative-vix-9754.jpg" id="1_ersp8"]
-[ext_resource type="Texture2D" uid="uid://yb10nyikmf4a" path="res://Asset/Icons/App/logo2_bg.png" id="3_8x2kx"]
+[ext_resource type="Texture2D" uid="uid://jqccs6nb6n16" path="res://Asset/Images/banner-high.jpg" id="1_ersp8"]
 
 [sub_resource type="GDScript" id="GDScript_ersp8"]
 script/source = "extends Control
@@ -15,162 +14,17 @@ script/source = "extends Control
 var progress: Array
 
 func _ready() -> void:
-	#await get_tree().create_timer(.5).timeout
-	#var image: Image = get_window().get_texture().get_image()
-	#image.save_png(\"res://Asset/Images/run_image.png\")
 	await get_tree().create_timer(delay).timeout
 	ResourceLoader.load_threaded_request(main_path)
 
 func _process(delta: float) -> void:
 	var load_status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(main_path, progress)
-	loading_bar.value = floor(progress[0] * 100.0)
+	loading_bar.value = floor(progress[0] * 100.)
 	if load_status == ResourceLoader.THREAD_LOAD_LOADED:
 		var packed_scene: PackedScene = ResourceLoader.load_threaded_get(main_path)
 		get_tree().change_scene_to_packed(packed_scene)
 
-
 "
-
-[sub_resource type="Shader" id="Shader_ersp8"]
-code = "shader_type canvas_item;
-render_mode blend_mix, unshaded;
-
-// Simple, configurable drop shadow and inner shadow for any shape with an alpha channel.
-// Groups: General, Drop Shadow, Inner Shadow
-
-// General
-group_uniforms General;
-uniform sampler2D source_texture; // group(\"General\")
-// Optional override for pixel-to-UV conversion (e.g., atlas region size in px)
-uniform vec2 source_size_px = vec2(0.0, 0.0); // group(\"General\")
-uniform bool use_base_tint = true; // true: use base_tint, false: use node modulate (COLOR) // group(\"General\")
-uniform vec4 base_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0); // group(\"General\")
-uniform bool draw_base = true;   // Set false to render only the base // group(\"General\")
-
-// Drop Shadow
-group_uniforms Drop_Shadow;
-uniform bool draw_shadow = true; // Set false to disable the outer shadow // group(\"General\")
-uniform vec4 shadow_color : source_color = vec4(0.0, 0.0, 0.0, 0.5); // group(\"Drop Shadow\")
-uniform vec2 shadow_offset = vec2(0.0, -10.0); // pixels // group(\"Drop Shadow\")
-uniform float shadow_softness : hint_range(0.0, 64.0) = 4.0; // pixels // group(\"Drop Shadow\")
-uniform float shadow_spread : hint_range(0.0, 1.0) = 0.0; // group(\"Drop Shadow\")
-
-group_uniforms Inner_Shadow;
-uniform bool enable_inner_shadow = false; // group(\"Inner Shadow\")
-uniform vec4 inner_shadow_color : source_color = vec4(0.0, 0.0, 0.0, 0.5); // group(\"Inner Shadow\")
-uniform vec2 inner_shadow_offset = vec2(0.0, 10.0); // pixels // group(\"Inner Shadow\")
-uniform float inner_shadow_softness : hint_range(0.0, 64.0) = 4.0; // pixels // group(\"Inner Shadow\")
-uniform float inner_shadow_spread : hint_range(0.0, 1.0) = 0.0; // group(\"Inner Shadow\")
-
-float sample_alpha(vec2 uv) {
-  return texture(source_texture, uv).a;
-}
-
-void fragment() {
-  vec4 base = texture(source_texture, UV);
-  
-  // Apply either shader tint OR node modulate, not both
-  vec4 tinted = base;
-  if (use_base_tint) {
-    tinted *= base_tint;
-  } else {
-    tinted.rgb *= COLOR.rgb;
-    tinted.a *= COLOR.a;
-  }
-
-  // Convert pixel amounts to UV space using source size
-  vec2 tex_size = source_size_px;
-  if (tex_size.x <= 0.0 || tex_size.y <= 0.0) {
-    tex_size = vec2(textureSize(source_texture, 0));
-  }
-  tex_size = max(tex_size, vec2(1.0));
-  vec2 texel_size = 1.0 / tex_size;
-  vec2 px = texel_size * max(shadow_softness, 0.0);
-  vec2 off = texel_size * shadow_offset;
-
-  // 9-tap box blur on the alpha around the offset position
-  float a = 0.0;
-  a += sample_alpha(UV + off);
-  a += sample_alpha(UV + off + vec2(px.x, 0.0));
-  a += sample_alpha(UV + off + vec2(-px.x, 0.0));
-  a += sample_alpha(UV + off + vec2(0.0, px.y));
-  a += sample_alpha(UV + off + vec2(0.0, -px.y));
-  a += sample_alpha(UV + off + vec2(px.x, px.y));
-  a += sample_alpha(UV + off + vec2(-px.x, px.y));
-  a += sample_alpha(UV + off + vec2(px.x, -px.y));
-  a += sample_alpha(UV + off + vec2(-px.x, -px.y));
-  a /= 9.0;
-
-  // Tighten or expand the shadow edge
-  if (shadow_spread > 0.0) {
-    a = clamp((a - shadow_spread) / max(1e-4, 1.0 - shadow_spread), 0.0, 1.0);
-  }
-
-  // Inner shadow: blur alpha at opposite offset and invert to keep inside
-  if (enable_inner_shadow) {
-    vec2 in_px = texel_size * max(inner_shadow_softness, 0.0);
-    vec2 in_off = texel_size * inner_shadow_offset;
-
-    float ia = 0.0;
-    ia += texture(source_texture, UV - in_off).a;
-    ia += texture(source_texture, UV - in_off + vec2(in_px.x, 0.0)).a;
-    ia += texture(source_texture, UV - in_off + vec2(-in_px.x, 0.0)).a;
-    ia += texture(source_texture, UV - in_off + vec2(0.0, in_px.y)).a;
-    ia += texture(source_texture, UV - in_off + vec2(0.0, -in_px.y)).a;
-    ia += texture(source_texture, UV - in_off + vec2(in_px.x, in_px.y)).a;
-    ia += texture(source_texture, UV - in_off + vec2(-in_px.x, in_px.y)).a;
-    ia += texture(source_texture, UV - in_off + vec2(in_px.x, -in_px.y)).a;
-    ia += texture(source_texture, UV - in_off + vec2(-in_px.x, -in_px.y)).a;
-    ia /= 9.0;
-
-    float inner = 1.0 - ia;
-    if (inner_shadow_spread > 0.0) {
-      inner = clamp((inner - inner_shadow_spread) / max(1e-4, 1.0 - inner_shadow_spread), 0.0, 1.0);
-    }
-    inner *= base.a; // constrain to inside of the shape
-
-    float inner_mix = inner * inner_shadow_color.a * float(draw_base);
-    tinted.rgb = mix(tinted.rgb, inner_shadow_color.rgb, inner_mix);
-  }
-
-  // Composite: shadow behind the base image (Porter-Duff over)
-  float s = shadow_color.a * a * (draw_shadow ? 1.0 : 0.0);
-  float b = tinted.a * (draw_base ? 1.0 : 0.0);
-
-  vec3 out_rgb = tinted.rgb * b + (1.0 - b) * shadow_color.rgb * s;
-  float out_a = b + (1.0 - b) * s;
-
-  COLOR = vec4(out_rgb, out_a);
-}
-
-
-"
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8x2kx"]
-shader = SubResource("Shader_ersp8")
-shader_parameter/source_texture = ExtResource("3_8x2kx")
-shader_parameter/source_size_px = Vector2(0, 0)
-shader_parameter/use_base_tint = true
-shader_parameter/base_tint = Color(1, 1, 1, 1)
-shader_parameter/draw_base = true
-shader_parameter/draw_shadow = true
-shader_parameter/shadow_color = Color(0, 0, 0, 0.5)
-shader_parameter/shadow_offset = Vector2(-5, -10)
-shader_parameter/shadow_softness = 3.0
-shader_parameter/shadow_spread = 0.5
-shader_parameter/enable_inner_shadow = false
-shader_parameter/inner_shadow_color = Color(0, 0, 0, 0.5)
-shader_parameter/inner_shadow_offset = Vector2(0, 10)
-shader_parameter/inner_shadow_softness = 0.0
-shader_parameter/inner_shadow_spread = 0.75
-
-[sub_resource type="SystemFont" id="SystemFont_wx0j5"]
-font_names = PackedStringArray("Andalus")
-
-[sub_resource type="LabelSettings" id="LabelSettings_v54ws"]
-font_size = 22
-shadow_size = 2
-shadow_color = Color(0, 0, 0, 0.478431)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0vf8b"]
 
@@ -186,7 +40,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = SubResource("GDScript_ersp8")
 main_path = &"res://Prototype/PrototypeMain.tscn"
-delay = 0.5
 
 [node name="BGRect" type="TextureRect" parent="." unique_id=396084252]
 layout_mode = 1
@@ -218,52 +71,43 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="HSplitContainer" type="HSplitContainer" parent="SplitContainer/MarginContainer" unique_id=1366915045]
+[node name="VBoxContainer" type="VBoxContainer" parent="SplitContainer/MarginContainer" unique_id=1944812581]
 layout_mode = 2
-size_flags_vertical = 3
-dragging_enabled = false
-dragger_visibility = 1
+size_flags_vertical = 8
+alignment = 1
 
-[node name="LogoRect" type="TextureRect" parent="SplitContainer/MarginContainer/HSplitContainer" unique_id=1953157315]
-material = SubResource("ShaderMaterial_8x2kx")
-custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-texture = ExtResource("3_8x2kx")
-stretch_mode = 3
-
-[node name="BoxContainer" type="BoxContainer" parent="SplitContainer/MarginContainer/HSplitContainer" unique_id=997610211]
-layout_mode = 2
-size_flags_vertical = 4
-vertical = true
-
-[node name="NameLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=1891281627]
+[node name="NameLabel" type="Label" parent="SplitContainer/MarginContainer/VBoxContainer" unique_id=1891281627]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.803922)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_fonts/font = SubResource("SystemFont_wx0j5")
-theme_override_font_sizes/font_size = 120
+theme_override_constants/shadow_offset_x = 5
+theme_override_constants/shadow_offset_y = 5
+theme_override_font_sizes/font_size = 100
 text = "HUDMOD"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ColorRect" type="ColorRect" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=1946479378]
-visible = false
-custom_minimum_size = Vector2(700, 8)
-layout_mode = 2
-size_flags_horizontal = 4
-color = Color(0.94902, 0.619608, 0.227451, 1)
-
-[node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/HSplitContainer/BoxContainer" unique_id=59249570]
+[node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/VBoxContainer" unique_id=59249570]
 unique_name_in_owner = true
 layout_mode = 2
-text = "An Eazy and Powerful Video Editor"
-label_settings = SubResource("LabelSettings_v54ws")
+theme_override_font_sizes/font_size = 30
+text = "Edit as the hoopoe flies."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="NameLabel" type="Label" parent="SplitContainer/MarginContainer" unique_id=1554294481]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_constants/shadow_offset_x = 5
+theme_override_constants/shadow_offset_y = 5
+theme_override_font_sizes/font_size = 18
+text = "A Photo by Erik Karits"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="LoadingBar" type="ProgressBar" parent="SplitContainer" unique_id=168497188]
 unique_name_in_owner = true

@@ -4,7 +4,7 @@ class_name FlexViewportControl extends FocusControl
 	set(val):
 		enabled = val
 		viewport_container.stretch = not val
-		on_resized()
+		update()
 @export var viewport_container: SubViewportContainer
 
 func _init() -> void:
@@ -12,13 +12,14 @@ func _init() -> void:
 
 func _ready() -> void:
 	super()
-	resized.connect(on_resized)
+	update()
+	resized.connect(update)
 
 func _draw() -> void:
 	super()
 	draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
 
-func on_resized() -> void:
+func update() -> void:
 	
 	if not viewport_container: return
 	

@@ -47,7 +47,7 @@ func _ready():
 func _draw() -> void:
 	
 	var rect_offset_x: float = 20.0
-	var size_half: Vector2 = (size - Vector2(rect_offset_x, .0)) / 2.0
+	var size_half: Vector2 = (size - Vector2(rect_offset_x, .0)) / 2.
 	
 	volume_steps = size_half.x / step_size
 	
@@ -57,17 +57,17 @@ func _draw() -> void:
 	var rect_size_l:= Vector2(max(1., step_size), size_half.y - margin_y - 2)
 	var rect_size_r:= Vector2(max(1., step_size), size_half.y - margin_y)
 	
-	var font:= IS.LABEL_SETTINGS_MAIN.font
-	draw_multiline_string(font, Vector2(.0, size_half.y - 5.), "L")
-	draw_multiline_string(font, Vector2(.0, size_half.y + 20.), "R")
+	var font: Font = IS.label_settings_main.font
+	draw_multiline_string(font, Vector2(.0, size_half.y - 5.), "L", 0, -1, 16, -1, IS.color_label)
+	draw_multiline_string(font, Vector2(.0, size_half.y + 20.), "R", 0, -1, 16, -1, IS.color_label)
 	
 	for step: int in volume_steps:
 		var rect_pos_x: float = rect_offset_x + step * step_offset
 		var step_ratio: float = step / float(volume_steps)
 		
 		var curr_color: Color = color_range.sample(step_ratio)
-		var left_color: Color = Color(curr_color, 1.0 if energy_left > step_ratio else .25)
-		var right_color: Color = Color(curr_color, 1.0 if energy_right > step_ratio else .25)
+		var left_color: Color = Color(curr_color, 1. if energy_left > step_ratio else .3)
+		var right_color: Color = Color(curr_color, 1. if energy_right > step_ratio else .3)
 		
 		draw_rect(Rect2(
 				Vector2(rect_pos_x, margin_y),

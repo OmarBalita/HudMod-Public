@@ -188,7 +188,8 @@ func preset_media_ress_check_for_paths(paths: PackedStringArray) -> PackedString
 		path = StringName(path)
 		if file_info.type == "file":
 			if preset_ress.has(path):
-				info.unexistent.append_array(preset_ress[path].check_children_for_paths_deep(paths))
+				var unexistent: PackedStringArray = preset_ress[path].check_layers_for_paths_deep(paths)
+				info.unexistent.append_array(unexistent)
 	).unexistent
 
 func preset_media_ress_format_paths(paths_for_format: Dictionary[String, String]) -> void:
@@ -197,7 +198,7 @@ func preset_media_ress_format_paths(paths_for_format: Dictionary[String, String]
 		path = StringName(path)
 		if file_info.type == "file":
 			if preset_ress.has(path):
-				preset_ress[path].format_children_paths_deep(paths_for_format)
+				preset_ress[path].format_layers_paths_deep(paths_for_format)
 	)
 
 # 0 = FOLDER_TREE, 1 = FILE_TREE

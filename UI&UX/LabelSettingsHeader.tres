@@ -1,9 +1,24 @@
-[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://btchr08otjlgb"]
+[gd_resource type="LabelSettings" format=3 uid="uid://btchr08otjlgb"]
 
-[ext_resource type="FontFile" uid="uid://de167ffrhdl5u" path="res://Asset/Fonts/Cascadia.ttf" id="1_ymeap"]
+[sub_resource type="FontFile" id="FontFile_8bx5d"]
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
 
 [resource]
-font = ExtResource("1_ymeap")
+font = SubResource("FontFile_8bx5d")
 font_size = 20
-font_color = Color(1, 1, 1, 0.9)
-outline_size = 1
+font_color = Color(1, 1, 1, 0.9019608)
+outline_size = 2
+outline_color = Color(1, 1, 1, 0.9019608)

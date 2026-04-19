@@ -40,9 +40,6 @@ var content_container: Container
 @export var category_custom_color: Color:
 	set(val): category_custom_color = val; update_ui()
 @export_subgroup("Texture", "texture")
-@export var texture_expand: Texture2D = IS.TEXTURE_DOWN
-@export var texture_collapse: Texture2D = IS.TEXTURE_RIGHT
-
 
 func _ready() -> void:
 	dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
@@ -51,10 +48,14 @@ func _ready() -> void:
 	custom_color_rect = IS.create_color_rect(category_custom_color, {custom_minimum_size = Vector2(10., .0)})
 	
 	content_panel_container = PanelContainer.new()
-	content_margin_container = IS.create_margin_container(0, 0, 0, 0, {clip_contents = false})
+	content_margin_container = IS.create_margin_container(6, 6, 6, 6, {clip_contents = false})
 	
-	IS.set_font_from_label_settings(header_button, IS.LABEL_SETTINGS_BOLD)
-	IS.set_button_style(header_button, IS.STYLE_CORNERLESS, IS.STYLE_CORNERLESS_HOVER)
+	IS.set_base_settings(header_button)
+	IS.set_button_style(header_button, IS.style_cornerless_body)
+	IS.set_font_from_label_settings(header_button, IS.label_settings_bold)
+	IS.set_font_colors(header_button)
+	IS.set_icon_colors(header_button)
+	
 	header_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	var panel_style:= StyleBoxFlat.new()
@@ -83,7 +84,7 @@ func update_ui() -> void:
 		return
 	header_button.set_visible(has_header)
 	header_button.set_text(category_name)
-	header_button.icon = texture_expand if is_expanded else texture_collapse
+	header_button.icon = IS.TEXTURE_DOWN if is_expanded else IS.TEXTURE_RIGHT
 	custom_color_rect.set_color(category_custom_color)
 	
 	var panel_style: StyleBoxFlat = content_panel_container.get_theme_stylebox(&"panel")

@@ -19,7 +19,7 @@ var body: MarginContainer
 var header_panel: HeaderPanel
 var body_panel: PanelContainer
 
-var shortcut_node: ShortcutNode = IS.create_shortcut_node(&"editor_control_shortcut")
+var shortcut_node:= ShortcutNode.new()
 
 func _ready() -> void:
 	
@@ -28,7 +28,7 @@ func _ready() -> void:
 	body = IS.create_margin_container(6, 6, 6, 6)
 	
 	header_panel = HeaderPanel.new(self)
-	body_panel = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY, {"z_index": -1, "clip_contents": true})
+	body_panel = IS.create_panel_container(Vector2.ZERO, IS.style_body, {"z_index": -1, "clip_contents": true})
 	
 	header_panel.custom_minimum_size.y = header_size
 	header_panel.add_child(header)
@@ -61,7 +61,7 @@ class HeaderPanel extends PanelContainer:
 	
 	func _init(_editor_control: EditorControl) -> void:
 		editor_control = _editor_control
-		IS.set_base_panel_settings(self, IS.STYLE_HEADER)
+		IS.set_base_panel_settings(self, IS.style_header)
 	
 	func _ready() -> void:
 		set_process(false)
@@ -89,6 +89,7 @@ class HeaderPanel extends PanelContainer:
 						if not windowed:
 							if mouse_pos.distance_to(press_pos) >= 20.0:
 								to_window()
+								set_process(true)
 	
 	func _process(delta: float) -> void:
 		var drawable_rect: DrawableRect = EditorServer.drawable_rect
@@ -129,6 +130,7 @@ class HeaderPanel extends PanelContainer:
 		
 		# Step 1: Move Editor Control to Window and Popup it.
 		window = Window.new()
+		window.title = editor_control.get_meta(&"editor_name").capitalize()
 		window.always_on_top = true
 		var margin_container: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
 		editor_control.reparent(margin_container)
@@ -164,7 +166,6 @@ class HeaderPanel extends PanelContainer:
 		window.set_meta(&"editor_name", editor_control.get_meta(&"editor_name"))
 		
 		windowed = true
-		set_process(not windowed_info)
 		
 		if update_layout:
 			EditorServer.main.update_curr_layout()

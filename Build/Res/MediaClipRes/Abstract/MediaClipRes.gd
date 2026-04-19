@@ -23,7 +23,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var from: int = 0:
 	set(val):
-		if GlobalServer.is_global_cache_loaded:
+		if ProjectServer2.is_project_loaded:
 			from = maxf(get_min_from(), val)
 			from = minf(from, get_max_length() - length)
 			update()
@@ -32,7 +32,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var length: int = 10:
 	set(val):
-		if GlobalServer.is_global_cache_loaded:
+		if ProjectServer2.is_project_loaded:
 			length = clampf(val, 1., get_max_length() - from)
 			update()
 		else:
@@ -763,11 +763,48 @@ func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Ca
 		
 		for frame: int in clips:
 			method.call(layers, layer_idx, layer, frame, dupl_info)
-			clips[frame].loop_layers_children_deep
+			clips[frame].loop_layers_children_deep(info, method, premethod, postmethod)
 		
 		if post_valid:
 			postmethod.call(layers, layer_idx, dupl_info)
 
+func check_layers_for_paths_deep(paths_for_check: PackedStringArray) -> PackedStringArray:
+	var result: PackedStringArray
+	
+	for layer: LayerRes in layers:
+		var clips_ress: Dictionary[int, MediaClipRes] = layer.get_clips()
+		
+		for frame: int in clips_ress:
+			var clip_res: MediaClipRes = clips_ress[frame]
+			var paths: PackedStringArray = clip_res.check_for_paths(paths_for_check)
+			result.append_array(paths)
+	
+	return result
+
+func format_layers_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
+	loop_layers_children_deep({},
+		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+			layer.get_clip_res(frame).format_paths(paths_for_format)
+	)
+
+func format_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
+	format_paths(paths_for_format)
+	format_layers_paths_deep(paths_for_format)
+
+func update_paths_deep() -> void:
+	loop_layers_children_deep({},
+		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+			layer.get_clip_res(frame).update_paths()
+	)
+
+func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
+	return []
+
+func format_paths(paths_for_format: Dictionary[String, String]) -> void:
+	pass
+
+func update_paths() -> void:
+	pass
 
 
 static func _create_empty_edit_data() -> Dictionary[StringName, Variant]:

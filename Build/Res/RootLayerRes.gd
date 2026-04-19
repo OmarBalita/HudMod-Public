@@ -3,12 +3,12 @@ class_name RootLayerRes extends LayerRes
 signal mute_changed(to: bool)
 
 @export_group("Audio", "audio")
-@export var volume: float
 @export var mute: bool:
 	set(val):
 		mute = val
 		AudioServer.set_bus_mute(get_bus_idx(), val)
 		mute_changed.emit(val)
+@export var volume: float = 1.
 
 var bus_unique_name: StringName
 

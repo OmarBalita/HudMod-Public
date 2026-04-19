@@ -74,8 +74,8 @@ func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_c
 func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void: edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
 func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void: edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = []) -> Array[Control]:
-	var usable_res_script:= usable_res.get_script() as Script
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> Array[Control]:
+	var usable_res_script: Script = usable_res.get_script()
 	
 	if not usable_ress.has(usable_res):
 		usable_ress.append(usable_res)
@@ -90,10 +90,19 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	edits_box_container.set_meta(&"owner", edit_box_container)
 	
 	var ui_profile: UIProfile = UIProfile.new()
-	var ui_conditions: Dictionary[Array, Array]
+	var ui_conds_keys: Array
+	var ui_conds_vals: Array
 	
 	var properties_controllers: Dictionary[StringName, Control] = {}
 	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_box_container, properties_controllers, ui_profile)
+	
+	
+	const UI_COND_RESULT: Array = [true]
+	var ui_method: Callable = func(input_method: Callable, expected_results: Array, prop_name: String, ctrl: Control) -> bool:
+		return (StringHelper.fuzzy_search(search_line_edit.text.to_lower(), prop_name) or ctrl is Category) and expected_results.has(input_method.call())
+	
+	var ui_method2: Callable = func(prop_name: String, ctrl: Control) -> bool:
+		return StringHelper.fuzzy_search(search_line_edit.text.to_lower(), prop_name) or ctrl is Category
 	
 	for key: StringName in exported_props:
 		var ctrlr_info: ExportInfo = exported_props[key]
@@ -149,7 +158,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 		else:
 			var val: Variant = ctrlr_args[0]
 			
-			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress)
+			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress, search_line_edit)
 			if controllers.size():
 				var edit_box: IS.EditBoxContainer = IS.get_edit_box_from(controllers)
 				var is_object: bool = typeof(val) == TYPE_OBJECT
@@ -183,16 +192,33 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				curr_box_container.add_child(edit_box)
 				control = edit_box
 		
-		if control and ui_cond:
-			if ui_conditions.has(ui_cond):
-				ui_conditions[ui_cond].append(control)
-			else:
-				ui_conditions[ui_cond] = [control]
+		if control:
+			
+			key = key.replace("_", " ").to_lower()
+			
+			if ui_cond:
+				var root_ui_cond: Array
+				if search_line_edit:
+					root_ui_cond = [ui_method.bind(ui_cond[0], ui_cond[1], key, control), UI_COND_RESULT]
+				else:
+					root_ui_cond = ui_cond
+				ui_conds_keys.append(root_ui_cond)
+				ui_conds_vals.append([control])
+			
+			elif search_line_edit:
+				ui_conds_keys.append([ui_method2.bind(key, control), UI_COND_RESULT])
+				ui_conds_vals.append([control])
 	
 	usable_res._exported_props_controllers_created(edit_box_container, properties_controllers)
 	
-	ui_profile.set_ui_conditions(ui_conditions)
+	ui_profile.set_ui_conditions(ui_conds_keys, ui_conds_vals)
 	ui_profile.update()
+	
+	if search_line_edit:
+		search_line_edit.text_changed.connect(
+			func _on_search_line_edit_text_changed(new_text: String) -> void:
+				ui_profile.update()
+		)
 	
 	return [edits_box_container]
 
@@ -259,7 +285,7 @@ static func mediaclipres_args(val: MediaClipRes, cond_func: Callable) -> Array: 
 
 static func method_enter_cat_args(cat_color: Color = Color.BLACK) -> Array: return [cat_color]
 static func method_exit_cat_args() -> Array: return []
-static func method_callable_args(callable: Callable, color: Color = IS.COLOR_ACCENT_BLUE, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
+static func method_callable_args(callable: Callable, color: Color = IS.color_accent, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
 static func method_custom_args(control: Control) -> Array: return [control]
 
 

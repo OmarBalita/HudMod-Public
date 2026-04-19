@@ -6,6 +6,7 @@ class_name MenuOption extends Resource
 @export var text: String
 @export var icon: Texture2D
 @export var forward: Array[MenuOption]
+@export var hidden: bool
 
 @export var function: Callable
 

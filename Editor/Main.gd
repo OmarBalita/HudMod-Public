@@ -2,15 +2,33 @@ extends Control
 
 @onready var box: VBoxContainer = %Box
 
+@onready var bg_panel_container: PanelContainer = %BGPanelContainer
+@onready var bottom: PanelContainer = %Bottom
+
 @onready var layout_btn_box: HBoxContainer = %LayoutButtonContainer
 @onready var editors_folder: Control = %EditorsFolder
 @onready var add_layout_btn: Button = %AddLayoutButton
 @onready var delete_layout_btn: Button = %DeleteLayoutButton
 
-@export var editors: Dictionary[StringName, EditorControl]
+@onready var freeze_rect: ColorRect = %FreezeRect
 
+@export_group("Version")
+@export var version_name: StringName
+@export var version_banner: Texture2D
+@export var banner_owner: StringName
+@export var banner_owner_link: StringName
+
+@export_group("About & Support")
+@export var website_link: StringName
+@export var support_link: StringName
+
+@export_group("Editor")
+@export var editors: Dictionary[StringName, EditorControl]
 @export var preset_layouts: Array[LayoutRootInfo]
 @export var custom_layouts: Array[LayoutRootInfo]
+
+
+
 
 # Nodes
 var curr_layout_container: SplitContainer
@@ -20,20 +38,35 @@ var curr_layout_buttons: Dictionary[LayoutRootInfo, Button]
 var curr_layout: LayoutRootInfo:
 	set(val):
 		curr_layout = val
+		
 		delete_layout_btn.visible = custom_layouts.has(curr_layout)
+		
+		EditorServer.update_popup_menu_layout_item_checked(curr_layout)
+		EditorServer.update_popup_menu_docks_items_checked(editors)
+
 var layout_button_group:= ButtonGroup.new()
 
 
 func _ready() -> void:
-	EditorServer._ready_editor_server(editors)
-	Scene2._ready_scene()
+	
+	get_window().borderless = false
+	get_window().mode = Window.MODE_MAXIMIZED
+	get_window().min_size = Vector2i(1500, 900)
+	get_tree().set_auto_accept_quit(false)
+	
+	IS.set_base_panel_settings(bg_panel_container, IS.style_cornerless_dark)
+	IS.set_base_panel_settings(bottom, IS.style_body)
+	
+	_load_custom_layouts()
 	
 	for editor_key: StringName in editors:
 		editors[editor_key].set_meta(&"editor_name", editor_key)
-	_load_custom_layouts()
 	
-	_init_layout()
-	_update_layout()
+	Scene2._ready_scene()
+	EditorServer._ready_editor_server(editors)
+	
+	_init_layout_editor()
+	_update_layout_editor()
 	
 	add_layout_btn.pressed.connect(_on_add_layout_btn_pressed)
 	delete_layout_btn.pressed.connect(_on_delete_layout_btn_pressed)
@@ -42,17 +75,18 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		update_curr_layout(false)
 
+
 func _load_custom_layouts() -> void:
 	custom_layouts = EditorServer.load_custom_layouts()
 
-func _init_layout() -> void:
+func _init_layout_editor() -> void:
 	for layout: LayoutRootInfo in preset_layouts:
 		layout.layout_changed.connect(_on_preset_layout_changed.bind(layout))
 	for layout: LayoutRootInfo in custom_layouts:
 		layout.set_root_deep(layout)
 		layout.layout_changed.connect(_on_custom_layout_changed.bind(layout))
 
-func _update_layout(open_what: LayoutRootInfo = null) -> void:
+func _update_layout_editor(open_what: LayoutRootInfo = null) -> void:
 	for control: Control in layout_btn_box.get_children():
 		control.queue_free()
 	curr_layout_buttons.clear()
@@ -65,16 +99,13 @@ func _update_layout(open_what: LayoutRootInfo = null) -> void:
 	
 	open_layout(open_what if open_what else preset_layouts[0])
 
+
 func register_layout_button(layout: LayoutRootInfo) -> void:
-	var button: Button = Button.new()
+	var button: Button = IS.create_button(layout.layout_name.capitalize(), layout.layout_image, false, true)
 	
 	button.toggle_mode = true
-	button.flat = true
-	button.custom_minimum_size.x = 180.0
-	button.add_theme_stylebox_override(&"focus", IS.STYLE_BOX_EMPTY)
-	
-	button.text = layout.layout_name.capitalize()
-	button.icon = layout.layout_image
+	button.custom_minimum_size.x = 220.0
+	button.add_theme_stylebox_override(&"focus", IS.style_box_empty)
 	
 	button.button_group = layout_button_group
 	button.pressed.connect(_on_layout_btn_pressed.bind(button, layout))
@@ -83,14 +114,13 @@ func register_layout_button(layout: LayoutRootInfo) -> void:
 	
 	curr_layout_buttons[layout] = button
 
-func open_layout(layout: LayoutRootInfo, is_unsaved: bool = false) -> void:
+func open_layout(layout: LayoutRootInfo) -> void:
 	close_curr_layout()
 	var open_result: Dictionary[StringName, Variant] = layout.open(editors)
 	curr_layout_container = open_result.layout
 	
 	var btn: Button = curr_layout_buttons[layout]
 	btn.button_pressed = true
-	btn.modulate.a = 1.0
 	
 	box.add_child(curr_layout_container)
 	box.move_child(curr_layout_container, 1)
@@ -107,9 +137,6 @@ func close_curr_layout() -> void:
 				header_panel.target_to_layout(false)
 			editor.reparent(editors_folder)
 	
-	for btn: Button in curr_layout_buttons.values():
-		btn.modulate.a = .5
-	
 	if curr_layout_container:
 		curr_layout_container.queue_free()
 		curr_layout_container = null
@@ -119,16 +146,17 @@ func create_new_layout(layout_container: SplitContainer, layout_name: StringName
 	new_layout.set_layout_name(layout_name)
 	custom_layouts.append(new_layout)
 	EditorServer.save_custom_layouts([new_layout])
-	_update_layout(new_layout)
+	EditorServer.update_popup_menus()
+	_update_layout_editor(new_layout)
 
 func delete_custom_layout(layout_info: LayoutRootInfo) -> void:
 	custom_layouts.erase(layout_info)
 	EditorServer.remove_custom_layouts([layout_info])
-	_update_layout()
+	EditorServer.update_popup_menus()
+	_update_layout_editor()
 
 func update_curr_layout(delay_frame: bool = true) -> void:
-	if preset_layouts.has(curr_layout):
-		return
+	if preset_layouts.has(curr_layout): return
 	
 	if delay_frame: await get_tree().process_frame
 	
@@ -146,6 +174,8 @@ func update_curr_layout(delay_frame: bool = true) -> void:
 	
 	custom_layouts[custom_layouts.find(curr_layout)] = new_layout_version
 	curr_layout_buttons[new_layout_version] = button
+	
+	EditorServer.update_popup_menus()
 	
 	curr_layout = new_layout_version
 
@@ -229,5 +259,7 @@ func _on_add_layout_btn_pressed() -> void:
 
 func _on_delete_layout_btn_pressed() -> void:
 	delete_custom_layout(curr_layout)
+
+
 
 

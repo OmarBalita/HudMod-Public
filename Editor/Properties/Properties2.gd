@@ -29,7 +29,7 @@ var media_properties_panel_container: PanelContainer
 func _ready_editor() -> void:
 	super()
 	
-	notification_label = IS.create_label("", IS.LABEL_SETTINGS_MAIN)
+	notification_label = IS.create_label("", IS.label_settings_main)
 	notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_update_notification_label()
 	
@@ -165,11 +165,11 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	for key: StringName in info.keys():
 		var val_as_string: String = info.get(key)
 		
-		var key_panel_container: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY)
+		var key_panel_container: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_body)
 		var key_margin_container: MarginContainer = IS.create_margin_container()
 		var split_container: SplitContainer = IS.create_split_container()
 		var key_label: Label = IS.create_name_label(key.capitalize())
-		var val_label: Label = IS.create_label(val_as_string, IS.LABEL_SETTINGS_MAIN, {})
+		var val_label: Label = IS.create_label(val_as_string, IS.label_settings_main, {})
 		
 		key_panel_container.self_modulate.a = .0
 		key_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -361,7 +361,8 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 		&"header": header_cont,
 		&"box": box_cont,
 		&"margin_cont": margin_cont,
-		&"scroll_cont": scroll_cont
+		&"scroll_cont": scroll_cont,
+		&"search_line": search_line_edit
 	}
 	
 	var section_components_info: Array = curr_displayed_components[section_key]
@@ -383,14 +384,16 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	
 	var usable_ress: Array[UsableRes]
 	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
-	var mediares_editbox: IS.EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress))
+	var mediares_editbox: IS.EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit))
 	header_cont.add_child(mediares_editbox)
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
+	var curr_section_controls: Dictionary = sections_controls[section_key]
+	
 	var comp_res_owner: ComponentRes = comp_info.component_res_owner
 	comp_res_owner.res_changed.connect(property_changed.emit)
 	
-	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress)
+	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, curr_section_controls.search_line)
 	var comp_editor: IS.EditBoxContainer = IS.get_edit_box_from(comp_controllers)
 	var editor_header: BoxContainer = comp_editor.header
 	
@@ -426,10 +429,11 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 			move_button.button_up.connect(_on_component_controller_move_button_button_up.bind(section_key, comp_editor))
 			editor_header.add_child(move_button)
 	
-	sections_controls[section_key].box.add_child(comp_editor)
+	curr_section_controls.box.add_child(comp_editor)
 	
 	var update_usable_ress_func: Callable = func(new_frame: int) -> void:
 		var media_res: MediaClipRes = comp_res_owner.get_owner()
+		
 		var new_local_frame: int = clamp(new_frame - media_res.clip_pos, 0, media_res.length)
 		comp_res_owner.update_controllers(new_local_frame)
 	

@@ -55,7 +55,7 @@ func _setup() -> void:
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	
-	focus_panel = IS.create_panel(IS.STYLE_BODY)
+	focus_panel = IS.create_panel(IS.style_body)
 	focus_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(focus_panel)
 	
@@ -73,6 +73,11 @@ func _setup() -> void:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			button.mouse_entered.connect(on_button_mouse_entered.bind(index))
 			button.pressed.connect(on_button_pressed.bind(index))
+			if option.hidden:
+				button.disabled = true
+			else:
+				IS.set_font_from_label_settings(button, IS.label_settings_bold)
+				button.modulate.a = .7
 			option_box.add_child(button)
 			
 			if option.check_group and option.check_group.checked_index == index:

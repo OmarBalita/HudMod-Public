@@ -50,9 +50,9 @@ func open_graph_node_options() -> void:
 	graph_node_options_opened.emit()
 
 func create_node(title: String) -> GraphNode:
-	var node:= IS.create_graph_node(title)
-	node.custom_minimum_size = Vector2(300.0, 300.0)
-	return node
+	#var node:= IS.create_graph_node(title)
+	#node.custom_minimum_size = Vector2(300.0, 300.0)
+	return GraphNode.new()
 
 func copy_nodes(nodes: Array[GraphNode]) -> void:
 	copied_nodes = nodes

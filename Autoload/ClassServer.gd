@@ -74,7 +74,7 @@ func _build_classes() -> void:
 			basescript = basescript.get_base_script()
 		
 		var class_custom_info: Dictionary[StringName, Variant] = {
-			&"icon": load(class_builtin_info.icon),
+			&"icon": load(class_builtin_info.icon) if FileAccess.file_exists(class_builtin_info.icon) else null,
 			&"script": script,
 			&"inh": inheritance_classnames
 		}
@@ -148,7 +148,7 @@ func value_get_classname(value: Variant) -> StringName:
 func comps_get_section_comps(section: StringName) -> Dictionary[StringName, Dictionary]:
 	return component_res_sorted_by_sections[section]
 
-func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = [], usable_ress: Array[UsableRes] = []) -> Array[Control]:
+func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = [], usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> Array[Control]:
 	var result: Array[Control]
 	var prop_type: Variant.Type = typeof(prop_val)
 	if prop_type == TYPE_OBJECT:
@@ -157,7 +157,7 @@ func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_arg
 			var nested_usable_ress: Array[UsableRes]
 			for usable_res: UsableRes in usable_ress:
 				nested_usable_ress.append(usable_res.get_prop(prop_name))
-			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress)
+			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress, search_line_edit)
 		return []
 	
 	else:

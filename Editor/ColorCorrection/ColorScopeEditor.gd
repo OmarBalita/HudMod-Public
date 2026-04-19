@@ -239,10 +239,10 @@ class RGBLSubEditor extends ColorScopeSubEditor:
 	
 	func _ready() -> void:
 		super()
-		var r_btn: Button = IS.create_button("R", null, false, true, {toggle_mode = true, button_pressed = draw_r, custom_minimum_size = Vector2(64., .0)})
-		var g_btn: Button = IS.create_button("G", null, false, true, {toggle_mode = true, button_pressed = draw_g, custom_minimum_size = Vector2(64., .0)})
-		var b_btn: Button = IS.create_button("B", null, false, true, {toggle_mode = true, button_pressed = draw_b, custom_minimum_size = Vector2(64., .0)})
-		var lum_btn: Button = IS.create_button("Lum", null, false, true, {toggle_mode = true, button_pressed = draw_lum, custom_minimum_size = Vector2(64., .0)})
+		var r_btn: Button = IS.create_button("R", null, false, true, false, {toggle_mode = true, button_pressed = draw_r, custom_minimum_size = Vector2(64., .0)})
+		var g_btn: Button = IS.create_button("G", null, false, true, false, {toggle_mode = true, button_pressed = draw_g, custom_minimum_size = Vector2(64., .0)})
+		var b_btn: Button = IS.create_button("B", null, false, true, false, {toggle_mode = true, button_pressed = draw_b, custom_minimum_size = Vector2(64., .0)})
+		var lum_btn: Button = IS.create_button("Lum", null, false, true, false, {toggle_mode = true, button_pressed = draw_lum, custom_minimum_size = Vector2(64., .0)})
 		r_btn.pressed.connect(func() -> void: draw_r = r_btn.button_pressed)
 		g_btn.pressed.connect(func() -> void: draw_g = g_btn.button_pressed)
 		b_btn.pressed.connect(func() -> void: draw_b = b_btn.button_pressed)
@@ -309,7 +309,7 @@ class HistogramViewer extends ColorScopeViewer:
 	func _draw() -> void:
 		var lines_steps: int = 8
 		var steps_between_dist: int = 256 / lines_steps
-		var font: Font = IS.LABEL_SETTINGS_MAIN.font
+		var font: Font = IS.label_settings_main.font
 		
 		for step: int in lines_steps + 1:
 			var index: int = min(255, step * steps_between_dist)
@@ -404,7 +404,7 @@ class WaveformViewer extends ColorScopeViewer:
 	func _draw() -> void:
 		var lines_steps: int = 4
 		var steps_between_dist: int = 256 / lines_steps
-		var font: Font = IS.LABEL_SETTINGS_MAIN.font
+		var font: Font = IS.label_settings_main.font
 		for step: int in lines_steps + 1:
 			var index: int = min(255, step * steps_between_dist)
 			var index_str: String = str(255 - index)
@@ -435,6 +435,8 @@ class VectorScopeViewer extends ColorScopeViewer:
 		draw_circle(center_pos, 5., Color.WHITE, true, -1., true)
 
 func _on_playback_server_position_changed(position: int) -> void:
+	if not PlaybackServer.is_render_process_finished:
+		await PlaybackServer.render_process_finished
 	request_calculate()
 
 func _on_playback_server_played(at: int) -> void:

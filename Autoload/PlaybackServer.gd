@@ -4,6 +4,8 @@ signal position_changed(position: int)
 signal played(at: int)
 signal stopped(at: int)
 
+signal render_process_finished()
+
 @export var playing: bool
 
 @export var position: int:
@@ -13,12 +15,14 @@ signal stopped(at: int)
 		position_changed.emit(val)
 
 var start_time: float
+var is_render_process_finished: bool = true
 
 func is_playing() -> bool:
 	return playing
 
 func play() -> void:
 	var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
+	
 	var start: int = opened_clip_res.clip_pos
 	position = clamp(position, start, start + opened_clip_res.length)
 	
@@ -26,9 +30,9 @@ func play() -> void:
 	start_time = curr_time - position * ProjectServer2.delta
 	
 	playing = true
-	step()
-	
 	played.emit(position)
+	
+	step()
 
 func stop() -> void:
 	if playing:
@@ -37,26 +41,34 @@ func stop() -> void:
 
 func step() -> void:
 	
+	var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
+	
+	var frames_dropped: int = EditorServer.editor_settings.performance.frames_dropped
+	var step: int = 1 if Renderer.is_working else frames_dropped + 1
+	
 	var target_time: float = start_time + position * ProjectServer2.delta
 	var curr_time: float = Time.get_ticks_msec() / 1000.
-	var delay: float = target_time - curr_time
+	var delay: float = (target_time - curr_time) * step
+	
+	if opened_clip_res.length <= 0:
+		stop()
+		return
 	
 	if delay > .0:
 		await get_tree().create_timer(delay).timeout
 	
-	var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
 	var start: int = opened_clip_res.clip_pos
 	var end: int = start + opened_clip_res.length
 	
 	if position >= end:
-		if EditorServer.editor_settings.is_replay:
+		if EditorServer.editor_settings.edit.replay:
 			position = start
 			play()
 		else:
 			stop()
 		return
 	
-	position += 1
+	position += step
 	
 	if is_playing():
 		step()
@@ -79,6 +91,11 @@ func process_root(root_clip_res: RootClipRes) -> void:
 	for layer_idx: int in layers.size():
 		var layer: LayerRes = layers[layer_idx]
 		process_layer(layer_idx, layer_idx, root_clip_res, layer)
+	
+	is_render_process_finished = false
+	await RenderFarm.until_pprs_to_finish()
+	render_process_finished.emit()
+	is_render_process_finished = true
 
 
 func process(parent_clip_res: MediaClipRes, root_layer_idx: int) -> void:
@@ -142,5 +159,12 @@ func free_clip(clip_res: MediaClipRes) -> void:
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()
 
+func update_videos_clips_ress() -> void:
+	ProjectServer2.project_res.root_clip_res.loop_layers_children_deep({},
+		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+			var clip_res: MediaClipRes = layer.get_clip_res(frame)
+			if clip_res is VideoClipRes:
+				clip_res.video = clip_res.video
+	)
 
 

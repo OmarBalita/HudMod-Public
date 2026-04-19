@@ -112,7 +112,11 @@ func _init() -> void:
 
 func _ready() -> void:
 	super()
-	_register_shortcuts()
+	
+	shortcut_node.key = &"Curve Editor"
+	shortcut_node.load_shortcuts_from_settings()
+	shortcut_node.methods_object = self
+	
 	set_process(false)
 	zoom_value(20.)
 
@@ -132,22 +136,15 @@ func _process(delta: float) -> void:
 # SETUP HELPERS
 # ==============================================================================
 
-func _register_shortcuts() -> void:
-	shortcut_node.register_shortcut_quickly(&"visible_x", change_channel_visibility.bind(0), [ShortcutNode.new_event_key(Key.KEY_X)])
-	shortcut_node.register_shortcut_quickly(&"visible_y", change_channel_visibility.bind(1), [ShortcutNode.new_event_key(Key.KEY_Y)])
-	shortcut_node.register_shortcut_quickly(&"visible_z", change_channel_visibility.bind(2), [ShortcutNode.new_event_key(Key.KEY_Z)])
-	shortcut_node.register_shortcut_quickly(&"visible_w", change_channel_visibility.bind(3), [ShortcutNode.new_event_key(Key.KEY_W)])
-
-
 func _init_curves_profiles() -> void:
 	for index: int in curves_profiles.size():
 		add_selectable_port(index, {})
-
+		
 		var profile: CurveProfile = curves_profiles[index]
-
+		
 		for key: int in profile.keys:
 			_on_profile_key_added(index, key, profile.keys[key])
-
+		
 		profile.key_added.connect(func(x: int, curve_key: CurveKey) -> void:
 			_on_profile_key_added(index, x, curve_key)
 		)

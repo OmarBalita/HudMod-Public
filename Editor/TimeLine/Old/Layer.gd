@@ -368,7 +368,7 @@ class_name Layer extends DrawableRect
 #
 #func popup_customization_settings() -> void:
 	#
-	#var popup_title: Label = IS.create_label(layer_label.text, IS.LABEL_SETTINGS_HEADER)
+	#var popup_title: Label = IS.create_label(layer_label.text, IS.label_settings_header)
 	#var main_custom: Dictionary = ProjectServer.get_layer_customization(index).duplicate(true)
 	#var custom_name_controller: LineEdit = IS.create_string_edit("Name", "", main_custom.name)[0]
 	#var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custom.color)[0]

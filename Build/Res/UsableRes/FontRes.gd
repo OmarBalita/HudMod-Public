@@ -82,7 +82,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"custom_font_path": export(string_args(get_prop(&"custom_font_path"), IS.StringControllerType.TYPE_OPEN_FILE, FONT_EXTENSIONS), [custom_func, [true]]),
 		&"Choose Font": export_method(ExportMethodType.METHOD_CALLABLE, method_callable_args(
 			_on_font_button_pressed,
-			IS.COLOR_ACCENT_BLUE,
+			IS.color_accent,
 			preload("res://Asset/Icons/font-adjustment.png")
 		), [custom_func, [false]]),
 		&"Font Viewer": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [font_label]),

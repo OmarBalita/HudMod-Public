@@ -4,6 +4,6 @@
 resource_name = "SpectrumAnalyzer"
 
 [resource]
-bus/0/volume_db = -0.526013
+bus/0/volume_db = -0.37491798
 bus/0/effect/0/effect = SubResource("AudioEffectSpectrumAnalyzer_j3pel")
 bus/0/effect/0/enabled = true

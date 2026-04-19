@@ -4,27 +4,27 @@ var update_video_viewers_frame: bool = false
 
 var editor_settings: AppEditorSettings = EditorServer.editor_settings
 
-var viewport: SubViewport
+var viewport: SubViewport = SubViewport.new()
 var root: Node
 var camera: Camera2D
 
 var curr_nodes: Array[MediaClipRes]
 var stream_players: Array[MediaClipRes]
-var video_players: Array[MediaClipRes]
+var video_players: Array[VideoClipRes]
 var cameras: Array[Camera2DClipRes]
 
 
 func _ready_scene() -> void:
-	# Start Scene
-	start_scene()
-	# Connections
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.audio_listener_enable_2d = true
+	viewport.transparent_bg = true
+	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
 	PlaybackServer.played.connect(play_stream_players)
 	PlaybackServer.stopped.connect(stop_stream_players)
 
 func start_scene() -> void:
-	viewport = EditorServer.player.viewport
-	
 	root = Node.new()
+	
 	var root_clip_res: RootClipRes = ProjectServer2.project_res.root_clip_res
 	root_clip_res.curr_node = root
 	curr_nodes.append(root_clip_res)
@@ -38,6 +38,8 @@ func start_scene() -> void:
 
 func update_viewport() -> void:
 	viewport.size = ProjectServer2.project_res.resolution
+	viewport.use_debanding = Renderer.is_working
+	viewport.use_hdr_2d = Renderer.is_working
 
 func get_curr_nodes() -> Array[MediaClipRes]:
 	return curr_nodes
@@ -73,8 +75,6 @@ func remove_camera(camera_clip_res: Camera2DClipRes) -> void:
 func update_camera_enabling() -> void:
 	camera.enabled = cameras.size() == 0
 
-
-
 func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node) -> void:
 	var view: Viewport
 	var node_parent: Node = parent_res.curr_node
@@ -102,6 +102,15 @@ func free_node(clip_res: MediaClipRes) -> void:
 	
 	curr_nodes.erase(clip_res)
 
+
+func clear_nodes() -> void:
+	for clip_res: MediaClipRes in curr_nodes:
+		if clip_res.curr_node:
+			clip_res.curr_node.queue_free()
+	curr_nodes.clear()
+	stream_players.clear()
+	video_players.clear()
+	cameras.clear()
 
 
 func loop_nodes(method: Callable) -> void:
@@ -136,6 +145,9 @@ func play_video_stream_player(video_clip_res: VideoClipRes, at: int, fps_f: floa
 	video_clip_res.stream_player.play(target_frame / fps_f)
 
 
+
+func _on_project_server_project_opened(project_res: ProjectRes) -> void:
+	start_scene()
 
 func _on_media_res_shader_material_changed(media_res: MediaClipRes, node_2d: CanvasItem) -> void:
 	node_2d.set_material(media_res.get_shader_material())

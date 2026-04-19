@@ -9,7 +9,7 @@ class_name SliderControl extends HBoxContainer
 @export_subgroup("Color")
 @export var bg_color: Color = Color.WEB_GRAY
 @export var grabber_color: Color = Color.GRAY
-@export var highlight_color: Color = IS.COLOR_ACCENT_BLUE
+@export var highlight_color: Color = IS.color_accent
 
 # Nodes
 

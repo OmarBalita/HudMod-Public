@@ -7,7 +7,7 @@ signal curr_frame_changed(new_frame: int)
 
 @export_group("Theme")
 @export_subgroup("Texture")
-@export var texture_play: Texture2D = preload("res://Asset/Icons/play-button-arrowhead.png")
+@export var texture_play: Texture2D = preload("res://Asset/Icons/play.png")
 @export var texture_replay: Texture2D = preload("res://Asset/Icons/reset.png")
 @export var texture_pause: Texture2D = preload("res://Asset/Icons/pause.png")
 @export var texture_ratio: Texture2D = preload("res://Asset/Icons/aspect-ratio.png")
@@ -45,8 +45,8 @@ var flex_view_control: FlexViewportControl
 var viewport: SubViewport
 
 var options_container: BoxContainer
-var play_button: TextureButton
-var replay_button: TextureButton
+var play_button: IS.CustomTextureButton
+var replay_button: IS.CustomTextureButton
 var time_code_label: Label
 var max_time_label: Label
 
@@ -68,6 +68,8 @@ func _ready_editor() -> void:
 	
 	_ready_ui()
 	
+	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
+	
 	PlaybackServer.played.connect(_on_playback_server_played)
 	PlaybackServer.stopped.connect(_on_playback_server_stopped)
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
@@ -79,18 +81,80 @@ func _ready_editor() -> void:
 	more_button.pressed.connect(_on_more_button_pressed)
 	
 	cancel_full_screen_button.pressed.connect(_on_cancel_full_screen_button_pressed)
-	
-	# Update
-	update_ui()
 
 
 func _ready_ui() -> void:
 	add_child(tweener)
 	
+	_ready_header()
+	_ready_body()
+
+
+
+func _ready_header() -> void:
+	
 	var header_box_container: BoxContainer = IS.create_box_container(12, false, {})
-	var official_logo_button: Button = IS.create_button("HudMod", load("res://Asset/Icons/App/logo2_bg.png"), false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	
+	const LOGO: CompressedTexture2D = preload("res://Asset/Icons/App/logo2-low.png")
+	const HEART: CompressedTexture2D = preload("res://Asset/Icons/heart.png")
+	
+	var official_logo_button: Button = IS.create_button("HudMod", LOGO, false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	var support_button: Button = IS.create_button("Support", HEART, false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	
+	const MIN_SIZE: Vector2 = Vector2(80., .0)
+	
+	var global_control: GlobalControl = EditorServer.global_controls[get_window()]
+	if not global_control.is_node_ready():
+		await global_control.ready
+	
+	var project_btn: MenuButton = IS.create_menu_button("Project", [
+		{text = "New Project", shortcut = global_control.get_shortcut(&"new")},
+		{text = "Open", shortcut = global_control.get_shortcut(&"open")},
+		{text = "Open Recent", submenu = EditorServer.popup_menu_recent},
+		{as_separator = true},
+		{text = "Save", shortcut = global_control.get_shortcut(&"save")},
+		{text = "Save As", shortcut = global_control.get_shortcut(&"save_as")},
+		{as_separator = true},
+		{text = "Undo", icon = preload("res://Asset/Icons/undo.png"), shortcut = global_control.get_shortcut(&"undo")},
+		{text = "Redo", icon = preload("res://Asset/Icons/redo.png"), shortcut = global_control.get_shortcut(&"redo")},
+		{as_separator = true},
+		{text = "Exit", shortcut = global_control.get_shortcut(&"exit")},
+	], {custom_minimum_size = MIN_SIZE})
+	
+	var editor_btn: MenuButton = IS.create_menu_button("Editor", [
+		{text = "Editor Settings"},
+		{as_separator = true},
+		{text = "Layout", icon = preload("res://Asset/Icons/grid.png"), submenu = EditorServer.popup_menu_layout},
+		{text = "Docks", submenu = EditorServer.popup_menu_docks},
+		{text = "Toggle Fullscreen", shortcut = global_control.get_shortcut(&"toggle_fullscreen")}
+	], {custom_minimum_size = MIN_SIZE})
+	
+	var help_btn: MenuButton = IS.create_menu_button("Help", [
+		{text = "Report Bugs", icon = preload("res://Asset/Icons/report.png"), shortcut = global_control.get_shortcut(&"report_bugs")},
+		{as_separator = true},
+		{text = "Learn", disabled = true},
+		{text = "Community"},
+		{as_separator = true},
+		{text = "About HudMod", icon = LOGO},
+		{text = "Support HudMod", icon = HEART},
+	], {custom_minimum_size = MIN_SIZE})
+	
 	header_box_container.add_child(official_logo_button)
+	header_box_container.add_child(support_button)
+	header_box_container.add_child(project_btn)
+	header_box_container.add_child(editor_btn)
+	header_box_container.add_child(help_btn)
+	
 	header.add_child(header_box_container)
+	
+	official_logo_button.pressed.connect(_on_official_logo_button_pressed)
+	support_button.pressed.connect(_on_support_button_pressed)
+	project_btn.get_popup().id_pressed.connect(_on_project_popup_id_pressed)
+	editor_btn.get_popup().id_pressed.connect(_on_editor_popup_id_pressed)
+	help_btn.get_popup().id_pressed.connect(_on_help_popup_id_pressed)
+
+
+func _ready_body() -> void:
 	
 	screen_options_parent = IS.create_split_container(1, true)
 	flex_view_control = FlexViewportControl.new()
@@ -104,16 +168,14 @@ func _ready_ui() -> void:
 	var time_panel = IS.create_panel_container(Vector2(300, 0))
 	var time_container = IS.create_box_container()
 	
-	viewport = SubViewport.new()
-	viewport.audio_listener_enable_2d = true
+	viewport = Scene2.viewport
 	view_container.add_child(viewport)
 	flex_view_control.add_child(view_container)
 	flex_view_control.viewport_container = view_container
 	
 	play_button = IS.create_texture_button(texture_play, null, texture_pause, true)
-	play_button.accent_color = play_button.normal_color
 	replay_button = IS.create_texture_button(texture_replay, null, null, true)
-	time_code_label = IS.create_label("", IS.LABEL_SETTINGS_BOLD)
+	time_code_label = IS.create_label("", IS.label_settings_bold)
 	max_time_label = IS.create_label("")
 	
 	ratio_button = IS.create_texture_button(texture_ratio)
@@ -144,8 +206,8 @@ func _ready_ui() -> void:
 	
 	# Time Slider
 	slider_panel = IS.create_panel_container(Vector2(.0, 60.0), load("res://UI&UX/RangeBlack.tres"))
-	var slider_margin = IS.create_margin_container(20,20,20,20)
-	var slider_box = IS.create_box_container()
+	var slider_margin: MarginContainer = IS.create_margin_container(20,20,20,20)
+	var slider_box: BoxContainer = IS.create_box_container()
 	
 	slider_time_code_label = IS.create_label("")
 	cancel_full_screen_button = IS.create_texture_button(texture_cancel_full_screen)
@@ -181,12 +243,18 @@ func update_timecode() -> void:
 	slider_time_code_label.set_text(curr_frame_timecode + " / " + video_length_timecode)
 
 
+func _on_project_server_project_opened(project_res: ProjectRes) -> void:
+	update_ui()
+	flex_view_control.update()
+
+
 func _on_playback_server_played(at: int) -> void:
 	play_button.button_pressed = true
+	play_button.update_button()
 
 func _on_playback_server_stopped(at: int) -> void:
 	play_button.button_pressed = false
-
+	play_button.update_button()
 
 func _on_playback_server_position_changed(position: int) -> void:
 	update_timecode()
@@ -198,7 +266,7 @@ func _on_play_button_pressed() -> void:
 		PlaybackServer.play()
 
 func _on_replay_button_pressed() -> void:
-	EditorServer.editor_settings.is_replay = replay_button.button_pressed
+	EditorServer.editor_settings.edit.replay = replay_button.button_pressed
 
 func _on_full_screen_button_pressed() -> void:
 	set_is_full_screen(true)
@@ -213,6 +281,34 @@ func _on_cancel_full_screen_button_pressed() -> void:
 	set_is_full_screen(false)
 
 
+func _on_official_logo_button_pressed() -> void:
+	OS.shell_open(EditorServer.main.website_link)
+
+func _on_support_button_pressed() -> void:
+	OS.shell_open(EditorServer.main.support_link)
+
+func _on_project_popup_id_pressed(id: int) -> void:
+	match id:
+		0: EditorServer.popup_new_project()
+		1: EditorServer.popup_open_project()
+		4: ProjectServer2.save()
+		5: EditorServer.popup_save_as()
+		7: EditorServer.undo()
+		8: EditorServer.redo()
+		10: EditorServer.popup_save_option_or_save(get_tree().quit)
+
+func _on_editor_popup_id_pressed(id: int) -> void:
+	match id:
+		0: EditorServer.popup_editor_settings()
+		4: EditorServer.toggle_fullscreen()
+
+func _on_help_popup_id_pressed(id: int) -> void:
+	match id:
+		0: print("Report")
+		2: print("Learn")
+		3: print("Community")
+		5: print("About")
+		6: OS.shell_open(EditorServer.main.support_link)
 
 
 

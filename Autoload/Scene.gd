@@ -19,12 +19,12 @@ func _ready() -> void:
 		# Start Scene
 		start_scene()
 		# Connections
-		var timeline: TimeLine = EditorServer.time_line
-		ProjectServer.layer_property_changed.connect(on_layer_property_changed)
-		timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
-		timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
-		timeline.timeline_played.connect(try_play)
-		timeline.timeline_stoped.connect(stop)
+		#var timeline: TimeLine = EditorServer.time_line
+		#ProjectServer.layer_property_changed.connect(on_layer_property_changed)
+		#timeline.curr_frame_played_manually.connect(on_timeline_curr_frame_played_manually)
+		#timeline.curr_frame_stopped_manually.connect(on_timeline_curr_frame_stopped_manually)
+		#timeline.timeline_played.connect(try_play)
+		#timeline.timeline_stoped.connect(stop)
  
 func start_scene() -> void:
 	await EditorServer.player.ready
@@ -49,9 +49,9 @@ func create_video(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Video
 
 func create_audio(layer: int, clip_res: MediaClipRes, frame_begin: int) -> AudioStreamPlayer:
 	var audio_player:= AudioStreamPlayer.new()
-	var stream:= MediaCache.get_audio(clip_res.key_as_path)
-	audio_player.stream = stream
-	audio_player.bus = ProjectServer.get_bus_name_from_layer_index(layer)
+	#var stream:= MediaCache.get_audio(clip_res.key_as_path)
+	#audio_player.stream = stream
+	#audio_player.bus = ProjectServer.get_bus_name_from_layer_index(layer)
 	instance_node(layer, audio_player, clip_res, frame_begin)
 	try_play()
 	return audio_player
@@ -66,9 +66,9 @@ func create_text() -> void:
 
 func create_draw(layer: int, clip_res: MediaClipRes, frame_begin: int) -> GDDraw:
 	var draw:= GDDraw.new()
-	var draw_res: DrawRes = ResourceLoader.load(clip_res.key_as_path)
-	draw.drawings_ress = draw_res.drawings_ress
-	instance_node_2d(layer, draw, clip_res, frame_begin)
+	#var draw_res: DrawRes = ResourceLoader.load(clip_res.key_as_path)
+	#draw.drawings_ress = draw_res.drawings_ress
+	#instance_node_2d(layer, draw, clip_res, frame_begin)
 	return draw
 
 func create_particles() -> void:
@@ -88,7 +88,7 @@ func create_audio_2d(layer: int, clip_res: MediaClipRes, frame_begin: int) -> Au
 
 func setup_node2d(layer: int, node: Node2D) -> void:
 	node.z_index = layer
-	node.visible = not ProjectServer.get_layer_hide(layer)
+	#node.visible = not ProjectServer.get_layer_hide(layer)
 
 func get_scene_node(layer: int) -> Node:
 	return curr_nodes[layer].scene_node if curr_nodes.has(layer) else null
@@ -118,11 +118,11 @@ func instance_node_2d(layer: int, node: Node, clip_res: MediaClipRes, frame_begi
 
 func update_node_2d_visbility(layer: int, node: Node, visibility: Variant = null) -> void:
 	var node_visib: bool
-	if visibility == null:
-		node_visib = not ProjectServer.get_layer_hide(layer)
-	else:
-		node_visib = visibility
-	node.visible = node_visib
+	#if visibility == null:
+		#node_visib = not ProjectServer.get_layer_hide(layer)
+	#else:
+		#node_visib = visibility
+	#node.visible = node_visib
 
 
 func try_play(curr_frame = null) -> void:

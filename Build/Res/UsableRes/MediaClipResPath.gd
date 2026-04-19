@@ -53,7 +53,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 
 func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	var panel_container: PanelContainer = main_edit.get_child(0)
-	panel_container.add_theme_stylebox_override(&"panel", IS.STYLE_BOX_EMPTY)
+	panel_container.add_theme_stylebox_override(&"panel", IS.style_box_empty)
 	_try_update_editor()
 
 func _try_update_editor() -> void:
@@ -82,7 +82,7 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 		
 		var media_clips_focused: Array[MediaClip] = EditorServer.media_clips_focused
 		
-		var font: Font = IS.LABEL_SETTINGS_MAIN.font
+		var font: Font = IS.label_settings_main.font
 		
 		while Input.get_mouse_button_mask() == 0:
 			drawable_rect.clear_drawn_entities()

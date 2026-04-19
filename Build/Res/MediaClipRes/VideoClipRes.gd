@@ -15,12 +15,12 @@ class_name VideoClipRes extends Display2DClipRes
 			var video_info: Dictionary = MediaCache.get_video_info(video)
 			
 			video_decoder.set_video_path(video)
-			video_decoder.set_internal_enhance(false)
+			video_decoder.set_internal_enhance(EditorServer.use_high_quality())
 			video_decoder.open()
 			video_cache = MediaCache.get_video_cache(video)
 			seek_frame_smart(0)
 			
-			audio_stream = MediaCache.get_audio(video)
+			audio_data_res = MediaCache.get_audio_data(video)
 			
 			fps = video_info.fps
 			
@@ -28,18 +28,19 @@ class_name VideoClipRes extends Display2DClipRes
 				_init_video_shader_params()
 		else:
 			video_decoder.close()
+			audio_data_res = MediaCache.default_audio_f32_data
 		
 		is_opening = can_open
 		emit_res_changed()
 
 #@export var scale_factor: float = 1.
 
-var stream_player: AudioStreamPlayer
+var stream_player: CustomAudioStreamPlayer
 
 var is_opening: bool
 var video_decoder: VideoDecoder
 var video_cache: MediaCache.VideoCache
-var audio_stream: AudioStreamWAV
+var audio_data_res: MediaCache.AudioF32Data = MediaCache.default_audio_f32_data
 var fps: float
 
 var latest_scale_factor: float
@@ -76,11 +77,14 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	} as Dictionary[StringName, ExportInfo].merged(super())
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
+	
 	var video_viewer: VideoViewer = VideoViewer.new()
-	stream_player = AudioStreamPlayer.new()
-	stream_player.stream = audio_stream
+	stream_player = CustomAudioStreamPlayer.new()
+	if audio_data_res:
+		stream_player.set_data(audio_data_res.get_data())
 	stream_player.bus = PlaybackServer.root_layer_get_bus_unique_name(root_layer_idx)
 	video_viewer.add_child(stream_player)
+	
 	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, video_viewer)
 
 func enter(node: Node) -> void:
@@ -91,7 +95,6 @@ func enter(node: Node) -> void:
 func _process_comps(frame: int) -> void:
 	
 	if is_opening:
-		
 		var new_video_frame: int = (frame + from) / float(ProjectServer2.fps) * fps
 		
 		if new_video_frame != video_decoder.get_curr_frame():
@@ -120,7 +123,7 @@ func seek_frame_smart(at: int) -> void:
 
 func _update_video_frame() -> void:
 	
-	var scale_factor: float = EditorServer.editor_settings.video_scale_factor
+	var scale_factor: float = EditorServer.editor_settings.performance.video_scale_factor
 	video_decoder.update_video_channels(scale_factor)
 	
 	var dim: Dictionary = video_decoder.get_channels_dim()
@@ -145,9 +148,8 @@ func _update_video_shader_params() -> void:
 
 func _init_video_shader_params() -> void:
 	var bit_depth: int = video_decoder.get_bit_depth()
-	
 	shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
-	shader_material.set_shader_parameter(&"is_full_range", video_decoder.get_color_range() == 2)
+	shader_material.set_shader_parameter(&"is_full_range", false)
 	shader_material.set_shader_parameter(&"bit_depth", bit_depth)
 	shader_material.set_shader_parameter(&"bit_max_val", pow(2., 16 if bit_depth > 8 else 8))
 
@@ -181,7 +183,6 @@ func _get_shader_fragment_snip() -> String:
 	float {u} = texture(tex_u, UV).r;
 	float {v} = texture(tex_v, UV).r;
 	
-	// تصحيح التطبيع — FORMAT_R16 يقسم على 65535 لكن القيم 10-bit (max 1023)
 	float {bit_scale} = (exp2(bit_depth) - 1.0) / bit_max_val;
 	{y} /= {bit_scale};
 	{u} /= {bit_scale};
@@ -189,14 +190,14 @@ func _get_shader_fragment_snip() -> String:
 	
 	float {max_val}   = exp2(bit_depth) - 1.0;
 	float {uv_offset} = exp2(bit_depth - 1.0);
-	float {y_min}     = exp2(bit_depth - 4.0);
-	float {y_range}   = exp2(bit_depth - 4.0) * 219.0 / 16.0;
-	float {uv_range}  = exp2(bit_depth - 4.0) * 224.0 / 16.0;
 	
 	if (is_full_range) {
 		{u} -= {uv_offset} / {max_val};
 		{v} -= {uv_offset} / {max_val};
 	} else {
+		float {y_min}     = exp2(bit_depth - 4.0);
+		float {y_range}   = exp2(bit_depth - 4.0) * 219.0 / 16.0;
+		float {uv_range}  = exp2(bit_depth - 4.0) * 224.0 / 16.0;
 		{y} = ({y} - {y_min}     / {max_val}) / ({y_range}  / {max_val});
 		{u} = ({u} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
 		{v} = ({v} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
@@ -216,4 +217,15 @@ func _get_shader_fragment_snip() -> String:
 		color.b = {y} + 1.772 * {u};
 	}
 "
+
+func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
+	return [] if paths_for_check.has(video) else [video]
+
+func format_paths(paths_for_format: Dictionary[String, String]) -> void:
+	if paths_for_format.has(video): video = paths_for_format[video]
+
+func update_paths() -> void:
+	video = video
+
+
 

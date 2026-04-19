@@ -1,4 +1,4 @@
-class_name ProjectRes extends Resource
+class_name ProjectRes extends UsableRes
 
 signal resolution_changed(resolution: Vector2i)
 signal fps_changed(fps: int)
@@ -7,10 +7,13 @@ signal timemarker_added(frame: int, timemarker: TimeMarkerRes)
 signal timemarker_removed(frame: int, timemarker: TimeMarkerRes)
 signal timemarker_moved(from_frame: int, to_frame: int, timemarker: TimeMarkerRes)
 
-@export var resolution: Vector2i = Vector2i(1024, 720):
+@export var project_name: StringName = &"HudMod Video"
+
+@export var resolution: Vector2 = Vector2(1920, 1080):
 	set(val):
 		resolution = val
 		resolution_changed.emit(resolution)
+
 @export var fps: int = 30:
 	set(val):
 		fps = val
@@ -22,6 +25,16 @@ signal timemarker_moved(from_frame: int, to_frame: int, timemarker: TimeMarkerRe
 
 var aspect_ratio: Vector2
 var delta: float = 1. / fps
+
+func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+	return {
+		&"project_name": export(string_args(project_name)),
+		&"resolution": export(vec2_args(resolution)),
+		&"fps": export(int_args(fps, 6, 120))
+	}
+
+func get_project_name() -> StringName: return project_name
+func set_project_name(new_val: StringName) -> void: project_name = new_val
 
 func get_resolution() -> Vector2i: return Vector2i(1024, 720)
 func get_fps() -> int: return fps

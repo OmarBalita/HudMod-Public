@@ -2,42 +2,28 @@ class_name UIProfile extends Resource
 
 signal ui_visiblity_updated()
 
-@export var ui_conditions: Dictionary[Array, Array]
+var ui_conds_keys: Array # Conditions as [Callable(), [result_1, result_2, ...]]
+var ui_conds_vals: Array # Controls, ui elements
 
-func get_ui_conditions() -> Dictionary[Array, Array]:
-	return ui_conditions
+func set_ui_conditions(new_conds_keys: Array, new_conds_vals: Array) -> void:
+	ui_conds_keys = new_conds_keys
+	ui_conds_vals = new_conds_vals
 
-func set_ui_conditions(new_ui_conditions: Dictionary[Array, Array]) -> void:
-	ui_conditions = new_ui_conditions
-
-func add_ui_condition(ui_condition: Dictionary[Array, Array]) -> void:
-	ui_conditions.merge(ui_condition)
+func add_ui_condition(ui_key: Array, ui_val: Array) -> void:
+	ui_conds_keys.append(ui_key)
+	ui_conds_vals.append(ui_val)
 
 func update() -> void:
-	var conditions_buffer: Dictionary[Callable, Variant]
 	
-	for key: Array in ui_conditions:
-		var cond_func = key[0]
-		var needed_results = key[1]
+	for idx: int in ui_conds_keys.size():
+		var key: Array = ui_conds_keys[idx]
+		var cond_func: Callable = key[0]
+		var needed_results: Array = key[1]
 		
-		if cond_func is not Callable:
-			printerr("the First Element of \"ui_condition\" Key must be \"Callable\"")
-			return
+		var is_accepted: bool = needed_results.has(cond_func.call())
 		
-		var ui_objects: Array = ui_conditions[key]
+		var vals: Array = ui_conds_vals[idx]
 		
-		var cond_result: Variant = null
-		
-		if conditions_buffer.has(cond_func):
-			cond_result = conditions_buffer.get(cond_func)
-		else:
-			cond_result = cond_func.call()
-		
-		var is_accepted: bool = cond_result in needed_results
-		
-		for ui_object: Node in ui_objects:
-			if ui_object is Control: ui_object.visible = is_accepted
-			elif ui_object is OldShortcutNode: ui_object.enabled = is_accepted
-
-
+		for ui_object: Control in vals:
+			ui_object.visible = is_accepted
 

@@ -1,40 +1,34 @@
 extends Node
 
+signal colors_updated()
 
-# Modern Color Palette for Video Editor
-const COLOR_NORMAL = Color(0.75, 0.75, 0.75, 0.75)
-const COLOR_DARK_BG = Color(0.15, 0.15, 0.15, 1.0)        # #141417
-const COLOR_DARK_PANEL = Color(0.1, 0.1, 0.1, 1.0)     # #1e1e24
-const COLOR_DARK_HEADER = Color(0.12, 0.12, 0.12, 1.0)    # #0f0f12
-const COLOR_ACCENT_BLUE = Color(0.201, 0.389, 0.67)     # #3399ff
-const COLOR_ACCENT_BLUE_HIGHLIGHT = Color(0.616, 0.749, 0.945)
-const COLOR_ACCENT_ORANGE = Color(1.0, 0.4, 0.2, 1.0)     # #ff6633
-const COLOR_SUCCESS_GREEN = Color(0.2, 0.8, 0.4, 1.0)     # #33cc66
-const COLOR_WARNING_YELLOW = Color(1.0, 0.8, 0.2, 1.0)    # #ffcc33
-const COLOR_ERROR_RED = Color(1.0, 0.3, 0.3, 1.0)         # #ff4d4d
-const COLOR_TEXT_PRIMARY = Color(0.95, 0.95, 0.95, 1.0)   # #f2f2f2
-const COLOR_TEXT_SECONDARY = Color(0.7, 0.7, 0.7, 1.0)    # #b3b3b3
-const COLOR_TEXT_DISABLED = Color(0.4, 0.4, 0.4, 1.0)     # #666666
-const COLOR_BORDER = Color(0.2, 0.2, 0.22, 1.0)           # #333338
-const COLOR_SELECTION = Color(0.2, 0.6, 1.0, 0.3)         # #3399ff with alpha
+var color_base_dark: Color
+var color_base_min: Color
+var color_base_mid: Color
+var color_base_max: Color
+var color_accent: Color
+var color_label: Color
+var color_label_transp: Color
+
+var color_accent_highlight: Color
+var color_accent_selection: Color
+var color_border: Color
 
 const RAINBOW_COLORS: Array[Color] = [
-	Color(0.6, 0.6, 0.6), # Gray
-	Color(0.672, 0.384, 0.96), # Violet
-	Color(0.4, 0.6, 1.0), # Blue
-	Color(0.384, 0.769, 0.961), # Cyan
-	Color(0.478, 0.902, 0.361), # Green
-	Color(0.98, 0.97, 0.392), # Yellow
-	Color(1.0, 0.796, 0.349), # Orange
-	Color(1.0, 0.32, 0.388)  # Red
+	Color(.6, .6, .6), # Gray
+	Color(.672, .384, .96), # Violet
+	Color(.4, .6, 1.), # Blue
+	Color(.384, .769, .961), # Cyan
+	Color(.478, .902, .361), # Green
+	Color(.98, .97, .392), # Yellow
+	Color(1., .796, .349), # Orange
+	Color(1., .32, .388)  # Red
 ]
 
-const EDIT_BOX_MIN_SIZE: Vector2 = Vector2(32, 32)
-
 # Load resources
-const LABEL_SETTINGS_HEADER = preload("res://UI&UX/LabelSettingsHeader.tres")
-const LABEL_SETTINGS_BOLD = preload("res://UI&UX/LabelSettingsBold.tres")
-const LABEL_SETTINGS_MAIN = preload("res://UI&UX/LabelSettingsMain.tres")
+var label_settings_main: LabelSettings = preload("res://UI&UX/LabelSettingsMain.tres")
+var label_settings_header: LabelSettings = preload("res://UI&UX/LabelSettingsHeader.tres")
+var label_settings_bold: LabelSettings = preload("res://UI&UX/LabelSettingsBold.tres")
 
 const TEXTURE_ADD: CompressedTexture2D = preload("res://Asset/Icons/add.png")
 const TEXTURE_TRASH: CompressedTexture2D = preload("res://Asset/Icons/trash-can.png")
@@ -52,167 +46,181 @@ const TEXTURE_SEARCH: CompressedTexture2D = preload("res://Asset/Icons/magnifyin
 const TEXTURE_MARKER: CompressedTexture2D = preload("res://Asset/Icons/location-marker.png")
 const TEXTURE_KEYFRAME: CompressedTexture2D = preload("res://Asset/Icons/keyframe.png")
 
-const STYLE_GRAPH_NODE_BODY: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/BodyStyle.tres")
-const STYLE_GRAPH_NODE_BASE_HEADER: StyleBoxFlat = preload("res://UI&UX/GraphNodeStyle/HeaderBaseStyle.tres")
-
-const STYLE_ACCENT_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
+const style_accent_LEFT: StyleBoxFlat = preload("res://UI&UX/StyleAccentLeft.tres")
 const STYLE_CORNERLESS: StyleBoxFlat = preload("res://UI&UX/CornerlessStyle.tres")
 const STYLE_CORNERLESS_HOVER: StyleBoxFlat = preload("res://UI&UX/CornerlessHoverStyle.tres")
 const STYLE_CORNERLESS_DARK: StyleBoxFlat = preload("res://UI&UX/CornerlessDarkStyle.tres")
 const STYLE_CORNERLESS_BLACK: StyleBoxFlat = preload("res://UI&UX/CornerlessBlackStyle.tres")
+const STYLE_CORNERLESS_WHITE: StyleBoxFlat = preload("res://UI&UX/StyleWhite.tres")
 
-# Create modern styles programmatically
-var STYLE_BOX_EMPTY: StyleBoxEmpty
-var STYLE_PANEL: StyleBoxFlat
-var STYLE_HEADER: StyleBoxFlat
-var STYLE_BODY: StyleBoxFlat
-var STYLE_ACCENT: StyleBoxFlat
-var STYLE_BUTTON: StyleBoxFlat
-var STYLE_BUTTON_HOVER: StyleBoxFlat
-var STYLE_BUTTON_PRESSED: StyleBoxFlat
-var STYLE_BUTTON_ACCENT: StyleBoxFlat
-var STYLE_LINE_EDIT: StyleBoxFlat
-var STYLE_LINE_EDIT_FOCUS: StyleBoxFlat
-var STYLE_H_LINE: StyleBoxLine
-var STYLE_V_LINE: StyleBoxLine
-var STYLE_TIMELINE: StyleBoxFlat
-var STYLE_CLIP_CONTAINER: StyleBoxFlat
-var STYLE_WHITE = load("res://UI&UX/StyleWhite.tres")
+var style_box_empty: StyleBoxEmpty
+var style_transparent: StyleBoxFlat
+var style_dark: StyleBoxFlat
+var style_panel: StyleBoxFlat
+var style_header: StyleBoxFlat
+var style_body: StyleBoxFlat
+var style_accent: StyleBoxFlat
+var style_button: StyleBoxFlat
+var style_button_hover: StyleBoxFlat
+var style_button_pressed: StyleBoxFlat
+var style_button_accent: StyleBoxFlat
+var style_line_edit: StyleBoxFlat
+var style_line_edit_focus: StyleBoxFlat
+var style_h_line: StyleBoxLine
+var style_v_line: StyleBoxLine
+
+var style_cornerless_transparent: StyleBoxFlat
+var style_cornerless_dark: StyleBoxFlat
+var style_cornerless_panel: StyleBoxFlat
+var style_cornerless_header: StyleBoxFlat
+var style_cornerless_body: StyleBoxFlat
+
+const EDIT_BOX_MIN_SIZE: Vector2 = Vector2(32, 32)
+
+
+func _ready() -> void:
+	_init_styles()
+	_update_styles()
+
+func update_colors(_color_base: Color, _color_accent: Color, _contrast: float) -> void:
+	color_base_dark = _color_base.darkened(_contrast / 2.)
+	color_base_min = _color_base.darkened(_contrast / 4.)
+	color_base_mid = _color_base
+	color_base_max = _color_base.lightened(_contrast / 2.)
+	color_accent = _color_accent
+	color_accent_highlight = _color_accent.lightened(.4)
+	color_accent_selection = Color(color_accent_highlight, .5)
+	color_border = _color_base.lightened(.1)
+	
+	color_label = Color.LIGHT_GRAY if _color_base.get_luminance() < .5 else Color.BLACK
+	color_label_transp = Color(color_label, .7)
+	label_settings_main.font_color = color_label
+	label_settings_main.outline_color = color_label
+	label_settings_bold.font_color = color_label
+	label_settings_bold.outline_color = color_label
+	label_settings_header.font_color = color_label
+	label_settings_header.outline_color = color_label
+	
+	if is_node_ready():
+		_update_styles()
+	
+	colors_updated.emit()
+
+func _init_styles() -> void:
+	style_box_empty = StyleBoxEmpty.new()
+	
+	style_transparent = StyleBoxFlat.new()
+	style_transparent.bg_color = Color(.2, .2, .2, .2)
+	style_transparent.set_corner_radius_all(6)
+	
+	style_dark = StyleBoxFlat.new()
+	style_dark.set_border_width_all(1)
+	style_dark.set_corner_radius_all(6)
+	
+	style_panel = StyleBoxFlat.new()
+	style_panel.set_border_width_all(1)
+	style_panel.set_corner_radius_all(6)
+	
+	style_header = StyleBoxFlat.new()
+	style_header.border_width_bottom = 2
+	style_header.corner_radius_top_left = 6
+	style_header.corner_radius_top_right = 6
+	
+	style_body = StyleBoxFlat.new()
+	style_body.set_border_width_all(1)
+	style_body.set_corner_radius_all(6)
+	
+	style_accent = StyleBoxFlat.new()
+	style_accent.set_corner_radius_all(6)
+	
+	style_button = StyleBoxFlat.new()
+	style_button.set_border_width_all(1)
+	style_button.set_corner_radius_all(6)
+	style_button.set_content_margin_all(12)
+	style_button.content_margin_top = 8
+	style_button.content_margin_bottom = 8
+	
+	style_button_hover = style_button.duplicate()
+	style_button_pressed = style_button.duplicate()
+	style_button_accent = style_button.duplicate()
+	
+	style_line_edit = StyleBoxFlat.new()
+	style_line_edit.set_border_width_all(1)
+	style_line_edit.set_corner_radius_all(4)
+	style_line_edit.set_content_margin_all(12)
+	style_line_edit.content_margin_top = 8
+	style_line_edit.content_margin_bottom = 8
+	
+	style_line_edit_focus = style_line_edit.duplicate()
+	style_line_edit_focus.set_border_width_all(2)
+	
+	style_h_line = StyleBoxLine.new()
+	
+	style_v_line = StyleBoxLine.new()
+	style_v_line.vertical = true
+	
+	style_cornerless_transparent = StyleBoxFlat.new()
+	style_cornerless_transparent.bg_color = Color(.2, .2, .2, .2)
+	style_cornerless_dark = StyleBoxFlat.new()
+	style_cornerless_panel = StyleBoxFlat.new()
+	style_cornerless_header = StyleBoxFlat.new()
+	style_cornerless_body = StyleBoxFlat.new()
+
+
+func _update_styles():
+	
+	style_dark.bg_color = color_base_dark
+	style_dark.border_color = color_border
+	
+	style_panel.bg_color = color_base_mid
+	style_panel.border_color = color_border
+	
+	style_header.bg_color = color_base_min
+	style_header.border_color = Color(color_accent, .8)
+	
+	style_body.bg_color = color_base_max
+	style_body.border_color = color_border
+	
+	style_accent.bg_color = color_accent
+	
+	style_button.bg_color = color_base_mid
+	style_button.border_color = color_border
+	
+	style_button_hover.bg_color = color_base_mid
+	style_button_hover.border_color = color_accent
+	
+	style_button_pressed.bg_color = color_base_mid.darkened(.1)
+	style_button_pressed.border_color = color_accent
+	
+	style_button_accent.bg_color = color_accent
+	style_button_accent.border_color = color_accent.lightened(.2)
+	
+	style_line_edit.bg_color = color_base_min
+	style_line_edit.border_color = color_border
+	
+	style_line_edit_focus.bg_color = color_base_mid
+	style_line_edit_focus.border_color = color_accent
+	
+	style_h_line.color = color_border
+	style_v_line.color = color_border
+	
+	style_cornerless_dark.bg_color = color_base_dark
+	style_cornerless_panel.bg_color = color_base_mid
+	style_cornerless_header.bg_color = color_base_min
+	style_cornerless_body.bg_color = color_base_max
+	
+	var theme_font_controls: Array[Node] = get_tree().get_nodes_in_group(&"theme_font")
+	var theme_icon_controls: Array[Node] = get_tree().get_nodes_in_group(&"theme_icon")
+	
+	for ctrl: Control in theme_font_controls: set_font_colors(ctrl)
+	for ctrl: Control in theme_icon_controls: set_icon_colors(ctrl)
+	
+	if EditorServer.is_editor_server_ready:
+		EditorServer.player.volume_control.queue_redraw()
+		EditorServer.time_line2.update_timeline_view()
 
 
 
-func _ready():
-	_create_modern_styles()
-
-func _create_modern_styles():
-	# Empty style
-	STYLE_BOX_EMPTY = StyleBoxEmpty.new()
-	
-	# Main panel style
-	STYLE_PANEL = StyleBoxFlat.new()
-	STYLE_PANEL.bg_color = COLOR_DARK_PANEL
-	STYLE_PANEL.border_width_left = 1
-	STYLE_PANEL.border_width_right = 1
-	STYLE_PANEL.border_width_top = 1
-	STYLE_PANEL.border_width_bottom = 1
-	STYLE_PANEL.border_color = COLOR_BORDER
-	STYLE_PANEL.corner_radius_top_left = 8
-	STYLE_PANEL.corner_radius_top_right = 8
-	STYLE_PANEL.corner_radius_bottom_left = 8
-	STYLE_PANEL.corner_radius_bottom_right = 8
-	STYLE_PANEL.shadow_color = Color(0, 0, 0, 0.3)
-	STYLE_PANEL.shadow_size = 4
-	STYLE_PANEL.shadow_offset = Vector2(0, 2)
-	
-	# Header style
-	STYLE_HEADER = StyleBoxFlat.new()
-	STYLE_HEADER.bg_color = COLOR_DARK_HEADER
-	STYLE_HEADER.border_width_bottom = 2
-	STYLE_HEADER.border_color = Color(COLOR_ACCENT_BLUE, .8)
-	STYLE_HEADER.corner_radius_top_left = 8
-	STYLE_HEADER.corner_radius_top_right = 8
-	
-	# Body style
-	STYLE_BODY = StyleBoxFlat.new()
-	STYLE_BODY.bg_color = COLOR_DARK_BG
-	STYLE_BODY.border_width_left = 1
-	STYLE_BODY.border_width_right = 1
-	STYLE_BODY.border_width_top = 1
-	STYLE_BODY.border_width_bottom = 1
-	STYLE_BODY.border_color = COLOR_BORDER
-	STYLE_BODY.corner_radius_top_left = 6
-	STYLE_BODY.corner_radius_top_right = 6
-	STYLE_BODY.corner_radius_bottom_left = 6
-	STYLE_BODY.corner_radius_bottom_right = 6
-	
-	# Accent style
-	STYLE_ACCENT = StyleBoxFlat.new()
-	STYLE_ACCENT.bg_color = COLOR_ACCENT_BLUE
-	STYLE_ACCENT.corner_radius_top_left = 6
-	STYLE_ACCENT.corner_radius_top_right = 6
-	STYLE_ACCENT.corner_radius_bottom_left = 6
-	STYLE_ACCENT.corner_radius_bottom_right = 6
-	
-	# Button styles
-	STYLE_BUTTON = StyleBoxFlat.new()
-	STYLE_BUTTON.bg_color = COLOR_DARK_PANEL
-	STYLE_BUTTON.border_width_left = 1
-	STYLE_BUTTON.border_width_right = 1
-	STYLE_BUTTON.border_width_top = 1
-	STYLE_BUTTON.border_width_bottom = 1
-	STYLE_BUTTON.border_color = COLOR_BORDER
-	STYLE_BUTTON.corner_radius_top_left = 6
-	STYLE_BUTTON.corner_radius_top_right = 6
-	STYLE_BUTTON.corner_radius_bottom_left = 6
-	STYLE_BUTTON.corner_radius_bottom_right = 6
-	STYLE_BUTTON.content_margin_left = 12
-	STYLE_BUTTON.content_margin_right = 12
-	STYLE_BUTTON.content_margin_top = 8
-	STYLE_BUTTON.content_margin_bottom = 8
-	
-	STYLE_BUTTON_HOVER = STYLE_BUTTON.duplicate()
-	STYLE_BUTTON_HOVER.border_color = COLOR_ACCENT_BLUE
-	
-	STYLE_BUTTON_PRESSED = STYLE_BUTTON.duplicate()
-	STYLE_BUTTON_PRESSED.bg_color = COLOR_DARK_PANEL.darkened(0.1)
-	STYLE_BUTTON_PRESSED.border_color = COLOR_ACCENT_BLUE
-	
-	STYLE_BUTTON_ACCENT = STYLE_BUTTON.duplicate()
-	STYLE_BUTTON_ACCENT.bg_color = COLOR_ACCENT_BLUE
-	STYLE_BUTTON_ACCENT.border_color = COLOR_ACCENT_BLUE.lightened(0.2)
-	
-	# Line edit styles
-	STYLE_LINE_EDIT = StyleBoxFlat.new()
-	STYLE_LINE_EDIT.bg_color = COLOR_DARK_BG
-	STYLE_LINE_EDIT.border_width_left = 1
-	STYLE_LINE_EDIT.border_width_right = 1
-	STYLE_LINE_EDIT.border_width_top = 1
-	STYLE_LINE_EDIT.border_width_bottom = 1
-	STYLE_LINE_EDIT.border_color = COLOR_BORDER
-	STYLE_LINE_EDIT.corner_radius_top_left = 4
-	STYLE_LINE_EDIT.corner_radius_top_right = 4
-	STYLE_LINE_EDIT.corner_radius_bottom_left = 4
-	STYLE_LINE_EDIT.corner_radius_bottom_right = 4
-	STYLE_LINE_EDIT.content_margin_left = 12
-	STYLE_LINE_EDIT.content_margin_right = 12
-	STYLE_LINE_EDIT.content_margin_top = 8
-	STYLE_LINE_EDIT.content_margin_bottom = 8
-	
-	STYLE_LINE_EDIT_FOCUS = STYLE_LINE_EDIT.duplicate()
-	STYLE_LINE_EDIT_FOCUS.border_color = COLOR_ACCENT_BLUE
-	STYLE_LINE_EDIT_FOCUS.border_width_left = 2
-	STYLE_LINE_EDIT_FOCUS.border_width_right = 2
-	STYLE_LINE_EDIT_FOCUS.border_width_top = 2
-	STYLE_LINE_EDIT_FOCUS.border_width_bottom = 2
-	
-	# Line styles
-	STYLE_H_LINE = StyleBoxLine.new()
-	STYLE_H_LINE.color = COLOR_BORDER
-	
-	STYLE_V_LINE = StyleBoxLine.new()
-	STYLE_V_LINE.color = COLOR_BORDER
-	STYLE_V_LINE.vertical = true
-	
-	# Timeline specific styles
-	STYLE_TIMELINE = StyleBoxFlat.new()
-	STYLE_TIMELINE.bg_color = COLOR_DARK_BG.darkened(0.1)
-	STYLE_TIMELINE.border_width_top = 2
-	STYLE_TIMELINE.border_color = COLOR_ACCENT_BLUE
-	
-	# Clip container style
-	STYLE_CLIP_CONTAINER = StyleBoxFlat.new()
-	STYLE_CLIP_CONTAINER.bg_color = COLOR_DARK_PANEL
-	STYLE_CLIP_CONTAINER.border_width_left = 1
-	STYLE_CLIP_CONTAINER.border_width_right = 1
-	STYLE_CLIP_CONTAINER.border_width_top = 1
-	STYLE_CLIP_CONTAINER.border_width_bottom = 1
-	STYLE_CLIP_CONTAINER.border_color = COLOR_BORDER
-	STYLE_CLIP_CONTAINER.corner_radius_top_left = 6
-	STYLE_CLIP_CONTAINER.corner_radius_top_right = 6
-	STYLE_CLIP_CONTAINER.corner_radius_bottom_left = 6
-	STYLE_CLIP_CONTAINER.corner_radius_bottom_right = 6
-
-# Base settings functions
 
 func expand(control: Control, h: bool = true, v: bool = false) -> void:
 	if h:
@@ -222,7 +230,7 @@ func expand(control: Control, h: bool = true, v: bool = false) -> void:
 
 func set_base_settings(control: Control) -> void:
 	control.mouse_filter = Control.MOUSE_FILTER_PASS
-	control.add_theme_stylebox_override("focus", STYLE_BOX_EMPTY)
+	control.add_theme_stylebox_override(&"focus", style_box_empty)
 	if not (control is LineEdit or control is TextEdit):
 		control.focus_mode = Control.FOCUS_NONE
 
@@ -232,34 +240,42 @@ func set_base_container_settings(container: Control) -> void:
 
 func set_base_panel_settings(panel: Control, style: StyleBox = null) -> void:
 	set_base_settings(panel)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override(&"panel", style)
 
 func set_base_label_settings(label: Label, label_settings: LabelSettings) -> void:
 	set_base_settings(label)
 	label.label_settings = label_settings
-	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
-	label.add_theme_constant_override("shadow_offset_x", 1)
-	label.add_theme_constant_override("shadow_offset_y", 1)
 
 func set_font_from_label_settings(control: Control, label_settings: LabelSettings) -> void:
-	control.add_theme_font_override("font", label_settings.font)
-	control.add_theme_color_override("font_color", label_settings.font_color)
-	control.add_theme_color_override("font_outline_color", label_settings.outline_color)
-	control.add_theme_font_size_override("font_size", label_settings.font_size)
-	control.add_theme_constant_override("outline_size", label_settings.outline_size)
+	control.add_theme_font_override(&"font", label_settings.font)
+	control.add_theme_font_size_override(&"font_size", label_settings.font_size)
+	control.add_theme_constant_override(&"outline_size", label_settings.outline_size)
 
-func set_button_style(button: Button, style: StyleBox = STYLE_WHITE, hover: StyleBox = null, pressed: StyleBox = null) -> void:
-	button.add_theme_stylebox_override("focus", STYLE_BOX_EMPTY)
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_stylebox_override("hover", hover if hover else style)
-	button.add_theme_stylebox_override("pressed", pressed if pressed else style)
+func set_font_colors(control: Control) -> void:
+	control.add_to_group(&"theme_font")
+	control.add_theme_color_override(&"font_color", color_label_transp)
+	control.add_theme_color_override(&"font_hover_color", color_label_transp)
+	control.add_theme_color_override(&"font_pressed_color", color_label)
+	control.add_theme_color_override(&"font_hover_pressed_color", color_label)
+	control.add_theme_color_override(&"font_outline_color", color_label_transp)
+
+func set_icon_colors(control: Control) -> void:
+	control.add_to_group(&"theme_icon")
+	control.add_theme_color_override(&"icon_normal_color", color_label_transp)
+	control.add_theme_color_override(&"icon_hover_color", color_label_transp)
+	control.add_theme_color_override(&"icon_pressed_color", color_label)
+	control.add_theme_color_override(&"icon_hover_pressed_color", color_label)
+
+func set_button_style(button: Button, style: StyleBox = STYLE_CORNERLESS_WHITE, hover: StyleBox = null, pressed: StyleBox = null) -> void:
+	button.add_theme_stylebox_override(&"focus", style_box_empty)
+	button.add_theme_stylebox_override(&"normal", style)
+	button.add_theme_stylebox_override(&"hover", hover if hover else style)
+	button.add_theme_stylebox_override(&"pressed", pressed if pressed else style)
 
 func describe_box_container(box_container: BoxContainer, separation_scale: int, vertical: bool) -> void:
 	set_base_container_settings(box_container)
-	box_container.add_theme_constant_override("separation", separation_scale)
+	box_container.add_theme_constant_override(&"separation", separation_scale)
 	box_container.vertical = vertical
-
 
 
 
@@ -287,7 +303,7 @@ func create_texture_rect(texture: Texture2D, more: Dictionary = {expand_mode = T
 	ObjectServer.describe(texture_rect, more)
 	return texture_rect
 
-func create_panel_container(min_size: Vector2 = Vector2.ZERO, style: StyleBox = STYLE_PANEL, more: Dictionary = {}) -> PanelContainer:
+func create_panel_container(min_size: Vector2 = Vector2.ZERO, style: StyleBox = style_panel, more: Dictionary = {}) -> PanelContainer:
 	var panel:= PanelContainer.new()
 	set_base_panel_settings(panel, style)
 	panel.custom_minimum_size = min_size
@@ -302,10 +318,10 @@ func create_margin_container(left:= 12, right:= 12, up:= 12, down:= 12, more: Di
 	return margin_container
 
 func set_margin_settings(margin_cont: MarginContainer, left: int, right: int, up: int, down: int) -> void:
-	margin_cont.add_theme_constant_override("margin_left", left)
-	margin_cont.add_theme_constant_override("margin_right", right)
-	margin_cont.add_theme_constant_override("margin_top", up)
-	margin_cont.add_theme_constant_override("margin_bottom", down)
+	margin_cont.add_theme_constant_override(&"margin_left", left)
+	margin_cont.add_theme_constant_override(&"margin_right", right)
+	margin_cont.add_theme_constant_override(&"margin_top", up)
+	margin_cont.add_theme_constant_override(&"margin_bottom", down)
 
 func create_box_container(separation_scale: int = 16, vertical: bool = false, more: Dictionary = {alignment = BoxContainer.ALIGNMENT_CENTER, custom_minimum_size = Vector2(32, 32)}) -> BoxContainer:
 	var box_container = BoxContainer.new()
@@ -350,6 +366,8 @@ class EditBoxContainer extends BoxContainer:
 			if keyframe_button:
 				keyframe_button.texture_normal = texture
 	
+	var value_comp_method: Callable
+	
 	var emit_change: bool = true
 	
 	var controller_set_ids: Dictionary[StringName, Variant] = {method = null, method_manual = null, vari = null} # Name of curr_val Variable in Controller
@@ -366,12 +384,14 @@ class EditBoxContainer extends BoxContainer:
 		if resetable:
 			reset_button = IS.create_texture_button(texture_reset)
 			reset_button.pressed.connect(on_reset_button_pressed)
+			
 			header.add_child(reset_button)
 			header.move_child(reset_button, 1)
 		
 		if keyframable:
 			keyframe_button = IS.create_texture_button(null)
 			keyframe_button.pressed.connect(on_keyframe_button_pressed)
+			keyframe_button.use_theme_main_color = false
 			header.add_child(keyframe_button)
 			header.move_child(keyframe_button, 2)
 		
@@ -407,9 +427,16 @@ class EditBoxContainer extends BoxContainer:
 		keyframe_method = what
 	
 	func update_ui() -> void:
-		if not reset_button:
+		
+		if default_val == null:
 			return
-		reset_button.visible = default_val != null and curr_val != default_val
+		
+		var reset: bool
+		if value_comp_method.is_valid(): reset = not value_comp_method.call(default_val, curr_val)
+		else: reset = curr_val != default_val
+		
+		if not reset_button: return
+		reset_button.visible = reset
 	
 	func on_keyframe_button_pressed() -> void:
 		keyframe_sended.emit(null, &"", curr_val)
@@ -438,7 +465,7 @@ func create_split_container(separation_scale: int = 2, vertical: bool = false, m
 	var split_container = SplitContainer.new()
 	set_base_container_settings(split_container)
 	split_container.add_theme_constant_override("separation", separation_scale)
-	split_container.add_theme_stylebox_override("bg", STYLE_BODY)
+	split_container.add_theme_stylebox_override("bg", style_body)
 	split_container.vertical = vertical
 	ObjectServer.describe(split_container, more)
 	return split_container
@@ -449,27 +476,31 @@ func create_scroll_container(h_scroll_mode: int = 1, v_scroll_mode: int = 1, mor
 	scroll_container.horizontal_scroll_mode = h_scroll_mode
 	scroll_container.vertical_scroll_mode = v_scroll_mode
 	# Style scrollbars
-	scroll_container.add_theme_stylebox_override("bg", STYLE_BODY)
+	scroll_container.add_theme_stylebox_override("bg", style_body)
 	ObjectServer.describe(scroll_container, more)
 	return scroll_container
 
 func create_viewport_container(more: Dictionary = {}) -> SubViewportContainer:
-	var viewport_container = SubViewportContainer.new()
+	var viewport_container: SubViewportContainer = SubViewportContainer.new()
 	set_base_container_settings(viewport_container)
 	ObjectServer.describe(viewport_container, more)
 	return viewport_container
 
-# Enhanced button creation
-func create_button(text: String, icon: Texture2D = null, accent: bool = false, flat: bool = false, more: Dictionary = {}) -> Button:
+func create_button(text: String, icon: Texture2D = null, accent: bool = false, flat: bool = false, apply_icon_colors: bool = true, more: Dictionary = {}) -> Button:
 	var button:= Button.new()
 	set_base_settings(button)
 	
 	if accent:
-		set_button_style(button, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT)
-		set_font_from_label_settings(button, LABEL_SETTINGS_HEADER)
+		set_button_style(button, style_button_accent, style_button_accent, style_button_accent)
+		set_font_from_label_settings(button, label_settings_bold)
 	else:
-		set_button_style(button, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
-		set_font_from_label_settings(button, LABEL_SETTINGS_MAIN)
+		set_button_style(button, style_button, style_button_hover, style_button_pressed)
+		set_font_from_label_settings(button, label_settings_main)
+	
+	set_font_colors(button)
+	
+	if apply_icon_colors:
+		set_icon_colors(button)
 	
 	button.text = text
 	button.icon = icon
@@ -479,16 +510,61 @@ func create_button(text: String, icon: Texture2D = null, accent: bool = false, f
 	return button
 
 
+func create_menu_button(text: String, items_info: Array[Dictionary], more: Dictionary = {}) -> MenuButton:
+	var button:= MenuButton.new()
+	button.text = text
+	button.switch_on_hover = true
+	
+	set_font_colors(button)
+	
+	var _popup: PopupMenu = button.get_popup()
+	
+	_describe_popup_menu(_popup, items_info)
+	
+	ObjectServer.describe(button, more)
+	return button
+
+
+func create_popup_menu(items_info: Array[Dictionary], more: Dictionary = {}) -> PopupMenu:
+	var _popup_menu:= PopupMenu.new()
+	_describe_popup_menu(_popup_menu, items_info)
+	ObjectServer.describe(_popup_menu, more)
+	return _popup_menu
+
+func _describe_popup_menu(_popup_menu: PopupMenu, items_info: Array[Dictionary]) -> void:
+	
+	_popup_menu.add_theme_stylebox_override(&"panel", STYLE_CORNERLESS_DARK)
+	_popup_menu.add_theme_stylebox_override(&"hover", STYLE_CORNERLESS)
+	_popup_menu.add_theme_constant_override(&"icon_max_width", 16)
+	
+	for idx: int in items_info.size():
+		
+		var info: Dictionary = items_info[idx]
+		
+		_popup_menu.add_item(info.text if info.has(&"text") else "")
+		
+		if info.has(&"icon"):
+			_popup_menu.set_item_icon(idx, info.icon)
+		if info.has(&"disabled"):
+			_popup_menu.set_item_disabled(idx, info.disabled)
+		if info.has(&"as_separator"):
+			_popup_menu.set_item_as_separator(idx, info.as_separator)
+		if info.has(&"shortcut"):
+			_popup_menu.set_item_shortcut(idx, info.shortcut)
+			_popup_menu.set_item_shortcut_disabled(idx, true)
+		if info.has(&"submenu"):
+			_popup_menu.set_item_submenu_node(idx, info.submenu)
+
+
+
 class CustomTextureButton extends TextureButton:
 	
-	var normal_color: Color = COLOR_NORMAL
-	var accent_color: Color = COLOR_ACCENT_BLUE
-	
+	var use_theme_main_color: bool = true
 	
 	func _ready() -> void:
-		# Connections
-		button_down.connect(set_self_modulate.bind(accent_color))
+		button_down.connect(set_self_modulate.bind(IS.color_accent))
 		button_up.connect(update_button)
+		IS.colors_updated.connect(update_button)
 		update_button()
 	
 	func change_button_pressed(to: bool) -> void:
@@ -496,8 +572,9 @@ class CustomTextureButton extends TextureButton:
 		update_button()
 	
 	func update_button() -> void:
-		var toggle_color = accent_color if button_pressed else normal_color
-		set_self_modulate(toggle_color if toggle_mode else normal_color)
+		var main_color: Color = IS.color_label if use_theme_main_color else Color.GRAY
+		var toggle_color: Color = IS.color_accent if button_pressed else main_color
+		set_self_modulate(toggle_color if toggle_mode else main_color)
 
 func create_texture_button(normal: Texture2D, hover: Texture2D = null, pressed: Texture2D = null, toggle_mode: bool = false, more: Dictionary = {}) -> CustomTextureButton:
 	var texture_button = CustomTextureButton.new()
@@ -508,30 +585,29 @@ func create_texture_button(normal: Texture2D, hover: Texture2D = null, pressed: 
 	texture_button.texture_hover = hover if hover else normal
 	texture_button.texture_pressed = pressed if pressed else normal
 	
-	# Add subtle background
-	texture_button.add_theme_stylebox_override("normal", STYLE_BUTTON)
-	texture_button.add_theme_stylebox_override("hover", STYLE_BUTTON_HOVER)
-	texture_button.add_theme_stylebox_override("pressed", STYLE_BUTTON_PRESSED)
+	texture_button.add_theme_stylebox_override(&"normal", style_button)
+	texture_button.add_theme_stylebox_override(&"hover", style_button_hover)
+	texture_button.add_theme_stylebox_override(&"pressed", style_button_pressed)
 	
 	ObjectServer.describe(texture_button, more)
 	return texture_button
 
 
-func create_panel(style: StyleBox = STYLE_PANEL, more: Dictionary = {}) -> Panel:
+func create_panel(style: StyleBox = style_panel, more: Dictionary = {}) -> Panel:
 	var panel = Panel.new()
 	set_base_panel_settings(panel, style)
 	ObjectServer.describe(panel, more)
 	return panel
 
 func create_v_line_panel(min_size: float = 1, color: Color = Color(1,1,1, .3), more: Dictionary = {size_flags_horizontal = Control.SIZE_SHRINK_CENTER}) -> Panel:
-	var panel = create_panel(STYLE_V_LINE.duplicate())
+	var panel = create_panel(style_v_line.duplicate())
 	panel.get_theme_stylebox("panel").color = color
 	panel.custom_minimum_size.x = min_size
 	ObjectServer.describe(panel, more)
 	return panel
 
 func create_h_line_panel(min_size: float = 1, color: Color = Color(1,1,1, .3), more: Dictionary = {size_flags_vertical = Control.SIZE_SHRINK_CENTER}) -> Panel:
-	var panel = create_panel(STYLE_H_LINE.duplicate())
+	var panel = create_panel(style_h_line.duplicate())
 	panel.get_theme_stylebox("panel").color = color
 	panel.custom_minimum_size.y = min_size
 	ObjectServer.describe(panel, more)
@@ -546,7 +622,7 @@ func create_selection_box(select_from: Array[Control] = [], request_selection_fu
 	ObjectServer.describe(selection_box, more)
 	return selection_box
 
-func create_label(text: String, label_settings: LabelSettings = LABEL_SETTINGS_MAIN, more: Dictionary = {horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER, vertical_alignment = VERTICAL_ALIGNMENT_CENTER}) -> Label:
+func create_label(text: String, label_settings: LabelSettings = label_settings_main, more: Dictionary = {horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER, vertical_alignment = VERTICAL_ALIGNMENT_CENTER}) -> Label:
 	var label = Label.new()
 	set_base_label_settings(label, label_settings)
 	label.text = text
@@ -557,13 +633,23 @@ func create_tree() -> Tree:
 	var tree: Tree = Tree.new()
 	expand(tree, true, true)
 	tree.add_theme_constant_override(&"icon_max_width", 24)
-	tree.add_theme_stylebox_override(&"focus", STYLE_BOX_EMPTY)
+	tree.add_theme_stylebox_override(&"focus", style_box_empty)
 	return tree
 
+func create_item_list(items: Array[Dictionary], more: Dictionary = {}) -> ItemList:
+	var item_list: ItemList = ItemList.new()
+	expand(item_list, true, true)
+	
+	for item_info: Dictionary in items:
+		item_list.add_item(item_info.text, item_info.icon if item_info.has(&"icon") else null)
+	
+	ObjectServer.describe(item_list, more)
+	return item_list
+
 func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: float, more:= {}) -> ProgressBar:
-	var bar = ProgressBar.new()
+	var bar:= ProgressBar.new()
 	set_base_settings(bar)
-	bar.add_theme_stylebox_override("fill", STYLE_ACCENT)
+	bar.add_theme_stylebox_override("fill", style_accent)
 	
 	bar.min_value = min_val
 	bar.max_value = max_val
@@ -574,9 +660,9 @@ func create_progress_bar(curr_val: float, min_val: float, max_val: float, step: 
 
 
 func create_category(has_header: bool, category_name: StringName, custom_color: Color = Color.BLACK, content_size: Vector2 = Vector2(32, 32), use_flex_container: bool = true, more: Dictionary = {}) -> Category:
-	var category = Category.new()
+	var category:= Category.new()
 	set_base_settings(category)
-	category.add_theme_stylebox_override("bg", STYLE_BODY)
+	category.add_theme_stylebox_override("bg", style_body)
 	ObjectServer.describe(category, {
 		collapsed = true,
 		vertical = true,
@@ -588,13 +674,6 @@ func create_category(has_header: bool, category_name: StringName, custom_color: 
 	}.merged(more))
 	return category
 
-
-func create_shortcut_node(shortcut_node_group: StringName, shortcuts: Dictionary[Shortcut, ShortcutInfo] = {}) -> ShortcutNode:
-	var shortcut_node:= ShortcutNode.new()
-	shortcut_node.add_to_group(shortcut_node_group)
-	shortcut_node.shortcuts = shortcuts
-	return shortcut_node
-
 func create_menu(options: Array, is_vertical: bool = false, is_expanded: bool = true, more: Dictionary = {}) -> Menu:
 	var menu = Menu.new()
 	menu.options = options
@@ -605,34 +684,34 @@ func create_menu(options: Array, is_vertical: bool = false, is_expanded: bool = 
 
 func create_popuped_text(text: String = "", more: Dictionary = {}) -> PopupedText:
 	var pop_text = PopupedText.new()
-	set_base_panel_settings(pop_text, STYLE_PANEL)
+	set_base_panel_settings(pop_text, style_panel)
 	pop_text.text = text
 	ObjectServer.describe(pop_text, more)
 	return pop_text
 
 func create_popuped_menu(options: Array, more: Dictionary = {}) -> PopupedMenu:
 	var pop_menu = PopupedMenu.new()
-	set_base_panel_settings(pop_menu, STYLE_PANEL)
+	set_base_panel_settings(pop_menu, style_panel)
 	pop_menu.options = options
 	ObjectServer.describe(pop_menu, more)
 	return pop_menu
 
 func create_popuped_categories_menu(options: Dictionary[MenuOption, Array], more: Dictionary = {}) -> PopupedCategoriesMenu:
 	var pop_categories_menu:= PopupedCategoriesMenu.new(options)
-	set_base_panel_settings(pop_categories_menu, STYLE_PANEL)
+	set_base_panel_settings(pop_categories_menu, style_panel)
 	ObjectServer.describe(pop_categories_menu, more)
 	return pop_categories_menu
 
 func create_popuped_color_controller(main_color: Color, more: Dictionary = {}) -> PopupedColorController:
 	var pop_color_controller = PopupedColorController.new()
-	set_base_panel_settings(pop_color_controller, STYLE_PANEL)
+	set_base_panel_settings(pop_color_controller, style_panel)
 	pop_color_controller.curr_color = main_color
 	ObjectServer.describe(pop_color_controller, more)
 	return pop_color_controller
 
 func create_popuped_box(elements: Array, more: Dictionary = {}) -> PopupedBox:
 	var pop_box = PopupedBox.new()
-	set_base_panel_settings(pop_box, STYLE_PANEL)
+	set_base_panel_settings(pop_box, style_panel)
 	pop_box.elements = elements
 	ObjectServer.describe(pop_box, more)
 	return pop_box
@@ -669,14 +748,19 @@ func popup_box(elements: Array, pop_from = null, pop_in = null, min_size: Vector
 
 
 
-# Values Controllers for Modern Video Editor
-
 func create_option_controller(options_info: Array[Dictionary], save_path: String = "", default_id: int = 0, accent: bool = false, more: Dictionary = {}) -> OptionController:
 	var option_controller:= OptionController.new()
 	set_base_settings(option_controller)
 	
-	if accent: set_button_style(option_controller, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT, STYLE_BUTTON_ACCENT)
-	else: set_button_style(option_controller, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
+	if accent:
+		set_button_style(option_controller, style_button_accent, style_button_accent, style_button_accent)
+		set_font_from_label_settings(option_controller, label_settings_bold)
+	else:
+		set_button_style(option_controller, style_button, style_button_hover, style_button_pressed)
+		set_font_from_label_settings(option_controller, label_settings_main)
+	
+	set_font_colors(option_controller)
+	set_icon_colors(option_controller)
 	
 	option_controller.icon = TEXTURE_DOWN
 	option_controller.options = MenuOption.new_options_with_check_group(options_info, save_path, default_id)
@@ -689,7 +773,10 @@ func create_option_controller(options_info: Array[Dictionary], save_path: String
 func create_options_controller_2(val: int, options: Dictionary) -> OptionController:
 	var ctrlr:= OptionController.new()
 	set_base_settings(ctrlr)
-	set_button_style(ctrlr, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
+	set_button_style(ctrlr, style_button, style_button_hover, style_button_pressed)
+	set_font_from_label_settings(ctrlr, label_settings_bold)
+	set_font_colors(ctrlr)
+	set_icon_colors(ctrlr)
 	var options_result: Array
 	for option_text: String in options:
 		options_result.append(MenuOption.new(option_text))
@@ -701,9 +788,9 @@ func create_options_controller_2(val: int, options: Dictionary) -> OptionControl
 func create_check_button(is_checked: bool = false, more: Dictionary = {}) -> CheckButton:
 	var check_button:= CheckButton.new()
 	set_base_settings(check_button)
-	set_button_style(check_button, STYLE_BOX_EMPTY)
-	check_button.add_theme_icon_override("checked", TEXTURE_TOGGLE_BUTTON_CHECKED)
-	check_button.add_theme_icon_override("unchecked", TEXTURE_TOGGLE_BUTTON_UNCHECKED)
+	set_button_style(check_button, style_box_empty)
+	check_button.add_theme_icon_override(&"checked", TEXTURE_TOGGLE_BUTTON_CHECKED)
+	check_button.add_theme_icon_override(&"unchecked", TEXTURE_TOGGLE_BUTTON_UNCHECKED)
 	check_button.button_pressed = is_checked
 	ObjectServer.describe(check_button, more)
 	return check_button
@@ -711,11 +798,9 @@ func create_check_button(is_checked: bool = false, more: Dictionary = {}) -> Che
 func create_line_edit(placeholder: String = "", text: String = "", right_icon: Texture2D = null, more: Dictionary = {size_flags_horizontal = Control.SIZE_EXPAND_FILL}) -> LineEdit:
 	var line_edit:= LineEdit.new()
 	set_base_settings(line_edit)
-	line_edit.add_theme_color_override("selection_color", COLOR_SELECTION)
-	line_edit.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	line_edit.add_theme_color_override("font_placeholder_color", COLOR_TEXT_SECONDARY)
-	line_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
-	line_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
+	line_edit.add_theme_color_override(&"selection_color", color_accent_selection)
+	line_edit.add_theme_stylebox_override(&"normal", style_line_edit)
+	line_edit.add_theme_stylebox_override(&"focus", style_line_edit_focus)
 	line_edit.caret_blink = true
 	line_edit.placeholder_text = placeholder
 	line_edit.text = text
@@ -726,8 +811,9 @@ func create_line_edit(placeholder: String = "", text: String = "", right_icon: T
 func create_text_edit(placeholder: String = "", text: String = "", more: Dictionary = {}) -> CustomTextEdit:
 	var text_edit:= CustomTextEdit.new()
 	set_base_settings(text_edit)
-	text_edit.add_theme_stylebox_override("normal", STYLE_LINE_EDIT)
-	text_edit.add_theme_stylebox_override("focus", STYLE_LINE_EDIT_FOCUS)
+	text_edit.add_theme_color_override(&"selection_color", color_accent_selection)
+	text_edit.add_theme_stylebox_override(&"normal", style_line_edit)
+	text_edit.add_theme_stylebox_override(&"focus", style_line_edit_focus)
 	text_edit.custom_minimum_size = Vector2(.0, 200.)
 	text_edit.caret_blink = true
 	text_edit.placeholder_text = placeholder
@@ -753,7 +839,7 @@ func create_slider_control(curr_val: float, min_val: float, max_val: float, step
 func create_float_controller(curr_val: float, min_val: float, max_val: float, step: float, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, more: Dictionary = {}) -> FloatController:
 	var float_controller:= FloatController.new()
 	set_base_settings(float_controller)
-	IS.set_button_style(float_controller, STYLE_BUTTON)
+	IS.set_button_style(float_controller, style_button)
 	float_controller.texture_right = TEXTURE_RIGHT
 	float_controller.min_val = min_val
 	float_controller.max_val = max_val
@@ -779,14 +865,14 @@ func create_vec3_controller(curr_val: Vector3) -> Vector3Controller:
 func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
 	var color_button:= ColorButton.new()
 	set_base_settings(color_button)
-	set_button_style(color_button, STYLE_BUTTON, STYLE_BUTTON_HOVER, STYLE_BUTTON_PRESSED)
+	set_button_style(color_button, style_button, style_button_hover, style_button_pressed)
 	color_button.curr_color = color
 	ObjectServer.describe(color_button, more)
 	return color_button
 
 func create_list_controller(list: Array, list_type: StringName = &"", can_add_element: bool = true, can_remove_element: bool = true, can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_elements_count: int = 0, more: Dictionary = {}) -> ListController:
 	var list_controller:= ListController.new()
-	set_base_panel_settings(list_controller, STYLE_BODY)
+	set_base_panel_settings(list_controller, style_body)
 	set_base_settings(list_controller)
 	list_controller.list = list
 	list_controller.types = [list_type]
@@ -890,9 +976,37 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 				box.add_child(line_edit)
 				return [line_edit]
 			
-			StringControllerType.TYPE_OPEN_FILE:
+			_:
+				
+				var on_btn_pressed: Callable
+				var tex: Texture2D
+				if string_controller_type == StringControllerType.TYPE_OPEN_FILE:
+					tex = TEXTURE_FILE
+					on_btn_pressed = func(btn: Button) -> void:
+						var window: FileDialog = WindowManager.create_file_dialog_window(
+						btn.get_window(), FileDialog.FileMode.FILE_MODE_OPEN_FILE, filter, Vector2i(800, 500), "Open File")
+						window.current_dir = text
+						window.popup_file_dialog()
+						window.file_selected.connect(
+							func(path: String) -> void:
+								line_edit.text = path
+								line_edit.text_changed.emit(path)
+						)
+				else:
+					tex = TEXTURE_FOLDER
+					on_btn_pressed = func(btn: Button) -> void:
+						var window: FileDialog = WindowManager.create_file_dialog_window(
+						btn.get_window(), FileDialog.FileMode.FILE_MODE_OPEN_DIR, filter, Vector2i(800, 500), "Open Folder")
+						window.current_dir = text
+						window.popup_file_dialog()
+						window.dir_selected.connect(
+							func(dir: String) -> void:
+								line_edit.text = dir
+								line_edit.text_changed.emit(dir)
+						)
+				
 				var split_container: SplitContainer = IS.create_split_container()
-				var open_file_btn: Button = create_button("", TEXTURE_FILE)
+				var open_file_btn: Button = create_button("", tex)
 				open_file_btn.disabled = not editable
 				
 				split_container.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
@@ -902,24 +1016,9 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 				split_container.add_child(open_file_btn)
 				box.add_child(split_container)
 				
-				open_file_btn.pressed.connect(
-					func() -> void:
-						var window: FileDialog = WindowManager.create_file_dialog_window(
-						open_file_btn.get_window(), FileDialog.FileMode.FILE_MODE_OPEN_FILE, filter, Vector2i(800, 500), "Open File")
-						window.popup_centered()
-						window.file_selected.connect(
-							func(path: String) -> void:
-								line_edit.text = path
-								line_edit.text_changed.emit(path)
-						)
-				)
+				open_file_btn.pressed.connect(on_btn_pressed.bind(open_file_btn))
 				
 				return [split_container]
-			
-			StringControllerType.TYPE_OPEN_DIR:
-				#var split_container: SplitContainer = IS.create_split_container()
-				#var open_dir_btn: Button = create_button("", TEXTURE_FOLDER)
-				pass
 	
 	return []
 
@@ -1031,119 +1130,12 @@ func get_edit_box_from(controllers: Array[Control]) -> EditBoxContainer:
 	return edit_box
 
 
-func create_graph_node(title: String, min_size: Vector2 = Vector2(150.0, 150.0)) -> GraphNode:
-	var graph_node:= GraphNode.new()
-	graph_node.title = title
-	graph_node.add_theme_stylebox_override("panel", STYLE_GRAPH_NODE_BODY)
-	graph_node.add_theme_stylebox_override("panel_selected", STYLE_GRAPH_NODE_BODY)
-	graph_node.add_theme_stylebox_override("titlebar", STYLE_GRAPH_NODE_BASE_HEADER)
-	graph_node.add_theme_stylebox_override("titlebar_selected", STYLE_GRAPH_NODE_BASE_HEADER)
-	graph_node.add_theme_stylebox_override("panel_focus", StyleBoxFlat.new())
-	return graph_node
-
-
-
-#func create_clip_base_control(style: StyleBox, child_control: Control = null) -> Control:
-	#var bg_panel = create_panel_container(Vector2.ZERO, style)
-	#var margin_container = create_margin_container(4,4,4,4)
-	#var control = create_empty_control(.0, .0, {clip_contents = true})
-	#if child_control:
-		#control.add_child(child_control)
-	#margin_container.add_child(control)
-	#bg_panel.add_child(margin_container)
-	#bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	#return bg_panel
-#
-#func create_clip_basic_control(name: String, style: StyleBox) -> Control:
-	#var name_label = create_name_label(name)
-	#name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	#return create_clip_base_control(style, name_label)
-#
-#
-#func create_clip_image_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	#var image_path = clip_res.key_as_path
-	#
-	#var box_container = create_box_container(5, false, {})
-	#var image_texture_rect = create_texture_rect(MediaServer.get_image_texture_from_path(image_path))
-	#var name_label = create_name_label(image_path.get_file())
-	#box_container.add_child(image_texture_rect)
-	#box_container.add_child(name_label)
-	#
-	#expand(name_label, true, true)
-	#image_texture_rect.set_custom_minimum_size(Vector2(100, 0))
-	#
-	#return create_clip_base_control(style, box_container)
-#
-#
-#func create_clip_video_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	#var video_path = clip_res.key_as_path
-	#
-	#var vsplit_container = create_split_container(5, true)
-	#var hbox_container = create_box_container(5, false, {})
-	#
-	#var name_label = create_name_label(video_path.get_file())
-	#var video_texture_rect = create_texture_rect(MediaServer.get_video_display_texture_from_path(video_path, ProjectServer.explorer_thumbnails_path))
-	#
-	#hbox_container.add_child(video_texture_rect)
-	#hbox_container.add_child(name_label)
-	#vsplit_container.add_child(hbox_container)
-	#
-	#if await MediaServer.is_stream_has_audio(video_path):
-		#var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(video_path, ProjectServer.timeline_thumbnails_path, "224d29", false), {})
-		#
-		#wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		#ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
-		#vsplit_container.add_child(wave_texture_rect)
-	#
-	#expand(name_label, true, true)
-	#video_texture_rect.set_custom_minimum_size(Vector2(100, 0))
-	#
-	#return create_clip_base_control(style, vsplit_container)
-#
-#func create_clip_audio_control(clip_res: MediaClipRes, style: StyleBox) -> Control:
-	#var audio_path = clip_res.key_as_path
-	#
-	#var name_label = create_name_label(audio_path.get_file())
-	#var wave_texture_rect = create_texture_rect(MediaServer.get_audio_display_texture_from_path(audio_path, ProjectServer.timeline_thumbnails_path, "20394d", false), {})
-	#
-	#expand(name_label, true)
-	#wave_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	#ObjectServer.describe(wave_texture_rect, {size_flags_vertical = Control.SIZE_EXPAND_FILL, expand_mode = 1})
-	#
-	#wave_texture_rect.add_child(name_label)
-	#
-	#return create_clip_base_control(style, wave_texture_rect)
-
-
 func create_name_label(name: String, h_alignment: int = 0) -> Label:
-	var label:= create_label(name.capitalize(), LABEL_SETTINGS_MAIN, {horizontal_alignment = h_alignment, vertical_alignment = 1, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
+	var label:= create_label(name.capitalize(), label_settings_main, {horizontal_alignment = h_alignment, vertical_alignment = 1, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
 	label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	label.custom_minimum_size.y = 30
 	return label
 
-
-# Additional helper functions for video editor
-
-func create_timeline_panel(more: Dictionary = {}) -> PanelContainer:
-	var panel: PanelContainer = create_panel_container(Vector2.ZERO, STYLE_TIMELINE, more)
-	return panel
-
-func create_toolbar_button(icon: Texture2D, tooltip: String = "", more: Dictionary = {}) -> Button:
-	var button: Button = create_button("", icon, false, false, more)
-	button.tooltip_text = tooltip
-	button.custom_minimum_size = Vector2(32, 32)
-	return button
-
-func create_status_label(text: String, status_type: String = "normal") -> Label:
-	var label: Label = create_label(text, LABEL_SETTINGS_MAIN)
-	var font_color: Color
-	match status_type:
-		"success": font_color = COLOR_SUCCESS_GREEN
-		"warning": font_color = COLOR_WARNING_YELLOW
-		"error": font_color = COLOR_ERROR_RED
-		_: font_color = COLOR_TEXT_PRIMARY
-	label.add_theme_color_override("font_color", font_color)
-	return label
 
 
 

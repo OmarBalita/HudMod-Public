@@ -5,7 +5,6 @@ signal updated()
 
 @export var options: Array
 @export var is_vertical: bool
-@export var focus_style: StyleBox = IS.STYLE_ACCENT
 
 var focus_index: int:
 	set(val):
@@ -17,17 +16,13 @@ var focus_index: int:
 		if buttons_container:
 			var new_focus_button = buttons_container.get_child(val)
 			if focus_button:
-				focus_button.add_theme_color_override(&"icon_normal_color", Color.GRAY)
-				IS.set_font_from_label_settings(focus_button, IS.LABEL_SETTINGS_MAIN)
+				IS.set_font_from_label_settings(focus_button, IS.label_settings_main)
 			if new_focus_button:
-				new_focus_button.add_theme_color_override(&"icon_normal_color", Color.WHITE)
-				IS.set_font_from_label_settings(new_focus_button, IS.LABEL_SETTINGS_HEADER)
+				IS.set_font_from_label_settings(new_focus_button, IS.label_settings_header)
 			focus_button = new_focus_button
+			focus_button.button_pressed = true
 			
 			await get_tree().process_frame
-			#if use_tween:
-				#tweener.play(focus_panel, "position", [focus_button.position], [.2], false, Tween.TRANS_QUART, Tween.EASE_OUT)
-				#focus_panel.size = focus_button.size
 			set_focus_panel_transform()
 		
 		focus_index_changed.emit(focus_index)
@@ -40,6 +35,9 @@ var focus_panel: Panel
 var focus_button: Button
 
 var expand_icons: bool
+
+var button_group:= ButtonGroup.new()
+
 
 func _ready() -> void:
 	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -61,7 +59,7 @@ func update() -> void:
 	
 	buttons_container = IS.create_box_container(12, is_vertical)
 	IS.expand(buttons_container, true, true)
-	focus_panel = IS.create_panel(focus_style)
+	focus_panel = IS.create_panel(IS.style_accent)
 	
 	add_child(focus_panel)
 	add_child(buttons_container)
@@ -70,8 +68,9 @@ func update() -> void:
 	 
 	for index: int in options.size():
 		var option: MenuOption = options[index]
-		var option_button: Button = IS.create_button(option.text, option.icon, true, true, {expand_icon = expand_icons})
-		option_button.add_theme_color_override(&"icon_normal_color", Color.GRAY)
+		var option_button: Button = IS.create_button(option.text, option.icon, true, true, true, {expand_icon = expand_icons})
+		option_button.toggle_mode = true
+		option_button.button_group = button_group
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.pressed.connect(set_focus_index.bind(index))
 		if not option.function.is_null(): option_button.pressed.connect(option.function)
@@ -82,7 +81,7 @@ func update() -> void:
 		if index == focus_index:
 			focused_option_button = option_button
 		else:
-			IS.set_font_from_label_settings(option_button, IS.LABEL_SETTINGS_MAIN)
+			IS.set_font_from_label_settings(option_button, IS.label_settings_main)
 	
 	set_focus_index(focus_index, false)
 	custom_minimum_size = buttons_container.size
@@ -100,3 +99,6 @@ func set_focus_panel_transform() -> void:
 	if focus_panel and focus_button:
 		focus_panel.global_position = focus_button.global_position
 		focus_panel.size = focus_button.size
+
+
+

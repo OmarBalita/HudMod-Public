@@ -7,7 +7,10 @@ func _ready() -> void:
 
 func popup_window_base(processing_node: Node, window_size: Vector2, window_title: String, is_processing_rect_hidden: bool = false) -> MarginContainer:
 	var window: Window = AcceptWindow.new()
+	var panel_cont: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_cornerless_dark)
 	var margin: MarginContainer = IS.create_margin_container()
+	
+	panel_cont.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	ObjectServer.describe(window, {
 		initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN,
@@ -20,6 +23,7 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	window.tree_exited.connect(processing_rect.queue_free)
 	processing_node.add_child(processing_rect)
 	
+	window.add_child(panel_cont)
 	window.add_child(margin)
 	add_child(window)
 	
@@ -28,7 +32,7 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), window_title:= "Window") -> MarginContainer:
 	
 	var margin: MarginContainer = popup_window_base(processing_node, window_size, window_title)
-	var panel: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.STYLE_BODY)
+	var panel: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_body)
 	var margin2: MarginContainer = IS.create_margin_container()
 	
 	panel.add_child(margin2)
@@ -36,8 +40,8 @@ func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), windo
 	
 	return margin2
 
-func popup_borderless_window(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window") -> MarginContainer:
-	var margin: MarginContainer = popup_window(processing_node, window_size, window_title)
+func popup_borderless_window_base(processing_node: Node, window_size:= Vector2(400, 200), window_title:= "Window") -> MarginContainer:
+	var margin: MarginContainer = popup_window_base(processing_node, window_size, window_title)
 	margin.get_window().borderless = true
 	return margin
 
@@ -50,8 +54,8 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	var scroll_cont: ScrollContainer = IS.create_scroll_container()
 	var box2: BoxContainer = IS.create_box_container(10, true)
 	var accept_box: BoxContainer = IS.create_box_container()
-	var accept_button: Button = IS.create_button("Accept", null, true, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var cancel_button: Button = IS.create_button("Cancel", null, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var accept_button: Button = IS.create_button("Accept", null, true, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var cancel_button: Button = IS.create_button("Cancel", null, false, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	if accept_pressed.is_valid():
 		accept_button.pressed.connect(accept_pressed)
 	if cancel_pressed.is_valid():
@@ -156,14 +160,9 @@ class AcceptWindow extends Window:
 	
 	func emit_accept() -> void:
 		accepted.emit()
+		close_requested.emit()
 		queue_free()
 	
 	func emit_cancel() -> void:
 		canceled.emit()
 		close_requested.emit()
-
-
-
-
-
-

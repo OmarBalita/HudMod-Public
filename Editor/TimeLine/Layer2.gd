@@ -1,6 +1,6 @@
 class_name Layer2 extends HSplitContainer
 
-@onready var leftside_panel: PanelContainer = IS.create_panel_container(Vector2.ZERO, null)
+@onready var leftside_panel: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_cornerless_panel)
 @onready var leftside_margin: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
 @onready var leftside_cont: BoxContainer = IS.create_box_container(6)
 
@@ -198,7 +198,7 @@ func popup_move_to() -> void:
 
 func popup_customization() -> void:
 	
-	var popup_title: Label = IS.create_label(name_label.text, IS.LABEL_SETTINGS_HEADER)
+	var popup_title: Label = IS.create_label(name_label.text, IS.label_settings_header)
 	var main_custname: StringName = layer_res.custom_name
 	var main_custcolor: Color = layer_res.custom_color
 	var main_custsize: int = layer_res.custom_size
@@ -277,6 +277,7 @@ class ClipsPanelContainer extends PanelContainer:
 	var owner_as_layer: Layer2
 	
 	func _init(_owner_as_layer: Layer2) -> void:
+		IS.set_base_panel_settings(self, IS.style_cornerless_panel)
 		owner_as_layer = _owner_as_layer
 		clip_contents = true
 	

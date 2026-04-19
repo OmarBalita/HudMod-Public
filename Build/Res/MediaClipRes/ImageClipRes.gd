@@ -36,5 +36,11 @@ func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(image).textu
 func get_self_main_texture() -> Texture2D: return MediaCache.get_texture(image)
 
 
+func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
+	return [] if paths_for_check.has(image) else [image]
 
+func format_paths(paths_for_format: Dictionary[String, String]) -> void:
+	if paths_for_format.has(image): image = paths_for_format[image]
 
+func update_paths() -> void:
+	image = image

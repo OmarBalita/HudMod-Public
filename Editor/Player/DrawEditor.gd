@@ -145,7 +145,7 @@ func _draw() -> void:
 	
 	# Theme Colors
 	var color_normal = IS.COLOR_NORMAL
-	var color_accent = IS.COLOR_ACCENT_BLUE
+	var color_accent = IS.color_accent
 	
 	var mouse_pos = get_local_mouse_position()
 	var rect_size = Vector2(24, 24)

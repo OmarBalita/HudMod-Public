@@ -58,7 +58,7 @@ func _update_media_func() -> void:
 	match import_type:
 		0: get_media_func = MediaCache.get_texture
 		1: get_media_func = Callable()
-		2: get_media_func = MediaCache.get_audio
+		2: get_media_func = MediaCache.get_audio_data
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var thumbnail_rect: TextureRect = IS.create_texture_rect(get_file_thumb(), {

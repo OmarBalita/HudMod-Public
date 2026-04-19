@@ -18,9 +18,9 @@ func _ready() -> void:
 	var x_split: SplitContainer = IS.create_split_container(2, false, {custom_minimum_size = Vector2(0, 32.), dragging_enabled = false})
 	var y_split: SplitContainer = IS.create_split_container(2, false, {custom_minimum_size = Vector2(0, 32.), dragging_enabled = false})
 	var z_split: SplitContainer = IS.create_split_container(2, false, {custom_minimum_size = Vector2(0, 32.), dragging_enabled = false})
-	var x_label: Label = IS.create_label("X", IS.LABEL_SETTINGS_BOLD, {modulate = Color.RED})
-	var y_label: Label = IS.create_label("Y", IS.LABEL_SETTINGS_BOLD, {modulate = Color.GREEN})
-	var z_label: Label = IS.create_label("z", IS.LABEL_SETTINGS_BOLD, {modulate = Color.BLUE})
+	var x_label: Label = IS.create_label("X", IS.label_settings_bold, {modulate = Color.RED})
+	var y_label: Label = IS.create_label("Y", IS.label_settings_bold, {modulate = Color.GREEN})
+	var z_label: Label = IS.create_label("z", IS.label_settings_bold, {modulate = Color.BLUE})
 	
 	y_split.add_child(y_label)
 	IS.add_children(x_split, [x_label, x_edit])

@@ -73,7 +73,7 @@ func _ready() -> void:
 	list_changed.connect(on_list_changed)
 
 func _ready_ui() -> void:
-	IS.set_base_panel_settings(self, IS.STYLE_BODY)
+	IS.set_base_panel_settings(self, IS.style_body)
 	
 	var margin_container: MarginContainer = IS.create_margin_container(8,8,8,8)
 	var vbox_container: BoxContainer = IS.create_box_container(12, true)
@@ -158,7 +158,7 @@ func update_display_ui() -> void:
 		var element: Variant = list[index]
 		
 		var split: SplitContainer = IS.create_split_container()
-		var button: Button = IS.create_button('', null, false, false, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
+		var button: Button = IS.create_button('', null, false, false, true, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
 		button.set_expand_icon(true)
 		
 		set_button_display(index, element, button, true)

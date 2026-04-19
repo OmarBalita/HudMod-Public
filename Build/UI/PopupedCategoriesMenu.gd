@@ -40,17 +40,17 @@ func _ready() -> void:
 	
 	var margin_container: MarginContainer = IS.create_margin_container()
 	var split_container: SplitContainer = IS.create_split_container()
-	var left_control: PanelContainer = IS.create_panel_container(Vector2.ZERO, null, {custom_minimum_size = Vector2(250, .0)})
+	var left_control: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_box_empty, {custom_minimum_size = Vector2(250, .0)})
 	var right_control: SplitContainer = IS.create_split_container(2, true)
 	
-	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.STYLE_ACCENT_LEFT})
+	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.style_accent_LEFT})
 	categories_menu.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	search_line = IS.create_line_edit(search_line_text, "", search_texture)
 	right_scroll_container = IS.create_scroll_container(0)
-	var right_margin_container: MarginContainer = IS.create_margin_container()
+	var right_margin_container: MarginContainer = IS.create_margin_container(8, 8, 8, 8)
 	options_control = IS.create_box_container(12, true)
 	
-	focus_panel = IS.create_panel(IS.STYLE_BODY)
+	focus_panel = IS.create_panel(IS.style_body)
 	right_margin_container.add_child(focus_panel)
 	
 	right_margin_container.add_child(options_control)
@@ -75,7 +75,7 @@ func _ready() -> void:
 		category.has_custom_color = false
 		
 		for option: MenuOption in category_options:
-			var button: Button = IS.create_button(option.text, option.icon, false, true, {custom_minimum_size = Vector2(category_size.x, 35.0)})
+			var button: Button = IS.create_button(option.text, option.icon, false, true, true, {custom_minimum_size = Vector2(category_size.x, 35.0)})
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			button.mouse_entered.connect(on_option_button_mouse_entered.bind(button))
 			button.pressed.connect(on_option_button_pressed.bind(option))

@@ -997,7 +997,7 @@ func _draw() -> void:
 #func save_presets(global: bool) -> void:
 	#var result:= await loop_selected_media_clips({&"preset_media_ress": [] as Array[MediaClipRes]},
 		#func(media_clip: MediaClip, info: Dictionary[StringName, Variant]) -> void:
-			#var preset_tree: Tree = MediaServer.create_media_res_tree(media_clip.clip_res)
+			#var preset_tree: Tree = MediaServer.create_clip_res_tree(media_clip.clip_res)
 			#var name_edit: LineEdit = IS.create_string_edit("Preset Name", "new preset")[0]
 			#var box_container: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(500, 600), "Save %s Preset" % ("Global" if global else "Project"), func() -> void:
 				#var preset_media_res: MediaClipRes = media_clip.clip_res.duplicate_media_res()
@@ -1156,7 +1156,7 @@ func _draw() -> void:
 			##var rect_x_size: float = target_length * display_frame_size
 			##var rect2: Rect2 = Rect2(Vector2(rect_x_pos, .0), Vector2(rect_x_size, target_layer.size.y))
 			##
-			##target_layer.draw_new_theme_rect(rect2, IS.COLOR_ACCENT_BLUE)
+			##target_layer.draw_new_theme_rect(rect2, IS.color_accent)
 	##
 	##elif clips_move_mode == 0:
 		##var _size: Vector2 = clips_moved_objects[0].object.size

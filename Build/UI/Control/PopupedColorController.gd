@@ -405,7 +405,7 @@ class VHSCircleShape extends Control:
 		var angle_rad = TAU * hue
 		var display_offset = Vector2(cos(angle_rad), sin(angle_rad)) * sat * radius
 		draw_circle(center + display_offset, 5.0, Color.BLACK)
-		draw_circle(center + display_offset, 6.0, IS.COLOR_ACCENT_BLUE, false, 2.0, true)
+		draw_circle(center + display_offset, 6.0, IS.color_accent, false, 2.0, true)
 	
 	func update_properties() -> void:
 		custom_minimum_size = Vector2.ONE * radius * 2.0
@@ -479,8 +479,8 @@ class ValLine extends Control:
 		
 		var radius = width / 2.0
 		var y_displacement = radius / 2.0
-		draw_circle(Vector2(radius, y_displacement), radius, Color.WHITE, true, -1.0, true)
-		draw_circle(Vector2(radius, length + y_displacement), radius, Color.BLACK, true, -1.0, true)
+		#draw_circle(Vector2(radius, y_displacement), radius, Color.WHITE, true, -1.0, true)
+		#draw_circle(Vector2(radius, length + y_displacement), radius, Color.BLACK, true, -1.0, true)
 		
 		for v in 100:
 			var val = v / 100.0
@@ -488,7 +488,7 @@ class ValLine extends Control:
 			draw_rect(Rect2(Vector2(.0, length - y_pos + y_displacement), Vector2(width, y_step)), Color.from_hsv(.0, .0, val), true, -1.0, true)
 		
 		var cursor_display_pos = length - length * val + y_displacement
-		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), IS.COLOR_ACCENT_BLUE, 5.0, true)
+		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), IS.color_accent, 5.0, true)
 	
 	func update(_val: float) -> void:
 		val = _val
@@ -527,7 +527,7 @@ class PaletteBox extends PanelContainer:
 	
 	func _ready() -> void:
 		# Set Base Settings
-		IS.set_base_panel_settings(self, IS.STYLE_BUTTON)
+		IS.set_base_panel_settings(self, IS.style_button)
 		
 		# Start Controls
 		var margin_container = IS.create_margin_container(4, 4, 4, 4)

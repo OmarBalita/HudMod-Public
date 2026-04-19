@@ -127,14 +127,13 @@ func process_material(frame: int) -> void:
 		for sm: ShaderMaterial in ppsm:
 			sm.set_shader_parameter(&"time", frame_f)
 		
-		var render_scale: float = EditorServer.editor_settings.viewport_effect_ratio
-		curr_node.texture_scale = Vector2.ONE / render_scale
+		curr_node.texture_scale = Vector2.ONE
 		
 		if ppr.is_in_process:
 			await ppr.process_finished
 			if mat_process_id != curr_mat_process_id:
 				return
-		await process_passes_materials(render_scale)
+		await process_passes_materials(1.)
 
 func process_passes_materials(render_scale: float) -> void:
 	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)

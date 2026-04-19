@@ -35,11 +35,11 @@ func draw_new_string(font: Font, pos: Vector2 = Vector2.ZERO, text: String = "",
 	if redraw: queue_redraw()
 	return get_entities_back_index()
 
-func draw_new_theme_rect(rect2: Rect2, custom_color: Color = IS.COLOR_ACCENT_BLUE, redraw: bool = true) -> void:
+func draw_new_theme_rect(rect2: Rect2, custom_color: Color = IS.color_accent, redraw: bool = true) -> void:
 	draw_new_rect(rect2, Color(custom_color, .4), true, -1, false, false)
 	draw_new_rect(rect2, custom_color, false, 5.0, false, redraw)
 
-func draw_new_selection_box_rect(rect: Rect2, color: Color = IS.COLOR_ACCENT_BLUE, redraw: bool = true) -> void:
+func draw_new_selection_box_rect(rect: Rect2, color: Color = IS.color_accent, redraw: bool = true) -> void:
 	var start_pos:= rect.position
 	var end_pos:= start_pos + rect.size
 	var to_x_pos:= Vector2(end_pos.x, start_pos.y)

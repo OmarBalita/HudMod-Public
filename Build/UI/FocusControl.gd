@@ -26,8 +26,8 @@ signal dragged_rect_created(dragged_rect: Control)
 @export var draw_focus: bool = true
 @export var draw_select: bool
 @export var draw_width: float = 3.0
-@export var draw_focus_color: Color = IS.COLOR_ACCENT_BLUE
-@export var draw_select_color: Color = IS.COLOR_ACCENT_BLUE_HIGHLIGHT
+@export var draw_focus_color: Color = IS.color_accent
+@export var draw_select_color: Color = IS.color_accent_highlight
 
 @export_multiline() var editor_guides: Array[Dictionary]
 

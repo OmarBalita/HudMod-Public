@@ -2,7 +2,12 @@ class_name ColorButton extends Button
 
 signal color_changed(color: Color)
 
-@export_enum("Embeded", "Windowed") var color_controller_popup_type: int
+enum PopupType {
+	POPUP_TYPE_EMBEDED,
+	POPUP_TYPE_WINDOWED
+}
+
+@export var color_controller_popup_type: PopupType
 
 var curr_color: Color
 

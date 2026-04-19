@@ -15,7 +15,7 @@ metadata/_custom_type_script = "uid://cis86m6ws6jio"
 script = ExtResource("1_kpb2l")
 layout_2 = SubResource("Resource_d41q3")
 editor_1_name = &"media_explorer"
-split_offset = 550
+split_offset = 500
 metadata/_custom_type_script = "uid://cis86m6ws6jio"
 
 [resource]

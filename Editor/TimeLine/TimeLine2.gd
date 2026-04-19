@@ -62,6 +62,7 @@ const SMALL_STEP_BY_FPS: Dictionary[int, int] = {
 @export var edges_speed_factor_h: float = .1
 @export var edges_speed_factor_v: float = 10.
 
+@export var auto_snap: bool
 @export var dist_to_snap: float = .1
 
 @export var margin_size: float = 3.
@@ -100,6 +101,9 @@ var small_step_scaler: int
 
 var opened_clip_res: MediaClipRes
 var layers: Dictionary[LayerRes, Layer2]
+
+var latest_press_event: InputEventKey
+
 
 
 func _ready_editor() -> void:
@@ -140,7 +144,7 @@ func _ready_editor() -> void:
 	
 	IS.expand(path_scroll_cont, true)
 	IS.expand(clip_path_ctrlr, true)
-	IS.set_button_style(edit_mode_btn, IS.STYLE_BUTTON_ACCENT)
+	IS.set_button_style(edit_mode_btn, IS.style_button_accent)
 	
 	edit_mode_btn.selected_option_changed.connect(_on_mode_btn_selected_option_changed)
 	edit_multiple_btn.selected_option_changed.connect(_on_edit_multiple_btn_selected_option_changed)
@@ -170,7 +174,7 @@ func _ready_editor() -> void:
 	scroll_cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layers_body.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	layers_body.add_theme_stylebox_override(&"panel", IS.STYLE_BOX_EMPTY)
+	layers_body.add_theme_stylebox_override(&"panel", IS.style_box_empty)
 	layers_cont.add_theme_constant_override(&"separation", 2)
 	
 	IS.expand(body_boxcont, true, true)
@@ -188,20 +192,19 @@ func _ready_editor() -> void:
 	
 	#endregion
 	
-	open_project_res(ProjectServer2.project_res)
-	open_clip_res(ProjectServer2.opened_clip_res_path.back())
+	#open_project_res(ProjectServer2.project_res)
+	#open_clip_res(ProjectServer2.opened_clip_res_path.back())
 	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
 	ProjectServer2.opened_clip_res_changed.connect(_on_project_server_opened_clip_res_changed)
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
-	
-	update_timeline_view()
-	update_all_spacial_frames()
-	
-	_update_process_enabling()
+
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		update_edges_navs_velocity()
+	elif event is InputEventKey:
+		if event.is_pressed(): latest_press_event = event
+		else: latest_press_event = null
 
 func _body_gui_input(event: InputEvent) -> void:
 	
@@ -234,7 +237,7 @@ func _draw() -> void:
 	var cursor_pos: float = get_display_pos_from_cursor()
 	
 	if cursor_pos > 268. and cursor_pos <= size.x - 16.: # layer.leftside_panel.size = 250. + body.margin_left = 8. + layer.split_cont.sepration = 12. = 268.
-		draw_line(Vector2(cursor_pos, timemarkpanel_pos.y + timemark_panel.size.y + 8.), Vector2(cursor_pos, size.y - (h_scrollbar.size.y + 12. if h_scrollbar.visible else 8.)), Color.LIGHT_GRAY, 2.)
+		draw_line(Vector2(cursor_pos, timemarkpanel_pos.y + timemark_panel.size.y + 8.), Vector2(cursor_pos, size.y - (h_scrollbar.size.y + 12. if h_scrollbar.visible else 8.)), IS.color_label, 2.)
 
 
 func navigate_horizontal(dir: int) -> void: center += dir * (navigation_horizontal_speed * ProjectServer2.project_res.fps) * zoom_factor
@@ -299,6 +302,10 @@ func apply_edges_navs(delta: float) -> void:
 
 
 func update_timeline_view() -> void:
+	
+	if ProjectServer2.project_res == null:
+		return
+	
 	await get_tree().process_frame
 	
 	_update_vars()
@@ -406,6 +413,7 @@ class TimeMarkPanelContainer extends PanelContainer:
 	func _init(_timeline: TimeLine2) -> void:
 		timeline = _timeline
 		clip_contents = true
+		IS.set_base_panel_settings(self, IS.style_cornerless_header)
 	
 	func _ready() -> void:
 		add_child(timemarkers_control)
@@ -413,6 +421,7 @@ class TimeMarkPanelContainer extends PanelContainer:
 		ProjectServer2.project_opened.connect(_on_project_server_project_opened)
 	
 	func _gui_input(event: InputEvent) -> void:
+		if Renderer.is_working: return
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT:
 				cursor_is_dragging = event.is_pressed()
@@ -428,11 +437,15 @@ class TimeMarkPanelContainer extends PanelContainer:
 	
 	func _draw() -> void:
 		
-		var font: Font = IS.LABEL_SETTINGS_MAIN.font
+		if ProjectServer2.project_res == null:
+			return
+		
+		var font: Font = IS.label_settings_main.font
+		var font_color: Color = IS.label_settings_main.font_color
 		
 		var size_h: Vector2 = size / 2.
 		var size_q: Vector2 = size / 4.
-		var str_offer: float = size_h.y + font.get_descent(16) + 2.
+		var str_offeset: float = size_h.y + 8.
 		
 		var center: int = timeline.center
 		var domain_h: int = timeline.domain_len / 2
@@ -449,28 +462,25 @@ class TimeMarkPanelContainer extends PanelContainer:
 			
 			var displ_pos: float = timeline.get_display_pos_from_frame(frame) - 8.
 			var displ_size_y: float
-			var color: Color
 			
 			displayed_frames[frame] = displ_pos
 			
 			if frame % domain_step == 0:
-				draw_string(font, Vector2(displ_pos + 10., str_offer), TimeServer.frame_to_timecode(frame))
+				draw_string(font, Vector2(displ_pos + 10., str_offeset), TimeServer.frame_to_timecode(frame), 0, -1, 16, font_color)
 				displ_size_y = size.y
-				color = Color.WEB_GRAY
 			else:
 				displ_size_y = size_q.y
-				color = Color.DIM_GRAY
 			
-			draw_line(Vector2(displ_pos, .0), Vector2(displ_pos, displ_size_y), color, 2.)
+			draw_line(Vector2(displ_pos, .0), Vector2(displ_pos, displ_size_y), IS.color_label_transp, 2.)
 		
 		draw_line(Vector2.ZERO, Vector2(size.x, .0), Color.WEB_GRAY, 2.)
 		
 		var cursor_pos: float = timeline.get_display_pos_from_cursor()
 		
-		draw_rect(Rect2(Vector2(cursor_pos - 100., .0), Vector2(200., size.y)), Color.LIGHT_GRAY, true)
+		draw_rect(Rect2(Vector2(cursor_pos - 100., .0), Vector2(200., size.y)), IS.color_label, true)
 		var timecode: String = TimeServer.frame_to_timecode(PlaybackServer.position)
 		var offset: Vector2 = font.get_string_size(timecode)
-		draw_string(font, Vector2(cursor_pos - offset.x / 2., offset.y), timecode, 0, -1, 16, Color.BLACK)
+		draw_string(font, Vector2(cursor_pos - offset.x / 2., offset.y), timecode, 0, -1, 16, Color(Color.WHITE - IS.color_label_transp, 1.))
 		
 		displayed_frames.sort()
 	
@@ -560,10 +570,10 @@ class LayersSelectContainer extends SelectContainer:
 		MenuOption.new_line(),
 		MenuOption.new("Save as Global Preset", null, save_presets.bind(true)),
 		MenuOption.new("Save as Project Preset", null, save_presets.bind(false)),
-		MenuOption.new_line(),
+		#MenuOption.new_line(),
 		#MenuOption.new("Replace Media", null, replace_clips),
-		MenuOption.new("Reverse Clip", null, reverse_clips),
-		MenuOption.new("Extract Audio", null, extract_audio)
+		#MenuOption.new("Reverse Clip", null, reverse_clips),
+		#MenuOption.new("Extract Audio", null, extract_audio)
 	]
 	
 	var timeline: TimeLine2
@@ -584,24 +594,9 @@ class LayersSelectContainer extends SelectContainer:
 	
 	func _ready() -> void:
 		super()
-		
-		shortcut_node.register_shortcut_quickly(&"switch_edit_mode", timeline.switch_edit_mode, [ShortcutNode.new_event_key(Key.KEY_TAB)])
-		
-		shortcut_node.register_shortcut_quickly(&"enter_clip", enter_clip, [ShortcutNode.new_event_key(Key.KEY_ENTER)])
-		shortcut_node.register_shortcut_quickly(&"exit_clip", exit_clip, [ShortcutNode.new_event_key(Key.KEY_BACKSPACE)])
-		
-		shortcut_node.register_shortcut_quickly(&"create_parent", create_parent, [ShortcutNode.new_event_key(Key.KEY_P, false, true)])
-		shortcut_node.register_shortcut_quickly(&"reparent", reparent_clip, [ShortcutNode.new_event_key(Key.KEY_R, false, true)])
-		shortcut_node.register_shortcut_quickly(&"parent_up", parent_up.bind(1), [ShortcutNode.new_event_key(Key.KEY_U, false, true)])
-		shortcut_node.register_shortcut_quickly(&"clear_parents", clear_parents, [ShortcutNode.new_event_key(Key.KEY_C, false, true)])
-		
-		shortcut_node.register_shortcut_quickly(&"open_graph", open_graph_editors, [ShortcutNode.new_event_key(Key.KEY_G, true)])
-		shortcut_node.register_shortcut_quickly(&"close_graph", close_graph_editors, [ShortcutNode.new_event_key(Key.KEY_G, false, false, true)])
-		
-		shortcut_node.register_shortcut_quickly(&"split_l", timeline.split_clips.bind(true, false), [ShortcutNode.new_event_key(Key.KEY_Z)])
-		shortcut_node.register_shortcut_quickly(&"split", timeline.split_clips.bind(true, true), [ShortcutNode.new_event_key(Key.KEY_X)])
-		shortcut_node.register_shortcut_quickly(&"split_r", timeline.split_clips.bind(false, true), [ShortcutNode.new_event_key(Key.KEY_C)])
-		
+		shortcut_node.key = &"Timeline"
+		shortcut_node.load_shortcuts_from_settings()
+		shortcut_node.methods_object = self
 		shortcut_node.cond_func = EditorServer.layers_body_shortcut_node_cond_func
 	
 	func _gui_input(event: InputEvent) -> void:
@@ -705,7 +700,7 @@ class LayersSelectContainer extends SelectContainer:
 					var clip: MediaServer.ClipPanel = layer.get_clip(frame)
 					var frame_displ_pos: float = timeline.global_position.x + timeline.get_display_pos_from_frame(frame + move_frame_delta)
 					var rect: Rect2 = Rect2(Vector2(frame_displ_pos, layer_posy), clip.size)
-					drawable_rect.draw_new_theme_rect(rect, IS.COLOR_ACCENT_BLUE, false)
+					drawable_rect.draw_new_theme_rect(rect, IS.color_accent, false)
 		
 		drawable_rect.queue_redraw()
 	
@@ -873,17 +868,44 @@ class LayersSelectContainer extends SelectContainer:
 		)
 		update_layers_size()
 	
+	func split_clips(accept_left: bool, accept_right: bool) -> void:
+		timeline.split_clips(accept_left, accept_right)
+	
 	#func replace_clips() -> void:
 		#pass
-	
-	func reverse_clips() -> void:
-		pass
-	
-	func extract_audio() -> void:
-		pass
+	#
+	#func reverse_clips() -> void:
+		#pass
+	#
+	#func extract_audio() -> void:
+		#pass
 	
 	func save_presets(global: bool) -> void:
-		pass
+		
+		var source_clips_ress: Array = selected_to_vals()
+		var preset_clips_ress: Array[MediaClipRes]
+		
+		for clip_res: MediaClipRes in source_clips_ress:
+			var preset_tree: Tree = MediaServer.create_clip_res_tree(clip_res)
+			var name_edit: LineEdit = IS.create_string_edit("Preset Name", "new preset")[0]
+			var box_cont: BoxContainer = WindowManager.popup_accept_window(
+				get_window(),
+				Vector2i(500, 600),
+				"Save %s Preset" % ("Global" if global else "Project"),
+					func() -> void:
+						var preset_clip_res: MediaClipRes = clip_res.duplicate_media_res()
+						preset_clip_res.id = name_edit.text
+						preset_clips_ress.append(preset_clip_res)
+			)
+			IS.expand(preset_tree, true, true)
+			box_cont.add_child(preset_tree)
+			box_cont.add_child(name_edit.get_parent())
+			name_edit.grab_focus(); name_edit.select_all()
+			
+			var window: WindowManager.AcceptWindow = box_cont.get_window()
+			await window.close_requested
+		
+		EditorServer.media_explorer.preset_box.create_presets(preset_clips_ress, global)
 	
 	func emit_selected_changed() -> void:
 		super()
@@ -999,6 +1021,10 @@ func update_all_spacial_frames() -> void:
 
 
 func snap_frame(frame: int, ignore_cursor: bool, ignore_timemarkers: bool, ignore_frames: PackedInt32Array = []) -> int:
+	
+	if not auto_snap and (not latest_press_event or not latest_press_event.keycode == KEY_CTRL):
+		return frame
+	
 	var _dist_to_snap: float = (dist_to_snap * ProjectServer2.fps) * zoom_factor
 	var dist: float = INF
 	
@@ -1063,6 +1089,7 @@ func get_next_spacial_frame(frame: int, step: int) -> int:
 	return target_frame
 
 func open_project_res(project_res: ProjectRes) -> void:
+	
 	update_predefined_frames(project_res.fps)
 	
 	var min_small_step: int
@@ -1128,6 +1155,7 @@ func open_clip_res(clip_res: MediaClipRes) -> void:
 	await sort_layers()
 	update_layers_clips(true)
 	update_when_clips_changed()
+	_update_process_enabling()
 
 func _disconnect_clip_res(clip_res: MediaClipRes) -> void:
 	clip_res.layer_added.disconnect(_on_clip_res_layer_added)
@@ -1348,7 +1376,6 @@ func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[V
 
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
 	update_clips(coords)
-
 
 
 

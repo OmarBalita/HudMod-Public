@@ -71,9 +71,9 @@ const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Display2DClipRes": {sections = [&"Display2D"]},
-	&"ImageClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel},
-	&"VideoClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel},
-	&"AudioClipRes": {sections = [&"Sound"], clip_panel = AudioClipPanel},
+	&"ImageClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel, color = Color("ffcb59"), icon = preload("res://Asset/Icons/Objects/image.png")},
+	&"VideoClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel, color = Color("7ae65c"), icon = preload("res://Asset/Icons/Objects/video.png")},
+	&"AudioClipRes": {sections = [&"Sound"], clip_panel = AudioClipPanel, color = Color("62c4f5"), icon = preload("res://Asset/Icons/Objects/audio.png")},
 	&"Text2DClipRes": {sections = [&"Display2D", &"Text"]},
 	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"]},
 	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"]},
@@ -90,41 +90,58 @@ var thumbnails: Dictionary[StringName, Dictionary]
 var timeline_video_textures: Dictionary[StringName, Dictionary]
 var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
-var editor_settings: AppEditorSettings = EditorServer.editor_settings
-
 var not_saved_yet: Dictionary[String, Resource] = {}
 var not_deleted_yet: Array[String] = []
 
 
-func _ready() -> void:
-	MediaHelper.SetWaveformGradient(editor_settings.media_explorer_waveform_gradient)
+func _init() -> void:
+	MediaHelper.SetWaveformGradient(EditorServer.editor_settings.media_explorer_waveform_gradient)
+
+
+func clear_media_server() -> void:
+	thumbnails.clear()
+	timeline_video_textures.clear()
+	timeline_waveform_textures.clear()
+	not_saved_yet.clear()
+	not_deleted_yet.clear()
 
 
 func server_register_image(path: String, image: Image, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
 	if ids_exists.has(id): load_thumbnail(path, thumbnail_path, id)
 	else: create_thumbnail_from_image(path, image, thumbnail_path, id)
 
-func server_register_video(path: String, video_decoder: VideoDecoder, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func server_register_video(path: String, video_decoder: VideoDecoder, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
-		load_waveform(path, waveform_path, id)
 	else:
 		create_thumbnail_from_video(path, video_decoder, thumbnail_path, id)
-		if not audio_stream:
-			return
-		MediaHelper.PushStreamData(audio_stream)
-		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
-		MediaHelper.PushStreamData(audio_stream)
-
-func server_register_audio(path: String, audio_stream: AudioStreamWAV, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	if ids_exists.has(id):
-		load_thumbnail(path, thumbnail_path, id)
+	
+	if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
 		load_waveform(path, waveform_path, id)
 	else:
-		MediaHelper.PushStreamData(audio_stream)
-		create_thumbnail_from_audio(path, audio_stream, thumbnail_path, id)
-		create_timeline_waveform_textures_from_audio(path, audio_stream, waveform_path, id)
-		MediaHelper.FreeStreamData(audio_stream)
+		if not audio_data_res:
+			return
+		var data_id: int = audio_data_res.get_instance_id()
+		MediaHelper.PushAudioData(data_id, audio_data_res.get_data())
+		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
+		MediaHelper.FreeAudioData(data_id)
+
+func server_register_audio(path: String, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	var data_id: int = audio_data_res.get_instance_id()
+	MediaHelper.PushAudioData(data_id, audio_data_res.get_data())
+	
+	if ids_exists.has(id):
+		load_thumbnail(path, thumbnail_path, id)
+	else:
+		create_thumbnail_from_audio(path, audio_data_res, thumbnail_path, id)
+	
+	if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
+		load_waveform(path, waveform_path, id)
+	else:
+		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
+	
+	MediaHelper.FreeAudioData(data_id)
 
 func server_replace_media_path(from: String, to: String) -> void:
 	if thumbnails.has(from):
@@ -146,6 +163,7 @@ func server_replace_media_path(from: String, to: String) -> void:
 	if not_deleted_yet.has(from):
 		not_deleted_yet.append(to)
 		not_deleted_yet.erase(from)
+
 
 func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
 	thumbnails.erase(path)
@@ -192,6 +210,7 @@ func load_waveform(media_path: String, thumbnail_path: String, id: String) -> vo
 func save_not_saved_yet() -> void:
 	for path: String in not_saved_yet:
 		var res: Resource = not_saved_yet[path]
+		DirAccess.make_dir_absolute(path.get_base_dir())
 		if res is Image:
 			res.save_png(path)
 		elif res is AudioStreamWAV:
@@ -266,8 +285,8 @@ func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDe
 	var image: Image = Image.create_from_data(video_decoder.get_width(), video_decoder.get_height(), false, Image.FORMAT_RGB8, video_decoder.get_video_data())
 	return create_thumbnail_from_image(key_as_path, image, thumbnail_path, id)
 
-func create_thumbnail_from_audio(key_as_path: StringName, audio: AudioStreamWAV, thumbnail_path: String, id: String) -> Dictionary:
-	var thumbnail_image: Image = MediaHelper.GenerateWaveformImage(audio, .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
+func create_thumbnail_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, thumbnail_path: String, id: String) -> Dictionary:
+	var thumbnail_image: Image = MediaHelper.GenerateWaveformImage(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
 	store_not_saved_thumbnail(thumbnail_path, id, thumbnail_image)
 	return thumbnails[key_as_path]
@@ -281,22 +300,19 @@ func get_timeline_video_textures() -> Array[Image]:
 func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Array[int]:
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
-func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio: AudioStreamWAV, waveform_path: String, id: String) -> Array[Image]:
-	
-	if not audio:
-		return []
-	
-	var waveform_images: Array[Image] = await generate_waveform_images(audio, 1, ProjectServer2.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
+func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> Array[Image]:
+	var waveform_images: Array[Image] = await generate_waveform_images(audio_data_res, 1, ProjectServer2.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
 	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
 	var total_width: int
 	var waveform_port_path: String = str(waveform_path, id, "/")
-	DirAccess.make_dir_recursive_absolute(waveform_port_path)
+	
 	for index: int in waveform_images.size():
 		var image: Image = waveform_images[index]
 		var image_path: String = str(waveform_port_path, index, ".png")
 		not_saved_yet[image_path] = image
 		total_width += image.get_width()
 	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
+	
 	return waveform_images
 
 func get_timeline_waveform_textures(key_as_path: StringName) -> Dictionary:
@@ -310,9 +326,11 @@ func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
 
 
 # Written by Omar TOP and edited by Claude AI
-func generate_waveform_images(stream: AudioStreamWAV, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
+func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
 	
-	var length: float = stream.get_length()
+	var audio_id: int = audio_data_res.get_instance_id()
+	
+	var length: float = audio_data_res.get_length()
 	var pixels_per_length: int = length * pixels_per_second
 	var images_count: int = pixels_per_length / float(width)
 	var chunk_length: float = width / float(pixels_per_second)
@@ -326,20 +344,20 @@ func generate_waveform_images(stream: AudioStreamWAV, draw_method_idx: int, pixe
 	
 	for start_idx: int in range(0, images_count, GROUP_SIZE):
 		var curr_group_size: int = min(GROUP_SIZE, images_count - start_idx)
-		var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, stream, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
+		var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
 		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
 	
 	if pixels_remained > 0:
 		var length_remained: float = pixels_remained / float(pixels_per_second)
-		images.append(MediaHelper.GenerateWaveformImage(stream, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
+		images.append(MediaHelper.GenerateWaveformImage(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
 	
 	return images
 
-func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], stream: AudioStreamWAV, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
+func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], audio_id: int, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
 	idx += start_idx
 	var second_from: float = idx * chunk_length
 	var second_to: float = second_from + chunk_length
-	images[idx] = MediaHelper.GenerateWaveformImage(stream, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
+	images[idx] = MediaHelper.GenerateWaveformImage(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
 
 #func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_to: float, draw_func: Callable, image_format: Image.Format, width: int, height: int, space_width: int, line_width: int, bg_color: Color = Color.BLACK) -> Image:
 	#var image: Image = Image.create_empty(width, height, false, image_format)
@@ -1066,6 +1084,8 @@ class ClipPanel extends Panel:
 		
 		func _end_drag_right() -> void:
 			ClipPanel.timeline.edges_nav_horizontal = false
+			ProjectServer2.project_res.root_clip_res.update_root_length()
+			ClipPanel.timeline.update_when_clips_changed()
 		
 		func _update_target_poss_by_delta(delta: int) -> void:
 			var clip_res: MediaClipRes = owner_as_clip.clip_res
@@ -1123,7 +1143,7 @@ class VideoClipPanel extends ClipPanel:
 		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
 	
 	func _ready_ui() -> void:
-		if (clip_res as VideoClipRes).audio_stream:
+		if (clip_res as VideoClipRes).audio_data_res:
 			waveform_box_container = WaveformBoxContainer.new()
 			add_child(waveform_box_container)
 			update_method = __update_ui
@@ -1357,27 +1377,17 @@ func get_image_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 	})
 
 func get_audio_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
-	var audio_stream: AudioStreamWAV = MediaCache.get_audio(key_as_path)
+	var audio_data_res: MediaCache.AudioF32Data = MediaCache.get_audio_data(key_as_path)
 	
-	var duration: float = snapped(audio_stream.get_length(), .001)
-	var sample_rate: int = audio_stream.mix_rate
-	var channels_str: String
-	var channels_int: int
-	
-	if audio_stream.stereo:
-		channels_str = "Stereo"
-		channels_int = 2
-	else:
-		channels_str = "Mono"
-		channels_int = 1
-	
-	var bitrate: int = int(sample_rate * channels_int * 16 / 1000)
+	const SAMPLE_RATE: int = MediaCache.AudioF32Data.SAMPLE_RATE
+	var duration: float = snapped(audio_data_res.get_length(), .001)
+	var bitrate: int = int(SAMPLE_RATE * 2 * 16 / 1000)
 	
 	return get_file_main_info(key_as_path).merged({
 		&"title": "Audio",
 		&"duration": "%s s" % duration,
-		&"sample_rate": "%s Hz" % sample_rate,
-		&"channels": channels_str,
+		&"sample_rate": "%s Hz" % SAMPLE_RATE,
+		&"channels": "Stereo",
 		&"bitrate": "%s Kbps" % bitrate,
 	})
 
@@ -1396,7 +1406,7 @@ func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 	return result
 
 
-func create_media_res_tree(root_res: MediaClipRes) -> Tree:
+func create_clip_res_tree(root_res: MediaClipRes) -> Tree:
 	var tree: Tree = IS.create_tree()
 	var root_item: TreeItem = tree.create_item()
 	root_item.set_text(0, root_res.get_display_name())
@@ -1405,15 +1415,17 @@ func create_media_res_tree(root_res: MediaClipRes) -> Tree:
 	return tree
 
 func _tree_children_of(parent_res: MediaClipRes, tree: Tree, parent_tree_item: TreeItem) -> void:
-	var children: Dictionary[int, Dictionary] = parent_res.get_children()
-	for layer_index: int in children:
-		var layer_children: Dictionary = children[layer_index].media_clips
-		for frame_in: int in layer_children:
-			var media_res: MediaClipRes = layer_children[frame_in]
+	var layers: Array[LayerRes] = parent_res.layers
+	
+	for layer_idx: int in layers.size():
+		var layer: LayerRes = layers[layer_idx]
+		var clips: Dictionary[int, MediaClipRes] = layer.get_clips()
+		for frame: int in clips:
+			var clip_res: MediaClipRes = clips[frame]
 			var tree_item: TreeItem = tree.create_item(parent_tree_item)
-			tree_item.set_text(0, media_res.get_display_name())
-			tree_item.set_icon(0, media_res.get_thumbnail())
-			_tree_children_of(media_res, tree, tree_item)
+			tree_item.set_text(0, clip_res.get_display_name())
+			tree_item.set_icon(0, clip_res.get_thumbnail())
+			_tree_children_of(clip_res, tree, tree_item)
 
 # Get Media Type
 
@@ -1426,5 +1438,16 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 			return media_type
 	return -1
 
+func get_media_classname_from_type(type: MediaTypes) -> StringName:
+	match type:
+		0: return &"ImageClipRes"
+		1: return &"VideoClipRes"
+		2: return &"AudioClipRes"
+	return &""
+
 func is_media_type_preset(path: String) -> bool:
 	return path.get_extension() in ["res", "tres"]
+
+
+
+

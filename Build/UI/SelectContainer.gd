@@ -5,7 +5,7 @@ signal selected_changed()
 signal selectbox_started()
 signal selectbox_finished()
 
-@onready var shortcut_node: ShortcutNode = IS.create_shortcut_node(&"select_container_shortcut")
+@onready var shortcut_node:= ShortcutNode.new()
 
 @export_group("Control", "control")
 @export_range(.01, 200.0) var control_close_dist: float = 10.
@@ -278,16 +278,6 @@ func _init() -> void:
 
 func _ready() -> void:
 	add_child(shortcut_node)
-	shortcut_node.register_shortcut_quickly(&"delete", delete_selected_vals, [ShortcutNode.new_event_key(Key.KEY_DELETE)])
-	shortcut_node.register_shortcut_quickly(&"cut", copy_selected_vals.bind(true), [ShortcutNode.new_event_key(Key.KEY_X, true)])
-	shortcut_node.register_shortcut_quickly(&"copy", copy_selected_vals.bind(false), [ShortcutNode.new_event_key(Key.KEY_C, true)])
-	shortcut_node.register_shortcut_quickly(&"past", past_selected_vals, [ShortcutNode.new_event_key(Key.KEY_V, true)])
-	shortcut_node.register_shortcut_quickly(&"duplicate", duplicate_selected_vals, [ShortcutNode.new_event_key(Key.KEY_D, true)])
-	shortcut_node.register_shortcut_quickly(&"select_all", select_all, [ShortcutNode.new_event_key(Key.KEY_A, true)])
-	shortcut_node.register_shortcut_quickly(&"deselect_all", deselect_all, [ShortcutNode.new_event_key(Key.KEY_A, false, false, true)])
-	shortcut_node.register_shortcut_quickly(&"select_invert", select_inverse, [ShortcutNode.new_event_key(Key.KEY_I, true)])
-	shortcut_node.register_shortcut_quickly(&"select_linked", select_linked, [ShortcutNode.new_event_key(Key.KEY_L, true)])
-	shortcut_node.register_shortcut_quickly(&"select_random", select_random, [ShortcutNode.new_event_key(Key.KEY_R, true)])
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
@@ -357,7 +347,7 @@ func _gui_input(event: InputEvent) -> void:
 						clamp(rect_size.x, .0, size.x - rect_pos.x),
 						clamp(rect_size.y, .0, size.y - rect_pos.y),
 					)
-				), IS.COLOR_ACCENT_BLUE, false
+				), IS.color_accent, false
 			)
 
 func _delete_val(port_idx: int, idx: int) -> void:
@@ -398,6 +388,4 @@ func _on_mouse_entered() -> void:
 
 func _on_mouse_exited() -> void:
 	pass
-
-
 

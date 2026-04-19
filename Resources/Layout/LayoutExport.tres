@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LayoutRootInfo" format=3 uid="uid://5y7dbynprvcx"]
+
+[ext_resource type="Script" uid="uid://defvdj348ta82" path="res://Build/Res/Layout/LayoutRootInfo.gd" id="1_gfyxv"]
+[ext_resource type="Texture2D" uid="uid://y64p44i7gny8" path="res://Asset/Icons/rocket.png" id="1_o8tnm"]
+[ext_resource type="Script" uid="uid://jia12pi2rx50" path="res://Build/Res/Layout/WindowedInfo.gd" id="2_o8tnm"]
+
+[resource]
+script = ExtResource("1_gfyxv")
+layout_name = &"Export"
+layout_image = ExtResource("1_o8tnm")
+editor_1_name = &"render_properties"
+editor_2_name = &"render_viewer"
+metadata/_custom_type_script = "uid://defvdj348ta82"

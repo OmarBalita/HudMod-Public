@@ -4,7 +4,7 @@
 	Save project [+]
 	Manage AppData and global files [+]
 
-- Media Explorer:
+- Media Explorer: [+]
 	Global, Projects files [+]
 	Activate Presets: Global, Project [+]
 	Move to Global, Move to Project Options [+]
@@ -14,7 +14,7 @@
 	Error: management when imported media type is not correct [+]
 	Error: management when required media are unavailable [+]
 	
-	Activate all 2D Objects:
+	Activate all 2D Objects: [+]
 		
 		Image [+]
 		Video [+]
@@ -22,28 +22,18 @@
 		
 		Object2D [+]
 		Camera2D [+]
-		Audio2D [->]
+		Audio2D [X]
 		Shape2D [+]
 		Text2D [+]
-		RenderPass
+		RenderPass [X]
 
-- Properties:
-	same Search System in Media Explorer
-	Copy, Past, and Duplicate UsableRes and Component (Unique ID)
-	Copy, Past any property
-	Reset Property [+]
-	Set Property Transition Quickly
-	Transition Component Class
-	Animation In-Out Component Class
-	Masking
-
-- Components:
+- Components: [+]
 	
-	Adding:
+	Adding: [+]
 		
 		Display 2D: [+]
 			
-			Basic:
+			Basic: [+]
 				CanvasItem [+]
 				DrawRect [+]
 				DrawCircle [+]
@@ -82,7 +72,7 @@
 				Dust [X]
 				Bars [+]
 			
-			Retro:
+			Retro: [+]
 				CRT and VHS [+]
 				LEDGrid [+]
 				FilmBurn [X]
@@ -108,7 +98,7 @@
 				BlurMaximum [+]
 				BlurMinimum [+]
 			
-			Distortion:
+			Distortion: [+]
 				DistLens [+]
 				DistRipple [+]
 				DistWave [->]
@@ -122,13 +112,6 @@
 				LensFlare [+]
 				DirectionalChromaticAberration [+]
 				RadialChromaticAberration [+]
-		
-		Color:
-			ColorCorrection:
-				pass
-			
-			ColorGrading:
-				pass
 		
 		Text2D: [+]
 			
@@ -158,19 +141,8 @@
 			Generate: [+]
 				ExtractShape [+]
 		
-		Masking:
-			pass
-		
-		Camera:
-			
-			Basic:
-				pass
-			
-			PostProcessing (Lite):
-				pass
-		
-		Transition:
-			pass
+		Masking: [+]
+			pass [+]
 	
 	SubCategories for Components [+]
 	Enable / Disable Component with shader [+]
@@ -178,56 +150,29 @@
 	Complete the ShaderComponent Build Echo-system [+]
 	Forced Components [+]
 
-- Player:
-	Display Audio [+]
-	Create Header Menu Bar (just UI)
-	Draw HurtBox for Displayed Media (Image, Video, Object2D ...) when selected
-	Select and Interact with Player Viewport
-
-- Controllers:
-	Fix float Controllers
-	Fix String Controller, and Integrate MultiLine, DisplayFilePath
-	Fix Array Controller
-	Fix Keyframes Displaying
-	Fix Curve Controller in the timeline
-	MediaClipRes Controller
-	ComponentRes Controller
-	Create Preset Font Controller
-	Copy Resource or any Value and past it
-	Add more int/float Controllers for different editing ways
-	Categories Menu to hide properties [+]
-	Expand and Collapse Color Palette
-	Color Correction Controllers, Editors:
-		->
-		->
-		->
-		->
-		->
-
 - Color Scope Editor: [+]
 	Histogram [+]
 	Waveform [+]
 	Parade [+]
 	Vector Scope [X]
 
-- UI & UX:
+- UI & UX: [+]
 	Add Scroll Container for each Menu or StringController in Headers [+]
-	Replace old Shortcut with the new one
+	Replace old Shortcut with the new one [+]
 	Flexible Editors: [+]
 		Move any Editor Panel and window-it [+]
 		Built-in Preset Layout, and Custom Layout [+]
-	Fix popuped Menu Problems, with Back Layout, specifically with Timeline
+	Fix popuped Menu Problems, with Back Layout, specifically with Timeline [X]
 
-Rewrite:
-	MediaClipRes
-	Animations
-	Timeline: (Timeline, Layer, Clip, curveController)
-	Editing
-	Playback System
+Rewrite: [+]
+	MediaClipRes [+]
+	Animations [+]
+	Timeline: (Timeline, Layer, Clip, curveController) [+]
+	Editing [+]
+	Playback System [+]
 
 Decoders: [+]
 	Video Decoder [+]
 	Audio Decoder [+]
-
 
 
