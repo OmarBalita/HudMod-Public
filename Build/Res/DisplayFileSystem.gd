@@ -72,28 +72,30 @@ func delete_packed(display_path: Array, pathes_or_names: PackedStringArray, dele
 	for path_or_name: String in pathes_or_names:
 		_delete(curr_dir, path_or_name, delete_real_file)
 
-func _delete(dir: Dictionary, path_or_name: String, delete_real_file: bool) -> void:
+func _delete(dir: Dictionary, path_or_name: String, delete_real_file: bool, server_delete_images_on_disk: bool = false) -> void:
 	var info: Dictionary = dir[path_or_name]
 	
 	if info.type == "file":
 		var file_id: String = info.id
-		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path)
+		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path, server_delete_images_on_disk)
 		if delete_real_file: MediaServer.store_not_deleted_resource(path_or_name)
+	
 	else:
-		_loop_files_at({}, func(_dir: Dictionary, _path_or_name: String, _file_info: Dictionary, _info: Dictionary[StringName, Variant]) -> void:
-			if _file_info.type == "file":
-				MediaCache.deregister_from_path(_path_or_name, _file_info.type, thumbnail_path, waveform_path)
-				if delete_real_file: MediaServer.store_not_deleted_resource(_path_or_name), info.forward
-		)
+		
+		var forward: Dictionary = info.forward
+		var keys_for_delete: Array = forward.keys()
+		
+		for _path_or_name: String in keys_for_delete:
+			_delete(forward, _path_or_name, delete_real_file, server_delete_images_on_disk)
 	
 	dir.erase(path_or_name)
 
 func replace_file(dir: Dictionary, from: String, to: String, discard_option: bool) -> void:
 	var file_info: Dictionary = dir[from]
 	if FileAccess.file_exists(to):
-		dir[to] = file_info
-		dir.erase(from)
-		MediaCache.register_from_path(to, [], file_info.id, thumbnail_path, waveform_path)
+		_delete(dir, from, false, true)
+		create_file_at(dir, to, [], file_info.id)
+	
 	elif discard_option:
 		discard_file(file_info, from)
 

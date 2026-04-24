@@ -130,9 +130,21 @@ func duplicate_media_res() -> MediaClipRes:
 		var new_section_comp: Array[ComponentRes]
 		
 		for curr_component: ComponentRes in curr_section_comp:
-			var new_component: ComponentRes = curr_component.duplicate_component_res()
+			
+			var new_component: ComponentRes = curr_component.duplicate(true)
+			
+			var new_comp_anims: Dictionary
+			
+			if curr_component.animations.has(curr_component):
+				var comp_anims: Dictionary = curr_component.animations.get(curr_component)
+				for anim_key: StringName in comp_anims:
+					var new_anim_res: AnimationRes = comp_anims[anim_key].duplicate_anim_res()
+					new_comp_anims[anim_key] = new_anim_res
+			
 			new_component.set_owner(duplicated)
-			new_component.properties = new_component.properties.duplicate(true)
+			new_component.animations = {new_component: new_comp_anims} as Dictionary[UsableRes, Dictionary]
+			new_component.properties = new_component.properties.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
+			
 			new_section_comp.append(new_component)
 		
 		new_components[section_key] = new_section_comp
@@ -148,7 +160,7 @@ func duplicate_media_res() -> MediaClipRes:
 	duplicated.layers = dupl_layers
 	duplicated.emit_clip_res_changed()
 	
-	# Return New One
+	# Return New one
 	return duplicated
 
 func get_section_comps_absolute(section_key: String) -> Array:
@@ -716,9 +728,11 @@ func move_clips(from_coords: Array[Vector2i], to_coords: Array[Vector2i], place_
 	
 	for idx: int in to_coords.size():
 		
+		var from: Vector2i = from_coords[idx]
 		var to: Vector2i = to_coords[idx]
 		var clip_res: MediaClipRes = clips_formove[idx]
 		
+		clip_res.move_layers_clips_deep(to.y - from.y)
 		placed_clips_ress[place_clip(find_unlocked_layer(to.x), to.y, clip_res, place_method_idx)] = clip_res
 	
 	if emit_move:
@@ -750,6 +764,7 @@ func split_clips(coords: Array[Vector2i], split_pos: int, accept_left: bool, acc
 
 
 func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Callable, premethod:= Callable(), postmethod:= Callable()) -> void:
+	
 	var dupl_info: Dictionary[StringName, Variant] = info.duplicate(true)
 	var pre_valid: bool = premethod.is_valid()
 	var post_valid: bool = postmethod.is_valid()
@@ -769,6 +784,7 @@ func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Ca
 			postmethod.call(layers, layer_idx, dupl_info)
 
 func check_layers_for_paths_deep(paths_for_check: PackedStringArray) -> PackedStringArray:
+	
 	var result: PackedStringArray
 	
 	for layer: LayerRes in layers:
@@ -777,9 +793,29 @@ func check_layers_for_paths_deep(paths_for_check: PackedStringArray) -> PackedSt
 		for frame: int in clips_ress:
 			var clip_res: MediaClipRes = clips_ress[frame]
 			var paths: PackedStringArray = clip_res.check_for_paths(paths_for_check)
-			result.append_array(paths)
+			
+			for path: String in paths:
+				if result.has(path):
+					continue
+				result.append(path)
 	
 	return result
+
+func move_layers_clips_deep(offset: int) -> void:
+	
+	for layer: LayerRes in layers:
+		var clips_ress: Dictionary[int, MediaClipRes] = layer.get_clips()
+		var moved_clips_ress: Dictionary[int, MediaClipRes]
+		
+		for frame: int in clips_ress:
+			var clip_res: MediaClipRes = clips_ress[frame]
+			var target_frame: int = frame + offset
+			moved_clips_ress[target_frame] = clip_res
+			clip_res.clip_pos = target_frame
+			clip_res.move_layers_clips_deep(offset)
+		
+		layer.set_clips(moved_clips_ress)
+
 
 func format_layers_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
 	loop_layers_children_deep({},
@@ -787,15 +823,25 @@ func format_layers_paths_deep(paths_for_format: Dictionary[String, String]) -> v
 			layer.get_clip_res(frame).format_paths(paths_for_format)
 	)
 
+func erase_layers_paths_deep(paths_for_erase: PackedStringArray) -> void:
+	loop_layers_children_deep({},
+		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+			layer.get_clip_res(frame).erase_paths(paths_for_erase)
+	)
+
+func update_layers_paths_deep() -> void:
+	loop_layers_children_deep({},
+		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+			layer.get_clip_res(frame).update_paths()
+	)
+
 func format_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
 	format_paths(paths_for_format)
 	format_layers_paths_deep(paths_for_format)
 
 func update_paths_deep() -> void:
-	loop_layers_children_deep({},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
-			layer.get_clip_res(frame).update_paths()
-	)
+	update_paths()
+	update_layers_paths_deep()
 
 func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 	return []
@@ -803,8 +849,12 @@ func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
 	pass
 
+func erase_paths(paths_for_erase: PackedStringArray) -> void:
+	pass
+
 func update_paths() -> void:
 	pass
+
 
 
 static func _create_empty_edit_data() -> Dictionary[StringName, Variant]:

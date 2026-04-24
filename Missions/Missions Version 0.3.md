@@ -18,56 +18,13 @@
 	
 	Render audio [+, AAC, Opus]
 
-- Properties:
+- Properties: [+]
 	same Search System in Media Explorer [+]
-	Copy, Past, and Duplicate UsableRes and Component (Unique ID)
-	Copy, Past any property
-	Save any UsableRes, and load it
+	Copy, Past properties [+]
 	Reset Property [+]
 	Transition Component Class [+]
 	Animation In-Out Component Class [+]
 	Masking [+]
-
-- Controllers:
-	Fix float Controllers
-	Fix String Controller, and Integrate MultiLine, DisplayFilePath
-	Fix Array Controller
-	Fix Keyframes Displaying
-	Fix Curve Controller in the timeline
-	MediaClipRes Controller
-	ComponentRes Controller
-	Create Preset Font Controller
-	Copy Resource or any Value and past it
-	Add more int/float Controllers for different editing ways
-	Categories Menu to hide properties [+]
-	Expand and Collapse Color Palette
-	Color Correction Controllers, Editors:
-		->
-		->
-		->
-		->
-		->
-
-- Player:
-	Display Audio
-	Create Header Menu Bar
-	Fix VolumeControl
-	Fix fullscreen
-
-- Media Explorer:
-	Fix cards
-	Change to the same select system used in timeline and curves
-	Check moving files
-	Check for delete
-	Creating folders
-
-- Components:
-	Color:
-		ColorCorrection:
-			pass
-		
-		ColorGrading:
-			pass
 
 - Project Management:
 	- Adding the version panel when the app is started, embedding follow: [+]
@@ -88,6 +45,51 @@
 	Save & load [+]
 	Search system [+]
 
+- Player: [+]
+	Create Header Menu Bar [+]
+	Fix VolumeControl [+]
+	Fix fullscreen [+]
+
+- Media Explorer: [+]
+	Fix cards [+]
+	Change to the same select system used in timeline and curves [+]
+	Creating folders [+]
+	copy, delete, move, replace [+]
+	Check for delete [+]
+
+- Controllers: [+]
+	Fix float Controllers [+]
+	Fix String Controller, and Integrate MultiLine, DisplayFilePath [+]
+	Fix Array Controller [+]
+	Fix Keyframes Displaying [+]
+	Fix Curve Controller in the timeline [+]
+	MediaClipRes Controller [+]
+	ComponentRes Controller [+]
+	Create Preset Font Controller [+]
+	Copy Resource or any Value and past it [+]
+	Add more int/float Controllers for different editing ways [X]
+	Categories Menu to hide properties [+]
+	Expand and Collapse Color Palette [X]
+	Color Correction Controllers, Editors [->]
+
+- Components: [+]
+	Checking that all components are working good [+]
+	Color Correction [+]
+
+- AnimationRes: [+]
+	Keyframing unanimatable types, like bool, or String [+]
+
+- Problems arose during my editing experience: [+]
+	Fix that the CanvasItem component not copied [+]
+	Orphan node when layer deleted [+]
+	Move nest clips with the parent [+]
+	Fix sorting of 2d nodes [+]
+	Shader pipeline problem [+]
+	Fix Animation problem [+]
+	Fix In Out components animation problem [+]
+	Restart playback server when the processing take a long time [+]
+	Fix the length of audio when it has an empty path [+]
+
 - UI & Themes:
 	Fix LineEdit and TextEdit theme issue
 	Fix LineEdit and TextEdit focus issue
@@ -97,4 +99,12 @@
 	Fix window problem: spawn window from shortcuts when can't
 	Fix window problem: close window while process states
 	Notification: message, warning, error
+
+- External linking:
+	Notification for new versions
+	Supporters
+	Go to website
+	Report for bugs
+	Learn
+	Community
 

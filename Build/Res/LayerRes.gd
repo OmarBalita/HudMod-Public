@@ -30,6 +30,12 @@ signal hidden_changed(to: bool)
 var displayed_frame: int
 var displayed_clip_res: MediaClipRes
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		if displayed_clip_res:
+			Scene2.free_node(displayed_clip_res)
+			displayed_clip_res = null
+
 func get_clips() -> Dictionary[int, MediaClipRes]: return clips
 func set_clips(new_val: Dictionary[int, MediaClipRes]) -> void: clips = new_val
 func get_locked() -> bool: return locked
@@ -105,7 +111,5 @@ func duplicate_layer_res() -> LayerRes:
 	dupl_res.clips = new_clips
 	
 	return dupl_res
-
-
 
 

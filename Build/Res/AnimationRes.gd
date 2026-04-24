@@ -13,6 +13,7 @@ static var funcs_indexer: Dictionary[Variant.Type, Dictionary] = {
 	set(val):
 		value_type = val
 		update_funcs()
+
 @export var profiles: Array[CurveProfile]
 
 var sample_func: Callable
@@ -32,16 +33,21 @@ func update_funcs() -> void:
 		add_key_func = Callable(self, index_info.a)
 		get_key_func = Callable(self, index_info.g)
 	else:
-		sample_func = sample_constant
-		add_key_func = add_key_constant
-		get_key_func = get_key_constant
+		sample_func = sample_variant
+		add_key_func = add_key_variant
+		get_key_func = get_key_variant
 
 func update_profiles() -> void:
-	var profiles_size: int = 1
+	
 	if funcs_indexer.has(value_type):
-		profiles_size = funcs_indexer[value_type].p
-	for index: int in profiles_size:
-		profiles.append(CurveProfile.new_curve_profile({} as Dictionary[int, CurveKey]))
+		var profiles_size: int = funcs_indexer[value_type].p
+		for index: int in profiles_size:
+			profiles.append(CurveProfile.new_curve_profile({} as Dictionary[int, CurveKey]))
+	
+	else:
+		var profile: CurveProfile = CurveProfile.new_curve_profile({})
+		profile.sample_method = CurveProfile.SampleMethod.SAMPLE_METHOD_SEEK
+		profiles.append(profile)
 
 func duplicate_anim_res() -> AnimationRes:
 	var dupl_anim_res:= duplicate()
@@ -98,8 +104,8 @@ func has_any_key() -> bool:
 		if profile.keys.size(): return true
 	return false
 
-func sample_constant(x: int) -> Variant:
-	return null
+func sample_variant(x: int) -> Variant:
+	return profiles[0].seek(x)
 
 func sample_int(x: int) -> int:
 	return round(profile_sample(0, x))
@@ -129,8 +135,9 @@ func sample_color(x: int) -> Color:
 		profile_sample(3, x)
 	)
 
-func add_key_constant(x: int, value: Variant) -> void:
-	pass
+func add_key_variant(x: int, value: Variant) -> void:
+	var variant_key: CurveKey = CurveKey.new_variant(value)
+	profiles[0].add_key(x, variant_key)
 
 func add_key_int(x: int, value: int) -> void:
 	profile_add_key(0, x, value)
@@ -160,8 +167,8 @@ func add_key_color(x: int, value: Color) -> void:
 	profile_add_key(3, x, value.a)
 
 
-func get_key_constant(x: int) -> Variant:
-	return null
+func get_key_variant(x: int) -> Variant:
+	return profile_get_curve_key(0, x).variant
 
 func get_key_int(x: int) -> int:
 	return round(profile_get_key(0, x))

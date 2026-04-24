@@ -4,11 +4,14 @@ class_name AudioClipRes extends MediaClipRes
 @export var stream: String:
 	set(val):
 		stream = val
-		if MediaCache.audio_datas_has(stream):
+		var has_stream: bool = MediaCache.audio_datas_has(stream)
+		is_opening = has_stream
+		if has_stream:
 			audio_data_res = MediaCache.get_audio_data(stream)
 		else:
 			audio_data_res = MediaCache.default_audio_f32_data
 
+var is_opening: bool
 var audio_data_res: MediaCache.AudioF32Data = MediaCache.default_audio_f32_data
 
 static func get_properties_section() -> StringName: return &"Sound"
@@ -22,7 +25,7 @@ func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(stream).text
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:
-	return audio_data_res.get_length() * ProjectServer2.fps if audio_data_res else +INF
+	return audio_data_res.get_length() * ProjectServer2.fps if is_opening else +INF
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {&"stream": export(string_args(stream))}
@@ -47,6 +50,9 @@ func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
 	if paths_for_format.has(stream): stream = paths_for_format[stream]
+
+func erase_paths(paths_for_erase: PackedStringArray) -> void:
+	if paths_for_erase.has(stream): stream = ""
 
 func update_paths() -> void:
 	stream = stream

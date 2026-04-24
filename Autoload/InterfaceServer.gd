@@ -330,128 +330,6 @@ func create_box_container(separation_scale: int = 16, vertical: bool = false, mo
 	return box_container
 
 
-
-class EditBoxContainer extends BoxContainer:
-	
-	signal val_changed(usable_res: UsableRes, key: StringName, new_val: Variant)
-	signal keyframe_sended(usable_res: UsableRes, key: StringName, new_val: Variant)
-	
-	enum KeyframeMethod {
-		KEYFRAME_ADD,
-		KEYFRAME_REMOVE
-	}
-	
-	static var texture_add_keyframe: Texture2D = preload("res://Asset/Icons/keyframe_add.png")
-	static var texture_remove_keyframe: Texture2D = preload("res://Asset/Icons/keyframe_remove.png")
-	static var texture_reset: Texture2D = preload("res://Asset/Icons/reset.png")
-	
-	var curr_val: Variant:
-		set(val):
-			curr_val = val
-			if emit_change:
-				val_changed.emit(null, &"", curr_val)
-	
-	var default_val: Variant
-	
-	var keyframable: bool = false
-	var resetable: bool = false
-	
-	var keyframe_method: int:
-		set(val):
-			keyframe_method = val
-			var texture: Texture2D
-			match val:
-				0: texture = texture_add_keyframe
-				1: texture = texture_remove_keyframe
-			if keyframe_button:
-				keyframe_button.texture_normal = texture
-	
-	var value_comp_method: Callable
-	
-	var emit_change: bool = true
-	
-	var controller_set_ids: Dictionary[StringName, Variant] = {method = null, method_manual = null, vari = null} # Name of curr_val Variable in Controller
-	# controller_cur_val_id has 2 keys: method and var, method is a Callable that i can Call to assign new Val
-	# and the var assigned Manually
-	
-	var controller: Control
-	var header: BoxContainer = IS.create_box_container()
-	var keyframe_button: TextureButton
-	var reset_button: TextureButton
-	
-	func _ready() -> void:
-		
-		if resetable:
-			reset_button = IS.create_texture_button(texture_reset)
-			reset_button.pressed.connect(on_reset_button_pressed)
-			
-			header.add_child(reset_button)
-			header.move_child(reset_button, 1)
-		
-		if keyframable:
-			keyframe_button = IS.create_texture_button(null)
-			keyframe_button.pressed.connect(on_keyframe_button_pressed)
-			keyframe_button.use_theme_main_color = false
-			header.add_child(keyframe_button)
-			header.move_child(keyframe_button, 2)
-		
-		add_child(header)
-		move_child(header, 0)
-		
-		set_keyframe_method(0)
-		update_ui()
-	
-	func get_curr_val() -> Variant:
-		return curr_val
-	
-	func set_curr_val(new_val: Variant, update_controller: bool = false, _emit_change: bool = true) -> void:
-		if not _emit_change: emit_change = false
-		curr_val = new_val
-		emit_change = true
-		if update_controller:
-			set_controller_val(new_val)
-		update_ui()
-	
-	func set_controller_val(new_val: Variant) -> void:
-		var method = controller_set_ids.method
-		var vari = controller_set_ids.vari
-		if method: controller.call_deferred(method, new_val)
-		elif vari: controller.set(vari, new_val)
-	
-	func set_controller_val_manually(new_val: Variant) -> void:
-		var method = controller_set_ids.method_manual
-		if method: controller.call_deferred(method, new_val)
-		else: set_controller_val(new_val)
-	
-	func set_keyframe_method(what: KeyframeMethod) -> void:
-		keyframe_method = what
-	
-	func update_ui() -> void:
-		
-		if default_val == null:
-			return
-		
-		var reset: bool
-		if value_comp_method.is_valid(): reset = not value_comp_method.call(default_val, curr_val)
-		else: reset = curr_val != default_val
-		
-		if not reset_button: return
-		reset_button.visible = reset
-	
-	func on_keyframe_button_pressed() -> void:
-		keyframe_sended.emit(null, &"", curr_val)
-	
-	func on_reset_button_pressed() -> void:
-		set_curr_val(default_val, true)
-
-
-func create_edit_box_container(separation_scale: int = 16, vertical: bool = false, more: Dictionary = {alignment = BoxContainer.ALIGNMENT_CENTER, custom_minimum_size = Vector2(32, 32)}) -> EditBoxContainer:
-	var box_container:= EditBoxContainer.new()
-	IS.expand(box_container.header)
-	describe_box_container(box_container, separation_scale, vertical)
-	ObjectServer.describe(box_container, more)
-	return box_container
-
 func create_grid_container(control_size: Vector2, h_separation: int = 12, v_separation: int = 12, more: Dictionary = {}) -> FlexGridContainer:
 	var grid_container = FlexGridContainer.new()
 	set_base_container_settings(grid_container)
@@ -822,25 +700,22 @@ func create_text_edit(placeholder: String = "", text: String = "", more: Diction
 	ObjectServer.describe(text_edit, more)
 	return text_edit
 
-func create_slider_control(curr_val: float, min_val: float, max_val: float, step: float, left_texture: Texture2D = null, right_texture: Texture2D = null, more: Dictionary = {}) -> SliderControl:
-	var slider_control:= SliderControl.new()
-	var slider_controller = slider_control.slider_controller
-	set_base_settings(slider_control)
-	slider_control.custom_minimum_size.x = 200.0
+func create_slider_controller(curr_val: float, min_val: float, max_val: float, step: float, snap_step: float, more: Dictionary = {}) -> SliderController:
+	var slider_controller:= SliderController.new()
+	set_base_settings(slider_controller)
 	slider_controller.min_val = min_val
 	slider_controller.max_val = max_val
 	slider_controller.step = step
 	slider_controller.curr_val = curr_val
-	slider_control.texture_left = left_texture
-	slider_control.texture_right = right_texture
-	ObjectServer.describe(slider_control, more)
-	return slider_control
+	slider_controller.snap_step = snap_step
+	ObjectServer.describe(slider_controller, more)
+	return slider_controller
 
 func create_float_controller(curr_val: float, min_val: float, max_val: float, step: float, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, more: Dictionary = {}) -> FloatController:
 	var float_controller:= FloatController.new()
 	set_base_settings(float_controller)
-	IS.set_button_style(float_controller, style_button)
-	float_controller.texture_right = TEXTURE_RIGHT
+	set_base_panel_settings(float_controller, style_button)
+	#float_controller.texture_right = TEXTURE_RIGHT
 	float_controller.min_val = min_val
 	float_controller.max_val = max_val
 	float_controller.step = step
@@ -903,19 +778,18 @@ enum FloatControllerType {
 	TYPE_360DEG
 }
 
-func create_edit_box(name: String, min_size: Vector2, vertical: bool = false, name_alignment: int = 0, keyframable: bool = false) -> EditBoxContainer:
-	var box:= create_edit_box_container(8, vertical, {custom_minimum_size = min_size})
-	box.keyframable = keyframable
-	var name_label:= create_name_label(name, name_alignment)
-	expand(name_label)
-	box.header.add_child(name_label)
-	return box
+func create_edit_box(name: String, min_size: Vector2, vertical: bool = false, name_alignment: HorizontalAlignment = 0, keyframable: bool = false, more: Dictionary = {custom_minimum_size = min_size}) -> EditBoxContainer:
+	var edit_box:= EditBoxContainer.new()
+	edit_box.name_label.text = name.capitalize()
+	edit_box.name_label.horizontal_alignment = name_alignment
+	describe_box_container(edit_box, 8, vertical)
+	ObjectServer.describe(edit_box, more)
+	return edit_box
 
 func create_custom_edit_box(name: String, edits_box_container: BoxContainer, min_size: Vector2 = EDIT_BOX_MIN_SIZE) -> EditBoxContainer:
-	var box:= create_edit_box(name, min_size, true)
-	box.keyframable = false
-	var panel_container:= create_panel_container()
-	var margin_container:= create_margin_container(8,8,8,8)
+	var box: EditBoxContainer = create_edit_box(name, min_size, true, 0, false)
+	var panel_container: PanelContainer = create_panel_container()
+	var margin_container: MarginContainer = create_margin_container(8,8,8,8)
 	margin_container.add_child(edits_box_container)
 	panel_container.add_child(margin_container)
 	box.add_child(panel_container)
@@ -1043,9 +917,9 @@ func create_float_edit(name: String, val: float, min: float = -INF, max: float =
 				controller.val_changed.connect(box.set_curr_val), &"set_curr_val", &"set_curr_val_manually")
 		
 		FloatControllerType.TYPE_SLIDER:
-			controller = create_slider_control(val, min, max, step)
+			controller = create_slider_controller(val, min, max, step, spin_magnet_step)
 			connect_controller_to_edit_box(box, controller, func() -> void:
-				controller.slider_controller.val_changed.connect(box.set_curr_val), &"set_curr_val", &"set_curr_val_manually")
+				controller.val_changed.connect(box.set_curr_val), &"set_curr_val", &"set_curr_val_manually")
 		
 		FloatControllerType.TYPE_OPTIONS:
 			controller = create_options_controller_2(val, options)

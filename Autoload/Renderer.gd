@@ -71,7 +71,7 @@ func send_frame() -> void:
 	video_renderer.send_frame(latest_image)
 	
 	if audio_renderer:
-		var all_layers_samples: Array[PackedByteArray] = _extract_all_audio_samples_at(PlaybackServer.position)
+		var all_layers_samples: Array[PackedByteArray] = _extract_root_samples_at(ProjectServer2.project_res.root_clip_res, PlaybackServer.position)
 		var samples: PackedByteArray = AudioMixer.mix_buffers(all_layers_samples, 1.)
 		audio_renderer.push_samples(samples)
 	
@@ -132,30 +132,34 @@ func _finish() -> void:
 	OS.shell_show_in_file_manager(output_path)
 
 
-func _extract_all_audio_samples_at(position: int) -> Array[PackedByteArray]:
-	
+func _extract_root_samples_at(root_clip_res: RootClipRes, position: int) -> Array[PackedByteArray]:
 	var result: Array[PackedByteArray]
-	
-	var root_clip_res: RootClipRes = ProjectServer2.project_res.root_clip_res
 	var layers: Array[LayerRes] = root_clip_res.layers
-	
 	for layer_idx: int in layers.size():
-		var layer: RootLayerRes = layers[layer_idx]
-		var curr_clip_res: MediaClipRes = layer.displayed_clip_res
-		
-		if not curr_clip_res:
+		var root_layer: RootLayerRes = layers[layer_idx]
+		if root_layer.mute:
 			continue
-		
-		if curr_clip_res is VideoClipRes or curr_clip_res is AudioClipRes:
-			var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer.displayed_frame + curr_clip_res.from)
-			result.append(samples)
-	
+		result.append_array(_extract_layer_samples_at(root_layer, position))
 	return result
 
+func _extract_clip_samples_at(clip_res: MediaClipRes, position: int) -> Array[PackedByteArray]:
+	var result: Array[PackedByteArray]
+	var layers: Array[LayerRes] = clip_res.layers
+	for layer_idx: int in layers.size():
+		var layer: LayerRes = layers[layer_idx]
+		result.append_array(_extract_layer_samples_at(layer, position))
+	return result
 
-
-
-
-
-
-
+func _extract_layer_samples_at(layer_res: LayerRes, position: int) -> Array[PackedByteArray]:
+	var result: Array[PackedByteArray]
+	var curr_clip_res: MediaClipRes = layer_res.displayed_clip_res
+	if not curr_clip_res:
+		return []
+	
+	if curr_clip_res is VideoClipRes or curr_clip_res is AudioClipRes:
+		var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer_res.displayed_frame + curr_clip_res.from)
+		result.append(samples)
+	
+	result.append_array(_extract_clip_samples_at(curr_clip_res, position))
+	
+	return result

@@ -8,11 +8,6 @@ class_name ImageClipRes extends Display2DClipRes
 			curr_node.texture = get_self_texture()
 		update()
 
-func _set_shader_code(val: String) -> void:
-	super(val)
-	if curr_node:
-		curr_node.texture = get_self_texture()
-
 
 static func get_media_clip_info() -> Dictionary[StringName, String]: return {
 	&"title": "Image",
@@ -35,12 +30,20 @@ func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(image).textu
 
 func get_self_main_texture() -> Texture2D: return MediaCache.get_texture(image)
 
+func build_shader_pipeline() -> void:
+	await super()
+	if curr_node:
+		curr_node.texture = get_self_texture()
+		process_here()
 
 func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 	return [] if paths_for_check.has(image) else [image]
 
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
 	if paths_for_format.has(image): image = paths_for_format[image]
+
+func erase_paths(paths_for_erase: PackedStringArray) -> void:
+	if paths_for_erase.has(image): image = ""
 
 func update_paths() -> void:
 	image = image

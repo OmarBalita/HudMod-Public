@@ -72,8 +72,8 @@ class_name Properties extends EditorControl
 					##move_range = range(index_to, index_from)
 					##index_from -= 1
 					##displace_dir = 1
-				##var edit_box: IS.EditBoxContainer = drag_info.edit_box
-				#var target_edit_box: IS.EditBoxContainer = comps_container.get_child(index_to)
+				##var edit_box: EditBoxContainer = drag_info.edit_box
+				#var target_edit_box: EditBoxContainer = comps_container.get_child(index_to)
 				##var boxes_displacement: float = abs(target_edit_box.position.y - edit_box.position.y) * displace_dir
 				##
 				##var comps_main_pos: Dictionary[int, float] = drag_info.comps_main_poss
@@ -189,7 +189,7 @@ class_name Properties extends EditorControl
 			#var component: ComponentRes = section[index]
 			#
 			#var controller: Control = UsableRes.create_custom_edit(component.get_classname(), component)[0]
-			#var edit_box: IS.EditBoxContainer = controller.get_meta("owner")
+			#var edit_box: EditBoxContainer = controller.get_meta("owner")
 			#edit_box.keyframable = false
 			#var delete_button:= IS.create_texture_button(texture_delete)
 			#var method_controller:= IS.create_option_controller([
@@ -211,7 +211,7 @@ class_name Properties extends EditorControl
 	#var scroll_container: ScrollContainer = comp_container.get_parent().get_parent()
 	#var comps_count: int = comp_container.get_child_count()
 	#for index: int in comps_count:
-		#var comp_edit_box: IS.EditBoxContainer = comp_container.get_child(index)
+		#var comp_edit_box: EditBoxContainer = comp_container.get_child(index)
 		#var box_pos: float = comp_edit_box.global_position.y
 		#var box_size: float = comp_edit_box.size.y
 		#var is_above_pos: bool = box_pos < pos
@@ -253,7 +253,7 @@ class_name Properties extends EditorControl
 	#var properties_sections: Array = MediaServer.get_types_intersection_properties_sections(types_selected)
 	#open_properties(selected_media_clips, focused_media_clip, properties_sections)
 #
-#func on_component_drag_button_button_down(edit_box: IS.EditBoxContainer, component: ComponentRes, section_key: StringName) -> void:
+#func on_component_drag_button_button_down(edit_box: EditBoxContainer, component: ComponentRes, section_key: StringName) -> void:
 	## Comps Container and Comps Main Poss
 	#var comps_container:= edit_box.get_parent()
 	#var comps_main_poss: Dictionary[int, float] = {}
@@ -291,7 +291,7 @@ class_name Properties extends EditorControl
 #
 #func on_component_drag_button_button_up() -> void:
 	#
-	#var edit_box: IS.EditBoxContainer = drag_info.edit_box
+	#var edit_box: EditBoxContainer = drag_info.edit_box
 	#var dragged_edit_box: Control = drag_info.dragged_edit_box
 	#
 	#var component: ComponentRes = drag_info.component

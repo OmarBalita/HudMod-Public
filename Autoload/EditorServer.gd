@@ -23,10 +23,12 @@ static var editor_state_path: String = editor_path + "editor_state.res"
 
 var is_editor_server_ready: bool
 
+var copied_value: Variant
+
+var undo_redo: UndoRedo = UndoRedo.new()
 
 var editor_settings: AppEditorSettings = ResLoadHelper.load_or_save(editor_settings_path, AppEditorSettings)
 var editor_state: EditorStateRes = ResLoadHelper.load_or_save(editor_state_path, EditorStateRes)
-
 
 var message_history: Array[Dictionary]
 
@@ -49,12 +51,15 @@ var render_viewer: RenderViewer
 var drawable_rect: DrawableRect
 var global_controls: Dictionary[Window, Control]
 
+var full_screen_requested: Array[int] # instance ids
 var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
-
+var media_clips_focused: Array[MediaServer.ClipPanel]
 var graph_editors_focused: Array[CurveController]
 
+var picking_clip: bool
 
 var auto_save_id: int
+
 
 
 func _notification(what: int) -> void:
@@ -165,13 +170,22 @@ func update_title() -> void:
 
 # ---------------------------------------------------
 
+func togggle_full_screen_request(id: int) -> void:
+	if full_screen_requested.has(id): full_screen_requested.erase(id)
+	else: full_screen_requested.append(id)
+	update_window_mode()
+
+func update_window_mode() -> void:
+	get_window().mode = Window.MODE_FULLSCREEN if full_screen_requested.size() > 0 else Window.MODE_MAXIMIZED
+
 func layers_body_shortcut_node_cond_func() -> bool:
 	return graph_editors_focused.is_empty()
+
 
 # Controllers Handling
 # ---------------------------------------------------
 
-func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: IS.EditBoxContainer, properties_containers: Dictionary[StringName, Control], ui_profile: UIProfile) -> void:
+func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_box_container: EditBoxContainer, properties_containers: Dictionary[StringName, Control], ui_profile: UIProfile) -> void:
 	usable_ress_controllers[usable_res] = {
 		&"usable_ress": usable_ress,
 		&"edit_box_container": edit_box_container,
@@ -192,7 +206,7 @@ func clear_usable_res_controllers(usable_res: UsableRes) -> void:
 func get_usable_res_shared_ress(usable_res: UsableRes) -> Array[UsableRes]:
 	return usable_ress_controllers[usable_res].usable_ress
 
-func get_usable_res_main_edit(usable_res: UsableRes) -> IS.EditBoxContainer:
+func get_usable_res_main_edit(usable_res: UsableRes) -> EditBoxContainer:
 	return usable_ress_controllers[usable_res].edit_box_container
 
 func get_usable_res_controllers(usable_res: UsableRes) -> Dictionary[StringName, Control]:
@@ -226,9 +240,7 @@ func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, p
 
 
 func toggle_fullscreen() -> void:
-	var window: Window = get_window()
-	if window.mode == Window.MODE_FULLSCREEN: window.mode = Window.MODE_MAXIMIZED
-	else: window.mode = Window.MODE_FULLSCREEN
+	togggle_full_screen_request(get_instance_id())
 
 func auto_save(id: int) -> void:
 	await get_tree().create_timer(editor_settings.edit.auto_save_interval * 60.).timeout
@@ -306,14 +318,14 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 	var target_path: String = get_presets_path(global)
 	make_dir_abs(target_path)
 	var used_ids: PackedStringArray = DirAccess.get_files_at(target_path)
-	var save_pathes: PackedStringArray
+	var save_paths: PackedStringArray
 	for preset_media_res: MediaClipRes in presets:
 		var id: String = StringHelper.generate_new_id(used_ids, 12)
 		var save_path: String = str(target_path, id, ".res")
 		MediaServer.store_not_saved_resource(save_path, preset_media_res)
 		used_ids.append(id)
-		save_pathes.append(save_path)
-	return save_pathes
+		save_paths.append(save_path)
+	return save_paths
 
 func get_presets_path(global: bool) -> String:
 	return GlobalServer.global_preset_path if global else ProjectServer2.project_preset_path
@@ -327,15 +339,23 @@ func get_ids_from_pathes(pathes: PackedStringArray) -> PackedStringArray:
 		used_ids.append(path.get_file().split(".")[0])
 	return used_ids
 
+var latest_import_paths: PackedStringArray
+
 func scan_media_existent() -> void:
 	
 	if ProjectServer2.project_res == null:
 		return
 	
-	var project_imp_sys:= ProjectServer2.import_file_system
-	var project_pres_sys:= ProjectServer2.preset_file_system
-	var global_imp_sys:= GlobalServer.import_file_system
-	var global_pres_sys:= GlobalServer.preset_file_system
+	var project_imp_sys: DisplayFileSystemRes = ProjectServer2.import_file_system
+	var project_pres_sys: DisplayFileSystemRes = ProjectServer2.preset_file_system
+	var global_imp_sys: DisplayFileSystemRes = GlobalServer.import_file_system
+	var global_pres_sys: DisplayFileSystemRes = GlobalServer.preset_file_system
+	
+	if not project_imp_sys or not global_imp_sys:
+		return
+	
+	MediaCache.load_media_cache_from_file_system(project_imp_sys)
+	MediaCache.load_media_cache_from_file_system(global_imp_sys)
 	
 	project_imp_sys.check_for_discard_paths()
 	global_imp_sys.check_for_discard_paths()
@@ -347,7 +367,6 @@ func scan_media_existent() -> void:
 	var global_preset_paths: PackedStringArray = global_pres_sys.get_files_paths()
 	
 	var all_import_paths: PackedStringArray = project_import_paths + global_import_paths
-	#var all_preset_paths: PackedStringArray = project_preset_paths + global_preset_paths
 	
 	var disk_paths_not_exists: PackedStringArray
 	
@@ -362,7 +381,11 @@ func scan_media_existent() -> void:
 	elif replace_paths_window:
 		replace_paths_window.queue_free()
 	
-	#var global_paths_needed: PackedStringArray = global_pres_sys.preset_media_ress_check_for_paths(global_import_paths)
+	if all_import_paths == latest_import_paths: return
+	latest_import_paths = all_import_paths
+	
+	var paths_unavailable: PackedStringArray = ProjectServer2.project_res.root_clip_res.check_layers_for_paths_deep(all_import_paths)
+	ProjectServer2.project_res.root_clip_res.erase_layers_paths_deep(paths_unavailable)
 	
 	media_explorer.import_box.update()
 	media_explorer.preset_box.update()
@@ -371,6 +394,8 @@ func replace_paths(paths_for_replace: Dictionary[String, String], discard_option
 	ProjectServer2.import_file_system.replace_paths(paths_for_replace, discard_option)
 	GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
 	format_paths(paths_for_replace)
+	MediaCache.update_videos_cache_max_cache_size()
+	media_explorer.import_box.update()
 
 func discard_paths(paths: PackedStringArray) -> void:
 	ProjectServer2.import_file_system.discard_paths(paths)
@@ -426,7 +451,7 @@ func popup_version_panel() -> void:
 	banner_owner_btn.uri = main.banner_owner_link
 	
 	var support_btn: LinkButton = LinkButton.new()
-	support_btn.text = "Support ❤️"
+	support_btn.text = "Support HudMod developement ❤️"
 	support_btn.uri = main.support_link
 	
 	var bg_rect: ColorRect = IS.create_color_rect(bg_color)
@@ -441,7 +466,7 @@ func popup_version_panel() -> void:
 	
 	var right_vbox_cont: SplitContainer = IS.create_split_container(2, true)
 	var path_edit: SplitContainer = IS.create_string_edit("project_path", OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS), "", IS.StringControllerType.TYPE_OPEN_DIR)[0]
-	var project_res_edit_cont: IS.EditBoxContainer = new_project_res.create_custom_edit("base_informations", new_project_res, [])[0].get_meta(&"owner")
+	var project_res_edit_cont: EditBoxContainer = new_project_res.create_custom_edit("base_informations", new_project_res, [])[0].get_meta(&"owner")
 	var new_btn: Button = IS.create_button("Create new project")
 	
 	version_window.add_child(vsplit_cont)
@@ -494,7 +519,7 @@ func popup_version_panel() -> void:
 		ProjectServer2.new_project(new_project_res, dir)
 	
 	recent_projs_list.item_activated.connect(func(idx: int) -> void:
-		if not ProjectServer2.open_project(recent_projs_list.get_item_text(idx)):
+		if not await ProjectServer2.open_project(recent_projs_list.get_item_text(idx)):
 			editor_state.recent_projects.erase(recent_projs_list.get_item_text(idx))
 			recent_projs_list.remove_item(idx)
 			ResourceSaver.save(editor_state, editor_state_path)
@@ -510,7 +535,7 @@ func popup_new_project() -> void:
 	var project_res:= ProjectRes.new()
 	
 	var path_edit: SplitContainer = IS.create_string_edit("project_path", OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS), "", IS.StringControllerType.TYPE_OPEN_DIR)[0]
-	var project_res_edit_cont: IS.EditBoxContainer = project_res.create_custom_edit("base_informations", project_res, [])[0].get_meta(&"owner")
+	var project_res_edit_cont: EditBoxContainer = project_res.create_custom_edit("base_informations", project_res, [])[0].get_meta(&"owner")
 	
 	var accept_method: Callable = func() -> void:
 		var line_edit: LineEdit = path_edit.get_child(0)
@@ -583,7 +608,7 @@ func popup_replace_paths(paths: PackedStringArray, discard_option: bool = true, 
 		var type_info: Dictionary = MediaServer.object_clip_info[classname]
 		
 		var path_edit: Control = IS.create_string_edit(path, new_path, "Choose a New path", 2, MediaServer.ARR_MEDIA_EXTENSIONS[type])[0]
-		var edit_box: IS.EditBoxContainer = path_edit.get_parent()
+		var edit_box: EditBoxContainer = path_edit.get_parent()
 		
 		var icon_rect: TextureRect = IS.create_texture_rect(type_info.icon, {modulate = type_info.color, custom_minimum_size = Vector2(24., .0), stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED})
 		var valid_path_rect: TextureRect = IS.create_texture_rect(null, {custom_minimum_size = Vector2(24., .0), stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED})
@@ -652,7 +677,7 @@ func popup_editor_settings() -> void:
 		var sett_split_cont: SplitContainer = IS.create_split_container(2, true)
 		var search_line: LineEdit = IS.create_line_edit("Filter Settings", "", IS.TEXTURE_SEARCH)
 		var scroll_cont: ScrollContainer = IS.create_scroll_container()
-		var idx_settings_edit: IS.EditBoxContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], search_line)[0].get_meta(&"owner")
+		var idx_settings_edit: EditBoxContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], search_line)[0].get_meta(&"owner")
 		
 		sett_split_cont.add_child(search_line)
 		
@@ -758,7 +783,7 @@ func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 func _on_popup_menu_recent_id_pressed(id: int) -> void:
 	popup_save_option_or_save(
 		func() -> void:
-			if not ProjectServer2.open_project(popup_menu_recent.get_item_text(id)):
+			if not await ProjectServer2.open_project(popup_menu_recent.get_item_text(id)):
 				editor_state.recent_projects.erase(popup_menu_recent.get_item_text(id))
 				ResourceSaver.save(editor_state, editor_state_path)
 				update_popup_menus(), "Save & Open"
@@ -784,7 +809,9 @@ func _on_popup_menu_docks_id_pressed(id: int) -> void:
 
 
 func on_window_focus_entered() -> void:
-	scan_media_existent()
+	await get_tree().process_frame
+	if WindowManager.popuped_windows.is_empty():
+		scan_media_existent()
 
 func on_window_files_dropped(files_pathes: Array[String]) -> void:
 	#var mouse_pos: Vector2 = get_viewport().get_mouse_position()

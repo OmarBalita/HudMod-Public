@@ -129,7 +129,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Audio": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	super(main_edit, props_controllers)
 	await Engine.get_main_loop().process_frame
 	_update_options()

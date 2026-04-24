@@ -55,7 +55,7 @@ func _input(event: InputEvent) -> void:
 			drawable_rect.clear_drawn_entities()
 			
 			for index: int in get_child_count():
-				var comp_edit: IS.EditBoxContainer = get_child(index)
+				var comp_edit: EditBoxContainer = get_child(index)
 				var rect: Rect2 = comp_edit.get_global_rect()
 				if rect.has_point(mouse_pos):
 					drawable_rect.draw_new_theme_rect(rect)

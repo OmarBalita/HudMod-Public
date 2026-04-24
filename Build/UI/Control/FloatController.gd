@@ -1,202 +1,233 @@
-class_name FloatController extends Button
+class_name FloatController extends Panel
 
 signal grab_started()
 signal grab_finished()
 signal val_changed(new_val: Variant)
 
-
-enum States {
-	GRAB,
-	TYPING
-}
-
-@export var state: States:
-	set(val):
-		state = val
-		is_magnet = false
-		update_ui()
-
-@export var min_val: float = .0
+@export var min_val: float = 0.0
 @export var max_val: float = 100.0
-@export var step: float = .5
+@export var step: float = 0.5
 @export var curr_val: Variant = 100.0
+
 @export var is_int: bool = false:
-	set(val):
-		is_int = val
-		if val: curr_val = int(curr_val)
+	set(v):
+		is_int = v
+		if v: curr_val = int(curr_val)
 
 @export_group("Theme")
 @export var change_value_when_drag: bool = true
-@export_subgroup("Constant")
-@export_range(.001, 100.0) var spin_scale: float = 1.0
-@export_range(1.0, 100.0) var spin_magnet_step: float = 10.0
-@export_subgroup("Color")
-@export var fill_color: Color
-@export var grabber_main_color: Color
-@export_subgroup("Texture")
-@export var texture_right: Texture2D
+@export var spin_scale: float = 1.0
+@export var spin_magnet_step: float = 10.
+@export var text_color: Color = Color.WHITE
+@export var arrow_color: Color = Color(1, 1, 1, 0.7)
 
+enum _State { GRAB, TYPING }
 
-# RealTime Variables
-var start_pos = null
+var _state: _State = _State.GRAB
+var _is_grab: bool = false
+var _is_magnet: bool = false
+var _mouse_down: bool = false
+var _drag_start: Vector2
+var _drag_accum: float = 0.0
+var _line_edit: LineEdit
 
-var is_grab: bool:
-	set(val):
-		is_grab = val
-		control_val = curr_val
-		if is_grab:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-			grab_started.emit()
-		else:
-			set_curr_val(control_val, true, true)
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-			get_viewport().warp_mouse(global_position + size / 2.0)
-			start_pos = null
-			grab_finished.emit()
-
-var control_val: float:
-	set(val):
-		control_val = val
-		set_curr_val(control_val)
-
-var is_magnet: bool
-
-# RealTime Nodes
-var typing_line: LineEdit
-var progress_bar: ProgressBar
-var curr_val_label: Label
-var right_button: TextureButton
-var left_button: TextureButton
-
+# متغيرات التحكم في التكرار (Auto-repeat)
+var _repeat_timer: Timer
+var _repeat_dir: float = 0.0
+var _initial_delay: float = 0.4
+var _repeat_interval: float = 0.05
 
 func _ready() -> void:
-	var box = IS.create_box_container(4)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_CLICK
+	custom_minimum_size = Vector2(120, 32)
 	
-	var margin_container = IS.create_margin_container(6,6,6,6)
-	typing_line = IS.create_line_edit(); typing_line.z_index = 1
-	progress_bar = IS.create_progress_bar(curr_val, min_val, max_val, step, {show_percentage = false})
-	curr_val_label = IS.create_label(str(curr_val))
-	curr_val_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# إعداد التايمر للتخلص من الـ _process
+	_repeat_timer = Timer.new()
+	_repeat_timer.one_shot = false
+	_repeat_timer.timeout.connect(_on_repeat_timeout)
+	add_child(_repeat_timer)
 	
-	var button_args: Array = [texture_right, null, null, false, {mouse_filter = Control.MOUSE_FILTER_STOP}]
-	left_button = IS.create_texture_button.callv(button_args)
-	right_button = IS.create_texture_button.callv(button_args)
-	left_button.flip_h = true
+	# إعداد LineEdit
+	_line_edit = IS.create_line_edit()
+	_line_edit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_line_edit.visible = false
+	_line_edit.z_index = 1
+	_line_edit.text_submitted.connect(_on_text_submitted)
+	_line_edit.focus_exited.connect(_exit_typing)
+	add_child(_line_edit)
 	
-	margin_container.add_child(typing_line)
-	margin_container.add_child(progress_bar)
-	margin_container.add_child(curr_val_label)
-	
-	box.add_child(left_button)
-	box.add_child(margin_container)
-	box.add_child(right_button)
-	add_child(box)
-	
-	button_down.connect(on_button_down)
-	button_up.connect(on_button_up)
-	
-	typing_line.text_submitted.connect(on_typing_line_text_submitted)
-	left_button.pressed.connect(on_left_button_pressed)
-	right_button.pressed.connect(on_right_button_pressed)
-	
-	IS.expand(margin_container, true, true)
-	IS.expand(progress_bar, true, true)
-	
-	update_ui()
+	set_process_input(false)
 
+
+func _draw() -> void:
+	if _state == _State.TYPING:
+		return
+	
+	var margin := 25.0
+	var available_width := size.x - (margin * 2.0)
+	var ratio := inverse_lerp(min_val, max_val, float(curr_val))
+	
+	# رسم خلفية التقدم (Progress)
+	draw_rect(Rect2(Vector2(margin, 5.0), Vector2(available_width * ratio, size.y - 10.0)), IS.color_accent)
+	
+	# رسم النص
+	var font := get_theme_default_font()
+	var font_size := get_theme_default_font_size()
+	var label := _format(curr_val)
+	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var text_pos := Vector2((size.x - text_size.x) * 0.5, (size.y + text_size.y) * 0.5 - 2.0)
+	draw_string(font, text_pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
+	
+	# رسم الأسهم
+	_draw_arrow(Vector2(10.0, size.y * 0.5), false)
+	_draw_arrow(Vector2(size.x - 10.0, size.y * 0.5), true)
+
+func _draw_arrow(center: Vector2, right: bool) -> void:
+	var s := 5.0
+	var pts: PackedVector2Array
+	if right: 
+		pts = PackedVector2Array([center + Vector2(-s, s), center + Vector2(s, 0), center + Vector2(-s, -s)])
+	else: 
+		pts = PackedVector2Array([center + Vector2(s, s), center + Vector2(-s, 0), center + Vector2(s, -s)])
+	draw_colored_polygon(pts, arrow_color)
+
+func _input(event: InputEvent) -> void:
+	if _state == _State.TYPING and event is InputEventMouseButton:
+		if event.is_pressed():
+			if not get_rect().has_point(get_local_mouse_position()):
+				_exit_typing()
 
 func _gui_input(event: InputEvent) -> void:
-	
 	if event is InputEventMouseMotion:
-		
-		if is_grab:
-			control_val += float(event.relative.x) * spin_scale
-			is_magnet = event.ctrl_pressed
-		
-		elif start_pos != null:
-			if request_grab():
-				set_is_grab(true)
+		if _is_grab:
+			_is_magnet = event.ctrl_pressed
+			_drag_accum += event.relative.x * spin_scale
+			var snp := spin_magnet_step if _is_magnet else step
+			if absf(_drag_accum) >= snp:
+				var steps := int(_drag_accum / snp)
+				_drag_accum -= steps * snp
+				_apply_delta(steps * snp, change_value_when_drag)
+		elif _mouse_down:
+			if _drag_start.distance_to(get_global_mouse_position()) >= 5.0:
+				_stop_repeat()
+				_begin_grab()
 	
 	elif event is InputEventMouseButton:
-		if not get_global_rect().has_point(get_global_mouse_position()) and state: state = 0
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_mouse_down = true
+				_drag_start = get_global_mouse_position()
+				_check_arrow_press(get_local_mouse_position())
+			else:
+				_mouse_down = false
+				_stop_repeat()
+				if _is_grab:
+					_end_grab()
+				elif _state != _State.TYPING:
+					var pos = get_local_mouse_position()
+					if pos.x > 24.0 and pos.x < size.x - 24.0:
+						_enter_typing()
+	
+	#elif event is InputEventKey and event.pressed and _state != _State.TYPING:
+		#match event.keycode:
+			#KEY_LEFT: _apply_delta(-step, true)
+			#KEY_RIGHT: _apply_delta(step, true)
 
+func _check_arrow_press(pos: Vector2) -> void:
+	if pos.x < 24.0:
+		_repeat_dir = -1.0
+	elif pos.x > size.x - 24.0:
+		_repeat_dir = 1.0
+	else:
+		_repeat_dir = 0.0
+		return
+	
+	_apply_delta(_repeat_dir * step, true)
+	_repeat_timer.start(_initial_delay)
+
+func _on_repeat_timeout() -> void:
+	if _mouse_down and _repeat_dir != 0.0:
+		_apply_delta(_repeat_dir * step, true)
+		if _repeat_timer.wait_time != _repeat_interval:
+			_repeat_timer.start(_repeat_interval)
+
+func _stop_repeat() -> void:
+	_repeat_dir = 0.0
+	_repeat_timer.stop()
+
+func _begin_grab() -> void:
+	_is_grab = true
+	_drag_accum = 0.0
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	grab_started.emit()
+
+func _end_grab() -> void:
+	_is_grab = false
+	_drag_accum = 0.0
+	_is_magnet = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	get_viewport().warp_mouse(global_position + size * 0.5)
+	val_changed.emit(curr_val)
+	grab_finished.emit()
 
 func _exit_tree() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
+func _enter_typing() -> void:
+	_state = _State.TYPING
+	_line_edit.visible = true
+	_line_edit.text = _format(curr_val)
+	_line_edit.grab_focus()
+	_line_edit.select_all()
+	set_process_input(true)
+	queue_redraw()
 
-
-func on_button_down() -> void:
-	start_pos = get_global_mouse_position()
-
-func on_button_up() -> void:
-	if not request_grab():
-		state = 1
-	set_is_grab(false)
-
-func on_typing_line_text_submitted(new_text: String) -> void:
-	state = 0
-	
-	var regex:= RegEx.new()
-	regex.compile("^[0-9+\\-*/. ()]+$")
-	if regex.search(new_text) == null:
+func _exit_typing() -> void:
+	if _state != _State.TYPING:
 		return
-	
-	var expression:= Expression.new()
-	var parse_error:= expression.parse(new_text)
-	if parse_error != OK:
-		return
-	
-	var result: Variant = expression.execute()
-	if expression.has_execute_failed():
-		return
-	
-	set_curr_val(result, true, true)
+	_state = _State.GRAB
+	_line_edit.visible = false
+	_line_edit.release_focus()
+	set_process_input(false)
+	queue_redraw()
 
-func on_left_button_pressed() -> void:
-	set_curr_val(curr_val - step, true, true)
+static var regex := RegEx.new()
+static var expr := Expression.new()
 
-func on_right_button_pressed() -> void:
-	set_curr_val(curr_val + step, true, true)
+func _on_text_submitted(text: String) -> void:
+	_exit_typing()
+	regex.compile(r"^[0-9+\-*/. ()]+$")
+	if regex.search(text) == null: return
+	if expr.parse(text) != OK: return
+	var result: Variant = expr.execute()
+	if expr.has_execute_failed(): return
+	set_curr_val(float(result), true)
 
-
-
-func get_curr_val() -> float:
+func get_curr_val() -> Variant:
 	return curr_val
 
-func set_curr_val(new_val: float, emit_change: bool = true, force_change_value: bool = false) -> void:
-	curr_val = clamp(new_val, min_val, max_val)
-	curr_val = snapped(curr_val, spin_magnet_step if is_magnet else step)
+func set_curr_val(new_val: float, emit: bool = true) -> void:
+	var snp := step
+	if _is_grab and _is_magnet:
+		snp = spin_magnet_step
+		
+	var clamped := clampf(snappedf(new_val, snp), min_val, max_val)
+	if is_int:
+		clamped = float(round(clamped))
 	
-	if is_int: curr_val = int(curr_val)
-	if progress_bar != null and progress_bar.is_node_ready(): progress_bar.value = curr_val
-	if curr_val_label != null and curr_val_label.is_node_ready(): curr_val_label.text = str(curr_val)
-	if emit_change and (change_value_when_drag or force_change_value): val_changed.emit(curr_val)
-	
+	if clamped == float(curr_val):
+		return
+	curr_val = clamped
+	if emit:
+		val_changed.emit(curr_val)
 	queue_redraw()
 
 func set_curr_val_manually(new_val: float) -> void:
 	set_curr_val(new_val, false)
 
+func _apply_delta(delta: float, emit: bool) -> void:
+	set_curr_val(float(curr_val) + delta, emit)
 
-func set_is_grab(new_val: bool) -> void:
-	is_grab = new_val
-
-func request_grab() -> bool:
-	return start_pos.distance_to(get_global_mouse_position()) >= 10.0
-
-func update_ui() -> void:
-	var not_state = not state
-	if not typing_line: return
-	typing_line.visible = state
-	progress_bar.visible = not_state
-	curr_val_label.visible = not_state
-	left_button.visible = not_state
-	right_button.visible = not_state
-	if state:
-		typing_line.set_text(str(curr_val))
-		typing_line.grab_focus()
-		typing_line.select()
-	else: typing_line.release_focus()
-
-
+func _format(v: Variant) -> String:
+	return str(int(v) if is_int else snappedf(v, step))

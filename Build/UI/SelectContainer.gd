@@ -1,5 +1,6 @@
 class_name SelectContainer extends PanelContainer
 
+signal focused_changed(old_focused: Vector2i, new_focused: Vector2i)
 signal selected_changed()
 
 signal selectbox_started()
@@ -11,6 +12,8 @@ signal selectbox_finished()
 @export_range(.01, 200.0) var control_close_dist: float = 10.
 @export_range(.1, 100.0) var control_drag_dist: float = 10.
 @export var control_use_selection_box: bool = true
+@export var control_enable_delete: bool = true
+@export var control_enable_past: bool = true
 
 @export_group("Draw", "draw")
 @export var draw_x_small_step: float = 10.
@@ -51,7 +54,13 @@ var selectbox_globalrect: Rect2
 
 
 func _set_focused(new_val: Vector2i) -> void:
+	var tmp_focused: Vector2i = focused
 	focused = new_val
+	emit_focused_changed(tmp_focused, new_val)
+
+
+func emit_focused_changed(old_focused: Vector2i, new_focused: Vector2i) -> void:
+	focused_changed.emit(old_focused, new_focused)
 
 func emit_selected_changed() -> void:
 	selected_changed.emit()
@@ -161,6 +170,10 @@ func loop_selected_vals(info: Dictionary[StringName, Variant], method: Callable,
 	return info
 
 func delete_selected_vals() -> void:
+	
+	if not control_enable_delete:
+		return
+	
 	loop_selected_vals({}, func(port_idx: int, idx: int, info: Dictionary[StringName, Variant]) -> bool:
 		_delete_val(port_idx, idx)
 		delete_selectable_val(port_idx, idx)
@@ -185,8 +198,13 @@ func copy_selected_vals(cut: bool) -> void:
 		delete_selected_vals()
 
 func past_selected_vals() -> void:
+	
+	if not control_enable_past:
+		return
+	
 	if copied.is_empty():
 		return
+	
 	for port_idx: int in copied:
 		var port: Dictionary = copied[port_idx]
 		for idx: int in port:
@@ -277,12 +295,13 @@ func _init() -> void:
 	mouse_exited.connect(_on_mouse_exited)
 
 func _ready() -> void:
+	shortcut_node.methods_object = self
 	add_child(shortcut_node)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
-		var action_small_step:= event.is_action("small_snap")
-		var action_big_step:= event.is_action("big_snap")
+		var action_small_step: bool = event.keycode == KEY_SHIFT
+		var action_big_step: bool = event.keycode == KEY_CTRL
 		is_snapped = event.is_pressed()
 		
 		if event.is_pressed():

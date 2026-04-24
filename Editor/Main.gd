@@ -29,7 +29,6 @@ extends Control
 
 
 
-
 # Nodes
 var curr_layout_container: SplitContainer
 var curr_layout_buttons: Dictionary[LayoutRootInfo, Button]
@@ -51,7 +50,7 @@ func _ready() -> void:
 	
 	get_window().borderless = false
 	get_window().mode = Window.MODE_MAXIMIZED
-	get_window().min_size = Vector2i(1500, 900)
+	get_window().min_size = Vector2i(1600, 900)
 	get_tree().set_auto_accept_quit(false)
 	
 	IS.set_base_panel_settings(bg_panel_container, IS.style_cornerless_dark)

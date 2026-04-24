@@ -17,7 +17,7 @@ var cameras: Array[Camera2DClipRes]
 func _ready_scene() -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.audio_listener_enable_2d = true
-	viewport.transparent_bg = true
+	viewport.transparent_bg = false
 	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
 	PlaybackServer.played.connect(play_stream_players)
 	PlaybackServer.stopped.connect(stop_stream_players)
@@ -39,7 +39,7 @@ func start_scene() -> void:
 func update_viewport() -> void:
 	viewport.size = ProjectServer2.project_res.resolution
 	viewport.use_debanding = Renderer.is_working
-	viewport.use_hdr_2d = Renderer.is_working
+	viewport.use_hdr_2d = false
 
 func get_curr_nodes() -> Array[MediaClipRes]:
 	return curr_nodes
@@ -75,29 +75,36 @@ func remove_camera(camera_clip_res: Camera2DClipRes) -> void:
 func update_camera_enabling() -> void:
 	camera.enabled = cameras.size() == 0
 
-func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node) -> void:
+func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node, layer_idx: int) -> void:
 	var view: Viewport
 	var node_parent: Node = parent_res.curr_node
 	
 	for prenode: Node in clip_res.prenodes:
 		node_parent.add_child(prenode)
+		node_parent.move_child(prenode, layer_idx)
 	
 	node_parent.add_child(node)
+	node_parent.move_child(node, layer_idx)
 	
 	for postnode: Node in clip_res.postnodes:
 		node_parent.add_child(postnode)
+		node_parent.move_child(postnode, layer_idx)
 	
 	clip_res.curr_node = node
 	curr_nodes.append(clip_res)
 
 func free_node(clip_res: MediaClipRes) -> void:
-	for prenode: Node in clip_res.prenodes: prenode.queue_free()
+	for prenode: Node in clip_res.prenodes:
+		if is_instance_valid(prenode):
+			prenode.queue_free()
 	clip_res.prenodes.clear()
 	
 	clip_res.curr_node.queue_free()
 	clip_res.curr_node = null
 	
-	for postnode: Node in clip_res.postnodes: postnode.queue_free()
+	for postnode: Node in clip_res.postnodes:
+		if is_instance_valid(postnode):
+			postnode.queue_free()
 	clip_res.postnodes.clear()
 	
 	curr_nodes.erase(clip_res)
@@ -149,7 +156,6 @@ func play_video_stream_player(video_clip_res: VideoClipRes, at: int, fps_f: floa
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	start_scene()
 
-func _on_media_res_shader_material_changed(media_res: MediaClipRes, node_2d: CanvasItem) -> void:
-	node_2d.set_material(media_res.get_shader_material())
+
 
 

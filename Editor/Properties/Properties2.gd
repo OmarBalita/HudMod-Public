@@ -100,7 +100,7 @@ func set_component_enabled(comp_info: ComponentInfo) -> void:
 		var comp_res: ComponentRes = comp_info.components_ress[index]
 		comp_res.set_enabled(target)
 
-func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_box_container: IS.EditBoxContainer = null) -> void:
+func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_box_container: EditBoxContainer = null) -> void:
 	for index: int in curr_clip_ress.size():
 		var media_res: MediaClipRes = curr_clip_ress[index]
 		media_res.erase_component(section_key, comp_info.components_ress[index])
@@ -384,7 +384,7 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	
 	var usable_ress: Array[UsableRes]
 	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
-	var mediares_editbox: IS.EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit))
+	var mediares_editbox: EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit))
 	header_cont.add_child(mediares_editbox)
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
@@ -394,7 +394,7 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	comp_res_owner.res_changed.connect(property_changed.emit)
 	
 	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, curr_section_controls.search_line)
-	var comp_editor: IS.EditBoxContainer = IS.get_edit_box_from(comp_controllers)
+	var comp_editor: EditBoxContainer = IS.get_edit_box_from(comp_controllers)
 	var editor_header: BoxContainer = comp_editor.header
 	
 	comp_editor.set_meta(&"component_res", comp_res_owner)
@@ -473,11 +473,11 @@ func _on_section_box_container_grab_released(section_key: StringName, index_from
 func _on_search_line_edit_text_changed(new_text: String) -> void:
 	pass
 
-func _on_component_controller_move_button_button_down(section_key: StringName, index_from: int, comp_editor: IS.EditBoxContainer) -> void:
+func _on_component_controller_move_button_button_down(section_key: StringName, index_from: int, comp_editor: EditBoxContainer) -> void:
 	var section_box_container: ArrangableBoxContainer = sections_controls[section_key].box
 	section_box_container.grab_element(comp_editor, index_from)
 
-func _on_component_controller_move_button_button_up(section_key: StringName, comp_editor: IS.EditBoxContainer) -> void:
+func _on_component_controller_move_button_button_up(section_key: StringName, comp_editor: EditBoxContainer) -> void:
 	var section_box_container: ArrangableBoxContainer = sections_controls[section_key].box
 	section_box_container.release_element()
 

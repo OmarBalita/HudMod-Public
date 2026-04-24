@@ -43,7 +43,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"contrast": export(float_args(contrast, -1., 1., .05, .01, .1), is_custom_cond)
 	}
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	props_controllers.base_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
 	props_controllers.accent_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
 

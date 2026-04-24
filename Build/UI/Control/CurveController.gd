@@ -1,6 +1,5 @@
 ## تم كتابته بالكامل وتنفيذه من قبل Omar TOP
 ## ثم استلم Claude أمر الترتيب فقط.
-
 class_name CurveController extends SelectContainer
 
 # ==============================================================================
@@ -115,7 +114,6 @@ func _ready() -> void:
 	
 	shortcut_node.key = &"Curve Editor"
 	shortcut_node.load_shortcuts_from_settings()
-	shortcut_node.methods_object = self
 	
 	set_process(false)
 	zoom_value(20.)
@@ -478,25 +476,25 @@ func _gui_input(event: InputEvent) -> void:
 
 func _handle_mouse_input(event: InputEventMouse) -> void:
 	var mouse_pos: Vector2 = get_local_mouse_position()
-	var coord:     Vector2 = get_coord_from_display_pos(mouse_pos)
-
-	var curr_motion_mode:        int  = get_meta(&"motion_mode", 0)
-	var finded_key:              Dictionary[StringName, Variant] = find_key(mouse_pos, selected if curr_motion_mode == 3 else {})
-	var is_key_finded:           bool = finded_key.keys_index != -1
-	var finded_control:          Dictionary[StringName, Variant] = find_control(mouse_pos, curr_motion_mode == 2)
-	var is_control_finded:       bool = finded_control.curve_key != null
-	var curr_focused_keys_index: int  = focused_keys_index
-
+	var coord: Vector2 = get_coord_from_display_pos(mouse_pos)
+	
+	var curr_motion_mode: int = get_meta(&"motion_mode", 0)
+	var finded_key: Dictionary[StringName, Variant] = find_key(mouse_pos, selected if curr_motion_mode == 3 else {})
+	var is_key_finded: bool = finded_key.keys_index != -1
+	var finded_control: Dictionary[StringName, Variant] = find_control(mouse_pos, curr_motion_mode == 2)
+	var is_control_finded:bool = finded_control.curve_key != null
+	var curr_focused_keys_index: int = focused_keys_index
+	
 	if is_control_finded:
 		coord = finded_control.coord
 		curr_focused_keys_index = finded_control.keys_index
 	elif is_key_finded:
 		coord = finded_key.coord
 		curr_focused_keys_index = finded_key.keys_index
-
-	is_cursor_focused  = abs(mouse_pos.x - get_display_pos_from_domain(cursor_pos)) <= control_drag_dist
+	
+	is_cursor_focused = abs(mouse_pos.x - get_display_pos_from_domain(cursor_pos)) <= control_drag_dist
 	is_control_focused = is_control_finded
-
+	
 	if event is InputEventMouseButton:
 		_handle_mouse_button(event, mouse_pos, coord, curr_focused_keys_index, finded_key, finded_control, is_key_finded, is_control_finded)
 	elif event is InputEventMouseMotion:
@@ -504,20 +502,20 @@ func _handle_mouse_input(event: InputEventMouse) -> void:
 
 
 func _handle_mouse_button(
-	event:                  InputEventMouseButton,
-	mouse_pos:              Vector2,
-	coord:                  Vector2,
+	event: InputEventMouseButton,
+	mouse_pos: Vector2,
+	coord: Vector2,
 	curr_focused_keys_index: int,
-	finded_key:             Dictionary[StringName, Variant],
-	finded_control:         Dictionary[StringName, Variant],
-	is_key_finded:          bool,
-	is_control_finded:      bool
+	finded_key: Dictionary[StringName, Variant],
+	finded_control: Dictionary[StringName, Variant],
+	is_key_finded: bool,
+	is_control_finded: bool
 ) -> void:
 	var is_pressed:  bool = event.is_pressed()
 	var motion_mode: int  = 0
-
+	
 	match event.button_index:
-
+	
 		MOUSE_BUTTON_LEFT:
 			if is_pressed:
 				if draw_cursor and is_cursor_focused:
@@ -528,7 +526,7 @@ func _handle_mouse_button(
 					set_meta(&"control_type", finded_control.control_type)
 					set_meta(&"point_coord",  finded_control.key_coord)
 					motion_mode = 2
-
+		
 		MOUSE_BUTTON_RIGHT:
 			if is_pressed:
 				if is_control_finded and finded_control.curve_key.control_mode != 3:
@@ -538,12 +536,12 @@ func _handle_mouse_button(
 			else:
 				if is_key_finded and not get_meta(&"mouse_moved"):
 					popup_options_menu()
-
+		
 		MOUSE_BUTTON_WHEEL_DOWN:
 			if event.ctrl_pressed: zoom_value(5.0)
 		MOUSE_BUTTON_WHEEL_UP:
 			if event.ctrl_pressed: zoom_value(-5.0)
-
+		
 	if is_pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 		set_meta(&"press_pos",   mouse_pos)
 		set_meta(&"mouse_moved", false)
@@ -567,40 +565,40 @@ func _handle_mouse_button(
 				not get_meta(&"mouse_moved", false) and not event.ctrl_pressed
 			)
 		queue_redraw()
-
-	set_meta(&"motion_mode",        motion_mode)
-	set_meta(&"coord",              coord)
-	set_meta(&"navigation_offset",  .0)
+	
+	set_meta(&"motion_mode", motion_mode)
+	set_meta(&"coord", coord)
+	set_meta(&"navigation_offset", .0)
 	set_process(event.is_pressed())
 
 
 func _handle_mouse_motion(
-	event:                  InputEventMouseMotion,
-	mouse_pos:              Vector2,
-	coord:                  Vector2,
-	curr_motion_mode:       int,
-	finded_key:             Dictionary[StringName, Variant],
-	finded_control:         Dictionary[StringName, Variant],
-	is_key_finded:          bool,
-	is_control_finded:      bool,
+	event: InputEventMouseMotion,
+	mouse_pos: Vector2,
+	coord: Vector2,
+	curr_motion_mode: int,
+	finded_key: Dictionary[StringName, Variant],
+	finded_control: Dictionary[StringName, Variant],
+	is_key_finded: bool,
+	is_control_finded: bool,
 	curr_focused_keys_index: int
 ) -> void:
 	focused_keys_index = curr_focused_keys_index if is_key_finded else find_focused_keys_index(coord, mouse_pos)
-
+	
 	var value_delta: float = -event.relative.y / (size.y / (max_val - min_val))
-
+	
 	match curr_motion_mode:
 		1: _motion_cursor(coord)
 		2: _motion_control(coord, mouse_pos, finded_control)
 		3: _input_move_selected_points(coord, mouse_pos)
 		4: navigate_value(value_delta)
 		5: navigate_value(value_delta)
-
+	
 	if curr_motion_mode != 0:
 		if mouse_pos.distance_to(get_meta(&"press_pos")):
 			set_meta(&"mouse_moved", true)
 		queue_redraw()
-
+	
 	set_meta(&"coord", coord)
 	_update_drawable_cursor(coord, mouse_pos, is_key_finded, is_control_finded)
 
@@ -610,24 +608,24 @@ func _motion_cursor(coord: Vector2) -> void:
 
 
 func _motion_control(coord: Vector2, mouse_pos: Vector2, finded_control: Dictionary[StringName, Variant]) -> void:
-	var curve_key:          CurveKey = get_meta(&"curve_key")
-	var control_type:       int      = get_meta(&"control_type")
-	var key_coord:          Vector2  = get_meta(&"point_coord")
+	var curve_key: CurveKey = get_meta(&"curve_key")
+	var control_type: int = get_meta(&"control_type")
+	var key_coord: Vector2 = get_meta(&"point_coord")
 	var control_target_coord: Vector2 = coord - key_coord
-
+	
 	if curve_key.control_mode == CurveKey.ControlMode.CONTROL_MODE_VECTOR:
 		update_navigation_offset(mouse_pos)
 		curves_profiles[get_meta(&"keys_index")].update_profile()
 		return
-
+	
 	var set_control_func: Callable
 	if control_type == 1:
 		set_control_func = func(ck: CurveKey, new_val: Vector2) -> void: ck.set_left_control(new_val)
 	elif control_type == 2:
 		set_control_func = func(ck: CurveKey, new_val: Vector2) -> void: ck.set_right_control(new_val)
-
+	
 	set_control_func.call(curve_key, control_target_coord)
-
+	
 	if EditorServer.time_line2.edit_multiple_btn.selected_id == 1:
 		loop_selected_vals({},
 			func(port_idx: int, idx: int, _info: Dictionary[StringName, Variant]) -> void:
@@ -635,20 +633,18 @@ func _motion_control(coord: Vector2, mouse_pos: Vector2, finded_control: Diction
 				if curr_curve_key.interpolation_mode == 2:
 					set_control_func.call(curr_curve_key, control_target_coord)
 		)
-
+	
 	update_navigation_offset(mouse_pos)
 	curves_profiles[get_meta(&"keys_index")].update_profile()
 
 
 func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
-	var init_keys_index: int     = get_meta(&"keys_index")
-	var init_coord:      Vector2 = get_meta(&"point_coord")
-	var coord_delta:     Vector2 = coord - init_coord
-
+	var init_keys_index: int = get_meta(&"keys_index")
+	var init_coord: Vector2 = get_meta(&"point_coord")
+	var coord_delta: Vector2 = coord - init_coord
+	
 	coord.x = format_x(coord.x)
-
-	# نحفظ snapshot من {port_idx -> {idx -> value}} قبل أي تحريك
-	# لأن keys_move تحذف وتضيف في نفس الوقت، فيصبح idx القديم null أثناء الحلقة
+	
 	var snapshot: Dictionary = {}
 	for port_idx: int in selected:
 		snapshot[port_idx] = {}
@@ -656,14 +652,13 @@ func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
 			var curve_key: CurveKey = keys_get(port_idx).get(idx)
 			if curve_key != null:
 				snapshot[port_idx][idx] = curve_key.value
-
+	
 	if keys_move(init_keys_index, init_coord.x, coord, false, false):
 		for port_idx: int in snapshot:
 			var port_snapshot: Dictionary = snapshot[port_idx]
 			var replaced_keys: Dictionary[float, float]
-
+			
 			for idx: int in port_snapshot:
-				# تخطى الـ init_point لأنه تحرك بالفعل أعلاه
 				if port_idx == init_keys_index and idx == init_coord.x:
 					continue
 				var point_new_coord: Vector2 = Vector2(idx, port_snapshot[idx]) + coord_delta
@@ -685,13 +680,14 @@ func _input_move_selected_points(coord: Vector2, mouse_pos: Vector2) -> void:
 	
 	for profile: CurveProfile in curves_profiles:
 		profile.update_profile()
+	
 	keys_editing.emit()
 
 
 func _update_drawable_cursor(coord: Vector2, mouse_pos: Vector2, is_key_finded: bool, is_control_finded: bool) -> void:
-	var drawable_rect:          DrawableRect = EditorServer.drawable_rect
+	var drawable_rect: DrawableRect = EditorServer.drawable_rect
 	var target_global_mouse_pos: Vector2 = get_display_pos_from_coord(coord) + (self.global_position - drawable_rect.global_position)
-	var target_color:            Color    = Color.WHITE if is_key_finded or is_control_finded else Color(Color.WHITE, .5)
+	var target_color: Color = Color.WHITE if is_key_finded or is_control_finded else Color(Color.WHITE, .5)
 	drawable_rect.draw_new_cursor(target_global_mouse_pos, target_color, false)
 	drawable_rect.draw_new_string(font, Vector2(20., -10.) + target_global_mouse_pos, str(coord), 0, 16, target_color)
 
@@ -701,8 +697,8 @@ func _update_drawable_cursor(coord: Vector2, mouse_pos: Vector2, is_key_finded: 
 # ==============================================================================
 
 func _get_menu_options() -> Array:
-	var control_option     := MenuOption.new("Control Mode",      null)
-	var interpolation_option := MenuOption.new("Interpolation Mode", null)
+	var control_option:= MenuOption.new("Control Mode", null)
+	var interpolation_option:= MenuOption.new("Interpolation Mode", null)
 
 	control_option.forward = [
 		MenuOption.new("Free",     null, set_keys_control_mode.bind(0)),
@@ -725,7 +721,7 @@ func _get_menu_options() -> Array:
 		MenuOption.new("Elastic",     null, set_keys_transition_mode.bind(11)),
 		MenuOption.new("Bounce",      null, set_keys_transition_mode.bind(12)),
 	]
-
+	
 	return [
 		control_option,
 		interpolation_option,
@@ -755,10 +751,10 @@ func _draw() -> void:
 func _draw_grid() -> void:
 	var val_size:    float = max_val - min_val
 	var domain_size: float = max_domain - min_domain
-
+	
 	var y_offset:      float = min_val - float(int(min_val) % draw_val_step)
 	var y_displacement: float = y_offset - int(y_offset)
-
+	
 	if is_snapped:
 		var snap_grid_color := Color(Color.WHITE, .1)
 		var x_snap_steps_count: int = domain_size / draw_step.x + 1
@@ -768,7 +764,7 @@ func _draw_grid() -> void:
 		for snap_step: int in range(-50, val_size / draw_step.y + 50):
 			var y_pos := get_display_pos_from_val(y_offset + snap_step * draw_step.y - y_displacement)
 			draw_line(Vector2(.0, y_pos), Vector2(size.x, y_pos), snap_grid_color)
-
+	
 	var grid_color      := Color(Color.WHITE, .2)
 	var val_steps_count: int = val_size / draw_val_step + 2
 	for step: int in val_steps_count:
@@ -782,56 +778,56 @@ func _draw_curves() -> void:
 	var curves_profiles_size: int = curves_profiles.size()
 	for keys_index: int in curves_profiles_size:
 		if not keys_info[keys_index].v: continue
-
-		var profile:   CurveProfile          = curves_profiles[keys_index]
-		var keys:      Dictionary[int, CurveKey] = profile.keys
-		var keys_keys: Array                 = profile.keys_keys
-
+		
+		var profile: CurveProfile = curves_profiles[keys_index]
+		var keys: Dictionary[int, CurveKey] = profile.keys
+		var keys_keys: Array = profile.keys_keys
+		
 		var color_alpha: float = 1.0 if (not is_cursor_focused and keys_index == focused_keys_index) else .5
-		var keys_color:  Color = KEYS_COLORS[keys_index] if curves_profiles_size > 1 else Color.WHITE
+		var keys_color: Color = KEYS_COLORS[keys_index] if curves_profiles_size > 1 else Color.WHITE
 		keys_color = Color(keys_color, color_alpha)
-
+		
 		_draw_curve_segments(profile, keys, keys_keys, keys_index, keys_color, color_alpha)
 		_draw_curve_endpoints(keys, keys_keys, keys_index, keys_color, color_alpha)
 
 
 func _draw_curve_segments(
-	profile:    CurveProfile,
-	keys:       Dictionary[int, CurveKey],
-	keys_keys:  Array,
+	profile: CurveProfile,
+	keys: Dictionary[int, CurveKey],
+	keys_keys: Array,
 	keys_index: int,
 	keys_color: Color,
 	color_alpha: float
 ) -> void:
 	var latest_draw_control: bool = false
 	for index: int in range(0, keys.size() - 1):
-		var key_a: int      = keys_keys[index]
-		var key_b: int      = keys_keys[index + 1]
+		var key_a: int = keys_keys[index]
+		var key_b: int = keys_keys[index + 1]
 		var curve_key: CurveKey = keys[key_a]
-		var val_a: float    = curve_key.value
-		var val_b: float    = keys[key_b].value
-
-		var latest_coord:       Vector2 = Vector2(key_a, val_a)
+		var val_a: float = curve_key.value
+		var val_b: float = keys[key_b].value
+		
+		var latest_coord: Vector2 = Vector2(key_a, val_a)
 		var latest_display_pos: Vector2 = get_display_pos_from_coord(latest_coord)
-		var draw_control:       bool    = curve_key.interpolation_mode == 2
-
+		var draw_control: bool = curve_key.interpolation_mode == 2
+		
 		_draw_key(latest_coord, keys[key_a], latest_draw_control, draw_control, latest_display_pos, is_val_selected(keys_index, key_a), color_alpha)
 		latest_draw_control = draw_control
-
+		
 		var display_pos_a: Vector2 = get_display_pos_from_coord(Vector2(key_a, val_a))
 		var display_pos_b: Vector2 = get_display_pos_from_coord(Vector2(key_b, val_b))
-
+		
 		match curve_key.interpolation_mode:
 			0:
 				var mid_pos := Vector2(display_pos_b.x, display_pos_a.y)
-				draw_line(display_pos_a, mid_pos,        keys_color, 2.0)
-				draw_line(mid_pos,       display_pos_b,  keys_color, 2.0)
+				draw_line(display_pos_a, mid_pos, keys_color, 2.0)
+				draw_line(mid_pos, display_pos_b, keys_color, 2.0)
 			1:
 				draw_line(display_pos_a, display_pos_b, keys_color, 2.0)
 			_:
 				for offset: int in range(1, key_b - key_a):
-					var new_x:           float   = key_a + offset
-					var new_coord:       Vector2 = Vector2(new_x, profile.sample_func.call(new_x))
+					var new_x: float = key_a + offset
+					var new_coord: Vector2 = Vector2(new_x, profile.sample_func.call(new_x))
 					var new_display_pos: Vector2 = get_display_pos_from_coord(new_coord)
 					draw_line(latest_display_pos, new_display_pos, keys_color, 2.0)
 					latest_coord = new_coord
@@ -865,36 +861,36 @@ func _draw_curve_endpoints(
 
 func _draw_cursor_line() -> void:
 	var cursor_display_pos: float = get_display_pos_from_domain(cursor_pos)
-	var cursor_color: Color       = Color(Color.WHITE, 1.0 if is_cursor_focused else .6)
+	var cursor_color: Color = Color(Color.WHITE, 1.0 if is_cursor_focused else .6)
 	draw_line(Vector2(cursor_display_pos, .0), Vector2(cursor_display_pos, size.y), cursor_color, 3)
 
 
 func _draw_key(
-	coord:         Vector2,
-	curve_key:     CurveKey,
-	left_control:  bool,
+	coord: Vector2,
+	curve_key: CurveKey,
+	left_control: bool,
 	right_control: bool,
-	display_pos:   Vector2,
-	is_selected:   bool  = false,
-	color_alpha:   float = 1.
+	display_pos: Vector2,
+	is_selected: bool  = false,
+	color_alpha: float = 1.
 ) -> void:
-	var rect:  Rect2 = Rect2(display_pos - KEY_SIZE_HALF, KEY_SIZE)
+	var rect: Rect2 = Rect2(display_pos - KEY_SIZE_HALF, KEY_SIZE)
 	var color: Color
-
+	
 	if is_selected:
 		color = draw_select_color
-		var control_color := Color(Color.WHITE, color_alpha)
-
+		var control_color:= Color(Color.WHITE, color_alpha)
+		
 		if left_control:
-			var left_pos := get_display_pos_from_coord(coord + curve_key.left_control)
+			var left_pos:= get_display_pos_from_coord(coord + curve_key.left_control)
 			draw_line(display_pos, left_pos, control_color, 2.0)
 			draw_circle(left_pos, 5., control_color)
-
+		
 		if right_control:
 			var right_pos := get_display_pos_from_coord(coord + curve_key.right_control)
 			draw_line(display_pos, right_pos, control_color, 2.0)
 			draw_circle(right_pos, 5., control_color)
-
+		
 		if left_control or right_control:
 			var padlock_texture: Texture2D
 			var padlock_color:   Color
@@ -912,7 +908,7 @@ func _draw_key(
 			)
 	else:
 		color = Color.WHITE
-
+	
 	draw_texture_rect(keyframe_texture, rect, false, Color(color, color_alpha))
 
 

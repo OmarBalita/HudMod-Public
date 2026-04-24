@@ -1,5 +1,5 @@
 @icon("res://Asset/Icons/Objects/shape-2d.png")
-class_name Shape2DClipRes extends Display2DClipRes
+@abstract class_name Shape2DClipRes extends Display2DClipRes
 
 @export var draw_comps: Array[DrawShapeComponentRes] = []
 
@@ -19,21 +19,24 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 
 func _process_comps(frame: int) -> void:
 	super(frame)
+	
 	for draw_comp: DrawShapeComponentRes in draw_comps:
 		if draw_comp.dirty_level:
 			curr_node.queue_redraw()
 			break
+	
 	for draw_comp: DrawShapeComponentRes in draw_comps:
 		draw_comp.min_dirty()
 
 func emit_res_changed() -> void:
 	super()
 	draw_comps.clear()
+	
 	for comp: ComponentRes in components.Display2D:
 		if comp is not DrawShapeComponentRes or not comp.enabled:
 			continue
 		draw_comps.append(comp)
+	
 	if curr_node:
 		curr_node.queue_redraw()
-
 

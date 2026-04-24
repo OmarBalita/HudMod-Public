@@ -51,7 +51,7 @@ func _on_pressed() -> void:
 	var name_line: LineEdit = IS.create_line_edit("Custom Name", timemarker_res.custom_name, null, {max_length = 24})
 	var color_menu: Menu = IS.create_menu(color_options, false, true, {custom_minimum_size = Vector2(0, 40)})
 	var description_controller: TextEdit = IS.create_text_edit_edit("Custom Description", "", timemarker_res.custom_description)[0]
-	var description_edit: IS.EditBoxContainer = description_controller.get_parent()
+	var description_edit: EditBoxContainer = description_controller.get_parent()
 	
 	color_menu.focus_index = custom_color_index
 	description_edit.keyframable = false

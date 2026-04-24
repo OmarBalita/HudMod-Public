@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://clqh4uu3cbsck"]
 
-[ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderControl.gd" id="1_l3tcm"]
+[ext_resource type="Script" uid="uid://id88nxgx1ukv" path="res://Build/UI/Control/SliderController.gd" id="1_l3tcm"]
 [ext_resource type="Script" uid="uid://bsunkx73li7qe" path="res://Build/UI/Control/PopupedColorController.gd" id="2_7snrv"]
 [ext_resource type="Script" uid="uid://drihlu2bp73ud" path="res://Build/UI/Control/FloatController.gd" id="3_3rv65"]
 [ext_resource type="Texture2D" uid="uid://chf0k2wvk1evm" path="res://Asset/Icons/toggle-button.png" id="4_bscte"]

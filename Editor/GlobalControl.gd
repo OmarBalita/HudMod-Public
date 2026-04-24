@@ -29,10 +29,8 @@ func frame_spacial(step: int) -> void:
 
 func play_and_stop() -> void:
 	if Renderer.is_working: return
-	if PlaybackServer.is_playing():
-		PlaybackServer.stop()
-	else:
-		PlaybackServer.play()
+	if PlaybackServer.is_playing(): PlaybackServer.stop()
+	else: PlaybackServer.play()
 
 func new() -> void: EditorServer.popup_new_project()
 func open() -> void: EditorServer.popup_open_project()

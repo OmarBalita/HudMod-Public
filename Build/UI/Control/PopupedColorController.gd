@@ -108,17 +108,17 @@ func _ready() -> void:
 	after_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
 	color_picker_button = IS.create_texture_button(texture_color_picker, null, null, true)
 	
-	red_controller = IS.create_float_edit("R", curr_color.r, .0, 1., .01, .01, .1, false, 0)[0]
-	green_controller = IS.create_float_edit("G", curr_color.g, .0, 1., .01, .01, .1, false, 0)[0]
-	blue_controller = IS.create_float_edit("B", curr_color.b, .0, 1., .01, .01, .1, false, 0)[0]
-	hue_controller = IS.create_float_edit("H", curr_color.h, .0, 1., .01, .01, .1, false, 0)[0]
-	sat_controller = IS.create_float_edit("S", curr_color.s, .0, 1., .01, .01, .1, false, 0)[0]
-	val_controller = IS.create_float_edit("V", curr_color.v, .0, 1., .01, .01, .1, false, 0)[0]
-	alpha_controller = IS.create_float_edit("A", curr_color.a, .0, 1., .01, .01, .1, false, 0)[0]
-	var red_edit: IS.EditBoxContainer = red_controller.get_parent(); var green_edit: IS.EditBoxContainer = green_controller.get_parent()
-	var blue_edit: IS.EditBoxContainer = blue_controller.get_parent(); var hue_edit: IS.EditBoxContainer = hue_controller.get_parent()
-	var sat_edit: IS.EditBoxContainer = sat_controller.get_parent(); var val_edit: IS.EditBoxContainer = val_controller.get_parent()
-	var alpha_edit: IS.EditBoxContainer = alpha_controller.get_parent()
+	red_controller = IS.create_float_edit("R", curr_color.r, .0, 1., .001, .001, .1, false, 0)[0]
+	green_controller = IS.create_float_edit("G", curr_color.g, .0, 1., .001, .001, .1, false, 0)[0]
+	blue_controller = IS.create_float_edit("B", curr_color.b, .0, 1., .001, .001, .1, false, 0)[0]
+	hue_controller = IS.create_float_edit("H", curr_color.h, .0, 1., .001, .001, .1, false, 0)[0]
+	sat_controller = IS.create_float_edit("S", curr_color.s, .0, 1., .001, .001, .1, false, 0)[0]
+	val_controller = IS.create_float_edit("V", curr_color.v, .0, 1., .001, .001, .1, false, 0)[0]
+	alpha_controller = IS.create_float_edit("A", curr_color.a, .0, 1., .001, .001, .1, false, 0)[0]
+	var red_edit: EditBoxContainer = red_controller.get_parent(); var green_edit: EditBoxContainer = green_controller.get_parent()
+	var blue_edit: EditBoxContainer = blue_controller.get_parent(); var hue_edit: EditBoxContainer = hue_controller.get_parent()
+	var sat_edit: EditBoxContainer = sat_controller.get_parent(); var val_edit: EditBoxContainer = val_controller.get_parent()
+	var alpha_edit: EditBoxContainer = alpha_controller.get_parent()
 	red_edit.header.size_flags_horizontal = 0; green_edit.header.size_flags_horizontal = 0
 	blue_edit.header.size_flags_horizontal = 0; hue_edit.header.size_flags_horizontal = 0
 	sat_edit.header.size_flags_horizontal = 0; val_edit.header.size_flags_horizontal = 0
@@ -262,8 +262,7 @@ func update_custom_palettes() -> void:
 
 
 func on_color_shape_val_changed(new_hue: float, new_sat: float) -> void:
-	curr_color.h = new_hue
-	curr_color.s = new_sat
+	curr_color = Color.from_hsv(new_hue, new_sat, curr_color.v)
 
 func on_color_val_line_val_changed(new_val: float) -> void:
 	curr_color.v = new_val
@@ -313,8 +312,6 @@ func on_add_palette_button_pressed() -> void:
 
 
 
-
-
 class VHSCircleShape extends Control:
 	
 	signal val_changed(new_hue: float, new_sat: float)
@@ -323,7 +320,6 @@ class VHSCircleShape extends Control:
 		set(val):
 			radius = val
 			update_properties()
-			regenerate_texture = true
 			queue_redraw()
 	
 	var hue: float
@@ -333,79 +329,49 @@ class VHSCircleShape extends Control:
 	var dragged: bool
 	
 	var circle_texture: Texture2D = preload("res://Asset/Icons/vhs-circle-shape.png")
-	var regenerate_texture: bool = true
-	var cached_val: float = -1.0
 	
 	func _init(_hue: float, _sat: float, _val: float) -> void:
 		update(_hue, _sat, _val)
 	
 	func _ready() -> void:
-		# Set Base Settings
 		update_properties()
-		generate_circle_texture()
 	
-	func _input(event: InputEvent) -> void:
+	func _gui_input(event: InputEvent) -> void:
 		
-		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_LEFT:
-				var dist_to_center = (get_local_mouse_position() - size / 2.0).length()
-				if dist_to_center <= radius:
-					dragged = event.is_pressed()
-					update_from_display_point()
+		if event is InputEvent:
+			
+			var mouse_pos: Vector2 = get_local_mouse_position()
+			
+			if event is InputEventMouseButton:
+				
+				if event.button_index == MOUSE_BUTTON_LEFT:
+					var dist_to_center: float = (mouse_pos - size / 2.).length()
+					
+					if dist_to_center <= radius:
+						dragged = event.is_pressed()
+						update_from_display_point(mouse_pos)
+						val_changed.emit(hue, sat)
+					else:
+						dragged = false
+			
+			elif event is InputEventMouseMotion:
+				if dragged:
+					update_from_display_point(mouse_pos)
 					val_changed.emit(hue, sat)
-				else: dragged = false
-		
-		elif event is InputEventMouseMotion:
-			if dragged:
-				update_from_display_point()
-				val_changed.emit(hue, sat)
-	
-	
-	func generate_circle_texture():
-		
-		#var img_size = int(radius * 2)
-		#var image = Image.create(img_size, img_size, false, Image.FORMAT_RGBA8)
-		#var center = Vector2(img_size, img_size) / 2
-		#
-		#for x in img_size:
-			#for y in img_size:
-				#var offset = Vector2(x, y) - center
-				#var dist = offset.length()
-				#
-				#if dist <= radius:
-					#var angle = atan2(offset.y, offset.x)
-					#if angle < 0:
-						#angle += TAU 
-					#
-					#var h = angle / TAU
-					#var s = dist / radius
-					#var color = Color.from_hsv(h, s, 1.0)
-					#
-					#if dist > radius - 1.0:
-						#var alpha = 1.0 - (dist - (radius - 1.0))
-						#color.a = alpha
-					#image.set_pixel(x, y, color)
-				#else:
-					#image.set_pixel(x, y, Color.TRANSPARENT)
-		#circle_texture = ImageTexture.create_from_image(image)
-		regenerate_texture = false
 	
 	func _draw() -> void:
-		if regenerate_texture or cached_val != val:
-			if regenerate_texture:
-				generate_circle_texture()
-			cached_val = val
 		
-		var center = size / 2.0
-		var texture_size = Vector2.ONE * radius * 2.0
-		var texture_pos = center - texture_size / 2.0
+		var center: Vector2 = size / 2.
+		var texture_size: Vector2 = Vector2.ONE * radius * 2.
+		var texture_pos: Vector2 = center - texture_size / 2.
 		
 		draw_texture_rect(circle_texture, Rect2(texture_pos, texture_size), false, Color(val, val, val, 1.0))
 		
-		var angle_rad = TAU * hue
-		var display_offset = Vector2(cos(angle_rad), sin(angle_rad)) * sat * radius
-		draw_circle(center + display_offset, 5.0, Color.BLACK)
-		draw_circle(center + display_offset, 6.0, IS.color_accent, false, 2.0, true)
+		var angle_rad: float = hue * TAU
+		var display_offset: Vector2 = Vector2(cos(angle_rad), sin(angle_rad)) * sat * radius
+		
+		draw_circle(center + display_offset, 5., Color.BLACK)
+		draw_circle(center + display_offset, 6., IS.color_accent, false, 2.0, true)
 	
 	func update_properties() -> void:
 		custom_minimum_size = Vector2.ONE * radius * 2.0
@@ -421,14 +387,15 @@ class VHSCircleShape extends Control:
 		if point == null:
 			point = get_local_mouse_position()
 		
-		var center = size / 2.0
-		var offset = point - center
-		var angle = atan2(offset.y, offset.x)
-		if angle < 0.0:
+		var center: Vector2 = size / 2.
+		var offset: Vector2 = point - center
+		var angle: float = atan2(offset.y, offset.x)
+		
+		if angle < .0:
 			angle += TAU
 		
 		hue = angle / TAU
-		sat = clamp(offset.length() / radius, 0.0, 1.0)
+		sat = clamp(offset.length() / radius, .0, 1.)
 		
 		queue_redraw()
 
@@ -460,13 +427,12 @@ class ValLine extends Control:
 	func _ready() -> void:
 		custom_minimum_size = Vector2(width, length)
 	
-	func _input(event: InputEvent) -> void:
+	func _gui_input(event: InputEvent) -> void:
+		
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT:
-				if get_global_rect().has_point(get_global_mouse_position()):
-					dragged = event.is_pressed()
-					update_from_display_point()
-				else: dragged = false
+				dragged = event.is_pressed()
+				update_from_display_point()
 		
 		elif event is InputEventMouseMotion:
 			if dragged:
@@ -475,29 +441,27 @@ class ValLine extends Control:
 	
 	func _draw() -> void:
 		
-		var y_step = length / 100.0
+		var y_step: float = length / 100.
 		
-		var radius = width / 2.0
-		var y_displacement = radius / 2.0
-		#draw_circle(Vector2(radius, y_displacement), radius, Color.WHITE, true, -1.0, true)
-		#draw_circle(Vector2(radius, length + y_displacement), radius, Color.BLACK, true, -1.0, true)
+		var radius: float = width / 2.
+		var y_displacement: float = radius / 2.
 		
-		for v in 100:
-			var val = v / 100.0
-			var y_pos = v * y_step
-			draw_rect(Rect2(Vector2(.0, length - y_pos + y_displacement), Vector2(width, y_step)), Color.from_hsv(.0, .0, val), true, -1.0, true)
+		for v: int in 100:
+			var val: float = v / 100.
+			var y_pos: float = v * y_step
+			draw_rect(Rect2(Vector2(.0, length - y_pos + y_displacement), Vector2(width, y_step)), Color.from_hsv(.0, .0, val), true, -1., true)
 		
 		var cursor_display_pos = length - length * val + y_displacement
-		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), IS.color_accent, 5.0, true)
+		draw_line(Vector2(-2, cursor_display_pos), Vector2(width + 2, cursor_display_pos), IS.color_accent, 5., true)
 	
 	func update(_val: float) -> void:
 		val = _val
 		queue_redraw()
 	
-	func update_from_display_point(point = null) -> void:
+	func update_from_display_point(point: Variant = null) -> void:
 		if point == null:
 			point = get_local_mouse_position()
-		val = clamp(1.0 - point.y / length, 0.0, 1.0)
+		val = clamp(1. - point.y / length, .0, 1.)
 		queue_redraw()
 
 

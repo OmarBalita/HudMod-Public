@@ -12,20 +12,36 @@ const FONT_EXTENSIONS: Array[String] = [
 	".ttc"
 ]
 
-static var builtin_fonts: Dictionary[StringName, SystemFont] = {}
+static var builtin_fonts: Dictionary[StringName, SystemFont]
 static var custom_fonts: Dictionary[StringName, FontFile] = {}
+
+var font: FontVariation:
+	set(val):
+		font = val
+		if not font: return
+		
+		await Engine.get_main_loop().process_frame
+		
+		_update_base_font(font)
+		
+		font.variation_face_index = get_prop(&"face_index")
+		font.variation_embolden = get_prop(&"embolden")
+		font.spacing_glyph = get_prop(&"glyph")
+		font.spacing_space = get_prop(&"space")
+		font.spacing_top = get_prop(&"top")
+		font.spacing_bottom = get_prop(&"bottom")
+		
+		update_transform()
 
 func _init() -> void:
 	use_global_variables_as_properties = false
 	
-	var font:= FontVariation.new()
-	font.base_font = get_builtin_font(&"")
+	font = FontVariation.new()
 	
 	register_props({
 		&"system_font_name": "",
 		&"custom_font_path": "",
 		&"use_custom_font": false,
-		&"font": font,
 	}, &"_set_font_path_and_update")
 	
 	register_prop(&"face_index", 0, &"_set_face_index")
@@ -109,6 +125,18 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	}
 
 
+static func get_all_builtin_fonts() -> Dictionary[StringName, SystemFont]:
+	var result: Dictionary[StringName, SystemFont]
+	
+	var fonts_names: Array = OS.get_system_fonts()
+	for font_name: StringName in fonts_names:
+		var sys_font:= SystemFont.new()
+		sys_font.font_names = [font_name]
+		result[font_name] = sys_font
+	
+	return result
+
+
 static func get_builtin_font(name: StringName) -> SystemFont:
 	if builtin_fonts.has(name):
 		return builtin_fonts[name]
@@ -150,7 +178,7 @@ func _extract_label() -> Label:
 	label.custom_minimum_size.y = 100.
 	return label
 
-func get_font() -> FontVariation: return get_prop(&"font")
+func get_font() -> FontVariation: return font
 
 
 func _update_viewer_label_name() -> void:
@@ -158,7 +186,7 @@ func _update_viewer_label_name() -> void:
 
 func _on_font_button_pressed(usable_ress: Array[UsableRes]) -> void:
 	
-	var curr_font_names: PackedStringArray = get_prop(&"font").base_font.font_names
+	var curr_font_names: PackedStringArray = font.base_font.font_names
 	var curr_font_name: String
 	if curr_font_names.size():
 		curr_font_name = curr_font_names[0]
@@ -181,13 +209,10 @@ func _on_font_button_pressed(usable_ress: Array[UsableRes]) -> void:
 		menu.loop_options(
 			func(option_box: BoxContainer) -> void:
 				var button: Button = option_box.get_child(0)
-				button.add_theme_font_override("font", get_builtin_font(button.text))
+				#button.add_theme_font_override("font", get_builtin_font(button.text))
 		)
 
 func _on_menu_option_pressed(font_name: StringName) -> void:
 	set_prop(&"system_font_name", font_name)
-
-
-
-
+	emit_res_changed()
 

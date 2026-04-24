@@ -10,7 +10,7 @@ class_name RenderProperties extends EditorControl
 
 @export var video_render_profile: VideoRenderProfile = VideoRenderProfile.new()
 
-var render_profile_edit: IS.EditBoxContainer
+var render_profile_edit: EditBoxContainer
 
 
 func _ready_editor() -> void:

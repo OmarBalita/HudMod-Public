@@ -23,6 +23,9 @@ var texture_scale: Vector2
 
 func _draw() -> void:
 	
+	if not texture:
+		return
+	
 	var view_size: Vector2i = Scene2.viewport.size
 	
 	var tex_size: Vector2 = texture.get_size()

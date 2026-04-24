@@ -67,12 +67,12 @@ func loop_props(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {}
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	pass
 
 # Works when a properties changes comes from the inspector
-func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void: edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
-func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void: edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
+func _receive_new_val(edit_box_container: EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void: edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
+func _receive_keyframe(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void: edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
 
 static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> Array[Control]:
 	var usable_res_script: Script = usable_res.get_script()
@@ -160,13 +160,15 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 			
 			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress, search_line_edit)
 			if controllers.size():
-				var edit_box: IS.EditBoxContainer = IS.get_edit_box_from(controllers)
+				var edit_box: EditBoxContainer = IS.get_edit_box_from(controllers)
 				var is_object: bool = typeof(val) == TYPE_OBJECT
 				var changeable: bool = not is_object and ctrlr_info.keyframable
 				
 				edit_box.default_val = usable_res_script.get_property_default_value(key)
 				edit_box.keyframable = usable_res is ComponentRes and changeable
-				edit_box.resetable = changeable
+				edit_box.resetable = changeable and usable_res.use_global_variables_as_properties
+				edit_box.copypast = changeable
+				
 				edit_box.set_curr_val(val)
 				properties_controllers[key] = edit_box
 				

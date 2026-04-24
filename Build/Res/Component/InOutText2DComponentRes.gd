@@ -25,6 +25,10 @@ func _init() -> void:
 	out_duration = in_duration
 	curve.res_changed.connect(emit_res_changed)
 
+func _set_owner(new_owner: MediaClipRes) -> void:
+	super(new_owner)
+	_update_inout_durs_f()
+
 func emit_res_changed() -> void:
 	t_ratio = .0
 	_update_inout_durs_f()

@@ -5,16 +5,16 @@ signal open_project_finished()
 
 signal opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 
-const EXAMPLE_PATH: String = "res://ExampleProject/"
+#const EXAMPLE_PATH: String = "res://ExampleProject/"
 
 var project_path: String:
 	set(val):
 		project_path = val
-		project_editor_path = project_path + "/editor/"
-		project_thumbnail_path = project_path + "/image/thumbnail/"
-		project_waveform_path = project_path + "/image/waveform/"
-		project_media_path = project_path + "/media/"
-		project_preset_path = project_path + "/preset/"
+		project_editor_path = project_path.path_join("editor/")
+		project_thumbnail_path = project_path.path_join("image/thumbnail/")
+		project_waveform_path = project_path.path_join("image/waveform/")
+		project_media_path = project_path.path_join("media/")
+		project_preset_path = project_path.path_join("preset/")
 
 var project_editor_path: String:
 	set(val):
@@ -45,8 +45,6 @@ var project_res: ProjectRes:
 		if project_res:
 			fps = project_res.fps
 			delta = project_res.delta
-			is_project_loaded = true
-			project_opened.emit(project_res)
 var import_file_system: DisplayFileSystemRes
 var preset_file_system: DisplayFileSystemRes
 
@@ -56,11 +54,13 @@ var delta: float
 var opened_clip_res_path: Array[MediaClipRes]
 
 
-
 # Project Management
 # ---------------------------------------------------
 
 func new_project(project_res: ProjectRes, dir_path: String) -> ProjectRes:
+	
+	if Renderer.is_working:
+		Renderer.cancel()
 	
 	if DirAccess.dir_exists_absolute(dir_path):
 		printerr("There is already a folder or file with the same name; please change the name or path.")
@@ -103,6 +103,9 @@ func open_project(_project_path: String) -> bool:
 	import_file_system = ResLoadHelper.load_or_save(project_paths.import_sys, DisplayFileSystemRes)
 	preset_file_system = ResLoadHelper.load_or_save(project_paths.preset_sys, DisplayFileSystemRes)
 	
+	import_file_system.thumbnail_path = project_thumbnail_path
+	import_file_system.waveform_path = project_waveform_path
+	
 	is_project_loaded = false
 	
 	var _project_res: Resource = ResourceLoader.load(project_paths.project_res)
@@ -121,11 +124,9 @@ func open_project(_project_path: String) -> bool:
 	
 	project_res = _project_res
 	
-	import_file_system.thumbnail_path = project_thumbnail_path
-	import_file_system.waveform_path = project_waveform_path
-	
 	MediaCache.load_media_cache_from_file_system(import_file_system)
 	MediaCache.load_media_cache_from_file_system(preset_file_system)
+	GlobalServer.load_global()
 	
 	project_res.root_clip_res.loop_layers_children_deep(
 		{},
@@ -145,11 +146,19 @@ func open_project(_project_path: String) -> bool:
 				clip_res.build_shader_pipeline()
 	)
 	
+	PlaybackServer.position = -INF
+	
 	EditorServer.editor_settings.update_internal_props_base_on_project()
 	
 	project_res.root_clip_res.update_paths_deep()
 	project_res.root_clip_res.update_root_length()
+	
+	is_project_loaded = true
+	project_opened.emit(project_res)
+	
 	open_clip_res(project_res.root_clip_res)
+	
+	PlaybackServer.position = 0
 	
 	return true
 

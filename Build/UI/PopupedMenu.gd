@@ -42,9 +42,10 @@ func _input(event: InputEvent) -> void:
 				KEY_ENTER: on_button_pressed(curr_pos)
 	
 	else:
+		if event is InputEventMouseMotion:
+			if get_rect().has_point(get_local_mouse_position()):
+				update_cursor(false)
 		super(event)
-		await get_tree().process_frame
-		update_cursor(false)
 
 
 func _setup() -> void:
@@ -57,6 +58,7 @@ func _setup() -> void:
 	
 	focus_panel = IS.create_panel(IS.style_body)
 	focus_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	focus_panel.visible = false
 	add_child(focus_panel)
 	
 	for index: int in options.size():
@@ -102,8 +104,6 @@ func _setup() -> void:
 	var screen_h = get_window().size.y * max_height_ratio
 	scroll_container.custom_minimum_size.y = min(options_box.get_combined_minimum_size().y, screen_h)
 	size = margin_container.get_combined_minimum_size()
-	
-	update_cursor()
 
 func loop_options(method: Callable) -> void:
 	var options_boxes: Array[Node] = options_box.get_children()
@@ -113,9 +113,9 @@ func loop_options(method: Callable) -> void:
 func update_cursor(auto_scroll: bool = true) -> void:
 	
 	var curr_button = options_box.get_child(curr_pos)
-	focus_panel.show()
 	focus_panel.global_position = curr_button.global_position
 	focus_panel.size = curr_button.size
+	focus_panel.show()
 	
 	if auto_scroll:
 		var pos_y: float = focus_panel.global_position.y
@@ -129,7 +129,6 @@ func update_cursor(auto_scroll: bool = true) -> void:
 		
 		await get_tree().process_frame
 		update_cursor(false)
-
 
 func on_button_mouse_entered(index: int) -> void:
 	curr_pos = index

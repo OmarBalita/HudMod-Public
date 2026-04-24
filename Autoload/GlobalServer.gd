@@ -22,9 +22,11 @@ var is_global_cache_loaded: bool = false
 
 func _ready() -> void:
 	make_global_dirs_abs()
-	load_global()
 
 func load_global() -> void:
+	
+	is_global_cache_loaded = false
+	
 	import_file_system = ResLoadHelper.load_or_save(import_file_system_path, DisplayFileSystemRes)
 	preset_file_system = ResLoadHelper.load_or_save(preset_file_system_path, DisplayFileSystemRes)
 	global_usable_res = ResLoadHelper.load_or_save(global_usable_res_path, GlobalUsableRes)

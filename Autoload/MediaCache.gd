@@ -168,10 +168,14 @@ func register_preset_media_res(path: StringName, ids_exists: PackedStringArray, 
 		if not preset_media_res:
 			return LOAD_ERR.LOAD_ERR_CANT_OPEN
 	
+	if preset_media_res is not MediaClipRes:
+		return LOAD_ERR.LOAD_ERR_CANT_OPEN
+	
 	preset_media_ress[path] = preset_media_res
 	return LOAD_ERR.SUCCESS
 
 func replace_path(from: StringName, to: StringName) -> void:
+	
 	match MediaServer.get_media_type_from_path(from):
 		0:
 			images[to] = images[from]
@@ -182,12 +186,11 @@ func replace_path(from: StringName, to: StringName) -> void:
 		1:
 			videos_info[to] = videos_info[from]
 			videos_info.erase(from)
+			videos_cache.erase(from)
 		
 		2:
 			audio_datas[to] = audio_datas[from]
 			audio_datas.erase(from)
-			#audio_stream_waves[to] = audio_stream_waves[from]
-			#audio_stream_waves.erase(from)
 		
 		_:
 			preset_media_ress[to] = preset_media_ress[from]
@@ -196,26 +199,26 @@ func replace_path(from: StringName, to: StringName) -> void:
 	MediaServer.server_replace_media_path(from, to)
 
 
-func deregister_from_path(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func deregister_from_path(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
 	match MediaServer.get_media_type_from_path(path):
-		0: deregister_image(path, id, thumbnail_path)
-		1: deregister_video(path, id, thumbnail_path, waveform_path)
-		2: deregister_audio(path, id, thumbnail_path, waveform_path)
+		0: deregister_image(path, id, thumbnail_path, delete_images_on_disk)
+		1: deregister_video(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
+		2: deregister_audio(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
 		_: deregister_preset_media_res(path, id, thumbnail_path, waveform_path)
 
 
-func deregister_image(path: StringName, id: String, thumbnail_path: String) -> void:
-	MediaServer.server_deregister_image(path, id, thumbnail_path)
+func deregister_image(path: StringName, id: String, thumbnail_path: String, delete_images_on_disk: bool = false) -> void:
+	MediaServer.server_deregister_image(path, id, thumbnail_path, delete_images_on_disk)
 	images.erase(path)
 	textures.erase(path)
 
-func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path)
+func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
+	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
 	videos_info.erase(path)
 	videos_cache.erase(path)
 
-func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path)
+func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
+	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
 	audio_datas.erase(path)
 	#audio_stream_waves.erase(path)
 

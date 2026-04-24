@@ -596,14 +596,13 @@ class LayersSelectContainer extends SelectContainer:
 		super()
 		shortcut_node.key = &"Timeline"
 		shortcut_node.load_shortcuts_from_settings()
-		shortcut_node.methods_object = self
 		shortcut_node.cond_func = EditorServer.layers_body_shortcut_node_cond_func
 	
 	func _gui_input(event: InputEvent) -> void:
 		super(event)
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_RIGHT:
-				if event.is_pressed():
+				if event.is_released():
 					popup_options_menu()
 	
 	func is_moving_clips() -> bool:
@@ -766,17 +765,22 @@ class LayersSelectContainer extends SelectContainer:
 	
 	func past_selected_vals() -> void:
 		super()
+		
 		if copied.is_empty():
 			return
 		
 		var clips_forpast: Dictionary[Vector2i, MediaClipRes]
 		
+		var delta: int = PlaybackServer.position - copied_start
+		
 		for port_idx: int in copied:
 			var port: Dictionary = copied[port_idx]
 			
 			for idx: int in port:
-				var frame: int = idx - copied_start + PlaybackServer.position
-				clips_forpast[Vector2i(port_idx, frame)] = port[idx].duplicate_media_res()
+				var frame: int = idx + delta
+				var duplicated_clip_res: MediaClipRes = port[idx].duplicate_media_res()
+				duplicated_clip_res.move_layers_clips_deep(delta)
+				clips_forpast[Vector2i(port_idx, frame)] = duplicated_clip_res
 		
 		timeline.opened_clip_res.add_clips_by_coords(clips_forpast, timeline.overlay_menu.focus_index)
 	
@@ -895,6 +899,7 @@ class LayersSelectContainer extends SelectContainer:
 					func() -> void:
 						var preset_clip_res: MediaClipRes = clip_res.duplicate_media_res()
 						preset_clip_res.id = name_edit.text
+						preset_clip_res.set_meta(&"preset_offset", clip_res.clip_pos)
 						preset_clips_ress.append(preset_clip_res)
 			)
 			IS.expand(preset_tree, true, true)

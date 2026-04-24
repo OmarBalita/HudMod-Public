@@ -2,6 +2,8 @@ extends Node
 
 @export var editor_windows_folder: Node = Node.new()
 
+var popuped_windows: Array[Window]
+
 func _ready() -> void:
 	add_child(editor_windows_folder)
 
@@ -26,6 +28,9 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	window.add_child(panel_cont)
 	window.add_child(margin)
 	add_child(window)
+	
+	popuped_windows.append(window)
+	window.tree_exited.connect(popuped_windows.erase.bind(window))
 	
 	return margin
 
@@ -56,6 +61,7 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	var accept_box: BoxContainer = IS.create_box_container()
 	var accept_button: Button = IS.create_button("Accept", null, true, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	var cancel_button: Button = IS.create_button("Cancel", null, false, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	
 	if accept_pressed.is_valid():
 		accept_button.pressed.connect(accept_pressed)
 	if cancel_pressed.is_valid():
@@ -124,6 +130,9 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	
 	processing_node.add_child(processing_rect)
 	add_child(file_dialog)
+	
+	popuped_windows.append(file_dialog)
+	file_dialog.tree_exited.connect(popuped_windows.erase.bind(file_dialog))
 	
 	return file_dialog
 

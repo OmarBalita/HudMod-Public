@@ -1,30 +1,19 @@
 [gd_scene format=3 uid="uid://djdgbj4cat4i7"]
 
-[ext_resource type="Texture2D" path="res://Asset/Images/pexels-creative-vix-9754.jpg" id="1_vfnuj"]
-[ext_resource type="Texture2D" path="res://Asset/Images/prasad-madusanka-TQysGtEinVk-unsplash.jpg" id="2_dcitl"]
 [ext_resource type="Shader" uid="uid://boxx7jgvhc26r" path="res://Build/Shader/Image/Perspective.gdshader" id="2_p8tll"]
-[ext_resource type="Texture2D" path="res://Asset/Images/run_image.png" id="3_1tw12"]
+[ext_resource type="Texture2D" uid="uid://lvvrg1inxx60" path="res://Asset/Images/banner-mid.jpg" id="3_4vwar"]
 [ext_resource type="Shader" uid="uid://br6r2wciu3ijg" path="res://Build/Shader/Image/Denoise.gdshader" id="3_iov73"]
 [ext_resource type="Shader" uid="uid://bdm0jdqhd7y5m" path="res://Build/Shader/Image/VHS.gdshader" id="3_p8tll"]
-[ext_resource type="Texture2D" path="res://Asset/Images/frank-huang-UpUpNXsL0LA-unsplash.jpg" id="3_tjshb"]
-[ext_resource type="Texture2D" path="res://Asset/Images/eduard-pretsi-s6JX2g__QpE-unsplash.jpg" id="4_ehi37"]
-[ext_resource type="Texture2D" path="res://Asset/Images/pexels-charles-kettor-268979-831475.jpg" id="4_tdf7u"]
 [ext_resource type="Shader" uid="uid://bsg2qwqsaxuj5" path="res://Build/Shader/Image/Kawahara.gdshader" id="5_gchci"]
-[ext_resource type="Texture2D" path="res://Asset/Images/silver-tabby-cat-sitting-on-green-background-free-photo.jpg" id="5_inflt"]
-[ext_resource type="Texture2D" path="res://Asset/Images/WIN_20250316_19_48_04_Pro.jpg" id="6_l6s8s"]
 [ext_resource type="Shader" uid="uid://bb2sdr6p5127o" path="res://Build/Shader/Image/Clarity.gdshader" id="6_pfssk"]
 [ext_resource type="Shader" uid="uid://b1cbf8x1t7fc3" path="res://Build/Shader/Image/Vignette.gdshader" id="7_lh14w"]
-[ext_resource type="Texture2D" path="res://Asset/Images/images.jpg" id="7_qbhgp"]
 [ext_resource type="Texture2D" uid="uid://yb10nyikmf4a" path="res://Asset/Icons/App/logo.png" id="8_n0gsr"]
-[ext_resource type="Texture2D" path="res://Asset/Images/WIN_20250426_14_57_07_Pro.jpg" id="10_7ke4e"]
 [ext_resource type="Shader" uid="uid://djexqmoxnx7g5" path="res://Build/Shader/Image/Posterize.gdshader" id="10_fnhdb"]
 [ext_resource type="Shader" uid="uid://dw6gqa8fuo322" path="res://Build/Shader/Image/LEDGrid.gdshader" id="11_6dp28"]
-[ext_resource type="Texture2D" path="res://Asset/Images/phpgYxi0R.png" id="11_nrhsr"]
 [ext_resource type="Shader" uid="uid://dic730e7r6tj0" path="res://Build/Shader/Image/Glitch.gdshader" id="11_okykx"]
 [ext_resource type="Shader" uid="uid://u62e2mxuggsp" path="res://Build/Shader/Image/GlitchWeird.gdshader" id="12_838q0"]
 [ext_resource type="Shader" uid="uid://bstpmvxgb5mur" path="res://Build/Shader/Image/Hexagon.gdshader" id="12_ovi4m"]
 [ext_resource type="Shader" uid="uid://degjvk3d7cy6u" path="res://Build/Shader/Image/BlurMotion.gdshader" id="13_8pbat"]
-[ext_resource type="Texture2D" path="res://Asset/Images/waqar.png" id="13_anl0e"]
 [ext_resource type="Shader" uid="uid://uadj1xc8sd7l" path="res://Build/Shader/Image/BlurGaussian.gdshader" id="13_tdrvq"]
 [ext_resource type="Shader" uid="uid://t2684iv7dui0" path="res://Build/Shader/Image/BlurRotational.gdshader" id="14_2p7gi"]
 [ext_resource type="Shader" uid="uid://bensw4of4ekpg" path="res://Build/Shader/Image/Voronoi.gdshader" id="14_54dnw"]
@@ -143,12 +132,11 @@ void fragment() {
 	texture_col.rgb *= modulate.rgb;
 	texture_col.a *= modulate.a;
 	
-	
 	vec4 screen_col = texture(SCREEN_TEXTURE, SCREEN_UV);
 	
 	vec3 base = screen_col.rgb;
 	vec3 blend = texture_col.rgb;
-	vec3 result = blend;
+	vec3 result;
 	
 	switch (blend_mode) {
 		case 0: // Normal
@@ -261,6 +249,39 @@ shader_parameter/rotation = 0.0
 shader_parameter/size = Vector2(0.2, 0.2)
 shader_parameter/feather = 0.0
 shader_parameter/reverse = false
+
+[sub_resource type="Shader" id="Shader_efobh"]
+code = "shader_type canvas_item;
+
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform vec4 key_color: source_color = vec4(.0, 1., .0, 1.);
+uniform float similarity: hint_range(.0, 1.) = .4;
+uniform float smoothness: hint_range(.0, 1.) = .08;
+uniform float spill_removal: hint_range(.0, 1.) = .5;
+
+void fragment() {
+	vec4 rgba = texture(TEXTURE, UV);
+	vec3 rgb = rgba.rgb;
+	
+	float chroma_dist = distance(rgb, key_color.rgb);
+	
+	float base_mask = chroma_dist - similarity;
+	float full_mask = clamp(base_mask / smoothness, 0.0, 1.0);
+	
+	float desat = get_luminance(rgb);
+	
+	vec3 spill_free_rgb = mix(vec3(desat), rgb, pow(full_mask, spill_removal));
+	
+	COLOR = vec4(spill_free_rgb, rgba.a * full_mask);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mx726"]
+shader = SubResource("Shader_efobh")
+shader_parameter/key_color = Color(0, 1, 0, 1)
+shader_parameter/similarity = 0.4
+shader_parameter/smoothness = 0.08
+shader_parameter/spill_removal = 0.5
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ruurt"]
 shader = ExtResource("3_p8tll")
@@ -912,6 +933,7 @@ shader_parameter/smoothness = 0.3
 [node name="PrototypeShader" type="Node2D" unique_id=1695768259]
 
 [node name="Display2D" type="Node2D" parent="." unique_id=673526309]
+visible = false
 
 [node name="CanvasItem" type="Node2D" parent="Display2D" unique_id=780710629]
 
@@ -925,24 +947,24 @@ material = SubResource("ShaderMaterial_3k21i")
 texture = ExtResource("8_n0gsr")
 
 [node name="Image" type="Node2D" parent="." unique_id=1971762683]
-visible = false
 
 [node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
-visible = false
 
 [node name="Invert" type="Sprite2D" parent="Image/Basic" unique_id=523742155]
 visible = false
 material = SubResource("ShaderMaterial_lh14w")
-texture = ExtResource("5_inflt")
 
 [node name="Perspective" type="Sprite2D" parent="Image/Basic" unique_id=502838103]
 visible = false
 material = SubResource("ShaderMaterial_7erdt")
-texture = ExtResource("5_inflt")
 
 [node name="Mask" type="Sprite2D" parent="Image/Basic" unique_id=1711998718]
+visible = false
 material = SubResource("ShaderMaterial_kc3nc")
-texture = ExtResource("3_1tw12")
+
+[node name="ChromaKey" type="Sprite2D" parent="Image/Basic" unique_id=1966199597]
+material = SubResource("ShaderMaterial_mx726")
+texture = ExtResource("3_4vwar")
 
 [node name="Enhance" type="Node2D" parent="Image" unique_id=1154040034]
 visible = false
@@ -950,22 +972,18 @@ visible = false
 [node name="Sharpen" type="Sprite2D" parent="Image/Enhance" unique_id=1612355291]
 visible = false
 material = SubResource("ShaderMaterial_ruurt")
-texture = ExtResource("5_inflt")
 
 [node name="Denoise" type="Sprite2D" parent="Image/Enhance" unique_id=1584626694]
 visible = false
 material = SubResource("ShaderMaterial_euamy")
-texture = ExtResource("7_qbhgp")
 
 [node name="Kawahara" type="Sprite2D" parent="Image/Enhance" unique_id=281475108]
 visible = false
 material = SubResource("ShaderMaterial_lg5mm")
-texture = ExtResource("7_qbhgp")
 
 [node name="Clarity" type="Sprite2D" parent="Image/Enhance" unique_id=110136805]
 visible = false
 material = SubResource("ShaderMaterial_fnhdb")
-texture = ExtResource("5_inflt")
 
 [node name="Cinematic" type="Node2D" parent="Image" unique_id=1373111679]
 visible = false
@@ -973,17 +991,14 @@ visible = false
 [node name="Vignette" type="Sprite2D" parent="Image/Cinematic" unique_id=528484978]
 visible = false
 material = SubResource("ShaderMaterial_bgtkm")
-texture = ExtResource("3_tjshb")
 
 [node name="FilmGrain" type="Sprite2D" parent="Image/Cinematic" unique_id=2091261901]
 visible = false
 material = SubResource("ShaderMaterial_0qjtk")
-texture = ExtResource("3_tjshb")
 
 [node name="Bars" type="Sprite2D" parent="Image/Cinematic" unique_id=251359427]
 visible = false
 material = SubResource("ShaderMaterial_4vwar")
-texture = ExtResource("4_tdf7u")
 
 [node name="Retro" type="Node2D" parent="Image" unique_id=569219503]
 visible = false
@@ -991,12 +1006,10 @@ visible = false
 [node name="VHS" type="Sprite2D" parent="Image/Retro" unique_id=2113317747]
 visible = false
 material = SubResource("ShaderMaterial_ruurt")
-texture = ExtResource("5_inflt")
 
 [node name="LEDGrid" type="Sprite2D" parent="Image/Retro" unique_id=1048849266]
 visible = false
 material = SubResource("ShaderMaterial_aubky")
-texture = ExtResource("5_inflt")
 
 [node name="Glitch" type="Sprite2D" parent="Image/Retro" unique_id=2004494715]
 visible = false
@@ -1014,32 +1027,26 @@ visible = false
 [node name="Posterize" type="Sprite2D" parent="Image/Artistic" unique_id=1045437060]
 visible = false
 material = SubResource("ShaderMaterial_iov73")
-texture = ExtResource("6_l6s8s")
 
 [node name="Hexagon" type="Sprite2D" parent="Image/Artistic" unique_id=1365848781]
 visible = false
 material = SubResource("ShaderMaterial_ml21d")
-texture = ExtResource("3_1tw12")
 
 [node name="Voronoi" type="Sprite2D" parent="Image/Artistic" unique_id=264422171]
 visible = false
 material = SubResource("ShaderMaterial_gchci")
-texture = ExtResource("4_ehi37")
 
 [node name="Halftone" type="Sprite2D" parent="Image/Artistic" unique_id=1574449927]
 visible = false
 material = SubResource("ShaderMaterial_7u3qs")
-texture = ExtResource("10_7ke4e")
 
 [node name="ToonEdge" type="Sprite2D" parent="Image/Artistic" unique_id=415510812]
 visible = false
 material = SubResource("ShaderMaterial_qibr1")
-texture = ExtResource("11_nrhsr")
 
 [node name="Sketch" type="Sprite2D" parent="Image/Artistic" unique_id=881866073]
 visible = false
 material = SubResource("ShaderMaterial_rlbq7")
-texture = ExtResource("10_7ke4e")
 
 [node name="Emboss" type="Sprite2D" parent="Image/Artistic" unique_id=733769963]
 material = SubResource("ShaderMaterial_pfssk")
@@ -1048,7 +1055,6 @@ texture = ExtResource("8_n0gsr")
 [node name="Pixelate" type="Sprite2D" parent="Image/Artistic" unique_id=465014270]
 visible = false
 material = SubResource("ShaderMaterial_ak67c")
-texture = ExtResource("2_dcitl")
 
 [node name="Blur" type="Node2D" parent="Image" unique_id=2147156152]
 visible = false
@@ -1057,44 +1063,37 @@ visible = false
 visible = false
 material = SubResource("ShaderMaterial_n0gsr")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_1tw12")
 
 [node name="BlurGaussian" type="Sprite2D" parent="Image/Blur" unique_id=1274086664]
 visible = false
 material = SubResource("ShaderMaterial_ews87")
 position = Vector2(-1, 0)
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_1tw12")
 
 [node name="BlurMotion" type="Sprite2D" parent="Image/Blur" unique_id=1343309843]
 visible = false
 material = SubResource("ShaderMaterial_7ke4e")
 position = Vector2(-1, 0)
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_1tw12")
 
 [node name="BlurRotational" type="Sprite2D" parent="Image/Blur" unique_id=978856454]
 visible = false
 material = SubResource("ShaderMaterial_nrhsr")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_1tw12")
 
 [node name="BlurRay" type="Sprite2D" parent="Image/Blur" unique_id=784399707]
 visible = false
 material = SubResource("ShaderMaterial_qbhgp")
 position = Vector2(-1, 0)
-texture = ExtResource("1_vfnuj")
 
 [node name="BlurMaximum" type="Sprite2D" parent="Image/Blur" unique_id=1784529188]
 visible = false
 material = SubResource("ShaderMaterial_2p7gi")
 position = Vector2(-1, 0)
-texture = ExtResource("4_ehi37")
 
 [node name="BlurMinimum" type="Sprite2D" parent="Image/Blur" unique_id=169885368]
 visible = false
 material = SubResource("ShaderMaterial_vh7e3")
-texture = ExtResource("4_ehi37")
 
 [node name="Distortion" type="Node2D" parent="Image" unique_id=36459734]
 visible = false
@@ -1103,31 +1102,26 @@ visible = false
 visible = false
 material = SubResource("ShaderMaterial_efobh")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("6_l6s8s")
 
 [node name="DistRipple" type="Sprite2D" parent="Image/Distortion" unique_id=611357610]
 visible = false
 material = SubResource("ShaderMaterial_aao0d")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("6_l6s8s")
 
 [node name="DistTwirl" type="Sprite2D" parent="Image/Distortion" unique_id=473525937]
 visible = false
 material = SubResource("ShaderMaterial_r4gls")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("6_l6s8s")
 
 [node name="DistBulge" type="Sprite2D" parent="Image/Distortion" unique_id=1489300293]
 visible = false
 material = SubResource("ShaderMaterial_xoael")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("6_l6s8s")
 
 [node name="DistHeat" type="Sprite2D" parent="Image/Distortion" unique_id=1393653724]
 visible = false
 material = SubResource("ShaderMaterial_ug2v2")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("13_anl0e")
 
 [node name="PostProcessing" type="Node2D" parent="Image" unique_id=313666282]
 visible = false
@@ -1140,22 +1134,18 @@ texture = ExtResource("39_ug2v2")
 [node name="Rays" type="Sprite2D" parent="Image/PostProcessing" unique_id=771301914]
 visible = false
 material = SubResource("ShaderMaterial_hxy6b")
-texture = ExtResource("4_tdf7u")
 
 [node name="LensFlare" type="Sprite2D" parent="Image/PostProcessing" unique_id=1744932123]
 visible = false
 material = SubResource("ShaderMaterial_okykx")
-texture = ExtResource("3_tjshb")
 
 [node name="DirectionalChromaticAberration" type="Sprite2D" parent="Image/PostProcessing" unique_id=1198883697]
 visible = false
 material = SubResource("ShaderMaterial_p8tll")
-texture = ExtResource("3_tjshb")
 
 [node name="RadialChromaticAberration" type="Sprite2D" parent="Image/PostProcessing" unique_id=1231228956]
 visible = false
 material = SubResource("ShaderMaterial_838q0")
-texture = ExtResource("3_tjshb")
 
 [node name="Color" type="Node2D" parent="." unique_id=272918997]
 visible = false
@@ -1166,31 +1156,26 @@ visible = false
 [node name="WhiteBalance" type="Sprite2D" parent="Color/ColorCorrection" unique_id=644170137]
 visible = false
 material = SubResource("ShaderMaterial_1tw12")
-texture = ExtResource("1_vfnuj")
 
 [node name="Tone" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1547323168]
 visible = false
 material = SubResource("ShaderMaterial_dcitl")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("2_dcitl")
 
 [node name="LGG" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1771112066]
 visible = false
 material = SubResource("ShaderMaterial_inflt")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("2_dcitl")
 
 [node name="HSL" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1567274153]
 visible = false
 material = SubResource("ShaderMaterial_ehi37")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("2_dcitl")
 
 [node name="HSLPerColor" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1138738647]
 visible = false
 material = SubResource("ShaderMaterial_l6s8s")
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("2_dcitl")
 
 [node name="ColorGrading" type="Node2D" parent="Color" unique_id=783011805]
 

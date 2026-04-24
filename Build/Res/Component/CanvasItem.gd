@@ -119,20 +119,19 @@ uniform float {opacity}: hint_range(.0, 1.) = 1.;
 uniform sampler2D {SCREEN_TEXTURE}: hint_screen_texture, filter_linear_mipmap;
 "
 
+
 func _get_shader_fragment_snip() -> String:
 	return "
 	vec4 {tex_color} = vec4(color, alpha);
-	
 	{tex_color}.rgb *= {modulate}.rgb;
 	{tex_color}.a *= {modulate}.a;
 	
 	float {final_alpha} = {tex_color}.a * {opacity};
 	
 	if ({blend_mode} == 0) {
-		
-		color = {tex_color}.rgb;
+		//color = {tex_color}.rgb;
 		alpha = {final_alpha};
-		
+	
 	} else {
 		
 		vec4 {screen_col} = texture({SCREEN_TEXTURE}, SCREEN_UV);
@@ -142,10 +141,6 @@ func _get_shader_fragment_snip() -> String:
 		vec3 {result} = {blend};
 		
 		switch ({blend_mode}) {
-			case 0: // Normal
-				{result} = {blend};
-				break;
-			
 			case 1: // Darken
 				{result} = min({base}, {blend});
 				break;
@@ -198,7 +193,6 @@ func _get_shader_fragment_snip() -> String:
 		}
 		
 		color.rgb = mix({base}, clamp({result}, .0, 1.), {final_alpha});
-		alpha = {tex_color}.a;
 	}
 "
 

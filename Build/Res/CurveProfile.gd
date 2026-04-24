@@ -19,18 +19,31 @@ static var interpolation_indexer: Dictionary[CurveKey.InterpolationMode, StringN
 	CurveKey.InterpolationMode.INTERPOLATION_MODE_BOUNCE: &"_interpolate_bounce"
 }
 
+enum SampleMethod {
+	SAMPLE_METHOD_SAMPLE,
+	SAMPLE_METHOD_SEEK
+}
+
 @export var keys: Dictionary[int, CurveKey]:
 	set(val):
 		keys = val
 		update_profile()
 
-@export var bakeable: bool:
+@export var sample_method: SampleMethod = SampleMethod.SAMPLE_METHOD_SAMPLE:
 	set(val):
-		bakeable = val
-		if val: sample_func = sample_baked
-		else: sample_func = sample
+		sample_method = val
+		
+		match sample_method:
+			SampleMethod.SAMPLE_METHOD_SAMPLE:
+				sample_func = sample
+			SampleMethod.SAMPLE_METHOD_SEEK:
+				sample_func = seek
 
-@export var baked: Dictionary[int, float]
+#@export var bakeable: bool:
+	#set(val):
+		#bakeable = val
+
+#@export var baked: Dictionary[int, float]
 
 @export_group(&"Ctrlr Settings")
 @export var ctrlr_min_val: float = .0
@@ -99,7 +112,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"curve_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [curve_ctrlr]),
 	}
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
 	ress_shared.erase(self)
 	self.res_changed.connect(
@@ -110,11 +123,9 @@ func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_c
 	)
 
 
-static func new_curve_profile(_keys: Dictionary[int, CurveKey], _bakeable: bool = false) -> CurveProfile:
-	#_keys: Dictionary[int, CurveKey], _bakeable: bool = false
+static func new_curve_profile(_keys: Dictionary[int, CurveKey]) -> CurveProfile:
 	var curve_profile:= CurveProfile.new()
 	curve_profile.keys = _keys
-	curve_profile.bakeable = _bakeable
 	curve_profile.update_profile()
 	return curve_profile
 
@@ -135,23 +146,57 @@ func remove_key(x: int) -> void:
 	key_removed.emit(x)
 	update_profile()
 
-func sample(x: int) -> float:
-	if not keys: return .0
+
+func seek(x: int) -> Variant:
+	if not keys: return null
+	
 	var min_xpos: int = keys_keys[0]
 	var max_xpos: int = keys_keys[-1]
+	
 	if x < min_xpos:
-		return get_key(min_xpos).value
+		var left_key: CurveKey = get_key(min_xpos)
+		if not left_key: return null
+		return left_key.variant
+	
 	elif x >= max_xpos:
-		return get_key(max_xpos).value
+		var right_key: CurveKey = get_key(max_xpos)
+		if not right_key: return null
+		return right_key.variant
+	
+	else:
+		var domain: Vector2i = _find_domain(x)
+		var key_a: CurveKey = get_key(domain.x)
+		if not key_a: return null
+		return key_a.variant
+
+
+func sample(x: int) -> float:
+	
+	if not keys: return .0
+	
+	var min_xpos: int = keys_keys[0]
+	var max_xpos: int = keys_keys[-1]
+	
+	if x < min_xpos:
+		var left_key: CurveKey = get_key(min_xpos)
+		if not left_key: return .0
+		return left_key.value
+	
+	elif x >= max_xpos:
+		var right_key: CurveKey = get_key(max_xpos)
+		if not right_key: return .0
+		return right_key.value
+	
 	else:
 		var domain: Vector2i = _find_domain(x)
 		var key_a: CurveKey = get_key(domain.x)
 		var key_b: CurveKey = get_key(domain.y)
 		var t: float = (x - domain.x) / float(domain.y - domain.x)
+		if not key_a or not key_b: return .0
 		return key_a.interpolation_func.call(domain.x, domain.y, key_a, key_b, t)
 
-func sample_baked(x: int) -> float:
-	return baked[x]
+#func sample_baked(x: int) -> float:
+	#return baked[x]
 
 func _find_domain(x: int) -> Vector2i:
 	var index: int = _find_domain_index(x)
@@ -302,11 +347,11 @@ func update_profile() -> void:
 		curve_key.set_interpolation_func(Callable(self, interpolation_indexer[curve_key.interpolation_mode]))
 		left_dir = -right_dir
 	
-	if bakeable:
-		baked.clear()
-		if keys:
-			for x: int in range(keys_keys[0], keys_keys[-1] + 1):
-				baked[x] = sample(x)
+	#if bakeable:
+		#baked.clear()
+		#if keys:
+			#for x: int in range(keys_keys[0], keys_keys[-1] + 1):
+				#baked[x] = sample(x)
 	
 	emit_res_changed()
 
@@ -320,7 +365,7 @@ func create_image_texture() -> ImageTexture:
 
 func duplicate_profile() -> CurveProfile:
 	var new_keys: Dictionary[int, CurveKey] = duplicate_keys()
-	var new_profile: CurveProfile = CurveProfile.new_curve_profile(new_keys, bakeable)
+	var new_profile: CurveProfile = CurveProfile.new_curve_profile(new_keys)
 	return new_profile
 
 func duplicate_keys() -> Dictionary[int, CurveKey]:

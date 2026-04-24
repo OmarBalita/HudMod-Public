@@ -1,16 +1,16 @@
 @icon("res://Asset/Icons/Objects/empty-object-2d.png")
 class_name Display2DClipRes extends MediaClipRes
 
-signal shader_code_compiled_successfully()
-signal shader_material_changed()
+signal pre_shader_material_changed()
+signal post_shader_material_changed()
+signal shader_pipeline_builded()
 
 @export var render_pass_margin: Vector2
 
-var shader_code: String: set = _set_shader_code
-var shader_material: ShaderMaterial: set = _set_shader_material
-var node_shader_material: ShaderMaterial: set = _set_node_shader_material
+var pre_shader_material: ShaderMaterial: set = _set_pre_shader_material
 var ppsm: Array[ShaderMaterial]
 var ppr: PingPongRenderer
+var post_shader_material: ShaderMaterial: set = _set_post_shader_material
 
 var mat_process_id: int
 
@@ -23,47 +23,13 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 		&"Description": ""
 	}
 
-func _set_shader_code(val: String) -> void:
-	await RenderingServer.frame_post_draw
-	shader_code = val
-	
-	if shader_code.is_empty():
-		shader_material = null
-	else:
-		shader_code_compiled_successfully.emit()
-		var new_shader_mat:= ShaderMaterial.new()
-		var new_shader:= Shader.new()
-		new_shader.set_code(shader_code)
-		new_shader_mat.set_shader(new_shader)
-		
-		shader_material = new_shader_mat
-		
-		if ppsm.is_empty():
-			node_shader_material = new_shader_mat
-		else:
-			node_shader_material = null
-			ppsm.insert(0, new_shader_mat)
+func _set_pre_shader_material(val: ShaderMaterial) -> void:
+	pre_shader_material = val
+	pre_shader_material_changed.emit()
 
-func _set_shader_material(val: ShaderMaterial) -> void:
-	shader_material = val
-	
-	if shader_material:
-		for section_key: StringName in components:
-			for comp_res: ComponentRes in components[section_key]:
-				if comp_res is ShaderComponentRes and comp_res.enabled:
-					comp_res._ready_shader()
-	
-	shared_data_clear()
-	
-	shader_material_changed.emit()
-
-func _set_node_shader_material(val: ShaderMaterial) -> void:
-	node_shader_material = val
-	
-	if curr_node:
-		await Engine.get_main_loop().process_frame
-		curr_node.material = node_shader_material
-		process_here()
+func _set_post_shader_material(val: ShaderMaterial) -> void:
+	post_shader_material = val
+	post_shader_material_changed.emit()
 
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
@@ -71,34 +37,32 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"render_pass_margin": export(vec2_args(render_pass_margin)),
 	}
 
-func get_shader_code() -> String:
-	return shader_code
+func get_pre_shader_material() -> ShaderMaterial:
+	return pre_shader_material
 
-func set_shader_code(new_shader_code: String) -> void:
-	shader_code = new_shader_code
+func set_pre_shader_material(new_shader_material: ShaderMaterial) -> void:
+	pre_shader_material = new_shader_material
 
-func get_shader_material() -> ShaderMaterial:
-	return shader_material
+func get_post_shader_material() -> ShaderMaterial:
+	return post_shader_material
 
-func set_shader_material(new_shader_material: ShaderMaterial) -> void:
-	shader_material = new_shader_material
+func set_post_shader_material(new_shader_material: ShaderMaterial) -> void:
+	post_shader_material = new_shader_material
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, Node2D.new())
 
 func _init_node2d(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int, node2d: Node2D) -> Node2D:
-	node2d.z_index = layer_idx
 	node2d.visible = not layer_res.hidden
 	
-	if components[&"Display2D"][0].blend_mode != 0:
-		var back_buffer_copy:= BackBufferCopy.new()
-		back_buffer_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
-		prenodes.append(back_buffer_copy)
+	var back_buffer_copy:= BackBufferCopy.new()
+	back_buffer_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+	prenodes.append(back_buffer_copy)
 	
 	return node2d
 
 func enter(node: Node) -> void:
-	curr_node.material = node_shader_material
+	curr_node.material = post_shader_material
 	if ppsm: ppr = RenderFarm.pingpong_renderer_init(self)
 	super(node)
 
@@ -120,8 +84,8 @@ func process_material(frame: int) -> void:
 	mat_process_id += 1
 	var curr_mat_process_id: int = mat_process_id
 	
-	if shader_material:
-		shader_material.set_shader_parameter(&"time", frame_f)
+	if post_shader_material:
+		post_shader_material.set_shader_parameter(&"time", frame_f)
 	
 	if ppsm:
 		for sm: ShaderMaterial in ppsm:
@@ -147,9 +111,27 @@ func build_shader_pipeline() -> void:
 	ppsm.clear()
 	
 	var used_names: PackedStringArray
-	var global_params_section: String = "\n" + _format_shader_snip(_get_shader_global_param_snip(), {}, used_names, true)
-	var fragment_section: String = "\n" + _format_shader_snip(_get_shader_fragment_snip(), {}, used_names, false)
-	var vertex_section: String = "\n" + _format_shader_snip(_get_shader_vertex_snip(), {}, used_names, false)
+	
+	var pre_global_params_section: String
+	var pre_fragment_section: String
+	var pre_vertex_section: String
+	
+	var post_global_params_section: String
+	var post_fragment_section: String
+	var post_vertex_section: String
+	
+	var owner_global_params: String = _format_shader_snip(_get_shader_global_param_snip(), {}, used_names, true)
+	var owner_fragment: String = _format_shader_snip(_get_shader_fragment_snip(), {}, used_names, false)
+	var owner_vertex: String = _format_shader_snip(_get_shader_vertex_snip(), {}, used_names, false)
+	
+	if _shader_is_post():
+		post_global_params_section = owner_global_params
+		post_fragment_section = owner_fragment
+		post_vertex_section = owner_vertex
+	else:
+		pre_global_params_section = owner_global_params
+		pre_fragment_section = owner_fragment
+		pre_vertex_section = owner_vertex
 	
 	for section: StringName in components:
 		var section_comps: Array = components[section]
@@ -168,14 +150,15 @@ func build_shader_pipeline() -> void:
 				var fragment_snip: String = _format_shader_snip(comp_res._get_shader_fragment_snip(), params_names_list, used_names, false)
 				var vertex_snip: String = _format_shader_snip(comp_res._get_shader_vertex_snip(), params_names_list, used_names, false)
 				
-				if global_params_snip: global_params_section += "\n" + global_params_snip
-				if fragment_snip: fragment_section += "\n" + fragment_snip
-				if vertex_snip: vertex_section += "\n" + vertex_snip
+				if global_params_snip: post_global_params_section += "\n" + global_params_snip
+				if fragment_snip: post_fragment_section += "\n" + fragment_snip
+				if vertex_snip: post_vertex_section += "\n" + vertex_snip
 				
 				comp_res.set_shader_params_names_list(params_names_list)
 	
+	var has_passes: bool = not ppsm.is_empty()
+	
 	if Scene2.curr_nodes_has(self):
-		var has_passes: bool = not ppsm.is_empty()
 		
 		if ppr:
 			if not has_passes:
@@ -185,18 +168,65 @@ func build_shader_pipeline() -> void:
 		elif has_passes:
 			ppr = RenderFarm.pingpong_renderer_init(self)
 	
-	if global_params_section.is_empty() and fragment_section.is_empty() and vertex_section.is_empty():
+	if has_passes:
+		var pre_shader_code: String = str(
+			_get_shader_header(), "\n",
+			"\nuniform float time;",
+			pre_global_params_section, "\n",
+			_get_shader_fragment(pre_fragment_section), "\n",
+			_get_shader_vertex(pre_vertex_section)
+		)
+		pre_shader_material = ShaderMaterial.new()
+		var shader: Shader = Shader.new()
+		shader.code = pre_shader_code
+		pre_shader_material.shader = shader
+		ppsm.insert(0, pre_shader_material)
+	
+	else:
+		post_global_params_section = pre_global_params_section + "\n" + post_global_params_section
+		post_fragment_section = pre_fragment_section + "\n" + post_fragment_section
+		post_vertex_section = pre_vertex_section + "\n" + post_vertex_section
+	
+	if post_global_params_section.is_empty() and post_fragment_section.is_empty() and post_vertex_section.is_empty():
 		return
 	
-	fragment_section = _get_shader_fragment(fragment_section)
-	vertex_section = _get_shader_vertex(vertex_section)
-	shader_code = str(
+	post_fragment_section = _get_shader_fragment(post_fragment_section)
+	post_vertex_section = _get_shader_vertex(post_vertex_section)
+	
+	var post_shader_code: String = str(
 		_get_shader_header(), "\n",
 		"\nuniform float time;",
-		global_params_section, "\n",
-		fragment_section, "\n",
-		vertex_section
+		post_global_params_section, "\n",
+		post_fragment_section, "\n",
+		post_vertex_section
 	)
+	
+	await RenderingServer.frame_post_draw
+	
+	if post_shader_code.is_empty():
+		post_shader_material = null
+	else:
+		var new_shader_mat:= ShaderMaterial.new()
+		var new_shader:= Shader.new()
+		new_shader.set_code(post_shader_code)
+		new_shader_mat.set_shader(new_shader)
+		post_shader_material = new_shader_mat
+		
+		if not has_passes:
+			pre_shader_material = new_shader_mat
+		
+		for section_key: StringName in components:
+			for comp_res: ComponentRes in components[section_key]:
+				if comp_res is ShaderComponentRes and comp_res.enabled:
+					comp_res._ready_shader()
+	
+	shared_data_clear()
+	
+	if curr_node:
+		curr_node.material = post_shader_material
+	
+	shader_pipeline_builded.emit()
+
 
 
 func _get_shader_header() -> String:
@@ -222,6 +252,7 @@ void vertex() {
 	UV = uv;
 }"
 
+static func _shader_is_post() -> bool: return true
 func _get_shader_global_param_snip() -> String: return ""
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""

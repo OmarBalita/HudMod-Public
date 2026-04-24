@@ -17,10 +17,14 @@ enum AlignmentHorizontal {
 
 @export var horizontal_alignment: AlignmentHorizontal = 1
 
-@export var font: FontRes = FontRes.new():
+@export var font: FontRes:
 	set(val):
-		if val: val.res_changed.disconnect(_build)
-		if font: font.res_changed.connect(_build)
+		if val:
+			val.res_changed.connect(
+				func() -> void:
+					dirty_level = 2
+					emit_res_changed()
+			)
 		font = val
 
 @export var font_size: int = 24
@@ -47,6 +51,11 @@ var postdraw: Array[Dictionary]
 var dirty_level: int = 0
 
 
+func duplicate_media_res() -> MediaClipRes:
+	var duplicated: Text2DClipRes = super()
+	duplicated.font = font.duplicate(true)
+	return duplicated
+
 static func get_media_clip_info() -> Dictionary[StringName, String]:
 	return {
 	&"title": "Text2D",
@@ -59,7 +68,7 @@ func set_prop(property_key: StringName, property_val: Variant) -> void:
 	super(property_key, property_val)
 
 func _init() -> void:
-	font.res_changed.connect(_build)
+	font = FontRes.new()
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
@@ -109,7 +118,6 @@ func _process_comps(frame: int) -> void:
 	dirty_level = 0
 	
 	curr_node.queue_redraw()
-
 
 func get_text() -> String: return text
 func set_text(new_val: String) -> void: text = new_val
@@ -344,5 +352,6 @@ func add_polygon_postdraw(points: PackedVector2Array, colors: PackedColorArray, 
 
 func remove_postdraw(idx: int) -> void:
 	postdraw.erase(idx)
+
 
 

@@ -52,7 +52,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 
 func emit_res_changed() -> void:
 	super()
-	if magnet_clip.is_valid():
+	if magnet_clip and magnet_clip.is_valid():
 		magnet_clip.media_res.process_here()
 
 func _process(frame: int) -> void:

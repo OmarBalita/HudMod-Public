@@ -5,11 +5,17 @@ signal ready_from_loader(owner: MediaClipRes)
 
 var owner: MediaClipRes: set = _set_owner
 
-@export var animations: Dictionary[UsableRes, Dictionary]
-# Animating Resources for each value stored like that {
-	#UsableRes.new(): {&"property_key": AnimationRes.new()},
-	#...
-#}
+@export var animations: Dictionary[UsableRes, Dictionary]:
+	set(val):
+		animations = val
+		await until_ready()
+		loop_animations(0,
+		func(usable_res: UsableRes, anim_res: AnimationRes, prop_key: StringName, frame: int) -> void:
+			for profile: CurveProfile in anim_res.profiles:
+				profile.res_changed.connect(_process_parent_here)
+				profile.res_changed.connect(update_controllers_here)
+		)
+
 @export var forced: bool = false
 @export var enabled: bool = true: set = _set_enabled
 @export var method_type: MethodType = 1:
@@ -44,6 +50,7 @@ func _set_owner(new_owner: MediaClipRes) -> void:
 
 func _set_enabled(new_enabled: bool) -> void:
 	enabled = new_enabled
+	emit_res_changed()
 	if owner:
 		owner.emit_clip_res_changed()
 
@@ -67,20 +74,6 @@ func get_method_type() -> MethodType:
 func set_method_type(new_method_type: MethodType) -> void:
 	method_type = new_method_type
 
-func duplicate_component_res() -> ComponentRes:
-	var dupl_comp_res: ComponentRes = duplicate(true)
-	
-	var dupl_anims:= animations.duplicate(true)
-	if animations.has(self):
-		var dupl_anims_port: Dictionary = animations.get(self)
-		for anim_key: StringName in dupl_anims_port:
-			dupl_anims_port[anim_key] = dupl_anims_port[anim_key].duplicate_anim_res()
-		dupl_anims[dupl_comp_res] = dupl_anims_port
-		dupl_anims.erase(self)
-	dupl_comp_res.animations = dupl_anims
-	
-	return dupl_comp_res
-
 func _enter() -> void:
 	pass
 
@@ -98,11 +91,6 @@ func _exit() -> void:
 
 func _delete() -> void:
 	_exit()
-
-#func _update() -> void:
-	#update_animations = false
-	#owner.process(owner.curr_frame)
-	#update_animations = true
 
 func _process_parent_here() -> void:
 	if owner and owner.curr_node: owner.process_here()
@@ -177,6 +165,9 @@ func push_animations_result(frame: float) -> void:
 func update_controllers(frame: float) -> void:
 	loop_animations(frame, update_controller_func)
 
+func update_controllers_here() -> void:
+	update_controllers(owner.curr_frame)
+
 
 func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
 	return animations[usable_res][property_key]
@@ -197,6 +188,7 @@ func make_animation_absolute(usable_res: UsableRes, property_key: StringName, pr
 		res_section[property_key] = anim_res
 		for profile: CurveProfile in anim_res.profiles:
 			profile.res_changed.connect(_process_parent_here)
+			profile.res_changed.connect(update_controllers_here)
 		owner.comp_animation_res_added.emit(self, usable_res, property_key, anim_res)
 		owner.shared_data_clear()
 	return res_section.get(property_key)
@@ -231,11 +223,11 @@ func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, 
 	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 	owner.shared_data_clear()
 
-func _receive_new_val(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _receive_new_val(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	if has_animation(usable_res, param_key):
 		request_animation_keyframe(usable_res, param_key, param_new_val, null, false)
 
-func _receive_keyframe(edit_box_container: IS.EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
+func _receive_keyframe(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
 	request_animation_keyframe(usable_res, param_key, param_new_val)
 
 

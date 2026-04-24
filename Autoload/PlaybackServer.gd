@@ -20,7 +20,7 @@ var is_render_process_finished: bool = true
 func is_playing() -> bool:
 	return playing
 
-func play() -> void:
+func play(emit_played: bool = true) -> void:
 	var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
 	
 	var start: int = opened_clip_res.clip_pos
@@ -30,7 +30,8 @@ func play() -> void:
 	start_time = curr_time - position * ProjectServer2.delta
 	
 	playing = true
-	played.emit(position)
+	if emit_played:
+		played.emit(position)
 	
 	step()
 
@@ -56,6 +57,13 @@ func step() -> void:
 	
 	if delay > .0:
 		await get_tree().create_timer(delay).timeout
+	
+	elif delay < -.05:
+		await get_tree().process_frame
+		if not is_playing():
+			return
+		play(false)
+		return
 	
 	var start: int = opened_clip_res.clip_pos
 	var end: int = start + opened_clip_res.length
@@ -140,7 +148,7 @@ func is_frame_at_clip_res(frame: int, clip_res: MediaClipRes) -> bool:
 
 func spawn_clip(parent_clip_res: MediaClipRes, clip_res: MediaClipRes, root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> void:
 	var node: Node = clip_res.init_node(root_layer_idx, layer_idx, layer_res, frame)
-	Scene2.spawn_node(parent_clip_res, clip_res, node)
+	Scene2.spawn_node(parent_clip_res, clip_res, node, layer_idx)
 	clip_res.enter(node)
 
 func free_clip(clip_res: MediaClipRes) -> void:
@@ -154,7 +162,6 @@ func free_clip(clip_res: MediaClipRes) -> void:
 	
 	clip_res.exit(clip_res.curr_node)
 	Scene2.free_node(clip_res)
-
 
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()

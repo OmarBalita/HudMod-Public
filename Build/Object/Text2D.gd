@@ -39,7 +39,7 @@ func _draw() -> void:
 			
 			_loop_glyphs(
 				func(line_idx: int, line_data: Text2DClipRes.LineData, glyph: Dictionary, char: CharFXTransform) -> void:
-					ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, size, char.offset, char.glyph_index, char.color * color)
+					ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, size, char.offset + shadow_offset, char.glyph_index, char.color * color)
 			)
 	
 	if outline_size:

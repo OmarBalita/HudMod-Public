@@ -51,19 +51,14 @@ func _ready() -> void:
 	content_margin_container = IS.create_margin_container(6, 6, 6, 6, {clip_contents = false})
 	
 	IS.set_base_settings(header_button)
+	IS.set_base_settings(content_panel_container)
+	IS.set_base_panel_settings(content_panel_container, IS.style_box_empty)
 	IS.set_button_style(header_button, IS.style_cornerless_body)
 	IS.set_font_from_label_settings(header_button, IS.label_settings_bold)
 	IS.set_font_colors(header_button)
 	IS.set_icon_colors(header_button)
 	
 	header_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	
-	var panel_style:= StyleBoxFlat.new()
-	panel_style.border_width_top = 1
-	panel_style.border_width_bottom = 1
-	panel_style.border_width_left = 1
-	panel_style.border_width_right = 1
-	content_panel_container.add_theme_stylebox_override(&"panel", panel_style)
 	
 	if has_custom_color:
 		custom_color_rect.set_anchors_and_offsets_preset(PRESET_RIGHT_WIDE)
@@ -87,9 +82,10 @@ func update_ui() -> void:
 	header_button.icon = IS.TEXTURE_DOWN if is_expanded else IS.TEXTURE_RIGHT
 	custom_color_rect.set_color(category_custom_color)
 	
-	var panel_style: StyleBoxFlat = content_panel_container.get_theme_stylebox(&"panel")
-	panel_style.set_border_color(content_color.lightened(.5))
-	panel_style.set_bg_color(content_color)
+	#var panel_style: StyleBoxFlat = content_panel_container.get_theme_stylebox(&"panel")
+	#panel_style.set_border_color(content_color.lightened(.5))
+	#panel_style.set_bg_color(content_color)
+	
 	if use_flex_container:
 		content_container.set_control_size(content_control_size)
 	content_panel_container.set_visible(is_expanded)

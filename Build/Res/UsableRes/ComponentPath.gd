@@ -53,7 +53,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	}
 
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	_try_update_editor()
 
 func _on_clip_media_res_val_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:

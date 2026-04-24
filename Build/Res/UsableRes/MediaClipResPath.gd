@@ -51,7 +51,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"path_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, method_custom_args(path_box)),
 	}
 
-func _exported_props_controllers_created(main_edit: IS.EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	var panel_container: PanelContainer = main_edit.get_child(0)
 	panel_container.add_theme_stylebox_override(&"panel", IS.style_box_empty)
 	_try_update_editor()
@@ -75,23 +75,25 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 	
 	if media_res_picker_button.button_pressed:
 		
-		EditorServer.time_line.process_mode = Node.PROCESS_MODE_DISABLED
+		EditorServer.picking_clip = true
 		
-		var tree: SceneTree = EditorServer.get_tree()
 		var drawable_rect: DrawableRect = EditorServer.drawable_rect
 		
-		var media_clips_focused: Array[MediaClip] = EditorServer.media_clips_focused
+		var media_clips_focused: Array[MediaServer.ClipPanel] = EditorServer.media_clips_focused
 		
 		var font: Font = IS.label_settings_main.font
 		
-		while Input.get_mouse_button_mask() == 0:
+		await Engine.get_main_loop().process_frame
+		await Engine.get_main_loop().process_frame
+		
+		while not Input.is_action_just_released("left_btn"):
 			drawable_rect.clear_drawn_entities()
 			if media_clips_focused.size():
 				var str_pos: Vector2 = drawable_rect.get_global_mouse_position() + Vector2(.0, -10.)
 				var str: String = media_clips_focused[0].clip_res.get_display_name()
 				drawable_rect.draw_new_string_outline(font, str_pos, str, 0, 20, 4, Color.BLACK)
 				drawable_rect.draw_new_string(font, str_pos, str, 0, 20, Color(Color.WHITE, .8))
-			await tree.process_frame
+			await Engine.get_main_loop().process_frame
 		
 		if media_clips_focused.size():
 			var target_res: MediaClipRes = media_clips_focused[0].clip_res
@@ -104,7 +106,7 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 		media_res_picker_button.button_pressed = false
 		media_res_picker_button.update_button()
 		
-		EditorServer.time_line.process_mode = Node.PROCESS_MODE_INHERIT
+		EditorServer.picking_clip = false
 
 func _on_delete_button() -> void:
 	media_res = null

@@ -16,6 +16,9 @@ var dirty_level: int = 2 ## When dirty_level > 0: redraw, and when it > 1: gen_p
 var all_points: Array[PackedVector2Array]
 
 var draw_node: DrawShapeNode
+
+var setup_func: Callable
+var spawn_func: Callable
 var redraw_func: Callable
 
 func set_prop(property_key: StringName, property_val: Variant) -> void:
@@ -64,47 +67,40 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Stroke": export_method(ExportMethodType.METHOD_EXIT_CATEGORY)
 	}
 
-func emit_res_changed() -> void:
-	super()
-	
-	if owner.curr_node: _init_draw_node()
-	
-	if enabled: all_points = _transform_points(_gen_points())
-	else: all_points.clear()
-	
-	if draw_node: draw_node.queue_redraw()
-
-
-func _init_draw_node() -> void:
-	
-	if owner is Shape2DClipRes:
-		draw_node = owner.curr_node
-		redraw_func = _redraw_none
-	else:
-		if draw_node:
-			draw_node.queue_free()
-		_spawn_draw_node()
-		redraw_func = _redraw_node
-
-func _spawn_draw_node() -> void:
-	draw_node = DrawShapeChild.new()
-	draw_node.use_parent_material = true
-	draw_node.draw_shape_comp = self
-	owner.curr_node.add_child(draw_node)
 
 func _set_owner(new_owner: MediaClipRes) -> void:
 	super(new_owner)
-	if owner.curr_node:
-		_init_draw_node()
+	if owner is Shape2DClipRes:
+		setup_func = _setup_owner_node
+		spawn_func = Callable()
+		redraw_func = Callable()
+	else:
+		setup_func = _setup_child
+		spawn_func = _spawn_draw_node
+		redraw_func = _redraw_node
+	
+	setup_func.call()
+
+func _set_enabled(new_enabled: bool) -> void:
+	enabled = new_enabled
+	if setup_func.is_valid():
+		setup_func.call()
+	super(new_enabled)
+
+func emit_res_changed() -> void:
+	max_dirty()
+	super()
 
 func _enter() -> void:
-	_init_draw_node()
+	if spawn_func.is_valid():
+		spawn_func.call()
 
 func _process(frame: int) -> void:
 	if dirty_level > 0:
 		if dirty_level > 1:
 			all_points = _transform_points(_gen_points())
-		redraw_func.call()
+		if redraw_func.is_valid():
+			redraw_func.call()
 
 func _exit() -> void:
 	if draw_node:
@@ -125,8 +121,28 @@ func _transform_points(all_points: Array[PackedVector2Array]) -> Array[PackedVec
 	
 	return all_points
 
-func _redraw_none() -> void:
+
+
+func _setup_owner_node() -> void:
 	pass
+
+func _setup_child() -> void:
+	max_dirty()
+	
+	if draw_node:
+		draw_node.queue_free()
+	draw_node = null
+	
+	if owner.curr_node and enabled:
+		_spawn_draw_node()
+
+func _spawn_draw_node() -> void:
+	if draw_node: return
+	draw_node = DrawShapeChild.new()
+	draw_node.use_parent_material = true
+	draw_node.draw_shape_comp = self
+	owner.curr_node.add_child(draw_node)
+
 func _redraw_node() -> void:
 	draw_node.queue_redraw()
 	dirty_level = 0

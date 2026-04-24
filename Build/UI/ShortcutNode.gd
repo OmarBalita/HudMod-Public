@@ -45,6 +45,9 @@ func _input(event: InputEvent) -> void:
 	if cond_func.is_valid() and not cond_func.call():
 		return
 	
+	if not is_visible_in_tree():
+		return
+	
 	if not get_global_rect().has_point(get_global_mouse_position()):
 		return
 	
@@ -53,9 +56,9 @@ func _input(event: InputEvent) -> void:
 		if not event.is_pressed():
 			return
 		
-		for key: StringName in shortcuts:
+		for shortcut_key: StringName in shortcuts:
 			
-			var info: Array = shortcuts[key]
+			var info: Array = shortcuts[shortcut_key]
 			var shortcut: Shortcut = info[0]
 			
 			if shortcut.matches_event(event):
@@ -63,7 +66,7 @@ func _input(event: InputEvent) -> void:
 				var method_name: StringName = info[1]
 				methods_object.callv(method_name, info[2] if info.size() >= 3 else [])
 				
-				shortcut_performed.emit(key)
+				shortcut_performed.emit(shortcut_key)
 				return
 
 

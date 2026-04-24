@@ -165,19 +165,32 @@ func server_replace_media_path(from: String, to: String) -> void:
 		not_deleted_yet.erase(from)
 
 
-func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
+func server_deregister_image(path: String, id: String, thumbnail_path: String, delete_images_on_disk: bool) -> void:
 	thumbnails.erase(path)
-	store_not_deleted_thumbnail(thumbnail_path, id)
+	if delete_images_on_disk:
+		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
+	else:
+		store_not_deleted_thumbnail(thumbnail_path, id)
 
-func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool) -> void:
 	thumbnails.erase(path)
 	timeline_waveform_textures.erase(path)
+	if delete_images_on_disk:
+		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
+		DirAccessHelper.remove_directory_recursive(waveform_path + id)
+	else:
+		store_not_deleted_thumbnail(thumbnail_path, id)
+		store_not_deleted_dir(str(waveform_path, id))
 
-func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
+func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool) -> void:
 	thumbnails.erase(path)
 	timeline_waveform_textures.erase(path)
-	store_not_deleted_thumbnail(thumbnail_path, id)
-	store_not_deleted_dir(str(waveform_path, id))
+	if delete_images_on_disk:
+		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
+		DirAccessHelper.remove_directory_recursive(waveform_path + id)
+	else:
+		store_not_deleted_thumbnail(thumbnail_path, id)
+		store_not_deleted_dir(str(waveform_path, id))
 
 #func server_register_preset_media_res(path: String, preset_media_res: MediaClipRes, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
 	#if ids_exists.has(id):
@@ -487,6 +500,9 @@ class ClipPanel extends Panel:
 	
 	func _gui_input(event: InputEvent) -> void:
 		
+		if EditorServer.picking_clip:
+			return
+		
 		match timeline.edit_mode_btn.selected_id:
 			0: _gui_input_select_mode(event)
 			1: _gui_input_split_mode(event)
@@ -705,6 +721,9 @@ class ClipPanel extends Panel:
 						
 						var anim_res: AnimationRes = animated_props[prop_key]
 						
+						if not AnimationRes.funcs_indexer.has(anim_res.value_type):
+							continue
+						
 						var graph_category:= IS.create_category(true, str(comp_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.), false)
 						var graph_editor:= CurveController.new()
 						
@@ -736,10 +755,11 @@ class ClipPanel extends Panel:
 						graph_category.add_content(graph_editor)
 						box_container.add_child(graph_category)
 						
-						IS.set_margin_settings(graph_category.content_margin_container, 0, 0, 0, 0)
+						IS.set_margin_settings(graph_category.content_margin_container, 2, 2, 0, 2)
 						graph_category.content_color = Color.BLACK
 						
 						IS.expand(graph_editor, true, true)
+						graph_category.mouse_filter = Control.MOUSE_FILTER_STOP
 						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 						graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
 						graph_category.expand_changed.connect(_on_graph_category_expand_changed)
@@ -773,9 +793,10 @@ class ClipPanel extends Panel:
 	func _on_comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_spacial_frames_and_update_timeline()
 	
 	func _on_mouse_entered() -> void:
-		pass
+		EditorServer.media_clips_focused.append(self)
 	
 	func _on_mouse_exited() -> void:
+		EditorServer.media_clips_focused.erase(self)
 		queue_redraw()
 	
 	func _on_graph_editor_mouse_entered(graph_editor: CurveController) -> void:
@@ -1447,7 +1468,6 @@ func get_media_classname_from_type(type: MediaTypes) -> StringName:
 
 func is_media_type_preset(path: String) -> bool:
 	return path.get_extension() in ["res", "tres"]
-
 
 
 

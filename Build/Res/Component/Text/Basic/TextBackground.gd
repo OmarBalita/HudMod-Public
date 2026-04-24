@@ -5,7 +5,7 @@ enum Type {
 	TYPE_EACH_CHAR
 }
 
-@export var type: Type
+@export var type: Type = 1
 @export var color: Color = Color.RED
 @export var filled: bool = true
 @export var width: int = -1
@@ -18,7 +18,7 @@ var _font_size: Vector2i
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
 		&"Theme": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
-		&"type": export(options_args(type, Type)),
+		#&"type": export(options_args(type, Type)),
 		&"color": export(color_args(color)),
 		&"filled": export(bool_args(filled)),
 		&"width": export(int_args(width, -1, INF)),

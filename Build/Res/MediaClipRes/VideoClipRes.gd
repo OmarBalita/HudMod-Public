@@ -24,7 +24,7 @@ class_name VideoClipRes extends Display2DClipRes
 			
 			fps = video_info.fps
 			
-			if shader_material:
+			if post_shader_material:
 				_init_video_shader_params()
 		else:
 			video_decoder.close()
@@ -48,11 +48,6 @@ var latest_scale_factor: float
 var texture_y: ImageTexture
 var texture_u: ImageTexture
 var texture_v: ImageTexture
-
-func _set_shader_code(val: String) -> void:
-	super(val)
-	if curr_node:
-		curr_node.texture = get_self_texture()
 
 func get_display_name() -> String: return str("Video:", video.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(video).texture
@@ -142,16 +137,16 @@ func _update_video_frame() -> void:
 	texture_v = ImageTexture.create_from_image(image_v)
 
 func _update_video_shader_params() -> void:
-	shader_material.set_shader_parameter(&"tex_y", texture_y)
-	shader_material.set_shader_parameter(&"tex_u", texture_u)
-	shader_material.set_shader_parameter(&"tex_v", texture_v)
+	pre_shader_material.set_shader_parameter(&"tex_y", texture_y)
+	pre_shader_material.set_shader_parameter(&"tex_u", texture_u)
+	pre_shader_material.set_shader_parameter(&"tex_v", texture_v)
 
 func _init_video_shader_params() -> void:
 	var bit_depth: int = video_decoder.get_bit_depth()
-	shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
-	shader_material.set_shader_parameter(&"is_full_range", false)
-	shader_material.set_shader_parameter(&"bit_depth", bit_depth)
-	shader_material.set_shader_parameter(&"bit_max_val", pow(2., 16 if bit_depth > 8 else 8))
+	pre_shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
+	pre_shader_material.set_shader_parameter(&"is_full_range", false)
+	pre_shader_material.set_shader_parameter(&"bit_depth", bit_depth)
+	pre_shader_material.set_shader_parameter(&"bit_max_val", pow(2., 16 if bit_depth > 8 else 8))
 
 static func get_compatible_format(bit_depth: int) -> Image.Format:
 	return Image.FORMAT_R16 if bit_depth > 8 else Image.FORMAT_R8
@@ -159,10 +154,16 @@ static func get_compatible_format(bit_depth: int) -> Image.Format:
 static func convert_buffer_to_image(res: Vector2i, format: Image.Format, data: PackedByteArray) -> Image:
 	return Image.create_from_data(res.x, res.y, false, format, data)
 
-func _set_shader_material(val: ShaderMaterial) -> void:
-	super(val)
-	if is_opening:
+
+func build_shader_pipeline() -> void:
+	await super()
+	if video_decoder:
 		_init_video_shader_params()
+	if curr_node:
+		curr_node.texture = get_self_texture()
+		process_here()
+
+static func _shader_is_post() -> bool: return false
 
 func _get_shader_global_param_snip() -> String:
 	return "
@@ -223,6 +224,9 @@ func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
 	if paths_for_format.has(video): video = paths_for_format[video]
+
+func erase_paths(paths_for_erase: PackedStringArray) -> void:
+	if paths_for_erase.has(video): video = ""
 
 func update_paths() -> void:
 	video = video

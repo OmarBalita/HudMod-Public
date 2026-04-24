@@ -13,7 +13,7 @@ class_name CompAnimation extends ComponentRes
 		image_frame = clamp(val, 0, hframes * vframes - 1)
 		
 		if EditorServer.has_usable_res_controllers(self):
-			var image_frame_edit: IS.EditBoxContainer = EditorServer.get_usable_res_property_controller(self, &"image_frame")
+			var image_frame_edit: EditBoxContainer = EditorServer.get_usable_res_property_controller(self, &"image_frame")
 			image_frame_edit.set_curr_val(image_frame, false, false)
 			image_frame_edit.set_controller_val_manually(image_frame)
 

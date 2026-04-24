@@ -27,12 +27,13 @@ var is_full_screen: bool:
 				header_panel.target_to_layout()
 			flex_view_control.reparent(get_tree().get_current_scene())
 			flex_view_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			get_window().mode = Window.MODE_FULLSCREEN
+			EditorServer.full_screen_requested.append(get_instance_id())
 		else:
 			flex_view_control.reparent(screen_options_parent)
 			screen_options_parent.move_child(flex_view_control, 0)
-			get_window().mode = Window.MODE_MAXIMIZED
+			EditorServer.full_screen_requested.erase(get_instance_id())
 		
+		EditorServer.update_window_mode()
 		update_ui()
 
 # RealTime Nodes
@@ -53,11 +54,11 @@ var max_time_label: Label
 var volume_control: VolumeControl = VolumeControl.new()
 
 var full_screen_button: TextureButton
-var ratio_button: TextureButton
-var more_button: TextureButton
+#var ratio_button: TextureButton
+#var more_button: TextureButton
 
-var slider_panel: PanelContainer
-var slider_time_code_label: Label
+var control_panel: PanelContainer
+var time_code_label2: Label
 var cancel_full_screen_button: TextureButton
 
 
@@ -77,8 +78,8 @@ func _ready_editor() -> void:
 	play_button.pressed.connect(_on_play_button_pressed)
 	replay_button.pressed.connect(_on_replay_button_pressed)
 	full_screen_button.pressed.connect(_on_full_screen_button_pressed)
-	ratio_button.pressed.connect(_on_ratio_button_pressed)
-	more_button.pressed.connect(_on_more_button_pressed)
+	#ratio_button.pressed.connect(_on_ratio_button_pressed)
+	#more_button.pressed.connect(_on_more_button_pressed)
 	
 	cancel_full_screen_button.pressed.connect(_on_cancel_full_screen_button_pressed)
 
@@ -178,9 +179,9 @@ func _ready_body() -> void:
 	time_code_label = IS.create_label("", IS.label_settings_bold)
 	max_time_label = IS.create_label("")
 	
-	ratio_button = IS.create_texture_button(texture_ratio)
 	full_screen_button = IS.create_texture_button(texture_full_screen)
-	more_button = IS.create_texture_button(texture_more)
+	#ratio_button = IS.create_texture_button(texture_ratio)
+	#more_button = IS.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
 	time_container.add_child(max_time_label)
@@ -194,9 +195,9 @@ func _ready_body() -> void:
 		time_panel,
 		volume_control,
 		full_screen_button,
-		IS.create_v_line_panel(),
-		ratio_button,
-		more_button,
+		#IS.create_v_line_panel(),
+		#ratio_button,
+		#more_button,
 		IS.create_empty_control()
 	])
 	
@@ -205,23 +206,30 @@ func _ready_body() -> void:
 	body.add_child(screen_options_parent)
 	
 	# Time Slider
-	slider_panel = IS.create_panel_container(Vector2(.0, 60.0), load("res://UI&UX/RangeBlack.tres"))
-	var slider_margin: MarginContainer = IS.create_margin_container(20,20,20,20)
-	var slider_box: BoxContainer = IS.create_box_container()
+	control_panel = IS.create_panel_container(Vector2(.0, 60.0), load("res://UI&UX/RangeBlack.tres"))
+	var control_margin: MarginContainer = IS.create_margin_container(20,20,20,20)
+	var control_box: BoxContainer = IS.create_box_container()
 	
-	slider_time_code_label = IS.create_label("")
-	cancel_full_screen_button = IS.create_texture_button(texture_cancel_full_screen)
+	var space_ctrl: Control = IS.create_empty_control(.0, .0)
 	
-	slider_box.add_child(slider_time_code_label)
-	slider_box.add_child(cancel_full_screen_button)
+	time_code_label2 = Label.new()
+	cancel_full_screen_button = TextureButton.new()
+	cancel_full_screen_button.texture_normal = texture_cancel_full_screen
 	
-	slider_margin.add_child(slider_box)
-	slider_panel.add_child(slider_margin)
-	flex_view_control.add_child(slider_panel)
+	IS.expand(space_ctrl)
+	IS.set_base_settings(time_code_label)
+	IS.set_base_settings(cancel_full_screen_button)
+	
+	control_box.add_child(time_code_label2)
+	control_box.add_child(space_ctrl)
+	control_box.add_child(cancel_full_screen_button)
+	
+	control_margin.add_child(control_box)
+	control_panel.add_child(control_margin)
+	flex_view_control.add_child(control_panel)
 	
 	await get_tree().process_frame
-	slider_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	slider_panel.modulate.a = .0
+	control_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 
 
 func get_is_full_screen() -> bool:
@@ -231,8 +239,7 @@ func set_is_full_screen(it_is: bool) -> void:
 	is_full_screen = it_is
 
 func update_ui() -> void:
-	slider_time_code_label.visible = is_full_screen
-	cancel_full_screen_button.visible = is_full_screen
+	control_panel.visible = is_full_screen
 	update_timecode()
 
 func update_timecode() -> void:
@@ -240,7 +247,7 @@ func update_timecode() -> void:
 	var video_length_timecode:= TimeServer.frame_to_timecode(ProjectServer2.project_res.root_clip_res.length)
 	time_code_label.set_text(curr_frame_timecode)
 	max_time_label.set_text(video_length_timecode)
-	slider_time_code_label.set_text(curr_frame_timecode + " / " + video_length_timecode)
+	time_code_label2.set_text(curr_frame_timecode + " / " + video_length_timecode)
 
 
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
@@ -267,15 +274,16 @@ func _on_play_button_pressed() -> void:
 
 func _on_replay_button_pressed() -> void:
 	EditorServer.editor_settings.edit.replay = replay_button.button_pressed
+	ResourceSaver.save(EditorServer.editor_settings, EditorServer.editor_settings_path)
 
 func _on_full_screen_button_pressed() -> void:
 	set_is_full_screen(true)
 
-func _on_ratio_button_pressed() -> void:
-	pass
-
-func _on_more_button_pressed() -> void:
-	pass
+#func _on_ratio_button_pressed() -> void:
+	#pass
+#
+#func _on_more_button_pressed() -> void:
+	#pass
 
 func _on_cancel_full_screen_button_pressed() -> void:
 	set_is_full_screen(false)

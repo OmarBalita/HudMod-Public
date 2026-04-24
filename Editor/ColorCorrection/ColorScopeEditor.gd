@@ -53,7 +53,7 @@ func _ready_editor() -> void:
 		var visibility: bool = color_scope_sub_editors_visib[index]
 		
 		var btn:= IS.create_bool_edit(key, visibility, Vector2(180., .0), 1)
-		var btn_edit_box: IS.EditBoxContainer = IS.get_edit_box_from(btn)
+		var btn_edit_box: EditBoxContainer = IS.get_edit_box_from(btn)
 		
 		btn_edit_box.keyframable = false
 		sub_editor.visible = visibility
