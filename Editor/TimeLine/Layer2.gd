@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Layer2 extends HSplitContainer
 
 @onready var leftside_panel: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_cornerless_panel)
@@ -5,11 +24,11 @@ class_name Layer2 extends HSplitContainer
 @onready var leftside_cont: BoxContainer = IS.create_box_container(6)
 
 @onready var custom_color_rect: ColorRect = IS.create_color_rect()
-@onready var lock_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/padlock-unlock.png"), null, preload("res://Asset/Icons/padlock.png"), true)
+@onready var lock_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/padlock-unlock.png"), null, preload("res://Asset/Icons/padlock.png"), "Lock / Unlock", true)
 @onready var name_label: Label = IS.create_name_label("")
-@onready var hide_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/eye.png"), null, preload("res://Asset/Icons/visible.png"), true)
-@onready var mute_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/volume.png"), null, null, true)
-@onready var more_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/more.png"))
+@onready var hide_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/eye.png"), null, preload("res://Asset/Icons/visible.png"), "Hide / Show", true)
+@onready var mute_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/volume.png"), null, null, "Mute / Unmute", true)
+@onready var more_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/more.png"), null, null, "More")
 
 @onready var clips_panel: ClipsPanelContainer = ClipsPanelContainer.new(self)
 @onready var clips_body: Control = Control.new()
@@ -165,13 +184,21 @@ func update_size() -> void:
 
 
 func select_clips() -> void:
-	pass
+	timeline.layers_body.select_vals_by_method(
+		func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+			return port_idx == layer_idx, false
+	)
 
 func deselect_clips() -> void:
-	pass
+	timeline.layers_body.deselect_vals_by_method(
+		func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+			return port_idx == layer_idx
+	)
 
 func delete_clips() -> void:
-	pass
+	var coords: Array[Vector2i]
+	for frame: int in clips: coords.append(Vector2i(layer_idx, frame))
+	timeline.opened_clip_res.remove_clips(coords)
 
 func move_up() -> void:
 	move_to(layer_idx + 1)
@@ -188,23 +215,28 @@ func delete() -> void:
 
 func popup_move_to() -> void:
 	var max_layer_index: int = timeline.opened_clip_res.layers.size()
-	var index_to_controller: FloatController = IS.create_float_edit(&"index", layer_idx, 0, max_layer_index - 1, 1, .1, 5, true)[0]
+	var index_to_edit: EditContainer = IS.create_float_edit(&"index", layer_idx, 0, max_layer_index - 1, 1, .1, 5, true)
+	var index_to_ctrlr: FloatController = index_to_edit.controller
 	
 	var window_container: BoxContainer = WindowManager.popup_accept_window(
 		get_window(), Vector2(400., 150.), "Move Layer to", func() -> void:
-			move_to(index_to_controller.get_curr_val())
+			move_to(index_to_ctrlr.get_curr_val())
 	)
-	window_container.add_child(index_to_controller.get_parent())
+	window_container.add_child(index_to_edit)
 
 func popup_customization() -> void:
 	
-	var popup_title: Label = IS.create_label(name_label.text, IS.label_settings_header)
+	var popup_title: Label = IS.create_label(name_label.text, "", IS.label_settings_header)
 	var main_custname: StringName = layer_res.custom_name
 	var main_custcolor: Color = layer_res.custom_color
 	var main_custsize: int = layer_res.custom_size
-	var custom_name_controller: LineEdit = IS.create_string_edit("Name", main_custname)[0]
-	var custom_color_controller: ColorButton = IS.create_color_edit("Color", main_custcolor)[0]
-	var custom_size_controller: FloatController = IS.create_float_edit("Size", main_custsize, 35, 200, 1, 1, 5, true)[0]
+	
+	var custom_name_edit: EditContainer = IS.create_string_edit("Name", main_custname)
+	var custom_color_edit: EditContainer = IS.create_color_edit("Color", main_custcolor)
+	var custom_size_edit: EditContainer = IS.create_float_edit("Size", main_custsize, 35, 200, 1, 1, 5, true)
+	var custom_name_controller: LineEdit = custom_name_edit.controller
+	var custom_color_controller: ColorButton = custom_color_edit.controller
+	var custom_size_controller: FloatController = custom_size_edit.controller
 	
 	custom_color_controller.color_controller_popup_type = 1
 	
@@ -230,22 +262,17 @@ func popup_customization() -> void:
 		update_func, cancel_func
 	)
 	
-	IS.add_children(window_container, [
-		popup_title,
-		custom_name_controller.get_parent(),
-		custom_color_controller.get_parent(),
-		custom_size_controller.get_parent()
-	])
+	IS.add_children(window_container, [popup_title, custom_name_edit, custom_color_edit, custom_size_edit])
 
 
 func _on_lock_btn_pressed() -> void:
-	layer_res.locked = lock_btn.button_pressed
+	ProjectServer2.commit_action("set_layer_lock", layer_res.set_locked.bind(lock_btn.button_pressed), layer_res.set_locked.bind(not lock_btn.button_pressed))
 
 func _on_hide_btn_pressed() -> void:
-	layer_res.hidden = hide_btn.button_pressed
+	ProjectServer2.commit_action("set_layer_hide", layer_res.set_hidden.bind(hide_btn.button_pressed), layer_res.set_hidden.bind(not hide_btn.button_pressed))
 
 func _on_mute_btn_pressed() -> void:
-	layer_res.mute = mute_btn.button_pressed
+	ProjectServer2.commit_action("set_layer_mute", layer_res.set_mute.bind(mute_btn.button_pressed), layer_res.set_mute.bind(not mute_btn.button_pressed))
 
 func _on_more_btn_pressed() -> void:
 	IS.popup_menu([
@@ -265,12 +292,13 @@ func _on_more_btn_pressed() -> void:
 func _on_layer_res_lock_changed(to: bool) -> void:
 	timeline.sort_layers()
 	clips_panel.update_ui()
+	lock_btn.button_pressed = to; (lock_btn as IS.CustomTextureButton).update_button()
 
 func _on_layer_res_hidden_changed(to: bool) -> void:
-	pass
+	hide_btn.button_pressed = to; hide_btn.update_button()
 
 func _on_layer_res_mute_changed(to: bool) -> void:
-	pass
+	mute_btn.button_pressed = to; mute_btn.update_button()
 
 class ClipsPanelContainer extends PanelContainer:
 	

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name PopupedColorController extends PopupedControl
 
 signal color_changed(new_color: Color)
@@ -106,23 +125,28 @@ func _ready() -> void:
 	
 	before_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
 	after_color_rect = IS.create_color_rect(curr_color, {custom_minimum_size = Vector2(100, 0)})
-	color_picker_button = IS.create_texture_button(texture_color_picker, null, null, true)
+	color_picker_button = IS.create_texture_button(texture_color_picker, null, null, "Pick", true)
 	
-	red_controller = IS.create_float_edit("R", curr_color.r, .0, 1., .001, .001, .1, false, 0)[0]
-	green_controller = IS.create_float_edit("G", curr_color.g, .0, 1., .001, .001, .1, false, 0)[0]
-	blue_controller = IS.create_float_edit("B", curr_color.b, .0, 1., .001, .001, .1, false, 0)[0]
-	hue_controller = IS.create_float_edit("H", curr_color.h, .0, 1., .001, .001, .1, false, 0)[0]
-	sat_controller = IS.create_float_edit("S", curr_color.s, .0, 1., .001, .001, .1, false, 0)[0]
-	val_controller = IS.create_float_edit("V", curr_color.v, .0, 1., .001, .001, .1, false, 0)[0]
-	alpha_controller = IS.create_float_edit("A", curr_color.a, .0, 1., .001, .001, .1, false, 0)[0]
-	var red_edit: EditBoxContainer = red_controller.get_parent(); var green_edit: EditBoxContainer = green_controller.get_parent()
-	var blue_edit: EditBoxContainer = blue_controller.get_parent(); var hue_edit: EditBoxContainer = hue_controller.get_parent()
-	var sat_edit: EditBoxContainer = sat_controller.get_parent(); var val_edit: EditBoxContainer = val_controller.get_parent()
-	var alpha_edit: EditBoxContainer = alpha_controller.get_parent()
-	red_edit.header.size_flags_horizontal = 0; green_edit.header.size_flags_horizontal = 0
-	blue_edit.header.size_flags_horizontal = 0; hue_edit.header.size_flags_horizontal = 0
-	sat_edit.header.size_flags_horizontal = 0; val_edit.header.size_flags_horizontal = 0
-	alpha_edit.header.size_flags_horizontal = 0
+	var red_edit: EditContainer = IS.create_float_edit("R", curr_color.r, .0, 1., .001, .001, .1, false, 0)
+	var green_edit: EditContainer = IS.create_float_edit("G", curr_color.g, .0, 1., .001, .001, .1, false, 0)
+	var blue_edit: EditContainer = IS.create_float_edit("B", curr_color.b, .0, 1., .001, .001, .1, false, 0)
+	var hue_edit: EditContainer = IS.create_float_edit("H", curr_color.h, .0, 1., .001, .001, .1, false, 0)
+	var sat_edit: EditContainer = IS.create_float_edit("S", curr_color.s, .0, 1., .001, .001, .1, false, 0)
+	var val_edit: EditContainer = IS.create_float_edit("V", curr_color.v, .0, 1., .001, .001, .1, false, 0)
+	var alpha_edit: EditContainer = IS.create_float_edit("A", curr_color.a, .0, 1., .001, .001, .1, false, 0)
+	
+	red_controller = red_edit.controller
+	green_controller = green_edit.controller
+	blue_controller = blue_edit.controller
+	hue_controller = hue_edit.controller
+	sat_controller = sat_edit.controller
+	val_controller = val_edit.controller
+	alpha_controller = alpha_edit.controller
+	
+	red_edit.header_cont.size_flags_horizontal = 0; green_edit.header_cont.size_flags_horizontal = 0
+	blue_edit.header_cont.size_flags_horizontal = 0; hue_edit.header_cont.size_flags_horizontal = 0
+	sat_edit.header_cont.size_flags_horizontal = 0; val_edit.header_cont.size_flags_horizontal = 0
+	alpha_edit.header_cont.size_flags_horizontal = 0
 	
 	hex_line = IS.create_line_edit("Hex", curr_color.to_html())
 	
@@ -262,7 +286,7 @@ func update_custom_palettes() -> void:
 
 
 func on_color_shape_val_changed(new_hue: float, new_sat: float) -> void:
-	curr_color = Color.from_hsv(new_hue, new_sat, curr_color.v)
+	curr_color = Color.from_hsv(new_hue, new_sat, curr_color.v, curr_color.a)
 
 func on_color_val_line_val_changed(new_val: float) -> void:
 	curr_color.v = new_val
@@ -433,6 +457,7 @@ class ValLine extends Control:
 			if event.button_index == MOUSE_BUTTON_LEFT:
 				dragged = event.is_pressed()
 				update_from_display_point()
+				val_changed.emit(val)
 		
 		elif event is InputEventMouseMotion:
 			if dragged:
@@ -502,8 +527,8 @@ class PaletteBox extends PanelContainer:
 		colors_grid_container = IS.create_grid_container(Vector2(32, 32))
 		
 		if not color_palette.built_in:
-			add_color_button = IS.create_texture_button(texture_add)
-			remove_palette_button = IS.create_texture_button(texture_remove)
+			add_color_button = IS.create_texture_button(texture_add, null, null, "Add color")
+			remove_palette_button = IS.create_texture_button(texture_remove, null, null, "Delete palette")
 			header_box.add_child(add_color_button)
 			header_box.add_child(remove_palette_button)
 			add_color_button.pressed.connect(on_add_color_button_pressed)

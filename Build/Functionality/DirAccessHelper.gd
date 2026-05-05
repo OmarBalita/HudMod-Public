@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name DirAccessHelper extends Object
 
 # written by Gemini
@@ -25,7 +44,7 @@ static func remove_directory_recursive(path: String) -> bool:
 		DirAccess.remove_absolute(path)
 		return true
 	else:
-		printerr("An error occurred when trying to access the path: {path}".format({"path": path}))
+		EditorServer.push_message("An error occurred when trying to access the path: {path}".format({"path": path}))
 		return false
 
 # Written by Gemini
@@ -33,7 +52,7 @@ static func copy_recursive(from_dir: String, to_dir: String) -> bool:
 	var dir: DirAccess = DirAccess.open(from_dir)
 	
 	if not dir:
-		printerr("Can't open source folder: ", from_dir)
+		EditorServer.push_message("Can't open source folder: " + from_dir)
 		return false
 	
 	if not DirAccess.dir_exists_absolute(to_dir):

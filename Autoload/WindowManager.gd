@@ -1,3 +1,23 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
+# This code needs to be rebuilt from scratch.
 extends Node
 
 @export var editor_windows_folder: Node = Node.new()
@@ -12,6 +32,9 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	var panel_cont: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_cornerless_dark)
 	var margin: MarginContainer = IS.create_margin_container()
 	
+	window.exclusive = true
+	window.content_scale_factor = EditorServer.editor_settings.theme.content_scale
+	
 	panel_cont.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	ObjectServer.describe(window, {
@@ -25,9 +48,13 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	window.tree_exited.connect(processing_rect.queue_free)
 	processing_node.add_child(processing_rect)
 	
+	var target_process_win: Window = processing_node if processing_node is Window else processing_node.get_window()
+	target_process_win.set_meta(&"closable", false)
+	
 	window.add_child(panel_cont)
 	window.add_child(margin)
 	add_child(window)
+	window.popup_centered()
 	
 	popuped_windows.append(window)
 	window.tree_exited.connect(popuped_windows.erase.bind(window))
@@ -59,8 +86,8 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 	var scroll_cont: ScrollContainer = IS.create_scroll_container()
 	var box2: BoxContainer = IS.create_box_container(10, true)
 	var accept_box: BoxContainer = IS.create_box_container()
-	var accept_button: Button = IS.create_button("Accept", null, true, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
-	var cancel_button: Button = IS.create_button("Cancel", null, false, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var accept_button: Button = IS.create_button("Accept", null, "", true, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+	var cancel_button: Button = IS.create_button("Cancel", null, "", false, false, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
 	
 	if accept_pressed.is_valid():
 		accept_button.pressed.connect(accept_pressed)
@@ -111,7 +138,7 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	var file_dialog: FileDialog = FileDialog.new()
 	var processing_rect: ProcessingControl = create_processing_rect()
 	
-	file_dialog.always_on_top = true
+	file_dialog.content_scale_factor = EditorServer.editor_settings.theme.content_scale
 	
 	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	file_dialog.file_mode = file_mode
@@ -136,6 +163,11 @@ func create_file_dialog_window(processing_node: Node, file_mode:= FileDialog.FIL
 	
 	return file_dialog
 
+func popup_custom_window(window: Window) -> void:
+	add_child(window)
+	popuped_windows.append(window)
+	window.tree_exited.connect(popuped_windows.erase.bind(window))
+
 func create_processing_rect(is_hidden: bool = false) -> ColorRect:
 	var rect:= ProcessingControl.new()
 	if is_hidden:
@@ -151,8 +183,10 @@ func create_processing_rect(is_hidden: bool = false) -> ColorRect:
 	return rect
 
 func on_window_close_request(window: Window, processing_rect: Node) -> void:
+	if not window.get_meta(&"closable", true): return
 	window.queue_free()
 	processing_rect.queue_free()
+	processing_rect.get_window().set_meta(&"closable", true)
 
 
 
@@ -163,9 +197,6 @@ class AcceptWindow extends Window:
 	
 	signal accepted()
 	signal canceled()
-	
-	func _init() -> void:
-		always_on_top = true
 	
 	func emit_accept() -> void:
 		accepted.emit()

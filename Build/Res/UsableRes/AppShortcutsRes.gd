@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name AppShortcutsRes extends UsableRes
 
 static var _default_select_container_shortcuts: Dictionary[StringName, Array] = {
@@ -31,7 +50,7 @@ static var _default_global_shortcuts: Dictionary[StringName, Array] = {
 	&"exit": [ShortcutNode.new_shortcut(Key.KEY_Q, true), &"exit"],
 	
 	&"toggle_fullscreen": [ShortcutNode.new_shortcut(Key.KEY_F1), &"toggle_fullscreen"],
-	&"report_bugs": [ShortcutNode.new_shortcut(Key.KEY_F2), &"report_bugs"]
+	&"report_bugs": [ShortcutNode.new_shortcut(Key.KEY_F2), &"report_bugs"],
 }
 
 static var _default_media_explorer_shortcuts: Dictionary[StringName, Array] = _default_select_container_shortcuts
@@ -43,7 +62,7 @@ static var _default_timeline_shortcuts: Dictionary[StringName, Array] = _default
 	
 	&"create_parent": [ShortcutNode.new_shortcut(Key.KEY_P, false, true), &"create_parent"],
 	&"reparent": [ShortcutNode.new_shortcut(Key.KEY_R, false, true), &"reparent_clip"],
-	&"parent_up": [ShortcutNode.new_shortcut(Key.KEY_U, false, true), &"parent_up"],
+	&"parent_up": [ShortcutNode.new_shortcut(Key.KEY_U, false, true), &"parent_up", [1]],
 	&"clear_parents": [ShortcutNode.new_shortcut(Key.KEY_C, false, true), &"clear_parents"],
 	
 	&"open_graph": [ShortcutNode.new_shortcut(Key.KEY_G, true), &"open_graph_editors"],
@@ -110,21 +129,21 @@ class ShortcutsContainer extends VBoxContainer:
 			var default_shortcut: Shortcut = default[shortcut_key][0]
 			var default_event: InputEventKey = default_shortcut.events[0]
 			
-			var sh_edit_cont: EditBoxContainer = IS.create_edit_box(shortcut_key, Vector2())
+			var sh_edit_cont: EditContainer = IS.create_edit_cont(shortcut_key)
 			sh_edit_cont.curr_val = event
 			sh_edit_cont.default_val = default_event
 			sh_edit_cont.resetable = true
-			sh_edit_cont.value_comp_method = val_comp_method
+			sh_edit_cont.method_compare = val_comp_method
 			
 			var switch_btn:= SwitchButton.new()
 			switch_btn.curr_event = event
 			switch_btn.switched_to.connect(
 				func _on_switch_btn_switched_to(event: InputEventKey) -> void:
-					sh_edit_cont.set_curr_val(event)
+					sh_edit_cont.set_curr_value(event)
 			)
 			
 			sh_edit_cont.val_changed.connect(
-				func _on_sh_edit_cont_val_changed(usable_res: UsableRes, key: StringName, new_val: Variant) -> void:
+				func _on_sh_edit_cont_val_changed(new_val: Variant) -> void:
 					shortcut.events = [new_val]
 					switch_btn.curr_event = new_val
 					switch_btn.update_ui()

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Menu extends ScrollContainer
 
 signal focus_index_changed(index: int)
@@ -68,7 +87,7 @@ func update() -> void:
 	 
 	for index: int in options.size():
 		var option: MenuOption = options[index]
-		var option_button: Button = IS.create_button(option.text, option.icon, true, true, true, {expand_icon = expand_icons})
+		var option_button: Button = IS.create_button(option.text, option.icon, option.text, true, true, true, {expand_icon = expand_icons})
 		option_button.toggle_mode = true
 		option_button.button_group = button_group
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL

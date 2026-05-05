@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
 var update_video_viewers_frame: bool = false
@@ -76,37 +95,17 @@ func update_camera_enabling() -> void:
 	camera.enabled = cameras.size() == 0
 
 func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node, layer_idx: int) -> void:
-	var view: Viewport
 	var node_parent: Node = parent_res.curr_node
-	
-	for prenode: Node in clip_res.prenodes:
-		node_parent.add_child(prenode)
-		node_parent.move_child(prenode, layer_idx)
 	
 	node_parent.add_child(node)
 	node_parent.move_child(node, layer_idx)
-	
-	for postnode: Node in clip_res.postnodes:
-		node_parent.add_child(postnode)
-		node_parent.move_child(postnode, layer_idx)
 	
 	clip_res.curr_node = node
 	curr_nodes.append(clip_res)
 
 func free_node(clip_res: MediaClipRes) -> void:
-	for prenode: Node in clip_res.prenodes:
-		if is_instance_valid(prenode):
-			prenode.queue_free()
-	clip_res.prenodes.clear()
-	
 	clip_res.curr_node.queue_free()
 	clip_res.curr_node = null
-	
-	for postnode: Node in clip_res.postnodes:
-		if is_instance_valid(postnode):
-			postnode.queue_free()
-	clip_res.postnodes.clear()
-	
 	curr_nodes.erase(clip_res)
 
 

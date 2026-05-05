@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name TimeLine2 extends EditorControl
 
 signal timeline_view_updated()
@@ -24,10 +43,10 @@ const SMALL_STEP_BY_FPS: Dictionary[int, int] = {
 @onready var edit_multiple_btn: OptionController = IS.create_options_controller_2(1, EditMultiple)
 @onready var add_layer_btn: Button = IS.create_button("Add Layer", IS.TEXTURE_ADD)
 @onready var split_panelcont: PanelContainer = IS.create_panel_container()
-@onready var split_left_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/left-split-clip.png"))
-@onready var split_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/split-clip.png"))
-@onready var split_right_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/right-split-clip.png"))
-@onready var marker_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/location-marker.png"))
+@onready var split_left_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/left-split-clip.png"), null, null, "Split left")
+@onready var split_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/split-clip.png"), null, null, "Split")
+@onready var split_right_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/right-split-clip.png"), null, null, "Split right")
+@onready var marker_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/location-marker.png"), null, null, "New marker")
 @onready var clip_path_ctrlr: PathController = PathController.new()
 @onready var overlay_menu: Menu = IS.create_menu([
 	MenuOption.new("", preload("res://Asset/Icons/AddClipMethods/place_on_top.png")),
@@ -37,10 +56,10 @@ const SMALL_STEP_BY_FPS: Dictionary[int, int] = {
 	MenuOption.new("", preload("res://Asset/Icons/AddClipMethods/replace.png"))
 ], false, false, {custom_minimum_size = Vector2(300., .0)})
 @onready var snap_panelcont: PanelContainer = IS.create_panel_container()
-@onready var snap_cursor_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap (1).png"), null, null, true)
-@onready var snap_timemarks_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap (2).png"), null, null, true)
-@onready var snap_clips_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap.png"), null, null, true)
-@onready var center_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/world-origin.png"))
+@onready var snap_cursor_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap (1).png"), null, null, "Snap cursor and timemarkers", true)
+@onready var snap_timemarks_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap (2).png"), null, null, "Snap time ruler", true)
+@onready var snap_clips_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/snap.png"), null, null, "Snap clips", true)
+@onready var center_btn: TextureButton = IS.create_texture_button(preload("res://Asset/Icons/world-origin.png"), null, null, "Center")
 
 @onready var body_boxcont: BoxContainer = IS.create_box_container(6, true)
 @onready var timemark_panel: TimeMarkPanelContainer = TimeMarkPanelContainer.new(self)
@@ -142,6 +161,11 @@ func _ready_editor() -> void:
 	snap_cont.add_child(snap_timemarks_btn)
 	snap_cont.add_child(snap_clips_btn)
 	
+	var overlay_texts: PackedStringArray = ["Place on top", "Insert", "Overwrite", "Fit to fill", "Replace"]
+	var overlay_btns: Array[Node] = overlay_menu.buttons_container.get_children()
+	for idx: int in overlay_texts.size():
+		overlay_btns[idx].tooltip_text = overlay_texts[idx]
+	
 	IS.expand(path_scroll_cont, true)
 	IS.expand(clip_path_ctrlr, true)
 	IS.set_button_style(edit_mode_btn, IS.style_button_accent)
@@ -240,7 +264,10 @@ func _draw() -> void:
 		draw_line(Vector2(cursor_pos, timemarkpanel_pos.y + timemark_panel.size.y + 8.), Vector2(cursor_pos, size.y - (h_scrollbar.size.y + 12. if h_scrollbar.visible else 8.)), IS.color_label, 2.)
 
 
-func navigate_horizontal(dir: int) -> void: center += dir * (navigation_horizontal_speed * ProjectServer2.project_res.fps) * zoom_factor
+func navigate_horizontal(dir: int) -> void:
+	var nav_speed: int = dir * (navigation_horizontal_speed * ProjectServer2.project_res.fps) * zoom_factor
+	if abs(nav_speed) == 0: center += dir
+	else: center += nav_speed
 func navigate_horizontal_to(target_center: int, t: float = 1.) -> void: center = lerp(center, target_center, t)
 func navigate_to_cursor(nav_dir: int) -> void:
 	var cursor_pos: float = get_display_pos_from_cursor()
@@ -554,27 +581,6 @@ class LayersSelectContainer extends SelectContainer:
 	signal clips_start_move()
 	signal clips_end_move()
 	
-	var clips_menu: Array = [
-		#MenuOption.new_line(),
-		#MenuOption.new("Group", null, group_clips),
-		#MenuOption.new("UnGroup", null, ungroup_clips),
-		MenuOption.new_line(),
-		MenuOption.new("Enter", null, enter_clip),
-		MenuOption.new("Create Parent", null, create_parent),
-		MenuOption.new("Reparent", null, reparent_clip),
-		MenuOption.new("Parent Up", null, parent_up.bind(1)),
-		MenuOption.new("Clear Parents", null, clear_parents),
-		MenuOption.new_line(),
-		MenuOption.new("Open Graph Editor", null, open_graph_editors),
-		MenuOption.new("Close Graph Editor", null, close_graph_editors),
-		MenuOption.new_line(),
-		MenuOption.new("Save as Global Preset", null, save_presets.bind(true)),
-		MenuOption.new("Save as Project Preset", null, save_presets.bind(false)),
-		#MenuOption.new_line(),
-		#MenuOption.new("Replace Media", null, replace_clips),
-		#MenuOption.new("Reverse Clip", null, reverse_clips),
-		#MenuOption.new("Extract Audio", null, extract_audio)
-	]
 	
 	var timeline: TimeLine2
 	
@@ -609,6 +615,14 @@ class LayersSelectContainer extends SelectContainer:
 		return clips_moving
 	
 	func start_clips_moving(start_layer_idx: int, start_frame: int) -> void:
+		
+		var empty_ports: Array[int]
+		for port_idx: int in selected:
+			var port: Dictionary = selected[port_idx]
+			if port.is_empty(): empty_ports.append(port_idx)
+		
+		for port_idx: int in empty_ports:
+			selected.erase(port_idx)
 		
 		_set_selected_clips_modulate(Color.TRANSPARENT)
 		
@@ -796,6 +810,9 @@ class LayersSelectContainer extends SelectContainer:
 	#func ungroup_clips() -> void:
 		#pass
 	
+	func switch_edit_mode() -> void:
+		timeline.switch_edit_mode()
+	
 	func enter_clip() -> void:
 		if is_val_selected(focused.x, focused.y):
 			ProjectServer2.open_clip_res(get_focused_val())
@@ -806,52 +823,91 @@ class LayersSelectContainer extends SelectContainer:
 	func create_parent() -> void:
 		var target_frame: int = PlaybackServer.position
 		
+		var owner_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res:= Display2DClipRes.new()
+		parent_clip_res._init_clip_res()
 		parent_clip_res.length = 500
 		
-		var selected_coords: Array[Vector2i] = selected_to_coords()
-		var new_children: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, target_frame, _get_min_indices(selected))
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
+		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, target_frame, _get_min_indices(selected))
+		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
+		var parent_clip_arr: Array[Vector2i] = [Vector2i.ZERO]
 		
-		parent_clip_res.add_clips_by_coords(new_children, 0)
+		var do_method: Callable = func() -> void:
+			
+			placed_children_by_coords.clear()
+			var tmp_placed_ress: Dictionary[Vector2i, MediaClipRes] = parent_clip_res.add_clips_by_coords(new_children_by_coords, 0, true, false)
+			for coords: Vector2i in tmp_placed_ress: placed_children_by_coords[coords] = tmp_placed_ress[coords]
+			
+			owner_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
+			
+			var place_result: Dictionary[Vector2i, MediaClipRes] = owner_clip_res.add_clips(0, target_frame, [parent_clip_res], timeline.overlay_menu.focus_index, true, false)
+			parent_clip_arr[0] = place_result.keys()[0]
 		
-		timeline.opened_clip_res.remove_clips(selected_coords, false)
-		timeline.free_clips(selected_coords)
+		var undo_method: Callable = func() -> void:
+			owner_clip_res.remove_clips(parent_clip_arr, true, false)
+			owner_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
+			parent_clip_res.remove_clips(placed_children_by_coords.keys(), true, false)
 		
-		timeline.opened_clip_res.add_clips(0, target_frame, [parent_clip_res], timeline.overlay_menu.focus_index)
+		ProjectServer2.commit_action("create_parent", do_method, undo_method)
 	
 	func reparent_clip() -> void:
 		
 		if not is_focused_exists():
 			return
 		
+		var owner_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res: MediaClipRes = get_focused_val()
 		
 		selected[focused.x].erase(focused.y)
 		
-		var selected_coords: Array[Vector2i] = selected_to_coords()
-		var children: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, PlaybackServer.position, _get_min_indices(selected))
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
+		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, PlaybackServer.position, _get_min_indices(selected))
+		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
 		
-		parent_clip_res.add_clips_by_coords(children)
-		timeline.opened_clip_res.remove_clips(selected_coords)
+		var update_parent_clip_panel: Callable = func() -> void:
+			var parent_layer: Layer2 = timeline.get_layer_from_idx(focused.x)
+			if not parent_layer.has_clip(focused.y): return
+			var parent_clip: MediaServer.ClipPanel = parent_layer.get_clip(focused.y)
+			parent_clip.update_has_clips()
+			parent_clip.queue_redraw()
 		
-		var parent_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(focused.x).get_clip(focused.y)
-		parent_clip.update_has_clips()
-		parent_clip.queue_redraw()
+		var do_method: Callable = func() -> void:
+			placed_children_by_coords.clear()
+			var tmp_placed_ress: Dictionary[Vector2i, MediaClipRes] = parent_clip_res.add_clips_by_coords(new_children_by_coords, 0, true, false)
+			for coords: Vector2i in tmp_placed_ress: placed_children_by_coords[coords] = tmp_placed_ress[coords]
+			owner_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
+			update_parent_clip_panel.call()
+		
+		var undo_method: Callable = func() -> void:
+			owner_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
+			parent_clip_res.remove_clips(placed_children_by_coords.keys(), true, false)
+			update_parent_clip_panel.call()
+		
+		ProjectServer2.commit_action("reparent", do_method, undo_method)
 	
 	func parent_up(times: int) -> void:
 		
 		if times == 0: return
 		if ProjectServer2.opened_clip_res_path.size() <= times: return
 		
+		var main_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path[-times - 1]
 		
-		var min_indices: Vector2i = _get_min_indices(selected)
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
+		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
 		
-		var selected_coords: Array[Vector2i] = selected_to_coords()
-		var to_up_clips_ress: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, min_indices.y, min_indices)
+		var do_method: Callable = func() -> void:
+			placed_children_by_coords.clear()
+			var tmp_placed_ress: Dictionary[Vector2i, MediaClipRes] = parent_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
+			for coords: Vector2i in tmp_placed_ress: placed_children_by_coords[coords] = tmp_placed_ress[coords]
+			main_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
 		
-		parent_clip_res.add_clips_by_coords(to_up_clips_ress)
-		timeline.opened_clip_res.remove_clips(selected_coords)
+		var undo_method: Callable = func() -> void:
+			main_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
+			parent_clip_res.remove_clips(placed_children_by_coords.keys(), true, false)
+		
+		ProjectServer2.commit_action("parent_up", do_method, undo_method)
 	
 	func clear_parents() -> void:
 		parent_up(ProjectServer2.opened_clip_res_path.size() - 1)
@@ -891,7 +947,8 @@ class LayersSelectContainer extends SelectContainer:
 		
 		for clip_res: MediaClipRes in source_clips_ress:
 			var preset_tree: Tree = MediaServer.create_clip_res_tree(clip_res)
-			var name_edit: LineEdit = IS.create_string_edit("Preset Name", "new preset")[0]
+			var name_edit_cont: EditContainer = IS.create_string_edit("Preset Name", "new preset")
+			var name_edit: LineEdit = name_edit_cont.controller
 			var box_cont: BoxContainer = WindowManager.popup_accept_window(
 				get_window(),
 				Vector2i(500, 600),
@@ -911,6 +968,22 @@ class LayersSelectContainer extends SelectContainer:
 			await window.close_requested
 		
 		EditorServer.media_explorer.preset_box.create_presets(preset_clips_ress, global)
+	
+	func _get_clips_options() -> Array[Dictionary]:
+		return [
+			{as_separator = true},
+			{text = "Enter", shortcut = shortcut_node.get_shortcut(&"enter_clip"), metadata = enter_clip},
+			{text = "Create Parent", shortcut = shortcut_node.get_shortcut(&"create_parent"), metadata = create_parent},
+			{text = "Reparent", shortcut = shortcut_node.get_shortcut(&"reparent"), metadata = reparent_clip},
+			{text = "Parent Up", shortcut = shortcut_node.get_shortcut(&"parent_up"), metadata = parent_up.bind(1)},
+			{text = "Clear Parents", shortcut = shortcut_node.get_shortcut(&"clear_parents"), metadata = clear_parents},
+			{as_separator = true},
+			{text = "Open Graph Editor/s", shortcut = shortcut_node.get_shortcut(&"open_graph"), metadata = open_graph_editors},
+			{text = "Close Graph Editor/s", shortcut = shortcut_node.get_shortcut(&"close_graph"), metadata = close_graph_editors},
+			{as_separator = true},
+			{text = "Save as Global Preset", shortcut = shortcut_node.get_shortcut(&"save_global_presets"), metadata = save_presets.bind(true)},
+			{text = "Save as Project Preset", shortcut = shortcut_node.get_shortcut(&"save_presets"), metadata = save_presets.bind(false)},
+		]
 	
 	func emit_selected_changed() -> void:
 		super()
@@ -1159,6 +1232,7 @@ func open_clip_res(clip_res: MediaClipRes) -> void:
 	
 	await sort_layers()
 	update_layers_clips(true)
+	update_timemarkers_spacial_frames()
 	update_when_clips_changed()
 	_update_process_enabling()
 
@@ -1319,7 +1393,11 @@ func _on_add_layer_btn_pressed() -> void:
 	opened_clip_res.add_layer(opened_clip_res.layers.size())
 
 func _on_marker_btn_pressed() -> void:
-	ProjectServer2.project_res.add_timemarker(PlaybackServer.position)
+	ProjectServer2.commit_action(
+		"add_marker",
+		ProjectServer2.project_res.add_timemarker.bind(PlaybackServer.position),
+		ProjectServer2.project_res.remove_timemarker.bind(PlaybackServer.position)
+	)
 
 func _on_clip_path_ctrlr_undo_requested(undo_times: int) -> void:
 	ProjectServer2.try_exit_clip_res(undo_times)
@@ -1360,16 +1438,19 @@ func _on_clip_res_layer_moved(from_idx: int, to_idx: int, layer: LayerRes) -> vo
 func _on_clip_res_clips_added(clips: Dictionary[Vector2i, MediaClipRes]) -> void:
 	spawn_clips(clips)
 	update_when_clips_changed()
+	layers_body.emit_selected_changed()
 
 func _on_clip_res_clips_removed(clips_coords: Array[Vector2i]) -> void:
 	free_clips(clips_coords)
 	update_when_clips_changed()
+	layers_body.emit_selected_changed()
 
 func _on_clip_res_clips_moved(from_coords: Array[Vector2i], to: Dictionary[Vector2i, MediaClipRes]) -> void:
 	free_clips(from_coords)
 	spawn_clips(to)
 	sort_layers()
 	update_when_clips_changed()
+
 
 func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[Vector2i], new_clips: Dictionary[Vector2i, MediaClipRes], split_pos: int, accept_left: bool, accept_right: bool) -> void:
 	

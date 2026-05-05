@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ArrangableBoxContainer extends VBoxContainer
 
 signal grab_started(element: Control, index_from: int)
@@ -55,7 +74,7 @@ func _input(event: InputEvent) -> void:
 			drawable_rect.clear_drawn_entities()
 			
 			for index: int in get_child_count():
-				var comp_edit: EditBoxContainer = get_child(index)
+				var comp_edit: EditContainer = get_child(index)
 				var rect: Rect2 = comp_edit.get_global_rect()
 				if rect.has_point(mouse_pos):
 					drawable_rect.draw_new_theme_rect(rect)

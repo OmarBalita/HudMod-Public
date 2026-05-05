@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name UsableRes extends Resource
 
 signal res_changed()
@@ -25,6 +44,9 @@ enum MethodType {
 var get_prop_func: Callable = get
 var set_prop_func: Callable = set
 
+const UNDO_REDO_COMMIT_SET_PROP: StringName = &"set_prop_action_sended"
+
+
 func _get_prop_default(property_key: StringName) -> Variant:
 	return properties[property_key].v
 
@@ -43,7 +65,7 @@ func get_prop(property_key: StringName) -> Variant:
 func set_prop(property_key: StringName, property_val: Variant) -> void:
 	set_prop_func.call(property_key, property_val)
 
-func set_and_emit_prop(property_key: StringName, property_val: Variant) -> void:
+func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	set_prop(property_key, property_val)
 	emit_res_changed()
 
@@ -67,14 +89,13 @@ func loop_props(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {}
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
 	pass
 
-# Works when a properties changes comes from the inspector
-func _receive_new_val(edit_box_container: EditBoxContainer, usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void: edit_box_container.val_changed.emit(usable_res, prop_key, prop_new_val)
-func _receive_keyframe(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void: edit_box_container.keyframe_sended.emit(usable_res, param_key, param_new_val)
+const VALUES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> Array[Control]:
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
+	
 	var usable_res_script: Script = usable_res.get_script()
 	
 	if not usable_ress.has(usable_res):
@@ -86,18 +107,28 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	var categories_entered: Array[Category]
 	var curr_box_container: BoxContainer = edits_box_container
 	
-	var edit_box_container: BoxContainer = IS.create_custom_edit_box(name, edits_box_container)
-	edits_box_container.set_meta(&"owner", edit_box_container)
+	var edit_cont: EditContainer = IS.create_edit_cont(name, true, false, false, false)
+	var body_panel: PanelContainer = IS.create_panel_container()
+	var body_margin: MarginContainer = IS.create_margin_container(8, 8, 8, 8)
+	
+	edits_box_container.alignment = BoxContainer.ALIGNMENT_BEGIN
+	
+	edit_cont.add_child(body_panel)
+	body_panel.add_child(body_margin)
+	body_margin.add_child(edits_box_container)
+	
+	edit_cont.controller = edits_box_container
+	edits_box_container.set_meta(&"owner", edit_cont)
 	
 	var ui_profile: UIProfile = UIProfile.new()
 	var ui_conds_keys: Array
 	var ui_conds_vals: Array
 	
-	var properties_controllers: Dictionary[StringName, Control] = {}
-	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_box_container, properties_controllers, ui_profile)
-	
+	var properties_controls: Dictionary[StringName, Control] = {}
+	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_cont, properties_controls, ui_profile)
 	
 	const UI_COND_RESULT: Array = [true]
+	
 	var ui_method: Callable = func(input_method: Callable, expected_results: Array, prop_name: String, ctrl: Control) -> bool:
 		return (StringHelper.fuzzy_search(search_line_edit.text.to_lower(), prop_name) or ctrl is Category) and expected_results.has(input_method.call())
 	
@@ -129,7 +160,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 					curr_box_container = categories_entered.back().content_container if categories_entered.size() else edits_box_container
 				
 				ExportMethodType.METHOD_CALLABLE:
-					var callable_button: Button = IS.create_button(key, IS.TEXTURE_MEGAPHONE, true)
+					var callable_button: Button = IS.create_button(key, IS.TEXTURE_MEGAPHONE, "", true)
 					
 					var button_style: StyleBoxFlat = callable_button.get_theme_stylebox(&"normal").duplicate(false)
 					var button_color: Color = ctrlr_args[1]
@@ -139,60 +170,79 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 					
 					if ctrlr_args[2] != null:
 						callable_button.icon = ctrlr_args[2]
-						callable_button.add_theme_stylebox_override(
-							&"normal",
-							button_style
-						)
+						callable_button.add_theme_stylebox_override(&"normal", button_style)
 					
 					callable_button.pressed.connect(ctrlr_args[0].bind(usable_ress))
 					curr_box_container.add_child(callable_button)
-					properties_controllers[key] = callable_button
+					properties_controls[key] = callable_button
 					control = callable_button
 				
 				ExportMethodType.METHOD_CUSTOM_EXPORT:
 					var custom_control: Control = ctrlr_args[0]
 					curr_box_container.add_child(custom_control)
-					properties_controllers[key] = custom_control
+					properties_controls[key] = custom_control
 					control = custom_control
 		
 		else:
 			var val: Variant = ctrlr_args[0]
 			
-			var controllers: Array[Control] = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress, search_line_edit)
-			if controllers.size():
-				var edit_box: EditBoxContainer = IS.get_edit_box_from(controllers)
+			var prop_edit_cont: EditContainer = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress, search_line_edit)
+			
+			if prop_edit_cont:
 				var is_object: bool = typeof(val) == TYPE_OBJECT
 				var changeable: bool = not is_object and ctrlr_info.keyframable
+				var keyframable: bool = usable_res is ComponentRes and changeable
 				
-				edit_box.default_val = usable_res_script.get_property_default_value(key)
-				edit_box.keyframable = usable_res is ComponentRes and changeable
-				edit_box.resetable = changeable and usable_res.use_global_variables_as_properties
-				edit_box.copypast = changeable
+				prop_edit_cont.default_val = ClassServer.classname_get_property_default_value(usable_res.get_classname(), key)
 				
-				edit_box.set_curr_val(val)
-				properties_controllers[key] = edit_box
+				prop_edit_cont.set_curr_value(val)
+				prop_edit_cont.keyframable = keyframable
+				prop_edit_cont.resetable = changeable
+				prop_edit_cont.copypast = changeable
 				
-				edit_box.val_changed.connect(
-					func(prop_usable_res: UsableRes, prop_key: StringName, new_val: Variant) -> void:
-						if prop_usable_res == null: prop_usable_res = usable_res
-						if prop_key.is_empty(): prop_key = key
-						for curr_usable_res: UsableRes in usable_ress:
-							curr_usable_res.set_and_emit_prop(prop_key, new_val)
-							curr_usable_res._receive_new_val(edit_box_container, curr_usable_res, prop_key, new_val)
-						edit_box.update_ui()
-						ui_profile.update()
+				properties_controls[key] = prop_edit_cont
+				
+				prop_edit_cont.val_changed.connect(
+					func(new_value: Variant) -> void:
+						
+						var owner_usable_res_idx: int = usable_ress.find(usable_res)
+						var old_values: Array = usable_ress.map(func(element: UsableRes) -> Variant: return element.get_prop(key))
+						var new_values: Array = []
+						new_values.resize(usable_ress.size())
+						new_values.fill(new_value)
+						
+						var method_set_all: Callable = func(target_values: Array, update_ctrlr: bool) -> void:
+							
+							for idx: int in usable_ress.size():
+								var _usable_res: UsableRes = usable_ress[idx]
+								_usable_res.set_prop_and_emit(key, target_values[idx])
+							
+							if EditorServer.has_usable_res_controllers(usable_res):
+								var owner_target_val: Variant = target_values[owner_usable_res_idx]
+								var prop_edit_cont_for_update: EditContainer = EditorServer.get_usable_res_property_controller(usable_res, key)
+								prop_edit_cont_for_update.set_curr_value_manually(owner_target_val)
+								if update_ctrlr:
+									prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
+								EditorServer.update_usable_res_ui_profile(usable_res)
+						
+						method_set_all.call(new_values, false)
+						if not usable_res.has_meta(UNDO_REDO_COMMIT_SET_PROP):
+							if ClassServer.value_get_classname(new_value) in VALUES_HAVE_SCROLL_CONTROLLERS:
+								usable_res.set_meta(UNDO_REDO_COMMIT_SET_PROP, true)
+							ProjectServer2.commit_action("set_{prop_key}".format({"prop_key": key}), method_set_all.bind(new_values, true), method_set_all.bind(old_values, true), false)
+							await Engine.get_main_loop().create_timer(.4).timeout
+							usable_res.remove_meta(UNDO_REDO_COMMIT_SET_PROP)
 				)
 				
-				edit_box.keyframe_sended.connect(
-					func(prop_usable_res: UsableRes, prop_key: StringName, prop_new_val: Variant) -> void:
-						if prop_usable_res == null: prop_usable_res = usable_res
-						if prop_key.is_empty(): prop_key = key
-						#usable_res.send_keyframe(edit_box_container, prop_usable_res, prop_key, prop_new_val)
-						for curr_usable_res: UsableRes in usable_ress:
-							curr_usable_res._receive_keyframe(edit_box_container, curr_usable_res, prop_key, prop_new_val)
-				)
-				curr_box_container.add_child(edit_box)
-				control = edit_box
+				if keyframable:
+					prop_edit_cont.keyframe_sended.connect(
+						func(new_value: Variant) -> void:
+							for _component_res: ComponentRes in usable_ress:
+								_component_res.request_animation_keyframe(usable_res, key, new_value)
+					)
+				
+				curr_box_container.add_child(prop_edit_cont)
+				control = prop_edit_cont
 		
 		if control:
 			
@@ -211,7 +261,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				ui_conds_keys.append([ui_method2.bind(key, control), UI_COND_RESULT])
 				ui_conds_vals.append([control])
 	
-	usable_res._exported_props_controllers_created(edit_box_container, properties_controllers)
+	usable_res._exported_props_controllers_created(edit_cont, properties_controls)
 	
 	ui_profile.set_ui_conditions(ui_conds_keys, ui_conds_vals)
 	ui_profile.update()
@@ -222,7 +272,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				ui_profile.update()
 		)
 	
-	return [edits_box_container]
+	return edit_cont
 
 static func _is_method_key(key: StringName) -> bool:
 	return key.begins_with("[") and key.ends_with("]")
@@ -277,7 +327,7 @@ static func string_args(val: String, controller_type: IS.StringControllerType = 
 static func int_args(val: int, min: float = -INF, max: float = INF, step: int = 1, spin_scale: int = 1, magnet_step: int = 5, controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, true, controller_type]
 static func options_args(val: int, options: Dictionary) -> Array: return [val, -INF, INF, 1, 1, 1, true, IS.FloatControllerType.TYPE_OPTIONS, options]
 static func float_args(val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, magnet_step: float = 5., controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, false, controller_type]
-static func vec2_args(val: Vector2) -> Array: return [val]
+static func vec2_args(val: Vector2, is_int: bool = false) -> Array: return [val, is_int]
 static func vec3_args(val: Vector3) -> Array: return [val]
 static func color_args(val: Color) -> Array: return [val]
 static func list_args(val: Array, list_classname: StringName, can_add_element: bool = true, can_remove_element: bool = true,
@@ -289,6 +339,4 @@ static func method_enter_cat_args(cat_color: Color = Color.BLACK) -> Array: retu
 static func method_exit_cat_args() -> Array: return []
 static func method_callable_args(callable: Callable, color: Color = IS.color_accent, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
 static func method_custom_args(control: Control) -> Array: return [control]
-
-
 

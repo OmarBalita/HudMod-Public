@@ -1,5 +1,23 @@
-## تم كتابته بالكامل وتنفيذه من قبل Omar TOP
-## ثم استلم Claude أمر الترتيب فقط.
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
+# The logic was written by Omar TOP, and then Claude AI took over the writing improvements.
 class_name CurveController extends SelectContainer
 
 # ==============================================================================
@@ -696,37 +714,37 @@ func _update_drawable_cursor(coord: Vector2, mouse_pos: Vector2, is_key_finded: 
 # CONTEXT MENU
 # ==============================================================================
 
-func _get_menu_options() -> Array:
-	var control_option:= MenuOption.new("Control Mode", null)
-	var interpolation_option:= MenuOption.new("Interpolation Mode", null)
-
-	control_option.forward = [
-		MenuOption.new("Free",     null, set_keys_control_mode.bind(0)),
-		MenuOption.new("Aligned",  null, set_keys_control_mode.bind(1)),
-		MenuOption.new("Vector",   null, set_keys_control_mode.bind(2)),
-		MenuOption.new("Zero",     null, set_keys_control_mode.bind(3)),
-	]
-	interpolation_option.forward = [
-		MenuOption.new("Constant",    null, set_keys_transition_mode.bind(0)),
-		MenuOption.new("Linear",      null, set_keys_transition_mode.bind(1)),
-		MenuOption.new("Bezier Curve",null, set_keys_transition_mode.bind(2)),
-		MenuOption.new("Ease In",     null, set_keys_transition_mode.bind(3)),
-		MenuOption.new("Ease Out",    null, set_keys_transition_mode.bind(4)),
-		MenuOption.new("Ease In Out", null, set_keys_transition_mode.bind(5)),
-		MenuOption.new("Expo In Out", null, set_keys_transition_mode.bind(6)),
-		MenuOption.new("Circ In Out", null, set_keys_transition_mode.bind(7)),
-		MenuOption.new("Cubic",       null, set_keys_transition_mode.bind(8)),
-		MenuOption.new("Quart",       null, set_keys_transition_mode.bind(9)),
-		MenuOption.new("Quint",       null, set_keys_transition_mode.bind(10)),
-		MenuOption.new("Elastic",     null, set_keys_transition_mode.bind(11)),
-		MenuOption.new("Bounce",      null, set_keys_transition_mode.bind(12)),
-	]
+func _get_menu_options() -> Array[Dictionary]:
+	
+	var control_mode_menu: PopupMenu = IS.create_popup_menu([
+		{text = "Free"},
+		{text = "Aligned"},
+		{text = "Vector"},
+		{text = "Zero"},
+	])
+	var interpolation_option_menu: PopupMenu = IS.create_popup_menu([
+		{text = "Constant"},
+		{text = "Linear"},
+		{text = "Bezier"},
+		{text = "Ease in"},
+		{text = "Ease out"},
+		{text = "Ease in out"},
+		{text = "Expo in out"},
+		{text = "Circ in out"},
+		{text = "Cubic"},
+		{text = "Quart"},
+		{text = "Quint"},
+		{text = "Elastic"},
+		{text = "Bounce"}
+	])
+	control_mode_menu.id_pressed.connect(set_keys_control_mode)
+	interpolation_option_menu.id_pressed.connect(set_keys_transition_mode)
 	
 	return [
-		control_option,
-		interpolation_option,
-		MenuOption.new_line()
-	] + super()
+		{text = "Control Mode", submenu = control_mode_menu},
+		{text = "Interpolation Option", submenu = interpolation_option_menu},
+		{as_separator = true}
+	] as Array[Dictionary] + super()
 
 
 func _request_selection_box_select(port_idx: int, _port_object: Object, idx: int) -> bool:

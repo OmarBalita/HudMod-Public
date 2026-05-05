@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompVoronoi extends PassShaderComponentRes
 
 @export var size: float = 32.

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ComponentPath extends UsableRes
 
 signal component_path_changed(new_comp: ComponentRes)
@@ -40,7 +59,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	
 	var search_box: BoxContainer = IS.create_box_container(12)
 	var line: LineEdit = IS.create_line_edit("[Empty]")
-	var button: Button = IS.create_button("", IS.TEXTURE_SEARCH)
+	var button: Button = IS.create_button("", IS.TEXTURE_SEARCH, "Search for components")
 	
 	line.editable = false
 	IS.add_children(search_box, [line, button])
@@ -53,7 +72,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	}
 
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
 	_try_update_editor()
 
 func _on_clip_media_res_val_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
@@ -118,7 +137,7 @@ func _on_component_search_button_pressed() -> void:
 		func(comp: ComponentRes) -> void:
 			if (cond_func.is_null() or cond_func.call(comp)) and not comps_ignored.has(comp):
 				var comp_classname: StringName = comp.get_classname()
-				var btn: Button = IS.create_button(comp_classname, ClassServer.classname_get_icon(comp_classname), false)
+				var btn: Button = IS.create_button(comp_classname, ClassServer.classname_get_icon(comp_classname), String(comp_classname), false)
 				btn.toggle_mode = true
 				btn.button_group = button_group
 				btn.set_meta(&"comp", comp)

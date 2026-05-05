@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompDrawArrow extends DrawShapeComponentRes
 
 @export var width: float = 50.:
@@ -47,8 +55,6 @@ func _gen_points() -> Array[PackedVector2Array]:
 	var wing: Vector2 = width_h + normal * arrow_width
 	var head: Vector2 = dir * arrow_length
 	
-	
-	#arrow.append(d.lerp(c, .01))
 	arrow.append(d)
 	
 	if arrow_from:

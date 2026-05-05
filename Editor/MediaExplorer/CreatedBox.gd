@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name CreatedBox extends MediaBox
 
 var project_file_system: DisplayFileSystemRes
@@ -60,8 +79,8 @@ func _ready_options() -> void:
 		options_container.add_child(sort_button)
 	
 	path_container = IS.create_box_container(8)
-	undo_path_button = IS.create_texture_button(media_explorer.texture_undo_path)
-	reload_button = IS.create_texture_button(media_explorer.texture_reload)
+	undo_path_button = IS.create_texture_button(media_explorer.texture_undo_path, null, null, "Undo")
+	reload_button = IS.create_texture_button(media_explorer.texture_reload, null, null, "Reload")
 	path_controller = PathController.new()
 	
 	path_controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -77,7 +96,7 @@ func _ready_options() -> void:
 	
 	super()
 	
-	folder_button = IS.create_button("", media_explorer.texture_folder)
+	folder_button = IS.create_button("", media_explorer.texture_folder, "New folder")
 	folder_button.pressed.connect(_on_folder_button_pressed)
 	options_container.add_child(folder_button)
 
@@ -308,8 +327,7 @@ class CreatedCard extends MediaBox.MediaCard:
 		
 		var context_menu: PopupMenu = IS.create_popup_menu(options)
 		
-		context_menu.always_on_top = true
-		var popup_pos:= Vector2i(get_global_mouse_position()) + get_window().position
+		var popup_pos:= Vector2i(get_global_mouse_position() * get_window().content_scale_factor) + get_window().position
 		
 		get_tree().get_current_scene().add_child(context_menu)
 		context_menu.popup(Rect2i(popup_pos, Vector2i.ZERO))
@@ -317,7 +335,8 @@ class CreatedCard extends MediaBox.MediaCard:
 		context_menu.popup_hide.connect(context_menu.queue_free)
 	
 	func popup_move_to_window() -> void:
-		var move_optionbutton: OptionController = IS.create_float_edit.callv(["Move to"] + UsableRes.options_args(0, {"PROJECT": 0, "GLOBAL": 1}))[0]
+		var move_edit: EditContainer = IS.create_float_edit.callv(["Move to"] + UsableRes.options_args(0, {"PROJECT": 0, "GLOBAL": 1}))
+		var move_optionbutton: OptionController = move_edit.controller
 		
 		#var move_fake_files_checkbutton: CheckButton = IS.create_bool_edit("Move in Embeded file system ", true)[0]
 		var tree: Tree = IS.create_tree()
@@ -363,7 +382,7 @@ class CreatedCard extends MediaBox.MediaCard:
 			)
 		)
 		IS.add_children(box, [
-			move_optionbutton.get_parent(),
+			move_edit,
 			#move_fake_files_checkbutton.get_parent(),
 			tree,
 			#move_real_file_checkbutton.get_parent(),

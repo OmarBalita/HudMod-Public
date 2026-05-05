@@ -42,6 +42,10 @@ PlaybackServer="*uid://brc2dsofjh0ds"
 Renderer="*uid://dk3fd5yu4aqlo"
 WindowManager="*res://Autoload/WindowManager.gd"
 
+[debug]
+
+gdscript/warnings/enable=false
+
 [display]
 
 window/size/viewport_width=1200
@@ -65,7 +69,6 @@ folder_colors={
 "res://Autoload/": "yellow",
 "res://Build/": "gray",
 "res://Editor/": "teal",
-"res://ExampleProject/": "orange",
 "res://Prototype/": "purple",
 "res://UI&UX/": "pink",
 "res://addons/": "red"

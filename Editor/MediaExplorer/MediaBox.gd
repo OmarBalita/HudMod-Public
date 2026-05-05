@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name MediaBox extends Container
 
 var categories: Dictionary[String, Category]
@@ -189,7 +208,7 @@ class MediaSelectContainer extends SelectContainer:
 		super()
 		shortcut_node.key = &"Explorer"
 		shortcut_node.cond_func = func() -> bool:
-			return media_box.scroll_container.get_global_rect().has_point(get_global_mouse_position())
+			return EditorServer.shortcuts_cond_func.call() and media_box.scroll_container.get_global_rect().has_point(get_global_mouse_position())
 		shortcut_node.load_shortcuts_from_settings()
 	
 	func emit_focused_changed(old_focused: Vector2i, new_focused: Vector2i) -> void:
@@ -247,7 +266,7 @@ class MediaCard extends PanelContainer:
 		add_child(select_panel)
 		
 		name_label = IS.create_label(display_name)
-		add_button = IS.create_texture_button(add_texture)
+		add_button = IS.create_texture_button(add_texture, null, null, "Add")
 		thumbnail_texture_rect = IS.create_texture_rect(display_texture, {})
 		
 		var margin_container: MarginContainer = IS.create_margin_container()
@@ -304,8 +323,7 @@ class MediaCard extends PanelContainer:
 		
 		var context_menu: PopupMenu = IS.create_popup_menu(options)
 		
-		context_menu.always_on_top = true
-		var popup_pos:= Vector2i(get_global_mouse_position()) + get_window().position
+		var popup_pos:= Vector2i(get_global_mouse_position() * get_window().content_scale_factor) + get_window().position
 		
 		get_tree().get_current_scene().add_child(context_menu)
 		context_menu.popup(Rect2i(popup_pos, Vector2i.ZERO))
@@ -331,7 +349,7 @@ class MediaCard extends PanelContainer:
 		
 		for clip_res: MediaClipRes in media_ress:
 			if auto_init and clip_res is Display2DClipRes:
-				clip_res.add_component(&"Display2D", CompCanvasItem.new(), true)
+				clip_res._init_clip_res()
 		
 		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, media_ress, EditorServer.time_line2.overlay_menu.focus_index)
 	

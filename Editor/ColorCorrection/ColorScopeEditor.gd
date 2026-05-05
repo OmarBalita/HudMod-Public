@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ColorScopeEditor extends EditorControl
 
 signal calculation_finished()
@@ -52,14 +71,15 @@ func _ready_editor() -> void:
 		var sub_editor: ColorScopeSubEditor = color_scope_sub_editors[key]
 		var visibility: bool = color_scope_sub_editors_visib[index]
 		
-		var btn:= IS.create_bool_edit(key, visibility, Vector2(180., .0), 1)
-		var btn_edit_box: EditBoxContainer = IS.get_edit_box_from(btn)
+		var bool_edit: EditContainer = IS.create_bool_edit(key, visibility)
 		
-		btn_edit_box.keyframable = false
+		bool_edit.name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		IS.expand(bool_edit, true, true)
+		
 		sub_editor.visible = visibility
 		IS.expand(sub_editor, true, true)
 		
-		btn_edit_box.val_changed.connect(func(usable_res: UsableRes, key: StringName, new_val: Variant) -> void:
+		bool_edit.val_changed.connect(func(usable_res: UsableRes, key: StringName, new_val: Variant) -> void:
 			var _request_calculate: bool = not color_scope_sub_editors_visib.has(true)
 			color_scope_sub_editors_visib[index] = new_val
 			sub_editor.visible = new_val
@@ -67,7 +87,7 @@ func _ready_editor() -> void:
 				request_calculate()
 		)
 		
-		header_container.add_child(btn_edit_box)
+		header_container.add_child(bool_edit)
 		sub_editors_container.add_child(sub_editor)
 	
 	IS.expand(header_container, true, true)
@@ -97,8 +117,7 @@ func _input(event: InputEvent) -> void:
 func request_calculate(force: bool = false) -> void:
 	if not is_visible_in_tree() or not color_scope_sub_editors_visib.has(true):
 		return
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
 	curr_image = Scene2.viewport.get_texture().get_image()
 	curr_image.shrink_x2()
 	var new_image_data: PackedByteArray = curr_image.get_data()
@@ -107,15 +126,13 @@ func request_calculate(force: bool = false) -> void:
 	curr_image_data = new_image_data
 	if not curr_image or is_calculating:
 		return
-	WorkerThreadPool.add_task(calculate.bind(curr_image, curr_image_data, curr_samples_down_scale), true)
+	
+	WorkerThreadPool.add_task(calculate, true)
 	is_calculating = true
 
-func calculate(input: Image, raw_data: PackedByteArray, samples_down_scale: int) -> void:
-	## C# Calculate Code
-	##  اثبت اختبار الأداء التالي:
-	## shrink_x2 = false, down_scale = 1: 0.3s Average
-	## shrink_x2 = true, down_scale = 1: 0.12s Average
-	finish_calculate.call_deferred(input, samples_down_scale, ColorScopeMath.Calculate(input, raw_data, samples_down_scale))
+func calculate() -> void:
+	var result: Dictionary = ColorScopeMath.calculate(curr_image, curr_image_data, curr_samples_down_scale)
+	finish_calculate.call_deferred(curr_image, curr_samples_down_scale, result)
 	
 	## GDScript Calculate Code
 	#var pixel_opacity: float = .03 * samples_down_scale
@@ -180,10 +197,11 @@ func calculate(input: Image, raw_data: PackedByteArray, samples_down_scale: int)
 		#&"lum_img": ImageTexture.create_from_image(luminance_image)
 	#} as Dictionary[StringName, Variant])
 
-func finish_calculate(input: Image, samples_down_scale: int, output: Dictionary[StringName, Variant]) -> void:
+func finish_calculate(input: Image, samples_down_scale: int, output: Dictionary) -> void:
 	color_scope_sub_editors.histogram.push_viewer_data(output)
 	color_scope_sub_editors.waveform.push_viewer_data(output)
 	color_scope_sub_editors.parade.push_viewer_data(output)
+	output.clear()
 	
 	is_calculating = false
 	calculation_finished.emit()
@@ -220,7 +238,7 @@ class ColorScopeSubEditor extends SplitContainer:
 		color_scope_viewer = new_color_scope_viewer()
 		body.add_child(color_scope_viewer)
 	
-	func push_viewer_data(data: Dictionary[StringName, Variant]) -> void:
+	func push_viewer_data(data: Dictionary) -> void:
 		color_scope_viewer.set_viewer_data(data)
 	
 	func new_color_scope_viewer() -> ColorScopeViewer:
@@ -239,10 +257,10 @@ class RGBLSubEditor extends ColorScopeSubEditor:
 	
 	func _ready() -> void:
 		super()
-		var r_btn: Button = IS.create_button("R", null, false, true, false, {toggle_mode = true, button_pressed = draw_r, custom_minimum_size = Vector2(64., .0)})
-		var g_btn: Button = IS.create_button("G", null, false, true, false, {toggle_mode = true, button_pressed = draw_g, custom_minimum_size = Vector2(64., .0)})
-		var b_btn: Button = IS.create_button("B", null, false, true, false, {toggle_mode = true, button_pressed = draw_b, custom_minimum_size = Vector2(64., .0)})
-		var lum_btn: Button = IS.create_button("Lum", null, false, true, false, {toggle_mode = true, button_pressed = draw_lum, custom_minimum_size = Vector2(64., .0)})
+		var r_btn: Button = IS.create_button("R", null, "", false, true, false, {toggle_mode = true, button_pressed = draw_r, custom_minimum_size = Vector2(64., .0)})
+		var g_btn: Button = IS.create_button("G", null, "", false, true, false, {toggle_mode = true, button_pressed = draw_g, custom_minimum_size = Vector2(64., .0)})
+		var b_btn: Button = IS.create_button("B", null, "", false, true, false, {toggle_mode = true, button_pressed = draw_b, custom_minimum_size = Vector2(64., .0)})
+		var lum_btn: Button = IS.create_button("Lum", null, "", false, true, false, {toggle_mode = true, button_pressed = draw_lum, custom_minimum_size = Vector2(64., .0)})
 		r_btn.pressed.connect(func() -> void: draw_r = r_btn.button_pressed)
 		g_btn.pressed.connect(func() -> void: draw_g = g_btn.button_pressed)
 		b_btn.pressed.connect(func() -> void: draw_b = b_btn.button_pressed)
@@ -288,12 +306,12 @@ class VectorScopeEditor extends ColorScopeSubEditor:
 class ColorScopeViewer extends Control:
 	var editor: ColorScopeSubEditor
 	
-	var viewer_data: Dictionary[StringName, Variant]
+	var viewer_data: Dictionary
 	
 	func _init(_editor: ColorScopeSubEditor) -> void:
 		editor = _editor
 	
-	func set_viewer_data(data: Dictionary[StringName, Variant]) -> void:
+	func set_viewer_data(data: Dictionary) -> void:
 		viewer_data = data
 		queue_redraw()
 	
@@ -302,7 +320,7 @@ class ColorScopeViewer extends Control:
 
 class HistogramViewer extends ColorScopeViewer:
 	var histogram_data: PackedVector4Array
-	func set_viewer_data(data: Dictionary[StringName, Variant]) -> void:
+	func set_viewer_data(data: Dictionary) -> void:
 		histogram_data = data.histogram
 		super(data)
 	
@@ -386,7 +404,7 @@ class WaveformViewer extends ColorScopeViewer:
 		IS.add_children(self, [luminance_texture_rect, red_texture_rect, green_texture_rect, blue_texture_rect])
 		update_viewer()
 	
-	func set_viewer_data(data: Dictionary[StringName, Variant]) -> void:
+	func set_viewer_data(data: Dictionary) -> void:
 		super(data)
 		if data:
 			red_texture_rect.texture = data.r_img

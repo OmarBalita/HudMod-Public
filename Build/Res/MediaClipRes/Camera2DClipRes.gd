@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/camera-2d.png")
 class_name Camera2DClipRes extends Display2DClipRes
 
@@ -17,6 +25,8 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 	&"title": "Camera2D",
 	&"description": ""
 }
+
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/camera-2d.png")
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {

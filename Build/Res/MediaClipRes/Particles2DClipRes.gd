@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 #@icon("res://Asset/Icons/Objects/particles-2d.png")
 #class_name Particles2DClipRes extends Display2DClipRes
 #
@@ -71,6 +79,4 @@
 #func init_node(layer_idx: int, frame_in: int) -> Node:
 	#var particles:= Particles2D.new()
 	#return particles
-#
-#
-#
+

@@ -1,6 +1,25 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
-enum MediaTypes {
+enum MediaType {
 	IMAGE,
 	VIDEO,
 	AUDIO,
@@ -82,7 +101,7 @@ var object_clip_info: Dictionary[StringName, Dictionary] = {
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
-const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 2048
+const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 512
 
 const THUMBNAIL_DISCARD: Dictionary = {&"texture": IS.TEXTURE_X_MARK}
 
@@ -192,26 +211,26 @@ func server_deregister_audio(path: String, id: String, thumbnail_path: String, w
 		store_not_deleted_thumbnail(thumbnail_path, id)
 		store_not_deleted_dir(str(waveform_path, id))
 
-#func server_register_preset_media_res(path: String, preset_media_res: MediaClipRes, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
-	#if ids_exists.has(id):
-		#load_thumbnail(path, thumbnail_path, id)
-	#else:
-		#create_thumbnail_from_preset_media_res(path, preset_media_res, thumbnail_path, id)
-
 func load_thumbnail(media_path: String, thumbnail_path: String, id: String) -> void:
 	var thumb_image: Image = Image.load_from_file(str(thumbnail_path, id, ".png"))
 	var thumb_texture: ImageTexture = ImageTexture.create_from_image(thumb_image)
 	thumbnails[StringName(media_path)] = {&"image": thumb_image, &"texture": thumb_texture}
 
 func load_waveform(media_path: String, thumbnail_path: String, id: String) -> void:
-	var waveform_port_path: String = str(thumbnail_path, id, "/")
+	var waveform_port_path: String = thumbnail_path + id
 	
 	var waveform_images: Array[Image]
 	var waveform_textures: Array[ImageTexture]
 	var total_width: int
 	
-	for file_name: String in DirAccess.get_files_at(waveform_port_path):
-		var waveform_image: Image = Image.load_from_file(str(waveform_port_path, file_name))
+	var imgs_files: Array = DirAccess.get_files_at(waveform_port_path)
+	imgs_files.sort_custom(
+		func(a: String, b: String) -> bool:
+			return a.get_basename().to_int() < b.get_basename().to_int()
+	)
+	
+	for file_name: String in imgs_files:
+		var waveform_image: Image = Image.load_from_file(waveform_port_path.path_join(file_name))
 		if waveform_image == null: continue
 		waveform_image.generate_mipmaps()
 		waveform_images.append(waveform_image)
@@ -338,7 +357,6 @@ func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
 	)
 
 
-# Written by Omar TOP and edited by Claude AI
 func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
 	
 	var audio_id: int = audio_data_res.get_instance_id()
@@ -371,96 +389,6 @@ func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], 
 	var second_from: float = idx * chunk_length
 	var second_to: float = second_from + chunk_length
 	images[idx] = MediaHelper.GenerateWaveformImage(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
-
-#func generate_waveform_image(stream: AudioStreamWAV, second_from: float, second_to: float, draw_func: Callable, image_format: Image.Format, width: int, height: int, space_width: int, line_width: int, bg_color: Color = Color.BLACK) -> Image:
-	#var image: Image = Image.create_empty(width, height, false, image_format)
-	#image.fill(bg_color)
-	#
-	#if stream.format != AudioStreamWAV.FORMAT_16_BITS:
-		#printerr("Only 16-bit format is supported")
-		#return image
-	#
-	#var length: float = stream.get_length()
-	#var data: PackedByteArray = stream.data
-	#var data_size: int = data.size()
-	#
-	#var bytes_per_sample: int = 2
-	#var channels: int = 2 if stream.stereo else 1
-	#var sample_rate: int = stream.mix_rate
-	#
-	#var start_sample: int = int(second_from * sample_rate)
-	#var start_byte: int = start_sample * bytes_per_sample * channels
-	#
-	#second_to = minf(length, second_to)
-	#var duration: float = second_to - second_from
-	#var total_samples: int = int(duration * sample_rate)
-	#var samples_per_pixel: int = maxi(1, (total_samples / width))
-	#
-	#space_width += line_width
-	#var lines_count: int = width / space_width
-	#
-	#var target_samples_count: int
-	#if samples_per_pixel < 500: target_samples_count = 250
-	#elif samples_per_pixel < 5_000: target_samples_count = 500
-	#elif samples_per_pixel < 50_000: target_samples_count = 750
-	#elif samples_per_pixel < 500_000: target_samples_count = 1_000
-	#else: target_samples_count = 1_500
-	#var samples_step: int = maxi(1, samples_per_pixel / target_samples_count)
-	#
-	#for x: int in lines_count:
-		#var pixel_x: int = x * space_width
-		#
-		#var sample_start: int = start_byte + (pixel_x * samples_per_pixel * bytes_per_sample * channels)
-		#
-		#var max_amplitude: float = .0
-		#
-		#for s: int in samples_per_pixel / samples_step:
-			#var index: int = sample_start + (s * samples_step * bytes_per_sample * channels)
-			#if index + 1 >= data_size:
-				#break
-			#
-			#var sample_value: float = absf(data.decode_s16(index) / 32768.)
-			#
-			#if channels == 2 and index + 3 < data_size:
-				#var sample_value2: float = absf(data.decode_s16(index + 2) / 32768.)
-				#sample_value = (sample_value + sample_value2) / 2.
-			#
-			#max_amplitude = maxf(max_amplitude, sample_value)
-		#
-		#draw_func.call(image, width, height, line_width, pixel_x, max_amplitude)
-	#
-	#image.generate_mipmaps()
-	#
-	#return image
-#
-#func draw_waveform_line_thumbnail(image: Image, width: int, height: int, line_width: int, x: int, sample: float) -> void:
-	#var gradient: Gradient = editor_settings.media_explorer_waveform_gradient
-	#var offset: float = x / float(width)
-	#
-	#var height_half: int = height / 2
-	#var sample_height: int = int(sample * height)
-	#
-	#image.fill_rect(
-		#Rect2i(
-			#Vector2i(x, height_half - sample_height / 2.0),
-			#Vector2i(line_width, sample_height)
-		#),
-		#gradient.sample(offset)
-	#)
-#
-#func draw_waveform_line_timeline(image: Image, width: int, height: int, line_width: int, x: int, sample: float) -> void:
-	#var offset: float = x / float(width)
-	#
-	#var height_half: int = height / 2
-	#var sample_height: int = int(sample * height)
-	#
-	#image.fill_rect(
-		#Rect2i(
-			#Vector2i(x, height_half - sample_height / 2.0),
-			#Vector2i(line_width, sample_height)
-		#),
-		#Color(Color.BLACK, .6)
-	#)
 
 
 class ClipPanel extends Panel:
@@ -560,7 +488,7 @@ class ClipPanel extends Panel:
 							layers_body.end_clips_moving(true)
 						else:
 							_select(false, not event.ctrl_pressed and not layers_body.is_val_selected(layer_idx, frame))
-							layers_body.popup_options_menu(layers_body._get_menu_options() + layers_body.clips_menu)
+							layers_body.popup_options_menu(layers_body._get_menu_options() + layers_body._get_clips_options())
 		
 		elif event is InputEventMouseMotion:
 			
@@ -703,7 +631,7 @@ class ClipPanel extends Panel:
 	func open_graph_editor() -> void:
 		close_graph_editor()
 		
-		var comps: Dictionary[String, Array] = clip_res.components
+		var comps: Dictionary[StringName, Array] = clip_res.components
 		
 		var index: int
 		
@@ -896,7 +824,6 @@ class ClipPanel extends Panel:
 								2: _end_drag_right()
 			
 			elif event is InputEventMouseMotion:
-				
 				if ClipPanel._is_left_press_event(button_event):
 					if drag_idx == 1:
 						_drag_left(event)
@@ -982,11 +909,7 @@ class ClipPanel extends Panel:
 			var clip_res: MediaClipRes = owner_as_clip.clip_res
 			var layer_res: LayerRes = ClipPanel.timeline.opened_clip_res.get_layer(owner_as_clip.layer_idx)
 			
-			drag_start_poss = Vector3i(
-				owner_as_clip.frame,
-				clip_res.from,
-				clip_res.length
-			)
+			drag_start_poss = Vector3i(owner_as_clip.frame, clip_res.from, clip_res.length)
 			drag_limits = Vector2(
 				layer_res.get_left_limit_at(owner_as_clip.frame),
 				layer_res.get_right_limit_at(owner_as_clip.frame + clip_res.length)
@@ -1066,8 +989,9 @@ class ClipPanel extends Panel:
 			
 			ClipPanel.timeline.edges_nav_horizontal = false
 			
-			var coords_fordelete: Array[Vector2i]
+			var clips_fordelete: Dictionary[Vector2i, MediaClipRes]
 			var clips_foradd: Dictionary[Vector2i, MediaClipRes]
+			var clips_from_and_lengths: Dictionary[MediaClipRes, Vector4i] # x: from start, y: from end, z: length start, w: length end
 			
 			if is_edit_multiple():
 				
@@ -1076,14 +1000,21 @@ class ClipPanel extends Panel:
 				for layer_idx: int in selected:
 					var port: Dictionary = selected[layer_idx]
 					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					
 					for frame: int in port:
 						
 						var clip: ClipPanel = layer.get_locked_clip(frame)
+						var select_panel: SelectPanel = clip.select_panel
+						var clip_res: MediaClipRes = clip.clip_res
 						layer.unlock_clip(frame)
 						
-						var target_coord: Vector2i = Vector2i(layer_idx, clip.select_panel.drag_target_poss.x)
-						coords_fordelete.append(Vector2i(layer_idx, frame))
-						clips_foradd[target_coord] = clip.clip_res
+						var target_coord: Vector2i = Vector2i(layer_idx, select_panel.drag_target_poss.x)
+						clips_fordelete[Vector2i(layer_idx, frame)] = clip_res
+						clips_foradd[target_coord] = clip_res
+						clips_from_and_lengths[clip_res] = Vector4i(
+							select_panel.drag_start_poss.y, select_panel.drag_target_poss.y,
+							select_panel.drag_start_poss.z, select_panel.drag_target_poss.z
+						)
 			
 			else:
 				var layer_idx: int = owner_as_clip.layer_idx
@@ -1091,22 +1022,66 @@ class ClipPanel extends Panel:
 				var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
 				layer.unlock_clip(drag_start_poss.x)
 				
-				coords_fordelete.append(Vector2i(layer_idx, drag_start_poss.x))
+				clips_fordelete[Vector2i(layer_idx, drag_start_poss.x)] = owner_as_clip.clip_res
 				clips_foradd[Vector2i(layer_idx, drag_target_poss.x)] = owner_as_clip.clip_res
+				clips_from_and_lengths[owner_as_clip.clip_res] = Vector4i(
+					drag_start_poss.y, drag_target_poss.y,
+					drag_start_poss.z, drag_target_poss.z
+				)
 			
 			var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
-			opened_clip_res.remove_clips(coords_fordelete)
-			opened_clip_res.add_clips_by_coords(clips_foradd)
 			
-			ClipPanel.timeline.layers_body.select_vals_by_method(
-				func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
-					return clips_foradd.has(Vector2i(port_idx, idx)), false
-			)
+			var do_method: Callable = func() -> void:
+				for clip_res: MediaClipRes in clips_from_and_lengths:
+					var from_length: Vector4i = clips_from_and_lengths[clip_res]
+					clip_res.set_from_force(from_length.y); clip_res.length = from_length.w
+				
+				opened_clip_res.remove_clips(clips_fordelete.keys(), true, false)
+				opened_clip_res.add_clips_by_coords(clips_foradd, 0, true, false)
+				
+				ClipPanel.timeline.layers_body.select_vals_by_method(
+					func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+						return clips_foradd.has(Vector2i(port_idx, idx)), false
+				)
+			
+			var undo_method: Callable = func() -> void:
+				for clip_res: MediaClipRes in clips_from_and_lengths:
+					var from_length: Vector4i = clips_from_and_lengths[clip_res]
+					clip_res.set_from_force(from_length.x); clip_res.length = from_length.z
+				
+				opened_clip_res.remove_clips(clips_foradd.keys(), true, false)
+				opened_clip_res.add_clips_by_coords(clips_fordelete, 0, true, false)
+			
+			ProjectServer2.commit_action("drag_clips_left", do_method, undo_method)
 		
 		func _end_drag_right() -> void:
+			var clips_lengths: Dictionary[MediaClipRes, Vector2i] = {}
+			
+			if is_edit_multiple():
+				var selected: Dictionary[int, Dictionary] = ClipPanel.timeline.layers_body.selected
+				for layer_idx: int in selected:
+					var port: Dictionary = selected[layer_idx]
+					var layer: Layer2 = ClipPanel.timeline.get_layer_from_idx(layer_idx)
+					for frame: int in port:
+						var clip: ClipPanel = layer.get_clip(frame)
+						var select_panel: SelectPanel = clip.select_panel
+						var target_coord: Vector2i = Vector2i(layer_idx, select_panel.drag_target_poss.x)
+						clips_lengths[clip.clip_res] = Vector2i(select_panel.drag_start_poss.z, clip.clip_res.length)
+			else: clips_lengths[owner_as_clip.clip_res] = Vector2i(drag_start_poss.z, owner_as_clip.clip_res.length)
+			
+			var do_method: Callable = func() -> void:
+				for clip_res: MediaClipRes in clips_lengths: clip_res.length = clips_lengths[clip_res].y
+				ProjectServer2.project_res.root_clip_res.update_root_length()
+				ClipPanel.timeline.update_when_clips_changed()
+			
+			var undo_method: Callable = func() -> void:
+				for clip_res: MediaClipRes in clips_lengths: clip_res.length = clips_lengths[clip_res].x
+				ProjectServer2.project_res.root_clip_res.update_root_length()
+				ClipPanel.timeline.update_when_clips_changed()
+			
 			ClipPanel.timeline.edges_nav_horizontal = false
-			ProjectServer2.project_res.root_clip_res.update_root_length()
-			ClipPanel.timeline.update_when_clips_changed()
+			
+			ProjectServer2.commit_action("drag_clips_right", do_method, undo_method)
 		
 		func _update_target_poss_by_delta(delta: int) -> void:
 			var clip_res: MediaClipRes = owner_as_clip.clip_res
@@ -1315,8 +1290,10 @@ class WaveformBoxContainer extends BoxContainer:
 			var last_texture_index: int = waveform_start_index.x + ranged_waveform_textures.size()
 			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
 			var last_texture_ratio: float = last_waveform_texture.get_width() / curr_total_width
+			
 			if not texture_rects.has(last_texture_index):
 				texture_rects[last_texture_index] = _push_waveform_texture_rect(last_waveform_texture)
+			
 			texture_rects[last_texture_index].size_flags_stretch_ratio = last_texture_ratio
 		
 		texture_rects.sort()
@@ -1450,7 +1427,7 @@ func _tree_children_of(parent_res: MediaClipRes, tree: Tree, parent_tree_item: T
 
 # Get Media Type
 
-func get_media_type_from_path(path: String) -> MediaTypes:
+func get_media_type_from_path(path: String) -> MediaType:
 	var extension = path.get_file().get_extension()
 	var media_type: int = -1
 	for i: PackedStringArray in ARR_MEDIA_EXTENSIONS:
@@ -1459,7 +1436,7 @@ func get_media_type_from_path(path: String) -> MediaTypes:
 			return media_type
 	return -1
 
-func get_media_classname_from_type(type: MediaTypes) -> StringName:
+func get_media_classname_from_type(type: MediaType) -> StringName:
 	match type:
 		0: return &"ImageClipRes"
 		1: return &"VideoClipRes"

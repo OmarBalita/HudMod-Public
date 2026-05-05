@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://d153ulbsj821o" path="res://Editor/MediaExplorer/MediaExplorer.gd" id="1_7i47x"]
 [ext_resource type="Script" uid="uid://d2qybm5ehn5ha" path="res://Editor/Main.gd" id="1_30lmd"]
 [ext_resource type="Script" uid="uid://bs6qo8ij0cbnb" path="res://Editor/Player/Player.gd" id="2_7i47x"]
-[ext_resource type="Texture2D" uid="uid://lvvrg1inxx60" path="res://Asset/Images/banner-mid.jpg" id="2_k2li5"]
 [ext_resource type="Resource" uid="uid://cgukcm1eovxk" path="res://Resources/Layout/LayoutDefault.tres" id="2_s30d6"]
 [ext_resource type="Script" uid="uid://defvdj348ta82" path="res://Build/Res/Layout/LayoutRootInfo.gd" id="2_x7e6b"]
 [ext_resource type="Resource" uid="uid://6qv1nryowska" path="res://Resources/Layout/LayoutColorCorrection.tres" id="4_t7s5e"]
@@ -39,11 +38,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_30lmd")
-version_name = &"1.0.0.alpha"
-version_banner = ExtResource("2_k2li5")
-banner_owner = &"Erik Karits"
-banner_owner_link = &"https://www.pexels.com/@erik-karits-2093459/"
-support_link = &"https://www.patreon.com/10610068/join"
 editors = {
 &"color_correction": NodePath("EditorsFolder/ColorCorrectionEditor"),
 &"color_scope": NodePath("EditorsFolder/ColorScopeEditor"),
@@ -120,7 +114,7 @@ size_flags_horizontal = 4
 alignment = 1
 script = SubResource("GDScript_sruw6")
 
-[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1936103180]
+[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1936103180 groups=["theme_icon"]]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -131,7 +125,7 @@ theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("6_t7s5e")
 flat = true
 
-[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1034418709]
+[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1034418709 groups=["theme_icon"]]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
@@ -289,3 +283,26 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.39215687)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1705487494]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="MessagesContainer" type="BoxContainer" parent="MarginContainer" unique_id=682209663]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+vertical = true

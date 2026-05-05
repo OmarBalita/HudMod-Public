@@ -1,3 +1,23 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
+# Old code that has been discontinued
 class_name GDDrawingNode extends Node2D
 
 
@@ -44,12 +64,8 @@ func _draw() -> void:
 		
 		var antialised = drawing_res.antialised
 		
-		
-		# -------------------- Draw Fill --------------------
 		if drawing_res.draw_fill:
 			draw_polygon_safe(PackedVector2Array(points), fill_color)
-		
-		# -------------------- Draw Line --------------------
 		
 		var dist_left: float
 		
@@ -132,8 +148,6 @@ func _draw() -> void:
 								if e.texture: draw_mesh(e.mesh, e.texture.get_texture(), Transform2D(e.rotation, e.scale * draw_width, e.skew, point), draw_color)
 							6:
 								if e.texture: draw_texture(e.texture.get_texture(), point, draw_color)
-		
-		# -------------------- Draw Caps --------------------
 		
 		if baked_width.size():
 			var begin_width = drawing_res.cap_begin_scale * baked_width.front()

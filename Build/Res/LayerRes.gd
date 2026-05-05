@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name LayerRes extends Resource
 
 signal lock_changed(to: bool)
@@ -49,6 +68,9 @@ func get_custom_color() -> Color: return custom_color
 func set_custom_color(new_val: Color) -> void: custom_color = new_val
 func get_custom_size() -> int: return custom_size
 func set_custom_size(new_val: int) -> void: custom_size = new_val
+
+func has_clip_res(frame: int) -> bool:
+	return clips.has(frame)
 
 func get_clip_res(frame: int) -> MediaClipRes:
 	return clips[frame]

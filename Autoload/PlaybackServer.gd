@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
 signal position_changed(position: int)
@@ -160,8 +179,9 @@ func free_clip(clip_res: MediaClipRes) -> void:
 			free_clip(layer.displayed_clip_res)
 			layer.displayed_clip_res = null
 	
-	clip_res.exit(clip_res.curr_node)
-	Scene2.free_node(clip_res)
+	if clip_res.curr_node:
+		clip_res.exit(clip_res.curr_node)
+		Scene2.free_node(clip_res)
 
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()

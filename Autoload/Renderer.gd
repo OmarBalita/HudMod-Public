@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
 signal render_started()
@@ -40,11 +59,14 @@ func start(_output_path: String, _video_renderer: VideoRenderer, _audio_renderer
 	video_renderer.set_fps(ProjectServer2.project_res.fps)
 	
 	if not video_renderer.start(output_path):
+		render_canceled_or_failed.emit("Erro starting video decoding.")
 		return
 	audio_renderer.share_video_renderer_format_ctx(video_renderer)
 	if not audio_renderer.start():
+		render_canceled_or_failed.emit("Error starting audio decoding.")
 		return
 	if not video_renderer.open_output_file():
+		render_canceled_or_failed.emit("Unable to create output file, the reason may be due to the compatibility of the decoders.")
 		return
 	
 	send_frame()
@@ -157,8 +179,9 @@ func _extract_layer_samples_at(layer_res: LayerRes, position: int) -> Array[Pack
 		return []
 	
 	if curr_clip_res is VideoClipRes or curr_clip_res is AudioClipRes:
-		var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer_res.displayed_frame + curr_clip_res.from)
-		result.append(samples)
+		if curr_clip_res.audio_data_res:
+			var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer_res.displayed_frame + curr_clip_res.from)
+			result.append(samples)
 	
 	result.append_array(_extract_clip_samples_at(curr_clip_res, position))
 	

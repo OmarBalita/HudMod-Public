@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
 enum LOAD_ERR {
@@ -39,13 +58,11 @@ func load_media_cache_from_file_system(file_system: DisplayFileSystemRes) -> voi
 func images_has(key_as_path: StringName) -> bool: return images.has(key_as_path)
 func videos_info_has(key_as_path: StringName) -> bool: return videos_info.has(key_as_path)
 func audio_datas_has(key_as_path: StringName) -> bool: return audio_datas.has(key_as_path)
-#func audio_stream_waves_has(key_as_path: StringName) -> bool: return audio_stream_waves.has(key_as_path)
 func preset_media_ress_has(key_as_path: StringName) -> bool: return preset_media_ress.has(key_as_path)
 
 func get_images() -> Dictionary[StringName, Image]: return images
 func get_textures() -> Dictionary[StringName, ImageTexture]: return textures
 func get_audio_datas() -> Dictionary[StringName, AudioF32Data]: return audio_datas
-#func get_audio_stream_waves() -> Dictionary[StringName, AudioStreamWAV]: return audio_stream_waves
 func get_videos_info() -> Dictionary[StringName, Dictionary]: return videos_info
 func get_preset_media_ress() -> Dictionary[StringName, MediaClipRes]: return preset_media_ress
 
@@ -53,7 +70,6 @@ func get_image(key_as_path: StringName) -> Image: return images.get(key_as_path)
 func get_texture(key_as_path: StringName) -> ImageTexture: return textures.get(key_as_path)
 func get_video_info(key_as_path: StringName) -> Dictionary: return videos_info.get(key_as_path)
 func get_audio_data(key_as_path: StringName) -> AudioF32Data: return audio_datas.get(key_as_path)
-#func get_audio(key_as_path: StringName) -> AudioStreamWAV: return audio_stream_waves.get(key_as_path)
 func get_preset_media_res(key_as_path: StringName) -> MediaClipRes: return preset_media_ress.get(key_as_path)
 
 func register_from_path(path: StringName, ids_exists: PackedStringArray, id: String = "", thumbnail_path: String = "", waveform_path: String = "") -> LOAD_ERR:
@@ -103,6 +119,7 @@ func register_video(path: StringName, ids_exists: PackedStringArray, id: String,
 				total_frames = video_decoder.get_total_frames_by_dur()
 		
 		videos_info[path] = {
+			&"reference_decoder": video_decoder,
 			&"resolution": video_decoder.get_resolution(),
 			&"duration": video_decoder.get_duration(),
 			&"fps": video_decoder.get_fps(),
@@ -118,14 +135,9 @@ func register_video(path: StringName, ids_exists: PackedStringArray, id: String,
 		
 		MediaServer.server_register_video(path, video_decoder, audio_data_res, ids_exists, id, thumbnail_path, waveform_path)
 		
-		video_decoder.close()
-		
 		return LOAD_ERR.SUCCESS
 	
 	return LOAD_ERR.LOAD_ERR_CANT_OPEN
-	
-	#audio_stream_waves[path] = audio_stream_waves
-	#MediaServer.server_register_video(path, video_decoder, audio_data, ids_exists, id, thumbnail_path, waveform_path)
 
 
 func register_audio(path: StringName, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> LOAD_ERR:
@@ -144,14 +156,6 @@ func register_audio(path: StringName, ids_exists: PackedStringArray, id: String,
 	audio_datas[path] = audio_data_res
 	
 	MediaServer.server_register_audio(path, audio_data_res, ids_exists, id, thumbnail_path, waveform_path)
-	
-	#if audio_stream_waves_has(path):
-		#return LOAD_ERR.LOAD_ERR_ALREADY_EXISTS
-	#var audio_stream: AudioStreamWAV = AudioStreamHelper.create_stream_from_path(path)
-	#if audio_stream == null:
-		#return LOAD_ERR.LOAD_ERR_CANT_OPEN
-	#audio_stream_waves[path] = audio_stream
-	#MediaServer.server_register_audio(path, audio_stream, ids_exists, id, thumbnail_path, waveform_path)
 	
 	return LOAD_ERR.SUCCESS
 
@@ -220,7 +224,6 @@ func deregister_video(path: StringName, id: String, thumbnail_path: String, wave
 func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
 	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
 	audio_datas.erase(path)
-	#audio_stream_waves.erase(path)
 
 func deregister_preset_media_res(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	preset_media_ress.erase(path)

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name MediaClipResPath extends UsableRes
 
 signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
@@ -35,8 +54,8 @@ static func new_mediares_path(_cond_func: Callable = any_cond, _media_res: Media
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var path_box: BoxContainer = IS.create_box_container(12)
 	var path_line: LineEdit = IS.create_line_edit("[Empty]")
-	var media_res_picker_button: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/tool.png"), null, null, true)
-	var delete_button: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/trash-can.png"))
+	var media_res_picker_button: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/tool.png"), null, null, "Pick", true)
+	var delete_button: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/trash-can.png"), null, null, "Delete")
 	
 	path_line.editable = false
 	
@@ -51,24 +70,24 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"path_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, method_custom_args(path_box)),
 	}
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
-	var panel_container: PanelContainer = main_edit.get_child(0)
-	panel_container.add_theme_stylebox_override(&"panel", IS.style_box_empty)
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+	#var panel_container: PanelContainer = main_edit.get_child(0)
+	#panel_container.add_theme_stylebox_override(&"panel", IS.style_box_empty)
 	_try_update_editor()
 
 func _try_update_editor() -> void:
 	
 	if EditorServer.has_usable_res_controllers(self):
-		var path_box: BoxContainer = EditorServer.get_usable_res_property_controller(self, &"path_ctrlr")
-		var path_line: LineEdit = path_box.get_child(0)
+		var path_edit: EditContainer = EditorServer.get_usable_res_property_controller(self, &"path_ctrlr")
+		var path_line: LineEdit = path_edit.controller
 		
 		if media_res:
 			path_line.text = ("(Self) " if media_res == owner else "") + media_res.get_display_name()
 		else:
 			path_line.clear()
 		
-		path_box.get_child(1).visible = media_res == null
-		path_box.get_child(2).visible = media_res != null
+		path_edit.get_child(1).visible = media_res == null
+		path_edit.get_child(2).visible = media_res != null
 
 
 func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextureButton) -> void:

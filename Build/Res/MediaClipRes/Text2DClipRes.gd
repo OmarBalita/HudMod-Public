@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/text-2d.png")
 class_name Text2DClipRes extends Display2DClipRes
 
@@ -61,6 +69,7 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 	&"title": "Text2D",
 	&"description": ""
 }
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/text-2d.png")
 
 func set_prop(property_key: StringName, property_val: Variant) -> void:
 	if get_prop(property_key) != property_val:

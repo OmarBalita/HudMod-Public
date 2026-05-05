@@ -14,3 +14,16 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+addons/ffmpeg_codec/VideoCodec.windows.template_debug.x86_64.dll
+addons/ffmpeg_codec/VideoCodec.windows.template_release.x86_64.dll
+addons/ffmpeg_codec/VideoCodec.windows.template_release.x86_64.exp
+addons/ffmpeg_codec/VideoCodec.windows.template_release.x86_64.lib
+addons/ffmpeg_codec/~VideoCodec.windows.template_debug.x86_64.dll
+
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+*.pdb
+

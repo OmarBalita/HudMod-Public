@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name ComponentRes extends UsableRes
 
 signal ready(owner: MediaClipRes)
@@ -95,6 +103,11 @@ func _delete() -> void:
 func _process_parent_here() -> void:
 	if owner and owner.curr_node: owner.process_here()
 
+func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
+	super(property_key, property_val)
+	if has_animation(self, property_key):
+		request_animation_keyframe(self, property_key, property_val, null, false)
+
 
 func has_captured_props(idx: int) -> bool:
 	return captured_props.has(idx)
@@ -150,10 +163,10 @@ func loop_animations(frame: float, method: Callable) -> void:
 			method.call(usable_res, anim_res, property_key, frame)
 
 func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
-	return get_animation(usable_res, prop_key).sample(frame) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
+	return get_animation(usable_res, prop_key).sample_func.call(frame + owner.from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
 
 func push_animation_result_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
-	usable_res.set_prop(property_key, anim_res.sample(frame))
+	usable_res.set_prop(property_key, anim_res.sample_func.call(frame))
 
 func update_controller_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
 	var property_has_keyframe: bool = has_animation_keyframe(usable_res, property_key, frame)
@@ -211,26 +224,29 @@ func request_animation_keyframe(usable_res: UsableRes, property_key: StringName,
 	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
 
 func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
-	get_animation(usable_res, property_key).add_key(frame, property_val)
+	var do_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, property_val, frame)
+	var undo_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
+	ProjectServer2.commit_action("add_keyframe", do_method, undo_method)
+
+func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
+	var tmp_property_val: Variant = get_animation(usable_res, property_key).get_key(frame)
+	var do_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
+	var undo_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, tmp_property_val, frame)
+	ProjectServer2.commit_action("remove_keyframe", do_method, undo_method)
+
+
+func _add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
+	make_animation_absolute(usable_res, property_key, typeof(property_val)).add_key(frame, property_val)
 	owner.comp_keyframe_added.emit(self, usable_res, property_key, property_val, frame)
 	owner.shared_data_clear()
 
-func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
+func _remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
 	var anim_res: AnimationRes = get_animation(usable_res, property_key)
 	anim_res.remove_key(frame)
 	if not anim_res.has_any_key():
 		remove_animation_absolute(usable_res, property_key)
 	owner.comp_keyframe_removed.emit(self, usable_res, property_key, frame)
 	owner.shared_data_clear()
-
-func _receive_new_val(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
-	if has_animation(usable_res, param_key):
-		request_animation_keyframe(usable_res, param_key, param_new_val, null, false)
-
-func _receive_keyframe(edit_box_container: EditBoxContainer, usable_res: UsableRes, param_key: StringName, param_new_val: Variant) -> void:
-	request_animation_keyframe(usable_res, param_key, param_new_val)
-
-
 
 
 

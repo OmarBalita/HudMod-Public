@@ -3,14 +3,14 @@ shader_type canvas_item;
 #include "res://Build/Shader/Global.gdshaderinc"
 
 uniform vec2 dir = vec2(1., .0);
-uniform float power = .05;
+uniform float blur_amount = .05;
 uniform int quality: hint_range(1, 64) = 4;
 uniform bool clip_border = false;
 uniform bool transparancy = true;
 
 void vertex(){
 	if (clip_border == false) {
-		vec2 blur_size = abs(normalize(dir) * power) * 2.;
+		vec2 blur_size = abs(normalize(dir) * blur_amount) * 2.;
 		VERTEX *= blur_size + 1.;
 		UV = (UV - .5) * (blur_size + 1.) + .5;
 	}
@@ -21,7 +21,7 @@ void fragment(){
 	float num_samples = in_square;
 	
 	vec4 color = texture(TEXTURE, UV) * in_square;
-	vec2 step_size = normalize(dir) * power / (float(quality));
+	vec2 step_size = normalize(dir) * blur_amount / (float(quality));
 	vec2 uv;
 	
 	for(int i = 1; i <= quality; i++){

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Properties2 extends EditorControl
 
 signal property_changed()
@@ -20,6 +39,7 @@ var curr_displayed_components: Dictionary[StringName, Array]
 
 var notification_label: Label
 var sections_menu: Menu
+var scroll_cont: ScrollContainer
 var components_body: MarginContainer
 var sections_controls: Dictionary[StringName, Dictionary]
 
@@ -29,14 +49,16 @@ var media_properties_panel_container: PanelContainer
 func _ready_editor() -> void:
 	super()
 	
-	notification_label = IS.create_label("", IS.label_settings_main)
+	notification_label = IS.create_label("", "", IS.label_settings_main)
 	notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_update_notification_label()
 	
+	scroll_cont = IS.create_scroll_container()
 	components_body = IS.create_margin_container(0, 0, 0, 0)
 	
 	body.add_child(notification_label)
-	body.add_child(components_body)
+	scroll_cont.add_child(components_body)
+	body.add_child(scroll_cont)
 	
 	IS.expand(components_body, true, true)
 	
@@ -88,42 +110,135 @@ func popup_section_components(section_key: StringName, pop_from: Control = null)
 	components_popuped_menu.popup(pop_from.global_position + Vector2(0, pop_from.size.y))
 
 func add_component(section_key: StringName, script: Script) -> void:
-	for media_res: MediaClipRes in curr_clip_ress:
-		var new_component_res:= ComponentRes.new()
-		new_component_res.set_script(script)
-		media_res.add_component(section_key, new_component_res)
-	update_properties(section_key)
+	
+	var wanted_clip_res: MediaClipRes = curr_focused_media_res
+	var duplicated_clip_ress_arr: Array[MediaClipRes] = curr_clip_ress.duplicate()
+	var new_comps: Array[ComponentRes]
+	
+	for clip_res: MediaClipRes in duplicated_clip_ress_arr:
+		var new_comp_res: ComponentRes = ComponentRes.new()
+		new_comp_res.set_script(script)
+		new_comps.append(new_comp_res)
+	
+	var do_method: Callable = func() -> void:
+		for idx: int in duplicated_clip_ress_arr.size():
+			var clip_res: MediaClipRes = duplicated_clip_ress_arr[idx]
+			clip_res.add_component(section_key, new_comps[idx])
+		try_update_properties_for(wanted_clip_res, section_key)
+	
+	var undo_method: Callable = func() -> void:
+		for idx: int in duplicated_clip_ress_arr.size():
+			var clip_res: MediaClipRes = duplicated_clip_ress_arr[idx]
+			clip_res.erase_component(section_key, new_comps[idx])
+		try_update_properties_for(wanted_clip_res, section_key)
+	
+	ProjectServer2.commit_action("add_components", do_method, undo_method)
 
-func set_component_enabled(comp_info: ComponentInfo) -> void:
-	var target: bool = not comp_info.component_res_owner.enabled
-	for index: int in curr_clip_ress.size():
-		var comp_res: ComponentRes = comp_info.components_ress[index]
-		comp_res.set_enabled(target)
-
-func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_box_container: EditBoxContainer = null) -> void:
-	for index: int in curr_clip_ress.size():
-		var media_res: MediaClipRes = curr_clip_ress[index]
-		media_res.erase_component(section_key, comp_info.components_ress[index])
-	if edit_box_container:
-		edit_box_container.queue_free()
-		_update_margin()
-	else:
-		update_properties(section_key)
+func delete_component(section_key: StringName, comp_info: ComponentInfo, edit_cont: EditContainer = null) -> void:
+	
+	var wanted_clip_res: MediaClipRes = curr_focused_media_res
+	var duplicated_clip_ress_arr: Array[MediaClipRes] = curr_clip_ress.duplicate()
+	var deleted_comps: Array[UsableRes] = comp_info.components_ress.duplicate()
+	var deleted_comps_indices: Array[int]
+	
+	for idx: int in deleted_comps.size():
+		var comp_res: ComponentRes = deleted_comps[idx]
+		var comp_idx: int = duplicated_clip_ress_arr[idx].get_section_comps_absolute(section_key).find(comp_res)
+		deleted_comps_indices.append(comp_idx)
+	
+	var do_method: Callable = func() -> void:
+		for idx: int in duplicated_clip_ress_arr.size():
+			duplicated_clip_ress_arr[idx].remove_at_component(section_key, deleted_comps_indices[idx])
+		try_update_properties_for(wanted_clip_res, section_key)
+	
+	var undo_method: Callable = func() -> void:
+		for idx: int in duplicated_clip_ress_arr.size():
+			var clip_res: MediaClipRes = duplicated_clip_ress_arr[idx]
+			var comp_res: ComponentRes = deleted_comps[idx]
+			clip_res.insert_component(section_key, comp_res, deleted_comps_indices[idx])
+		try_update_properties_for(wanted_clip_res, section_key)
+	
+	ProjectServer2.commit_action("delete_components", do_method, undo_method)
 
 func move_component(section_key: StringName, index_from: int, index_to: int) -> void:
 	var media_res_as_owner: MediaClipRes = curr_clip_ress.get(0)
-	media_res_as_owner.move_component(section_key, index_from, index_to)
-	update_properties(section_key)
+	
+	var do_method: Callable = func() -> void:
+		media_res_as_owner.move_component(section_key, index_from, index_to)
+		try_update_properties_for(media_res_as_owner, section_key)
+	
+	var undo_method: Callable = func() -> void:
+		media_res_as_owner.move_component(section_key, index_to, index_from)
+		try_update_properties_for(media_res_as_owner, section_key)
+	
+	ProjectServer2.commit_action("move_component", do_method, undo_method)
 
 func update_component_method(section_key: StringName, comp_info: ComponentInfo, target_method_type: ComponentRes.MethodType) -> void:
-	for comp_res: ComponentRes in comp_info.components_ress:
-		comp_res.set_method_type(target_method_type)
+	
+	var owner_comp: ComponentRes = comp_info.component_res_owner
+	var comp_ress: Array[UsableRes] = comp_info.components_ress.duplicate()
+	var comps_methods: Array[ComponentRes.MethodType]
+	
+	for comp_res: ComponentRes in comp_ress:
+		comps_methods.append(comp_res.method_type)
+	
+	var do_method: Callable = func() -> void:
+		for comp_res: ComponentRes in comp_ress:
+			comp_res.set_method_type(target_method_type)
+		_update_comp_editor_header_ui(owner_comp)
+	
+	var undo_method: Callable = func() -> void:
+		for idx: int in comp_ress.size():
+			comp_ress[idx].set_method_type(comps_methods[idx])
+		_update_comp_editor_header_ui(owner_comp)
+	
+	ProjectServer2.commit_action("set_component_method", do_method, undo_method)
+
+func set_component_enabled(comp_info: ComponentInfo) -> void:
+	
+	var owner_comp: ComponentRes = comp_info.component_res_owner
+	var comp_ress: Array[UsableRes] = comp_info.components_ress.duplicate()
+	var comps_enabled: Array[bool]
+	
+	for comp_res: ComponentRes in comp_ress:
+		comps_enabled.append(comp_res.enabled)
+	
+	var target_enabled: bool = not comp_info.component_res_owner.enabled
+	var undo_enabled: bool = not target_enabled
+	
+	var do_method: Callable = func() -> void:
+		for comp_res: ComponentRes in comp_ress: comp_res.set_enabled(target_enabled)
+		_update_comp_editor_header_ui(owner_comp)
+	
+	var undo_method: Callable = func() -> void:
+		for idx: int in comp_ress.size(): comp_ress[idx].set_enabled(undo_enabled)
+		_update_comp_editor_header_ui(owner_comp)
+	
+	ProjectServer2.commit_action("set_component_enabled", do_method, undo_method)
+
+func _update_comp_editor_header_ui(comp_res: ComponentRes) -> void:
+	if not EditorServer.has_usable_res_controllers(comp_res):
+		return
+	
+	var edit_cont: EditContainer = EditorServer.get_usable_res_main_edit(comp_res)
+	var header_ctrlrs: Dictionary[StringName, Control] = edit_cont.get_meta(&"header_ctrlrs")
+	
+	if header_ctrlrs.has(&"method_type"):
+		header_ctrlrs.method_type.set_selected_id_manually(comp_res.method_type)
+	
+	if header_ctrlrs.has(&"enable"):
+		header_ctrlrs.enable.button_pressed = not comp_res.enabled
+		header_ctrlrs.enable.update_button()
+
 
 func navigate_to_section(section_key: StringName) -> void:
 	for _section_key: StringName in sections_controls:
 		sections_controls.get(_section_key).root.visible = section_key == _section_key
 	curr_shown_section = section_key
 	_update_margin()
+
+func try_update_properties_for(clip_res: MediaClipRes, section_key: StringName = &"") -> void:
+	if clip_res == curr_focused_media_res: update_properties(section_key)
 
 func update_properties(section_key: StringName = &"") -> void:
 	
@@ -137,7 +252,8 @@ func update_properties(section_key: StringName = &"") -> void:
 			curr_clip_ress = new_clip_res
 			curr_focused_media_res = new_focused_clip_res
 			_display_components_by_sections()
-	else: _display_section_components(section_key, true)
+	else:
+		_display_section_components(section_key, true)
 	
 	_update_margin()
 
@@ -169,7 +285,7 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 		var key_margin_container: MarginContainer = IS.create_margin_container()
 		var split_container: SplitContainer = IS.create_split_container()
 		var key_label: Label = IS.create_name_label(key.capitalize())
-		var val_label: Label = IS.create_label(val_as_string, IS.label_settings_main, {})
+		var val_label: Label = IS.create_label(val_as_string, "", IS.label_settings_main, {})
 		
 		key_panel_container.self_modulate.a = .0
 		key_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -211,7 +327,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 		}
 	
 	var focused_clip_res: MediaClipRes = layers_body.get_focused_val()
-	var focused_components: Dictionary[String, Array] = focused_clip_res.get_components()
+	var focused_components: Dictionary[StringName, Array] = focused_clip_res.get_components()
 	
 	var new_clip_res: Array[MediaClipRes]
 	var new_displayed_components: Dictionary[StringName, Array]
@@ -236,7 +352,7 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 		for frame: int in port:
 		
 			var clip_res: MediaClipRes = port[frame]
-			var components: Dictionary[String, Array] = clip_res.get_components()
+			var components: Dictionary[StringName, Array] = clip_res.get_components()
 			
 			var sections: Array = MediaServer.object_clip_info[clip_res.get_classname()].sections
 			var next_displayed_components: Dictionary[StringName, Array]
@@ -328,13 +444,14 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	var header_cont: BoxContainer = IS.create_box_container(2, true)
 	var box_cont: ArrangableBoxContainer = ArrangableBoxContainer.new(body, scroll_cont)
 	
+	split_container.visible = section_key == curr_shown_section
 	scroll_cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	box_cont.grab_released.connect(func(index_from: int, index_to: Variant) -> void:
 		_on_section_box_container_grab_released(section_key, index_from, index_to)
 	)
 	
-	var add_component_button: Button = IS.create_button("", texture_add, true)
+	var add_component_button: Button = IS.create_button("", texture_add, "New component", true)
 	var search_line_edit: LineEdit = IS.create_line_edit("Search for %s Component" % section_key.capitalize(), "", texture_search)
 	
 	add_component_button.pressed.connect(popup_section_components.bind(section_key, add_component_button))
@@ -384,23 +501,25 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	
 	var usable_ress: Array[UsableRes]
 	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
-	var mediares_editbox: EditBoxContainer = IS.get_edit_box_from(curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit))
-	header_cont.add_child(mediares_editbox)
+	var mediares_edit_cont: EditContainer = curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit)
+	header_cont.add_child(mediares_edit_cont)
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
 	var curr_section_controls: Dictionary = sections_controls[section_key]
 	
 	var comp_res_owner: ComponentRes = comp_info.component_res_owner
-	comp_res_owner.res_changed.connect(property_changed.emit)
+	if not comp_res_owner.res_changed.is_connected(property_changed.emit):
+		comp_res_owner.res_changed.connect(property_changed.emit)
 	
-	var comp_controllers: Array[Control] = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, curr_section_controls.search_line)
-	var comp_editor: EditBoxContainer = IS.get_edit_box_from(comp_controllers)
-	var editor_header: BoxContainer = comp_editor.header
+	var comp_editor: EditContainer = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, curr_section_controls.search_line)
+	var editor_header: BoxContainer = comp_editor.header_cont
 	
 	comp_editor.set_meta(&"component_res", comp_res_owner)
 	comp_editor.keyframable = false
 	
 	if not comp_res_owner.get_forced():
+		
+		var header_ctrlrs: Dictionary[StringName, Control] = {}
 		
 		if comp_res_owner.has_method_type():
 			var method_controller: OptionController = IS.create_option_controller([
@@ -413,21 +532,27 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 			method_controller.selected_option_changed.connect(func(id: int, option: MenuOption) -> void:
 				update_component_method(section_key, comp_info, id))
 			editor_header.add_child(method_controller)
+			header_ctrlrs[&"method_type"] = method_controller
 		
-		var enable_button: IS.CustomTextureButton = IS.create_texture_button(texture_enable, null, texture_disable, true)
+		var enable_button: IS.CustomTextureButton = IS.create_texture_button(texture_enable, null, texture_disable, "Enable / Disable", true)
 		enable_button.button_pressed = not comp_res_owner.enabled
 		enable_button.pressed.connect(set_component_enabled.bind(comp_info))
 		editor_header.add_child(enable_button)
+		header_ctrlrs[&"enable"] = enable_button
 		
-		var delete_button: IS.CustomTextureButton = IS.create_texture_button(texture_delete)
+		var delete_button: IS.CustomTextureButton = IS.create_texture_button(texture_delete, null, null, "Delete")
 		delete_button.pressed.connect(delete_component.bind(section_key, comp_info, comp_editor))
 		editor_header.add_child(delete_button)
+		header_ctrlrs[&"delete"] = delete_button
 		
 		if curr_clip_ress.size() == 1:
-			var move_button: IS.CustomTextureButton = IS.create_texture_button(texture_drag)
+			var move_button: IS.CustomTextureButton = IS.create_texture_button(texture_drag, null, null, "Sort")
 			move_button.button_down.connect(_on_component_controller_move_button_button_down.bind(section_key, comp_info.index, comp_editor))
 			move_button.button_up.connect(_on_component_controller_move_button_button_up.bind(section_key, comp_editor))
 			editor_header.add_child(move_button)
+			header_ctrlrs[&"move"] = move_button
+		
+		comp_editor.set_meta(&"header_ctrlrs", header_ctrlrs)
 	
 	curr_section_controls.box.add_child(comp_editor)
 	
@@ -473,11 +598,11 @@ func _on_section_box_container_grab_released(section_key: StringName, index_from
 func _on_search_line_edit_text_changed(new_text: String) -> void:
 	pass
 
-func _on_component_controller_move_button_button_down(section_key: StringName, index_from: int, comp_editor: EditBoxContainer) -> void:
+func _on_component_controller_move_button_button_down(section_key: StringName, index_from: int, comp_editor: EditContainer) -> void:
 	var section_box_container: ArrangableBoxContainer = sections_controls[section_key].box
 	section_box_container.grab_element(comp_editor, index_from)
 
-func _on_component_controller_move_button_button_up(section_key: StringName, comp_editor: EditBoxContainer) -> void:
+func _on_component_controller_move_button_button_up(section_key: StringName, comp_editor: EditContainer) -> void:
 	var section_box_container: ArrangableBoxContainer = sections_controls[section_key].box
 	section_box_container.release_element()
 

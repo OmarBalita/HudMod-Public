@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/audio.png")
 class_name AudioClipRes extends MediaClipRes
 
@@ -22,6 +30,7 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 }
 func get_display_name() -> String: return str("Audio:", stream.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(stream).texture
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/audio.png")
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:

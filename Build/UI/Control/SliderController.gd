@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name SliderController extends Panel
 
 signal grab_started()
@@ -38,8 +57,7 @@ func _draw() -> void:
 	var text_size:= font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var text_pos:= Vector2((size.x - text_size.x) * 0.5, (size.y + text_size.y) * 0.5 - 2.0)
 	
-	draw_string(font, text_pos + Vector2(1, 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0, 0, 0, 0.4))
-	draw_string(font, text_pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
+	draw_string(font, text_pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, IS.color_label)
 
 func _gui_input(event: InputEvent) -> void:
 	_ctrl_pressed = event.ctrl_pressed
@@ -59,11 +77,7 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		if _is_dragging:
 			_update_value_at_pos(event.position.x)
-	
-	#elif event is InputEventKey and event.pressed:
-		#var s:= snap_step if event.ctrl_pressed else step
-		#if event.keycode == KEY_LEFT: _apply_delta(-s)
-		#if event.keycode == KEY_RIGHT: _apply_delta(s)
+
 
 func _update_value_at_pos(mouse_x: float) -> void:
 	var ratio:= clampf(mouse_x / size.x, 0.0, 1.0)

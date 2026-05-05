@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ColorRangeRes extends UsableRes
 
 enum INTERPOLATION_MODE {
@@ -37,7 +56,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	var colorrange_ctrlr: ColorRangeControl = IS.create_color_range_control(self, {})
 	return {&"self_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [colorrange_ctrlr])}
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
 	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
 	ress_shared.erase(self)
 	self.res_changed.connect(func() -> void:

@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/empty-object-2d.png")
 class_name Display2DClipRes extends MediaClipRes
 
@@ -22,6 +30,7 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 		&"title": "Object2D",
 		&"Description": ""
 	}
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/empty-object-2d.png")
 
 func _set_pre_shader_material(val: ShaderMaterial) -> void:
 	pre_shader_material = val
@@ -31,11 +40,11 @@ func _set_post_shader_material(val: ShaderMaterial) -> void:
 	post_shader_material = val
 	post_shader_material_changed.emit()
 
+func _init_clip_res() -> void:
+	add_component(&"Display2D", CompCanvasItem.new(), true)
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	return {
-		&"render_pass_margin": export(vec2_args(render_pass_margin)),
-	}
+	return {&"render_pass_margin": export(vec2_args(render_pass_margin))}
 
 func get_pre_shader_material() -> ShaderMaterial:
 	return pre_shader_material
@@ -57,7 +66,7 @@ func _init_node2d(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, fram
 	
 	var back_buffer_copy:= BackBufferCopy.new()
 	back_buffer_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
-	prenodes.append(back_buffer_copy)
+	node2d.add_child(back_buffer_copy)
 	
 	return node2d
 

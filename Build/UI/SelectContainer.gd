@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name SelectContainer extends PanelContainer
 
 signal focused_changed(old_focused: Vector2i, new_focused: Vector2i)
@@ -248,6 +267,11 @@ func select_vals_by_method(method: Callable, preclear: bool = true, metadata: Di
 	select_vals(coords, preclear)
 	emit_selected_changed()
 
+func deselect_vals_by_method(method: Callable, metadata: Dictionary = {}) -> void:
+	var coords: Dictionary[int, PackedInt32Array] = get_vals_coords_by_method(method, metadata)
+	deselect_vals(coords)
+	emit_selected_changed()
+
 func get_vals_coords_by_method(cond_method: Callable, metadata: Dictionary) -> Dictionary[int, PackedInt32Array]:
 	var coords: Dictionary[int, PackedInt32Array]
 	
@@ -283,10 +307,20 @@ func selected_to_vals() -> Array[Variant]:
 	return vals
 
 
-func popup_options_menu(options: Array = []) -> void:
+func popup_options_menu(options: Array[Dictionary] = []) -> void:
 	if options.is_empty():
 		options = _get_menu_options()
-	IS.popup_menu(options, null, get_window())
+	var popup_menu: PopupMenu = IS.create_popup_menu(options)
+	
+	get_tree().get_current_scene().add_child(popup_menu)
+	var popup_pos: Vector2i = Vector2i(get_global_mouse_position() * get_window().content_scale_factor) + get_window().position
+	popup_menu.popup(Rect2i(popup_pos, Vector2i.ZERO))
+	popup_menu.id_pressed.connect(
+		func(id: int) -> void:
+			var metadata: Variant = popup_menu.get_item_metadata(id)
+			if metadata != null and metadata is Callable: metadata.call()
+	)
+	popup_menu.popup_hide.connect(popup_menu.queue_free)
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -296,6 +330,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	shortcut_node.methods_object = self
+	shortcut_node.cond_func = EditorServer.shortcuts_cond_func
 	add_child(shortcut_node)
 
 func _input(event: InputEvent) -> void:
@@ -375,19 +410,19 @@ func _delete_val(port_idx: int, idx: int) -> void:
 func _past_val(port_idx: int, idx: int) -> void:
 	pass
 
-func _get_menu_options() -> Array:
+func _get_menu_options() -> Array[Dictionary]:
 	return [
-		MenuOption.new("Cut", null, copy_selected_vals.bind(true)),
-		MenuOption.new("Copy", null, copy_selected_vals.bind(false)),
-		MenuOption.new("Past", null, past_selected_vals),
-		MenuOption.new("Duplicate", null, duplicate_selected_vals),
-		MenuOption.new("Delete", null, delete_selected_vals),
-		MenuOption.new_line(),
-		MenuOption.new("Select All", null, select_all),
-		MenuOption.new("Deselect All", null, deselect_all),
-		MenuOption.new("Select Inverse", null, select_inverse),
-		MenuOption.new("Select Linked", null, select_linked),
-		MenuOption.new("Select Random", null, select_random)
+		{text = "Delete", shortcut = shortcut_node.get_shortcut(&"delete"), metadata = delete_selected_vals},
+		{text = "Cut", shortcut = shortcut_node.get_shortcut(&"cut"), metadata = copy_selected_vals.bind(true)},
+		{text = "Copy", shortcut = shortcut_node.get_shortcut(&"copy"), metadata = copy_selected_vals.bind(false)},
+		{text = "Past", shortcut = shortcut_node.get_shortcut(&"past"), metadata = past_selected_vals},
+		{text = "Duplicate", shortcut = shortcut_node.get_shortcut(&"duplicate"), metadata = duplicate_selected_vals},
+		{as_separator = true},
+		{text = "Select All", shortcut = shortcut_node.get_shortcut(&"select_all"), metadata = select_all},
+		{text = "Deselect All", shortcut = shortcut_node.get_shortcut(&"deselect_all"), metadata = deselect_all},
+		{text = "Select Invert", shortcut = shortcut_node.get_shortcut(&"select_invert"), metadata = select_inverse},
+		{text = "Select Linked", shortcut = shortcut_node.get_shortcut(&"select_linked"), metadata = select_linked},
+		{text = "Select Random", shortcut = shortcut_node.get_shortcut(&"select_random"), metadata = select_random}
 	]
 
 func _request_box_selection() -> bool:

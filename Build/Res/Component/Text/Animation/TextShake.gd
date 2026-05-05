@@ -1,10 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompTextShake extends Text2DComponentRes
 
 @export var speed: float = 1.
 @export var domain: float = 25.
 @export var normalized: bool
 
-var noise: FastNoiseLite = GlobalServer.global_usable_res.noise_texture.noise
+var noise: FastNoiseLite
+
+func _init() -> void:
+	await GlobalServer.until_load()
+	noise = GlobalServer.global_usable_res.noise_texture.noise
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {

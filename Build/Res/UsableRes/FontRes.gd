@@ -89,7 +89,7 @@ func update_transform() -> void:
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	
-	var custom_func: Callable = get_prop.bind(&"use_custom_font")
+	var custom_func: Callable = func() -> bool: return get_prop(&"use_custom_font")
 	
 	var font_label: Label = _extract_label()
 	
@@ -172,7 +172,7 @@ func _extract_label() -> Label:
 	label_settings.font = get_font()
 	label_settings.font_size = 24
 	
-	var label: Label = IS.create_label(get_font_name(), label_settings)
+	var label: Label = IS.create_label(get_font_name(), "", label_settings)
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, 0)
 	label.custom_minimum_size.y = 100.
@@ -204,13 +204,7 @@ func _on_font_button_pressed(usable_ress: Array[UsableRes]) -> void:
 		menu_option.function = _on_menu_option_pressed.bind(font_name)
 		options.append(menu_option)
 	
-	var menu: PopupedMenu = IS.popup_menu(options, EditorServer.get_usable_res_controllers(self).get(&"Choose Font"))
-	if menu:
-		menu.loop_options(
-			func(option_box: BoxContainer) -> void:
-				var button: Button = option_box.get_child(0)
-				#button.add_theme_font_override("font", get_builtin_font(button.text))
-		)
+	IS.popup_menu(options, EditorServer.get_usable_res_controllers(self).get(&"Choose Font"))
 
 func _on_menu_option_pressed(font_name: StringName) -> void:
 	set_prop(&"system_font_name", font_name)

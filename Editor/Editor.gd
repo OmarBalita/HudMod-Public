@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name EditorControl extends Control
 
 signal windowed()
@@ -87,11 +106,15 @@ class HeaderPanel extends PanelContainer:
 					var press_pos: Vector2i = get_meta(&"press_pos")
 					if press_pos != null:
 						if not windowed:
-							if mouse_pos.distance_to(press_pos) >= 20.0:
+							if mouse_pos.distance_to(press_pos) >= 40.0:
 								to_window()
-								set_process(true)
 	
 	func _process(delta: float) -> void:
+		
+		if not has_meta(&"press_pos"):
+			set_process(false)
+			return
+		
 		var drawable_rect: DrawableRect = EditorServer.drawable_rect
 		var target_place: Array = move_window(DisplayServer.mouse_get_position())
 		var timeout: bool = Time.get_ticks_msec() / 1000. - get_meta(&"press_time") > .2
@@ -120,6 +143,10 @@ class HeaderPanel extends PanelContainer:
 		
 		var old_layout_index: int = editor_control.get_index()
 		var old_split_cont: Control = editor_control.get_parent()
+		
+		if is_inside_layout and old_split_cont is not SplitContainer:
+			return
+		
 		if is_inside_layout:
 			if old_split_cont.get_child_count() == 1:
 				return
@@ -131,7 +158,6 @@ class HeaderPanel extends PanelContainer:
 		# Step 1: Move Editor Control to Window and Popup it.
 		window = Window.new()
 		window.title = editor_control.get_meta(&"editor_name").capitalize()
-		window.always_on_top = true
 		var margin_container: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
 		editor_control.reparent(margin_container)
 		window.add_child(margin_container)
@@ -166,6 +192,7 @@ class HeaderPanel extends PanelContainer:
 		window.set_meta(&"editor_name", editor_control.get_meta(&"editor_name"))
 		
 		windowed = true
+		set_process(true)
 		
 		if update_layout:
 			EditorServer.main.update_curr_layout()

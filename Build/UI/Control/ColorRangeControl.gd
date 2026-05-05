@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ColorRangeControl extends Control
 
 signal val_changed()
@@ -18,8 +37,10 @@ func _ready() -> void:
 	color_range_controller.custom_minimum_size.y = 20.0
 	
 	interpolation_mode_button = IS.create_float_edit.callv(["interpolation_mode"] + UsableRes.options_args(color_range.interpolation_mode, ColorRangeRes.INTERPOLATION_MODE))[0]
-	xpos_edit = IS.create_float_edit("key_position", .0, .0, 1.)[0]
-	color_edit = IS.create_color_edit("key_color", Color.BLACK)[0]
+	var xpos_edit_cont: EditContainer = IS.create_float_edit("key_position", .0, .0, 1.)
+	var color_edit_cont: EditContainer = IS.create_color_edit("key_color", Color.BLACK)
+	xpos_edit = xpos_edit_cont.controller
+	color_edit = color_edit_cont.controller
 	
 	interpolation_mode_button.selected_option_changed.connect(on_interpolation_mode_button_selected_option_changed)
 	color_range_controller.selected_key_changed.connect(on_selected_key_changed)

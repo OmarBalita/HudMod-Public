@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Category extends SplitContainer
 
 signal expand_changed()
@@ -81,10 +100,6 @@ func update_ui() -> void:
 	header_button.set_text(category_name)
 	header_button.icon = IS.TEXTURE_DOWN if is_expanded else IS.TEXTURE_RIGHT
 	custom_color_rect.set_color(category_custom_color)
-	
-	#var panel_style: StyleBoxFlat = content_panel_container.get_theme_stylebox(&"panel")
-	#panel_style.set_border_color(content_color.lightened(.5))
-	#panel_style.set_bg_color(content_color)
 	
 	if use_flex_container:
 		content_container.set_control_size(content_control_size)

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ProjectRes extends UsableRes
 
 signal resolution_changed(resolution: Vector2i)
@@ -6,6 +25,8 @@ signal fps_changed(fps: int)
 signal timemarker_added(frame: int, timemarker: TimeMarkerRes)
 signal timemarker_removed(frame: int, timemarker: TimeMarkerRes)
 signal timemarker_moved(from_frame: int, to_frame: int, timemarker: TimeMarkerRes)
+
+@export var version_name: StringName
 
 @export var project_name: StringName = &"HudMod Video"
 
@@ -29,9 +50,15 @@ var delta: float = 1. / fps
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
 		&"project_name": export(string_args(project_name)),
-		&"resolution": export(vec2_args(resolution)),
+		&"resolution": export(vec2_args(resolution, true)),
 		&"fps": export(int_args(fps, 6, 120))
 	}
+
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+	var resolution_edit: EditContainer = props_controls.resolution
+	var vec2_ctrlr: Vector2Controller = resolution_edit.controller
+	vec2_ctrlr.x_edit.min_val = 480; vec2_ctrlr.x_edit.max_val = 7680
+	vec2_ctrlr.y_edit.min_val = 240; vec2_ctrlr.y_edit.max_val = 4320
 
 func get_project_name() -> StringName: return project_name
 func set_project_name(new_val: StringName) -> void: project_name = new_val

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Text2D extends Node2D
 
 var text_clip_res: Text2DClipRes
@@ -45,7 +64,7 @@ func _draw() -> void:
 	if outline_size:
 		_loop_glyphs(
 			func(line_idx: int, line_data: Text2DClipRes.LineData, glyph: Dictionary, char: CharFXTransform) -> void:
-				ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, outline_size, char.offset + outline_offset, char.glyph_index, char.color * outline_color)
+				ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, outline_size, char.offset + outline_offset, char.glyph_index, outline_color)
 		)
 	
 	for outline: Outline in multioutlines:
@@ -53,7 +72,7 @@ func _draw() -> void:
 			continue
 		_loop_glyphs(
 			func(line_idx: int, line_data: Text2DClipRes.LineData, glyph: Dictionary, char: CharFXTransform) -> void:
-				ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, outline.size, char.offset + outline.offset, char.glyph_index, char.color * outline.color)
+				ts.font_draw_glyph_outline(char.font, canvas_item, glyph.font_size, outline.size, char.offset + outline.offset, char.glyph_index, outline.color)
 		)
 	
 	_loop_glyphs(

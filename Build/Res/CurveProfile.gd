@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name CurveProfile extends UsableRes
 
 signal key_added(x: float, curve_key: CurveKey)
@@ -38,12 +57,6 @@ enum SampleMethod {
 				sample_func = sample
 			SampleMethod.SAMPLE_METHOD_SEEK:
 				sample_func = seek
-
-#@export var bakeable: bool:
-	#set(val):
-		#bakeable = val
-
-#@export var baked: Dictionary[int, float]
 
 @export_group(&"Ctrlr Settings")
 @export var ctrlr_min_val: float = .0
@@ -112,7 +125,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"curve_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [curve_ctrlr]),
 	}
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
+func _exported_props_controllers_created(main_edit: EditContainer, props_controllers: Dictionary[StringName, Control]) -> void:
 	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
 	ress_shared.erase(self)
 	self.res_changed.connect(
@@ -194,9 +207,6 @@ func sample(x: int) -> float:
 		var t: float = (x - domain.x) / float(domain.y - domain.x)
 		if not key_a or not key_b: return .0
 		return key_a.interpolation_func.call(domain.x, domain.y, key_a, key_b, t)
-
-#func sample_baked(x: int) -> float:
-	#return baked[x]
 
 func _find_domain(x: int) -> Vector2i:
 	var index: int = _find_domain_index(x)
@@ -312,6 +322,7 @@ func _interpolate_elastic(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t:
 	return lerp(a.value, b.value, u)
 
 func _interpolate_bounce(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
+	print(time_a)
 	var u: float
 	if t < 1. / 2.75:
 		u = 7.5625 * t * t
@@ -346,12 +357,6 @@ func update_profile() -> void:
 		curve_key.set_right_control(curve_key.right_control, right_dir)
 		curve_key.set_interpolation_func(Callable(self, interpolation_indexer[curve_key.interpolation_mode]))
 		left_dir = -right_dir
-	
-	#if bakeable:
-		#baked.clear()
-		#if keys:
-			#for x: int in range(keys_keys[0], keys_keys[-1] + 1):
-				#baked[x] = sample(x)
 	
 	emit_res_changed()
 

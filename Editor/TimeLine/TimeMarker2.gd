@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name TimeMarker2 extends Button
 
 static var rainbow_styles: Array[StyleBoxFlat] = get_rainbow_styles()
@@ -25,7 +44,11 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			if event.is_released():
-				ProjectServer2.project_res.remove_timemarker(frame)
+				ProjectServer2.commit_action(
+					"remove_marker",
+					ProjectServer2.project_res.remove_timemarker.bind(frame),
+					ProjectServer2.project_res.add_timemarker.bind(frame)
+				)
 
 func update() -> void:
 	tooltip_text = timemarker_res.custom_name + "\n" + timemarker_res.custom_description
@@ -50,15 +73,15 @@ func _on_pressed() -> void:
 	
 	var name_line: LineEdit = IS.create_line_edit("Custom Name", timemarker_res.custom_name, null, {max_length = 24})
 	var color_menu: Menu = IS.create_menu(color_options, false, true, {custom_minimum_size = Vector2(0, 40)})
-	var description_controller: TextEdit = IS.create_text_edit_edit("Custom Description", "", timemarker_res.custom_description)[0]
-	var description_edit: EditBoxContainer = description_controller.get_parent()
+	var description_edit: EditContainer = IS.create_string_edit("Custom Description", "", "", IS.StringControllerType.TYPE_MULTILINE)
+	var description_controller: TextEdit = description_edit.controller
 	
 	color_menu.focus_index = custom_color_index
 	description_edit.keyframable = false
 	
 	var marker_window: BoxContainer = WindowManager.popup_accept_window(
 		get_tree().get_current_scene(),
-		Vector2(550, 400),
+		Vector2i(550, 500),
 		"Create Time Marker",
 		func() -> void:
 			timemarker_res.custom_name = name_line.get_text()

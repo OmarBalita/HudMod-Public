@@ -1,16 +1,28 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/video.png")
 class_name VideoClipRes extends Display2DClipRes
 
 @export var video: String:
 	set(val):
+		
+		var can_open: bool = val and MediaCache.videos_info_has(val)
+		
+		if video == val and can_open == is_opening:
+			return
+		
 		video = val
 		
-		if not video_decoder:
-			video_decoder = VideoDecoder.new()
-		
-		var can_open: bool = video and MediaCache.videos_info_has(video)
-		
 		if can_open:
+			
+			if not video_decoder:
+				video_decoder = VideoDecoder.new()
 			
 			var video_info: Dictionary = MediaCache.get_video_info(video)
 			
@@ -27,7 +39,8 @@ class_name VideoClipRes extends Display2DClipRes
 			if post_shader_material:
 				_init_video_shader_params()
 		else:
-			video_decoder.close()
+			if video_decoder:
+				video_decoder.close()
 			audio_data_res = MediaCache.default_audio_f32_data
 		
 		is_opening = can_open
@@ -51,6 +64,7 @@ var texture_v: ImageTexture
 
 func get_display_name() -> String: return str("Video:", video.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(video).texture
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/video.png")
 
 static func get_media_clip_info() -> Dictionary[StringName, String]: return {
 	&"title": "Video",
@@ -60,7 +74,7 @@ static func is_media_clip_spawnable() -> bool: return true
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:
-	if is_opening: return video_decoder.get_duration() * ProjectServer2.fps
+	if is_opening: return MediaCache.get_video_info(video).duration * ProjectServer2.fps
 	else: return +INF
 
 func get_self_main_texture() -> Texture2D: return texture_y
@@ -137,6 +151,7 @@ func _update_video_frame() -> void:
 	texture_v = ImageTexture.create_from_image(image_v)
 
 func _update_video_shader_params() -> void:
+	if not pre_shader_material: return
 	pre_shader_material.set_shader_parameter(&"tex_y", texture_y)
 	pre_shader_material.set_shader_parameter(&"tex_u", texture_u)
 	pre_shader_material.set_shader_parameter(&"tex_v", texture_v)

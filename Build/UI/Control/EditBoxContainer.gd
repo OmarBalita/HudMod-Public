@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name EditBoxContainer extends BoxContainer
 
 signal val_changed(usable_res: UsableRes, key: StringName, new_val: Variant)
@@ -16,7 +35,9 @@ static var texture_past: Texture2D = preload("res://Asset/Icons/clipboard.png")
 
 @export var curr_val: Variant:
 	set(val):
+		var old_val: Variant = curr_val
 		curr_val = val
+		
 		if emit_change:
 			val_changed.emit(null, &"", curr_val)
 
@@ -56,7 +77,7 @@ func _ready() -> void:
 	
 	if resetable:
 		
-		reset_button = IS.create_texture_button(texture_reset)
+		reset_button = IS.create_texture_button(texture_reset, null, null, "Reset")
 		reset_button.pressed.connect(_on_reset_button_pressed)
 		
 		header.add_child(reset_button)
@@ -64,7 +85,7 @@ func _ready() -> void:
 	
 	if keyframable:
 		
-		keyframe_button = IS.create_texture_button(null)
+		keyframe_button = IS.create_texture_button(null, null, null, "Add key")
 		keyframe_button.pressed.connect(_on_keyframe_button_pressed)
 		keyframe_button.use_theme_main_color = false
 		
@@ -93,12 +114,11 @@ func try_popup_context_menu() -> void:
 		{text = "Copy value", icon = texture_copy},
 		{text = "Past value", icon = texture_past}
 	])
-	popup_menu.always_on_top = true
 	popup_menu.id_pressed.connect(_on_popup_menu_id_pressed)
 	
 	get_tree().get_current_scene().add_child(popup_menu)
 	
-	var popup_pos: Vector2i = Vector2i(get_global_mouse_position()) + get_window().position
+	var popup_pos: Vector2i = Vector2i(get_global_mouse_position() * get_window().content_scale_factor) + get_window().position
 	popup_menu.popup(Rect2i(popup_pos, Vector2i.ZERO))
 	
 	popup_menu.popup_hide.connect(popup_menu.queue_free)

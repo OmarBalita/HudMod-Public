@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name PopupedCategoriesMenu extends PopupedControl
 
 signal menu_button_pressed(option: MenuOption)
@@ -43,7 +62,7 @@ func _ready() -> void:
 	var left_control: PanelContainer = IS.create_panel_container(Vector2.ZERO, IS.style_box_empty, {custom_minimum_size = Vector2(250, .0)})
 	var right_control: SplitContainer = IS.create_split_container(2, true)
 	
-	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.style_accent_LEFT})
+	categories_menu = IS.create_menu(categories_options.keys(), true, true, {focus_style = IS.STYLE_ACCENT_LEFT})
 	categories_menu.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	search_line = IS.create_line_edit(search_line_text, "", search_texture)
 	right_scroll_container = IS.create_scroll_container(0)
@@ -75,17 +94,19 @@ func _ready() -> void:
 		category.has_custom_color = false
 		
 		for option: MenuOption in category_options:
-			var button: Button = IS.create_button(option.text, option.icon, false, true, true, {custom_minimum_size = Vector2(category_size.x, 35.0)})
+			var button: Button = IS.create_button(option.text, option.icon, option.text, false, true, true, {custom_minimum_size = Vector2(category_size.x, 35.0)})
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			button.mouse_entered.connect(on_option_button_mouse_entered.bind(button))
-			button.pressed.connect(on_option_button_pressed.bind(option))
+			button.mouse_entered.connect(_on_option_button_mouse_entered.bind(button))
+			button.pressed.connect(_on_option_button_pressed.bind(option))
 			category.add_content(button)
 		
 		options_control.add_child(category)
+		
+		category.header_button.pressed.connect(_on_category_header_button_pressed)
 	
 	options_control.add_child(IS.create_empty_control(.0, 250.))
 	
-	search_line.text_changed.connect(on_search_line_text_changed)
+	search_line.text_changed.connect(_on_search_line_text_changed)
 	
 	await get_tree().process_frame
 	
@@ -185,16 +206,19 @@ func _update_focus_panel_transform(control: Control) -> void:
 		right_scroll_container.scroll_vertical += pos_y - limit_down + focus_panel.size.y
 
 
-func on_search_line_text_changed(new_text: String) -> void:
+func _on_search_line_text_changed(new_text: String) -> void:
 	_search(new_text)
 	focused_index = 0
 
-func on_option_button_mouse_entered(button: Button) -> void:
+func _on_option_button_mouse_entered(button: Button) -> void:
 	focused_index = button.get_meta(&"index")
 
-func on_option_button_pressed(menu_option: MenuOption) -> void:
+func _on_option_button_pressed(menu_option: MenuOption) -> void:
 	menu_button_pressed.emit(menu_option)
 	var embeded_func: Callable = menu_option.function
 	if embeded_func.is_valid(): embeded_func.call()
 	popdown()
+
+func _on_category_header_button_pressed() -> void:
+	focus_panel.hide()
 

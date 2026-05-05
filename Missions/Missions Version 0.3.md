@@ -90,21 +90,27 @@
 	Restart playback server when the processing take a long time [+]
 	Fix the length of audio when it has an empty path [+]
 
-- UI & Themes:
-	Fix LineEdit and TextEdit theme issue
-	Fix LineEdit and TextEdit focus issue
-	Fix PopupedMenu font color when it disabled
-	Replace some PopupedMenu by built-in one: PopupMenu
-	Add name or short-description to ui elements when focus
-	Fix window problem: spawn window from shortcuts when can't
-	Fix window problem: close window while process states
-	Notification: message, warning, error
+- UI & Themes: [+]
+	Fix LineEdit and TextEdit theme issue [+]
+	Fix LineEdit and TextEdit focus issue [+]
+	Fix PopupedMenu font color when it disabled [+]
+	Replace some PopupedMenu by built-in one: PopupMenu [+]
+	Add name or short-description to ui elements when focus [+]
+	Fix window problem: spawn window from shortcuts when can't [+]
+	Fix window problem: close window while process states [+]
+	Notification: idle, warning, error [+]
 
-- External linking:
+- External linking & Lincences:
 	Notification for new versions
 	Supporters
 	Go to website
 	Report for bugs
 	Learn
 	Community
+	Write Lincences
+
+- Export HudMod:
+	Push to Github
+	Downloading Export templates
+	Build GDExtension for release, for windows and linux
 

@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompFollow extends ComponentRes
 
 @export var target: MediaClipResPath:
@@ -24,6 +32,9 @@ func _init() -> void:
 func set_owner(new_owner: MediaClipRes) -> void:
 	super(new_owner)
 	target = MediaClipResPath.new()
+
+func emit_res_changed() -> void:
+	super(); if owner: owner.shared_data_clear()
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
@@ -55,7 +66,7 @@ func _process(frame: int) -> void:
 		
 		for time: int in max(weight_pos, weight_rot, weight_scale):
 			var curr_frame: int = clamp(target_frame - time, 0, target_res.length)
-			precalculated_stacked[time] = [target_res.shared_data_get_stacked_at(curr_frame), pow(1., time)]
+			precalculated_stacked[time] = [target_res.shared_data_get_custom_stacked_values_at(curr_frame), pow(1., time)]
 		
 		if enable_pos:
 			var weight_sum: Vector2

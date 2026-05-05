@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @icon("res://Asset/Icons/Objects/image.png")
 class_name ImageClipRes extends Display2DClipRes
 
@@ -27,6 +35,7 @@ func enter(node: Node) -> void:
 
 func get_display_name() -> String: return str("Image:", image.get_file())
 func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(image).texture
+static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/image.png")
 
 func get_self_main_texture() -> Texture2D: return MediaCache.get_texture(image)
 

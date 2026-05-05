@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ListController extends PanelContainer
 
 
@@ -64,7 +83,7 @@ var focus_button: Button
 
 var list_box_container: BoxContainer
 var controller_container: MarginContainer
-var curr_edit_box: Control
+var curr_edit_cont: Control
 
 
 func _ready() -> void:
@@ -86,15 +105,15 @@ func _ready_ui() -> void:
 	var options_box_container: BoxContainer = IS.create_box_container(12, true, {})
 	
 	if can_add_element:
-		var append_button = IS.create_texture_button(texture_add)
+		var append_button = IS.create_texture_button(texture_add, null, null, "Add")
 		append_button.pressed.connect(on_append_button_pressed)
 		options_box_container.add_child(append_button)
 	if can_remove_element:
-		var erase_button = IS.create_texture_button(texture_sub)
+		var erase_button = IS.create_texture_button(texture_sub, null, null, "Erase")
 		erase_button.pressed.connect(on_erase_button_pressed)
 		options_box_container.add_child(erase_button)
 	if can_duplicate_element:
-		var duplicate_button = IS.create_texture_button(texture_duplicate)
+		var duplicate_button = IS.create_texture_button(texture_duplicate, null, null, "Duplicate")
 		duplicate_button.pressed.connect(on_duplicate_button_pressed)
 		options_box_container.add_child(duplicate_button)
 	
@@ -102,8 +121,8 @@ func _ready_ui() -> void:
 		options_box_container.add_child(IS.create_h_line_panel())
 	
 	if can_change_element_priority:
-		var move_up_button = IS.create_texture_button(texture_up)
-		var move_dowm_button = IS.create_texture_button(texture_down)
+		var move_up_button = IS.create_texture_button(texture_up, null, null, "Move up")
+		var move_dowm_button = IS.create_texture_button(texture_down, null, null, "Move down")
 		move_up_button.pressed.connect(on_move_up_button_pressed)
 		move_dowm_button.pressed.connect(on_move_down_button_pressed)
 		options_box_container.add_child(move_up_button)
@@ -158,7 +177,7 @@ func update_display_ui() -> void:
 		var element: Variant = list[index]
 		
 		var split: SplitContainer = IS.create_split_container()
-		var button: Button = IS.create_button('', null, false, false, true, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
+		var button: Button = IS.create_button("", null, "", false, false, true, {toggle_mode = true, button_group = button_group, text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS})
 		button.set_expand_icon(true)
 		
 		set_button_display(index, element, button, true)
@@ -178,8 +197,8 @@ func update_display_ui() -> void:
 
 
 func update_type_edit(index: int) -> void:
-	if curr_edit_box:
-		curr_edit_box.queue_free()
+	if curr_edit_cont:
+		curr_edit_cont.queue_free()
 	
 	if not list.size():
 		return
@@ -187,14 +206,12 @@ func update_type_edit(index: int) -> void:
 		return
 	
 	var curr_val: Variant = list[index]
-	var controllers: Array[Control] = ClassServer.create_prop_editor(&"index %s" % index, curr_val)
+	var edit_cont: EditContainer = ClassServer.create_prop_editor(&"index %s" % index, curr_val)
 	
-	if controllers.size():
-		var edit_box:= IS.get_edit_box_from(controllers)
-		edit_box.set_curr_val(curr_val, true)
-		edit_box.val_changed.connect(on_type_controller_val_changed)
-		controller_container.add_child(edit_box)
-		curr_edit_box = edit_box
+	if edit_cont:
+		edit_cont.val_changed.connect(on_type_controller_val_changed)
+		controller_container.add_child(edit_cont)
+		curr_edit_cont = edit_cont
 
 
 
@@ -233,6 +250,7 @@ func set_button_display(index: int, value: Variant, button: Button, ready_update
 		display_name = await display_name_func.call(index, value, ready_update)
 	else:
 		display_name = str(value)
+	tooltip_text = display_name
 	
 	if is_dynamic:
 		display_icon = ClassServer.classname_get_icon(ClassServer.value_get_classname(value))
@@ -310,7 +328,7 @@ func on_list_button_pressed(index: int) -> void:
 		focus_index = index
 
 func on_list_button_mouse_entered(index: int, button: Button) -> void:
-	var type_button = IS.create_texture_button(texture_settings, null, null, false)
+	var type_button: IS.CustomTextureButton = IS.create_texture_button(texture_settings, null, null, "Change type", false)
 	button.get_parent().add_child(type_button)
 	button.set_meta("type_button", type_button)
 	

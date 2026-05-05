@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @abstract class_name MediaClipRes extends UsableRes
 
 signal processed(frame: int)
@@ -23,7 +31,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var from: int = 0:
 	set(val):
-		if ProjectServer2.is_project_loaded:
+		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			from = maxf(get_min_from(), val)
 			from = minf(from, get_max_length() - length)
 			update()
@@ -32,19 +40,17 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var length: int = 10:
 	set(val):
-		if ProjectServer2.is_project_loaded:
+		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			length = clampf(val, 1., get_max_length() - from)
 			update()
 		else:
 			length = val
 
 @export var layers: Array[LayerRes]
-@export var components: Dictionary[String, Array]
+@export var components: Dictionary[StringName, Array]
 
 var stacked_values: Dictionary[StringName, Array]
 
-var prenodes: Array[Node]
-var postnodes: Array[Node]
 var curr_node: Node
 var curr_frame: int:
 	get():
@@ -61,13 +67,15 @@ var shared_data: Dictionary
 var layer_index: int
 var clip_pos: int
 
+var disable_limit_minmax: bool = false
 
 
 static func get_explorer_section() -> StringName: return &"Object"
 static func get_properties_section() -> StringName: return &""
 
-func get_display_name() -> String: return get_classname()
-func get_thumbnail() -> Texture2D: return ClassServer.media_clip_classes[get_script().get_global_name()].icon
+func get_display_name() -> String: return get_classname().capitalize()
+func get_thumbnail() -> Texture2D: return get_icon()
+static func get_icon() -> Texture2D: return null
 
 static func get_media_clip_info() -> Dictionary[StringName, String]: return {}
 static func is_media_clip_spawnable() -> bool: return true
@@ -75,7 +83,14 @@ static func is_media_clip_spawnable() -> bool: return true
 func get_min_from() -> float: return -INF
 func get_max_length() -> float: return +INF
 func get_minmax() -> Vector2: return Vector2(-get_min_from(), get_max_length())
+func set_from_force(_from: int) -> void:
+	disable_limit_minmax = true; from = _from; disable_limit_minmax = false
+func set_length_force(_length: int) -> void:
+	disable_limit_minmax = true; length = _length; disable_limit_minmax = false
 
+
+func _init_clip_res() -> void:
+	pass
 
 func emit_clip_res_changed() -> void:
 	emit_res_changed()
@@ -97,17 +112,11 @@ func has_clips() -> bool:
 			return true
 	return false
 
-func get_components() -> Dictionary[String, Array]:
+func get_components() -> Dictionary[StringName, Array]:
 	return components
 
-func set_components(_components: Dictionary[String, Array]) -> void:
+func set_components(_components: Dictionary[StringName, Array]) -> void:
 	components = _components
-
-func get_prenodes() -> Array[Node]: return prenodes
-func set_prenodes(new_nodes: Array[Node]) -> void: prenodes = new_nodes
-
-func get_postnodes() -> Array[Node]: return postnodes
-func set_postnodes(new_nodes: Array[Node]) -> void: postnodes = new_nodes
 
 func get_curr_node() -> Node: return curr_node
 func set_curr_node(new_node: Node) -> void: curr_node = new_node
@@ -122,9 +131,9 @@ func duplicate_media_res() -> MediaClipRes:
 	var duplicated: MediaClipRes = duplicate()
 	
 	# Duplicate Components
-	var new_components: Dictionary[String, Array]
+	var new_components: Dictionary[StringName, Array]
 	
-	for section_key: String in components:
+	for section_key: StringName in components:
 		
 		var curr_section_comp: Array = components.get(section_key)
 		var new_section_comp: Array[ComponentRes]
@@ -168,6 +177,13 @@ func get_section_comps_absolute(section_key: String) -> Array:
 
 func add_component(section_key: String, component: ComponentRes, forced: bool = false) -> void:
 	get_section_comps_absolute(section_key).append(component)
+	_component_enter(component, forced)
+
+func insert_component(section_key: String, component: ComponentRes, at: int, forced: bool = false) -> void:
+	get_section_comps_absolute(section_key).insert(at, component)
+	_component_enter(component, forced)
+
+func _component_enter(component: ComponentRes, forced: bool) -> void:
 	component.set_owner(self)
 	component.set_forced(forced)
 	emit_clip_res_changed()
@@ -182,6 +198,14 @@ func erase_component(section_key: String, component: ComponentRes) -> void:
 	if curr_node:
 		component._delete()
 		process_here()
+
+func remove_at_component(section_key: String, at: int) -> void:
+	var section_comps: Array = get_section_comps_absolute(section_key)
+	var comp_res: ComponentRes = section_comps[at]
+	section_comps.remove_at(at)
+	emit_clip_res_changed()
+	if curr_node: comp_res._delete()
+	process_here()
 
 func remove_component(section_key: String, component_id: StringName) -> void:
 	for component: ComponentRes in get_section_comps_absolute(section_key):
@@ -356,8 +380,8 @@ func shared_data_get_or_call(key: StringName, val_func: Callable) -> Variant:
 		shared_data.set(key, val)
 		return val
 
-func shared_data_get_stacked_at(frame: int) -> Dictionary[StringName, Array]:
-	return shared_data_get_or_call(&"stacked%s" % str(frame), return_custom_stacked_values_at.bind(frame))
+func shared_data_get_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array]:
+	return shared_data_get_or_call(StringName("stacked%s" % str(frame)), return_custom_stacked_values_at.bind(frame))
 
 func shared_data_delete(key: StringName) -> bool:
 	return shared_data.erase(key)
@@ -366,88 +390,55 @@ func shared_data_clear() -> void:
 	shared_data.clear()
 
 
-# old system
-#func loop_children_deep(info: Dictionary[StringName, Variant], media_res_method: Callable, media_ress_pre_method: Callable = Callable(), media_ress_post_method: Callable = Callable()) -> void:
-	#var dupl_info: Dictionary[StringName, Variant] = info.duplicate(true)
-	#var pre_valid: bool = media_ress_pre_method.is_valid()
-	#var post_valid: bool = media_ress_post_method.is_valid()
-	#for layer_index: int in children:
-		#var media_ress: Dictionary = children[layer_index].media_clips
-		#if pre_valid: media_ress_pre_method.call(children, layer_index, dupl_info)
-		#for frame: int in media_ress:
-			#media_res_method.call(children, layer_index, frame, dupl_info)
-			#media_ress[frame].loop_children_deep(info, media_res_method, media_ress_pre_method, media_ress_post_method)
-		#if post_valid: media_ress_post_method.call(children, layer_index, dupl_info)
-
-# old system
-#func move_children_deep(offset: int) -> void:
-	#loop_children_deep(
-		#{&"media_ress": {} as Dictionary[int, Dictionary]},
-		#func(children: Dictionary[int, Dictionary], layer_index: int, frame: int, info: Dictionary[StringName, Variant]) -> void:
-			#info.media_ress[layer_index][frame + offset] = children[layer_index].media_clips[frame],
-		#func(children: Dictionary[int, Dictionary], layer_index: int, info: Dictionary[StringName, Variant]) -> void:
-			#info.media_ress[layer_index] = {},
-		#func(children: Dictionary[int, Dictionary], layer_index: int, info: Dictionary[StringName, Variant]) -> void:
-			#children[layer_index].media_clips = info.media_ress[layer_index]
-	#)
-
-# old system
-#func check_children_for_paths_deep(paths_for_check: PackedStringArray) -> PackedStringArray:
-	#var result: PackedStringArray
-	#
-	#for layer_index: int in children:
-		#var media_ress: Dictionary = children[layer_index].media_clips
-		#
-		#for frame: int in media_ress:
-			#
-			#var media_res: MediaClipRes = media_ress[frame]
-			#if media_res is ImportedClipRes:
-				#if not paths_for_check.has(media_res.key_as_path):
-					#result.append(media_res.key_as_path)
-			#result.append_array(media_res.check_children_for_paths_deep(paths_for_check))
-	#
-	#return result
-
-# old system
-#func format_children_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
-	#loop_children_deep({},
-		#func(children: Dictionary[int, Dictionary], layer_index: int, frame: int, info: Dictionary[StringName, Variant]) -> void:
-			#var child_res: MediaClipRes = children[layer_index].media_clips[frame]
-			#child_res.format_path(paths_for_format)
-	#)
-
-# old system
-#func format_path(paths_for_format: Dictionary[String, String]) -> void:
-	#pass
-
-
 func _new_layer() -> LayerRes:
 	return LayerRes.new()
 
 func get_layer(idx: int) -> LayerRes:
 	return layers[idx]
 
-func get_layer_absolute(idx: int) -> LayerRes:
-	return get_layer(idx) if layers.size() - 1 >= idx else add_layer(idx)
+func get_layer_absolute(idx: int, undoredo: bool = true) -> LayerRes:
+	return get_layer(idx) if layers.size() - 1 >= idx else add_layer(idx, null, undoredo)
 
-func add_layer(idx: int = 0) -> LayerRes:
-	idx = min(idx, layers.size())
-	var layer: LayerRes = _new_layer()
-	layers.insert(idx, layer)
-	layer_added.emit(idx, layer)
+func add_layer(idx: int = 0, precreated_layer: LayerRes = null, undoredo: bool = true) -> LayerRes:
+	var layer: LayerRes = precreated_layer if precreated_layer else _new_layer()
+	idx = mini(idx, layers.size())
+	
+	var do_method: Callable = func() -> void:
+		layers.insert(idx, layer)
+		layer_added.emit(idx, layer)
+		
+		var clips: Dictionary[int, MediaClipRes] = layer.get_clips()
+		var clips_by_coords: Dictionary[Vector2i, MediaClipRes]
+		for frame: int in clips: clips_by_coords[Vector2i(idx, frame)] = clips[frame]
+		if clips_by_coords: clips_added.emit(clips_by_coords)
+	
+	if undoredo: ProjectServer2.commit_action("add_layer", do_method, remove_layer.bind(idx, false))
+	else: do_method.call()
+	
 	return layer
 
-func remove_layer(idx: int) -> LayerRes:
+func remove_layer(idx: int, undoredo: bool = true) -> LayerRes:
 	var layer: LayerRes = layers[idx]
-	layers.remove_at(idx)
-	layer_removed.emit(idx, layer)
+	
+	var do_method: Callable = func() -> void:
+		layers.remove_at(idx)
+		layer_removed.emit(idx, layer)
+	
+	if undoredo: ProjectServer2.commit_action("delete_layer", do_method, add_layer.bind(idx, layer, false))
+	else: do_method.call()
+	
 	return layer
 
-func move_layer(from_idx: int, to_idx: int) -> void:
+func move_layer(from_idx: int, to_idx: int, undoredo: bool = true) -> void:
 	var layer: LayerRes = layers[from_idx]
-	layers.erase(layer)
-	layers.insert(to_idx, layer)
-	layer_moved.emit(from_idx, to_idx, layer)
+	
+	var move_method: Callable = func(_from_idx: int, _to_idx: int) -> void:
+		layers.erase(layer)
+		layers.insert(_to_idx, layer)
+		layer_moved.emit(_from_idx, _to_idx, layer)
+	
+	if undoredo: ProjectServer2.commit_action("move_layer", move_method.bind(from_idx, to_idx), move_method.bind(to_idx, from_idx))
+	else: move_method.call(from_idx, to_idx)
 
 func get_clip_place_method(method_idx: int) -> Callable:
 	var method: Callable
@@ -482,38 +473,38 @@ func get_intersected_media_clips(layer_idx: int, frame: int, clip_res: MediaClip
 func add_intersected_clip_func(frame: int, clip_res: MediaClipRes, info: Dictionary[StringName, Variant]) -> void:
 	info.clips.append({&"frame": frame, &"clip_res": clip_res})
 
-func place_clip(layer_idx: int, frame: int, clip_res: MediaClipRes, place_method_idx: int) -> Vector2i:
-	return get_clip_place_method(place_method_idx).call(layer_idx, frame, clip_res)
+func place_clip(layer_idx: int, frame: int, clip_res: MediaClipRes, place_method_idx: int, undoredo: bool) -> Dictionary[StringName, Variant]:
+	return get_clip_place_method(place_method_idx).call(layer_idx, frame, clip_res, undoredo)
 
-func place_on_top_clip(layer_idx: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
+func place_on_top_clip(layer_idx: int, frame: int, clip_res: MediaClipRes, undoredo: bool) -> Dictionary[StringName, Variant]:
 	var loop_times: int
 	var target_layer_idx: int
 	
 	while true:
 		target_layer_idx = layer_idx + loop_times
-		if get_layer_absolute(target_layer_idx).is_place_unoccupied(frame, clip_res.length):
+		if get_layer_absolute(target_layer_idx, undoredo).is_place_unoccupied(frame, clip_res.length):
 			break
 		elif loop_times <= layer_idx:
 			target_layer_idx = layer_idx - loop_times
-			if get_layer_absolute(target_layer_idx).is_place_unoccupied(frame, clip_res.length):
+			if get_layer_absolute(target_layer_idx, undoredo).is_place_unoccupied(frame, clip_res.length):
 				break
 		loop_times += 1
 	
-	return just_place_clip(target_layer_idx, frame, clip_res)
+	return just_place_clip(target_layer_idx, frame, clip_res, undoredo, {})
 
-func insert_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
+func insert_clip(layer_index: int, frame: int, clip_res: MediaClipRes, undoredo: bool) -> Dictionary[StringName, Variant]:
 	var target_frame: int = frame
 	var intersected_infos: Array[Dictionary] = get_intersected_media_clips(layer_index, frame, clip_res)
 	target_frame += just_get_insert_offset(frame, intersected_infos)
 	intersected_infos = get_intersected_media_clips(layer_index, target_frame, clip_res)
 	
+	var from_coords: Array[Vector2i]
+	var to_coords: Array[Vector2i]
+	
 	if intersected_infos:
 		
-		var clips: Dictionary[int, MediaClipRes] = get_layer_absolute(layer_index).clips
+		var clips: Dictionary[int, MediaClipRes] = get_layer_absolute(layer_index, undoredo).clips
 		var frames: Array[int] = clips.keys()
-		
-		var from_coords: Array[Vector2i]
-		var to_coords: Array[Vector2i]
 		
 		var idx_from: int = frames.find(intersected_infos[0].frame)
 		
@@ -531,11 +522,11 @@ func insert_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vector
 			else:
 				break
 		
-		move_clips(from_coords, to_coords, -1)
+		move_clips(from_coords, to_coords, -1, true, false)
 	
-	return just_place_clip(layer_index, target_frame, clip_res)
+	return just_place_clip(layer_index, target_frame, clip_res, undoredo, {&"formove": from_coords, &"moveto": to_coords})
 
-func overwrite_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
+func overwrite_clip(layer_index: int, frame: int, clip_res: MediaClipRes, undoredo: bool) -> Dictionary[StringName, Variant]:
 	var frame_out: int = frame + clip_res.length
 	
 	var result: Dictionary[StringName, Variant] = loop_intersected_media_clips(layer_index, frame, clip_res,
@@ -550,10 +541,12 @@ func overwrite_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vec
 		var cut_right: bool = frame_out_delta >= 0
 		
 		if cut_left and cut_right:
-			info.fordelete.append(Vector2i(layer_index, _frame))
+			info.fordelete[Vector2i(layer_index, _frame)] = _clip_res
 		else:
 			var left_cut: int = frame_out - _frame
 			var right_cut: int = _frame_out - frame
+			
+			var length: int = _clip_res.length
 			
 			if not cut_left and not cut_right:
 				
@@ -564,6 +557,7 @@ func overwrite_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vec
 				_clip_res.length -= right_cut
 				
 				info.foradd[Vector2i(layer_index, frame_out)] = splited_res
+				info.edit_lengths[_clip_res] = Vector2i(length, _clip_res.length)
 				info.forupdate.append(coords)
 			
 			elif cut_left:
@@ -574,31 +568,26 @@ func overwrite_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vec
 			
 			else:
 				_clip_res.length -= right_cut
+				info.edit_lengths[_clip_res] = Vector2i(length, _clip_res.length)
 				info.forupdate.append(coords),
 		
-		{
-			&"foradd": {} as Dictionary[Vector2i, MediaClipRes],
-			&"fordelete": [] as Array[Vector2i],
-			&"formove": [] as Array[Vector2i],
-			&"moveto": [] as Array[Vector2i],
-			&"forupdate": [] as Array[Vector2i]
-		}
+		_create_empty_edit_data()
 	)
 	
-	add_clips_by_coords(result.foradd, -1)
-	remove_clips(result.fordelete)
-	move_clips(result.formove, result.moveto, -1)
+	add_clips_by_coords(result.foradd, -1, true, false)
+	remove_clips(result.fordelete.keys(), true, false)
+	move_clips(result.formove, result.moveto, -1, true, false)
 	clips_updated.emit(result.forupdate)
 	
-	return just_place_clip(layer_index, frame, clip_res)
+	return just_place_clip(layer_index, frame, clip_res, undoredo, result)
 
-func fit_to_fill_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
+func fit_to_fill_clip(layer_index: int, frame: int, clip_res: MediaClipRes, undoredo: bool) -> Dictionary[StringName, Variant]:
 	var intersected_infos: Array[Dictionary] = get_intersected_media_clips(layer_index, frame, clip_res)
 	
 	var target_frame: int = frame + just_get_insert_offset(frame, intersected_infos)
 	var target_length: int
 	
-	var clips: Dictionary[int, MediaClipRes] = get_layer_absolute(layer_index).clips
+	var clips: Dictionary[int, MediaClipRes] = get_layer_absolute(layer_index, undoredo).clips
 	
 	for other_frame: int in clips:
 		if other_frame > target_frame:
@@ -610,9 +599,9 @@ func fit_to_fill_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> V
 	
 	clip_res.length = target_length
 	
-	return just_place_clip(layer_index, target_frame, clip_res)
+	return just_place_clip(layer_index, target_frame, clip_res, undoredo, {})
 
-func replace_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
+func replace_clip(layer_index: int, frame: int, clip_res: MediaClipRes, undoredo: bool) -> Dictionary[StringName, Variant]:
 	
 	var intersected_infos: Array[Dictionary] = get_intersected_media_clips(layer_index, frame, clip_res)
 	
@@ -628,17 +617,23 @@ func replace_clip(layer_index: int, frame: int, clip_res: MediaClipRes) -> Vecto
 			clip_res.from = _clip_res.from
 			clip_res.length = _clip_res.length
 			
-			return just_place_clip(layer_index, frame, clip_res)
+			return just_place_clip(layer_index, frame, clip_res, undoredo, {})
 	
-	return place_on_top_clip(layer_index, frame, clip_res)
+	return place_on_top_clip(layer_index, frame, clip_res, undoredo)
 
-func just_place_clip(layer_idx: int, frame: int, clip_res: MediaClipRes) -> Vector2i:
-	if not clip_res.length:
-		return Vector2i.ZERO
+func just_place_clip(layer_idx: int, frame: int, clip_res: MediaClipRes, undoredo: bool = true, edit_data: Dictionary[StringName, Variant] = {}) -> Dictionary[StringName, Variant]:
+	if clip_res.length <= 0: return _create_place_data_from(Vector2i.ZERO, {})
+	var layer: LayerRes = get_layer_absolute(layer_idx, undoredo)
+	
+	if layer.has_clip_res(frame):
+		var old_clip_res: MediaClipRes = layer.get_clip_res(frame)
+		edit_data.get_or_add(&"fordelete", {} as Dictionary[Vector2i, MediaClipRes])[Vector2i(layer_idx, frame)] = old_clip_res
+	
 	clip_res.layer_index = layer_idx
 	clip_res.clip_pos = frame
-	get_layer_absolute(layer_idx).add_clip_res(frame, clip_res)
-	return Vector2i(layer_idx, frame)
+	layer.add_clip_res(frame, clip_res)
+	
+	return _create_place_data_from(Vector2i(layer_idx, frame), edit_data)
 
 func just_get_insert_offset(frame: int, intersected_infos: Array[Dictionary]) -> int:
 	if intersected_infos:
@@ -650,17 +645,17 @@ func just_get_insert_offset(frame: int, intersected_infos: Array[Dictionary]) ->
 			return frame_offset
 	return 0
 
-func find_unlocked_layer(default_layer_idx: int) -> int:
+func find_unlocked_layer(default_layer_idx: int, undoredo: bool = true) -> int:
 	var loop_times: int
 	var target_layer_idx: int
 	
 	while true:
 		target_layer_idx = default_layer_idx + loop_times
-		if not get_layer_absolute(target_layer_idx).locked:
+		if not get_layer_absolute(target_layer_idx, undoredo).locked:
 			break
 		elif loop_times <= default_layer_idx:
 			target_layer_idx = default_layer_idx - loop_times
-			if not get_layer_absolute(target_layer_idx).locked:
+			if not get_layer_absolute(target_layer_idx, undoredo).locked:
 				break
 		loop_times += 1
 	
@@ -682,7 +677,7 @@ func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, a
 	right_clip_res.from += local_split_pos
 	
 	if not accept_left:
-		result.fordelete.append(Vector2i(layer_idx, frame))
+		result.fordelete[Vector2i(layer_idx, frame)] = left_clip_res
 	
 	if accept_right:
 		result.foradd[Vector2i(layer_idx, split_pos)] = right_clip_res
@@ -690,76 +685,191 @@ func split_clip(layer_idx: int, frame: int, split_pos: int, accept_left: bool, a
 	return result
 
 
-
-func add_clips(layer_idx: int, frame: int, clips_ress: Array[MediaClipRes], place_method_idx: int = 0, emit_add: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
+func add_clips(layer_idx: int, frame: int, clips_ress: Array[MediaClipRes], place_method_idx: int = 0, emit_add: bool = true, undoredo: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
 	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
+	var all_edit_data: Array[Dictionary]
 	
-	layer_idx = find_unlocked_layer(layer_idx)
+	layer_idx = find_unlocked_layer(layer_idx, false)
 	
-	for clip_res: MediaClipRes in clips_ress:
-		placed_clips_ress[place_clip(layer_idx, frame, clip_res, place_method_idx)] = clip_res
-	if emit_add:
-		clips_added.emit(placed_clips_ress)
-	return placed_clips_ress
-
-func add_clips_by_coords(clips_ress: Dictionary[Vector2i, MediaClipRes], place_method_idx: int = 0, emit_add: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
-	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
-	for coord: Vector2i in clips_ress:
-		var clip_res: MediaClipRes = clips_ress[coord]
-		placed_clips_ress[place_clip(find_unlocked_layer(coord.x), coord.y, clip_res, place_method_idx)] = clip_res
-	if emit_add:
-		clips_added.emit(placed_clips_ress)
-	return placed_clips_ress
-
-func remove_clips(coords: Array[Vector2i], emit_remove: bool = true) -> void:
-	for coord: Vector2i in coords:
-		get_layer(coord.x).remove_clip_res(coord.y)
-	if emit_remove:
-		clips_removed.emit(coords)
-
-func move_clips(from_coords: Array[Vector2i], to_coords: Array[Vector2i], place_method_idx: int, emit_move: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
+	var do_method: Callable = func() -> void:
+		placed_clips_ress.clear()
+		all_edit_data.clear()
+		for clip_res: MediaClipRes in clips_ress:
+			var place_data: Dictionary[StringName, Variant] = place_clip(layer_idx, frame, clip_res, place_method_idx, false)
+			placed_clips_ress[place_data.coords] = clip_res
+			all_edit_data.append(place_data.edit_data)
+		if emit_add: clips_added.emit(placed_clips_ress)
 	
-	var clips_formove: Array[MediaClipRes]
-	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
-	
-	for from: Vector2i in from_coords:
-		var from_layer: LayerRes = get_layer(from.x)
-		clips_formove.append(from_layer.pop_clip_res(from.y))
-	
-	for idx: int in to_coords.size():
+	if undoredo:
+		var undo_method: Callable = func() -> void:
+			for coords: Vector2i in placed_clips_ress:
+				get_layer(coords.x).remove_clip_res(coords.y)
+			clips_removed.emit(placed_clips_ress.keys())
 		
-		var from: Vector2i = from_coords[idx]
-		var to: Vector2i = to_coords[idx]
-		var clip_res: MediaClipRes = clips_formove[idx]
-		
-		clip_res.move_layers_clips_deep(to.y - from.y)
-		placed_clips_ress[place_clip(find_unlocked_layer(to.x), to.y, clip_res, place_method_idx)] = clip_res
+		ProjectServer2.commit_action("add_clips", do_method, _undo_with_edit_data_method.bind(undo_method, all_edit_data))
+	else:
+		do_method.call()
 	
-	if emit_move:
-		clips_moved.emit(from_coords, placed_clips_ress)
+	return placed_clips_ress
+
+func add_clips_by_coords(clips_ress: Dictionary[Vector2i, MediaClipRes], place_method_idx: int = 0, emit_add: bool = true, undoredo: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
+	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
+	var all_edit_data: Array[Dictionary]
+	
+	var do_method: Callable = func() -> void:
+		placed_clips_ress.clear()
+		all_edit_data.clear()
+		for coord: Vector2i in clips_ress:
+			var clip_res: MediaClipRes = clips_ress[coord]
+			var place_data: Dictionary[StringName, Variant] = place_clip(find_unlocked_layer(coord.x, false), coord.y, clip_res, place_method_idx, false)
+			placed_clips_ress[place_data.coords] = clip_res
+			all_edit_data.append(place_data.edit_data)
+		if emit_add: clips_added.emit(placed_clips_ress)
+	
+	if undoredo:
+		var undo_method: Callable = func() -> void:
+			for coords: Vector2i in placed_clips_ress:
+				get_layer(coords.x).remove_clip_res(coords.y)
+			clips_removed.emit(placed_clips_ress.keys())
+		
+		ProjectServer2.commit_action("add_clips_by_coords", do_method, _undo_with_edit_data_method.bind(undo_method, all_edit_data))
+	else:
+		do_method.call()
+	
+	return placed_clips_ress
+
+func remove_clips(coords: Array[Vector2i], emit_remove: bool = true, undoredo: bool = true) -> void:
+	
+	var dupl_coords: Array[Vector2i] = coords.duplicate()
+	var removed_clips: Dictionary[Vector2i, MediaClipRes]
+	
+	var do_method: Callable = func() -> void:
+		removed_clips.clear()
+		for coord: Vector2i in dupl_coords:
+			var layer: LayerRes = get_layer(coord.x)
+			if layer.clips.has(coord.y):
+				removed_clips[coord] = layer.get_clip_res(coord.y)
+				layer.remove_clip_res(coord.y)
+		if emit_remove: clips_removed.emit(dupl_coords)
+	
+	if undoredo:
+		var undo_method: Callable = func() -> void:
+			for coord: Vector2i in removed_clips:
+				get_layer(coord.x).add_clip_res(coord.y, removed_clips[coord])
+			clips_added.emit(removed_clips.duplicate())
+		
+		ProjectServer2.commit_action("remove_clips", do_method, undo_method)
+	else:
+		do_method.call()
+
+func move_clips(from_coords: Array[Vector2i], to_coords: Array[Vector2i], place_method_idx: int, emit_move: bool = true, undoredo: bool = true) -> Dictionary[Vector2i, MediaClipRes]:
+	
+	var placed_clips_ress: Dictionary[Vector2i, MediaClipRes]
+	var all_edit_data: Array[Dictionary]
+	
+	var move_method: Callable = func(_from_coords: Array[Vector2i], _to_coords: Array[Vector2i], collect_edit_data: bool) -> void:
+		
+		placed_clips_ress.clear()
+		
+		var method: Callable
+		if collect_edit_data:
+			all_edit_data.clear()
+			method = func(edit_data: Dictionary[StringName, Variant]) -> void: all_edit_data.append(edit_data)
+		else: method = func(edit_data: Dictionary[StringName, Variant]) -> void: pass
+		
+		var clips_formove: Array[MediaClipRes]
+		
+		for from: Vector2i in _from_coords:
+			var from_layer: LayerRes = get_layer(from.x)
+			clips_formove.append(from_layer.pop_clip_res(from.y))
+		
+		for idx: int in _from_coords.size():
+			var from: Vector2i = _from_coords[idx]
+			var to: Vector2i = _to_coords[idx]
+			var clip_res: MediaClipRes = clips_formove[idx]
+			var place_data: Dictionary[StringName, Variant] = place_clip(find_unlocked_layer(to.x, false), to.y, clip_res, place_method_idx, false)
+			
+			clip_res.move_layers_clips_deep(to.y - from.y)
+			placed_clips_ress[place_data.coords] = clip_res
+			
+			method.call(place_data.edit_data)
+		
+		if emit_move: clips_moved.emit(_from_coords, placed_clips_ress)
+	
+	if undoredo:
+		ProjectServer2.commit_action("move_clips", move_method.bind(from_coords, to_coords, true), _undo_with_edit_data_method.bind(move_method.bind(to_coords, from_coords, false), all_edit_data))
+	else:
+		move_method.call(from_coords, to_coords, true)
 	
 	return placed_clips_ress
 
 
-func split_clips(coords: Array[Vector2i], split_pos: int, accept_left: bool, accept_right: bool) -> void:
+func split_clips(coords: Array[Vector2i], split_pos: int, accept_left: bool, accept_right: bool, undoredo: bool = true) -> void:
 	
+	var clips_main_lengths: Dictionary[MediaClipRes, int]
 	var clips_foradd: Dictionary[Vector2i, MediaClipRes]
-	var coords_fordelete: Array[Vector2i]
+	var clips_fordelete: Dictionary[Vector2i, MediaClipRes]
 	
-	for coord: Vector2i in coords:
+	var do_method: Callable = func() -> void:
 		
-		var layer: LayerRes = get_layer(coord.x)
-		var clip_res: MediaClipRes = layer.get_clip_res(coord.y)
+		clips_main_lengths.clear()
+		clips_foradd.clear()
+		clips_fordelete.clear()
 		
-		if split_pos > coord.y and split_pos < coord.y + clip_res.length:
-			var result: Dictionary[StringName, Variant] = split_clip(coord.x, coord.y, split_pos, accept_left, accept_right)
-			clips_foradd.merge(result.foradd)
-			coords_fordelete.append_array(result.fordelete)
+		for coord: Vector2i in coords:
+			var layer: LayerRes = get_layer(coord.x)
+			var clip_res: MediaClipRes = layer.get_clip_res(coord.y)
+			
+			clips_main_lengths[clip_res] = clip_res.length
+			
+			if split_pos > coord.y and split_pos < coord.y + clip_res.length:
+				var result: Dictionary[StringName, Variant] = split_clip(coord.x, coord.y, split_pos, accept_left, accept_right)
+				clips_foradd.merge(result.foradd)
+				clips_fordelete.merge(result.fordelete)
+		
+		var coords_fordelete: Array[Vector2i] = clips_fordelete.keys()
+		remove_clips(coords_fordelete, true, false)
+		add_clips_by_coords(clips_foradd, 0, true, false)
+		
+		clips_splited.emit(coords, coords_fordelete, clips_foradd, split_pos, accept_left, accept_right)
 	
-	remove_clips(coords_fordelete)
-	add_clips_by_coords(clips_foradd)
+	if undoredo:
+		var undo_method: Callable = func() -> void:
+			
+			for clip_res: MediaClipRes in clips_main_lengths:
+				clip_res.length = clips_main_lengths[clip_res]
+			
+			remove_clips(clips_foradd.keys(), true, false)
+			add_clips_by_coords(clips_fordelete, -1, true, false)
+		
+		ProjectServer2.commit_action("split_clips", do_method, undo_method)
 	
-	clips_splited.emit(coords, coords_fordelete, clips_foradd, split_pos, accept_left, accept_right)
+	else:
+		do_method.call()
+
+
+
+func _undo_with_edit_data_method(undo_method: Callable, all_edit_data: Array[Dictionary]) -> void:
+	
+	undo_method.call()
+	
+	for edit_data: Dictionary[StringName, Variant] in all_edit_data:
+		
+		var foradd: Dictionary[Vector2i, MediaClipRes] = edit_data.get_or_add(&"foradd", {} as Dictionary[Vector2i, MediaClipRes])
+		var fordelete: Dictionary[Vector2i, MediaClipRes] = edit_data.get_or_add(&"fordelete", {} as Dictionary[Vector2i, MediaClipRes])
+		var formove: Array[Vector2i] = edit_data.get_or_add(&"formove", [] as Array[Vector2i])
+		var moveto: Array[Vector2i] = edit_data.get_or_add(&"moveto", [] as Array[Vector2i])
+		var edit_lengths: Dictionary[MediaClipRes, Vector2i] = edit_data.get_or_add(&"edit_lengths", {} as Dictionary[MediaClipRes, Vector2i])
+		var forupdate: Array[Vector2i] = edit_data.get_or_add(&"forupdate", [] as Array[Vector2i])
+		
+		remove_clips(foradd.keys(), true, false)
+		add_clips_by_coords(fordelete, -1, true, false)
+		move_clips(moveto, formove, -1, true, false)
+		
+		for clip_res: MediaClipRes in edit_lengths:
+			clip_res.length = edit_lengths[clip_res].x
+		
+		clips_updated.emit(forupdate)
 
 
 
@@ -856,11 +966,20 @@ func update_paths() -> void:
 	pass
 
 
+static func _create_place_data_from(coords: Vector2i, edit_data: Dictionary[StringName, Variant]) -> Dictionary[StringName, Variant]:
+	return {
+		&"coords": coords,
+		&"edit_data": edit_data
+	}
 
 static func _create_empty_edit_data() -> Dictionary[StringName, Variant]:
 	return {
 		&"foradd": {} as Dictionary[Vector2i, MediaClipRes],
-		&"fordelete": [] as Array[Vector2i]
+		&"fordelete": {} as Dictionary[Vector2i, MediaClipRes],
+		&"formove": [] as Array[Vector2i],
+		&"moveto": [] as Array[Vector2i],
+		&"edit_lengths": {} as Dictionary[MediaClipRes, Vector2i], # x: from, y: to
+		&"forupdate": [] as Array[Vector2i]
 	}
 
 

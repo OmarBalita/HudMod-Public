@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 @abstract class_name DrawShapeComponentRes extends ComponentRes
 
 @export var just_store: bool
@@ -22,7 +30,7 @@ var spawn_func: Callable
 var redraw_func: Callable
 
 func set_prop(property_key: StringName, property_val: Variant) -> void:
-	dirty_level = 1
+	mid_dirty()
 	super(property_key, property_val)
 
 func get_just_store() -> bool: return just_store
@@ -40,9 +48,9 @@ func set_stroke_color(new_val: Color) -> void: color = new_val
 
 func get_dirty_level() -> int: return dirty_level
 func set_dirty_level(new_val: int) -> void: dirty_level = new_val
-func min_dirty() -> void: dirty_level = 0
-func mid_dirty() -> void: dirty_level = 1
-func max_dirty() -> void: dirty_level = 2
+func min_dirty() -> void: dirty_level = maxi(dirty_level, 0)
+func mid_dirty() -> void: dirty_level = maxi(dirty_level, 1)
+func max_dirty() -> void: dirty_level = maxi(dirty_level, 2)
 
 func has_method_type() -> bool: return false
 
@@ -87,9 +95,6 @@ func _set_enabled(new_enabled: bool) -> void:
 		setup_func.call()
 	super(new_enabled)
 
-func emit_res_changed() -> void:
-	max_dirty()
-	super()
 
 func _enter() -> void:
 	if spawn_func.is_valid():
@@ -101,6 +106,7 @@ func _process(frame: int) -> void:
 			all_points = _transform_points(_gen_points())
 		if redraw_func.is_valid():
 			redraw_func.call()
+	dirty_level = 0
 
 func _exit() -> void:
 	if draw_node:

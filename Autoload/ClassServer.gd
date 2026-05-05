@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Node
 
 const CLASSNAME_BUILTIN_REVERSE_MAP: Dictionary[StringName, Variant.Type] = {
@@ -81,6 +100,8 @@ func _build_classes() -> void:
 		object_classes[classname] = class_custom_info
 		
 		if inheritance_classnames.has(CLASSNAME_USABLE_RES):
+			var ref_res: UsableRes = script.new()
+			class_custom_info[&"reference_resource"] = ref_res
 			usable_res_classes[classname] = class_custom_info
 		
 		if inheritance_classnames.has(CLASSNAME_COMPONENT_RES):
@@ -124,6 +145,10 @@ func classname_get_script(classname: StringName) -> Script:
 func classname_get_inh(classname: StringName) -> Array[StringName]:
 	return object_classes[classname].inh if object_classes.has(classname) else [] as Array[StringName]
 
+## classname should be a UsableRes
+func classname_get_property_default_value(classname: StringName, key: StringName) -> Variant:
+	return usable_res_classes[classname].reference_resource.get_prop(key) if usable_res_classes.has(classname) else null
+
 func classname_new(classname: StringName) -> Variant:
 	var type: Variant.Type = builtin_classname_to_type(classname)
 	if type == TYPE_OBJECT:
@@ -142,13 +167,16 @@ func classname_new(classname: StringName) -> Variant:
 
 func value_get_classname(value: Variant) -> StringName:
 	var value_type: Variant.Type = typeof(value)
-	if value_type == TYPE_OBJECT: return value.get_script().get_global_name()
+	if value_type == TYPE_OBJECT:
+		var script: Script = value.get_script()
+		if script: return script.get_global_name()
+		else: return StringName(value.get_class())
 	else: return type_string(value_type)
 
 func comps_get_section_comps(section: StringName) -> Dictionary[StringName, Dictionary]:
 	return component_res_sorted_by_sections[section]
 
-func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = [], usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> Array[Control]:
+func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_args: Array = [], usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
 	var result: Array[Control]
 	var prop_type: Variant.Type = typeof(prop_val)
 	if prop_type == TYPE_OBJECT:
@@ -158,7 +186,7 @@ func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_arg
 			for usable_res: UsableRes in usable_ress:
 				nested_usable_ress.append(usable_res.get_prop(prop_name))
 			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress, search_line_edit)
-		return []
+		return null
 	
 	else:
 		return base_classes[prop_type].editor_method.callv([prop_name] + controller_args)

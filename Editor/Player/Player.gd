@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Player extends EditorControl
 
 signal curr_frame_changed(new_frame: int)
@@ -99,8 +118,8 @@ func _ready_header() -> void:
 	const LOGO: CompressedTexture2D = preload("res://Asset/Icons/App/logo2-low.png")
 	const HEART: CompressedTexture2D = preload("res://Asset/Icons/heart.png")
 	
-	var official_logo_button: Button = IS.create_button("HudMod", LOGO, false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
-	var support_button: Button = IS.create_button("Support", HEART, false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	var official_logo_button: Button = IS.create_button("HudMod", LOGO, "", false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
+	var support_button: Button = IS.create_button("Support", HEART, "", false, false, false, {expand_icon = true, custom_minimum_size = Vector2(120.0, .0)})
 	
 	const MIN_SIZE: Vector2 = Vector2(80., .0)
 	
@@ -174,12 +193,12 @@ func _ready_body() -> void:
 	flex_view_control.add_child(view_container)
 	flex_view_control.viewport_container = view_container
 	
-	play_button = IS.create_texture_button(texture_play, null, texture_pause, true)
-	replay_button = IS.create_texture_button(texture_replay, null, null, true)
-	time_code_label = IS.create_label("", IS.label_settings_bold)
+	play_button = IS.create_texture_button(texture_play, null, texture_pause, "Play / Pause", true)
+	replay_button = IS.create_texture_button(texture_replay, null, null, "Replay", true)
+	time_code_label = IS.create_label("", "", IS.label_settings_bold)
 	max_time_label = IS.create_label("")
 	
-	full_screen_button = IS.create_texture_button(texture_full_screen)
+	full_screen_button = IS.create_texture_button(texture_full_screen, null, null, "Fullscreen")
 	#ratio_button = IS.create_texture_button(texture_ratio)
 	#more_button = IS.create_texture_button(texture_more)
 	
@@ -215,6 +234,7 @@ func _ready_body() -> void:
 	time_code_label2 = Label.new()
 	cancel_full_screen_button = TextureButton.new()
 	cancel_full_screen_button.texture_normal = texture_cancel_full_screen
+	cancel_full_screen_button.tooltip_text = "Cancel fullscreen"
 	
 	IS.expand(space_ctrl)
 	IS.set_base_settings(time_code_label)
@@ -290,10 +310,10 @@ func _on_cancel_full_screen_button_pressed() -> void:
 
 
 func _on_official_logo_button_pressed() -> void:
-	OS.shell_open(EditorServer.main.website_link)
+	OS.shell_open(EditorServer.version_info.website_link)
 
 func _on_support_button_pressed() -> void:
-	OS.shell_open(EditorServer.main.support_link)
+	OS.shell_open(EditorServer.version_info.support_link)
 
 func _on_project_popup_id_pressed(id: int) -> void:
 	match id:
@@ -301,8 +321,8 @@ func _on_project_popup_id_pressed(id: int) -> void:
 		1: EditorServer.popup_open_project()
 		4: ProjectServer2.save()
 		5: EditorServer.popup_save_as()
-		7: EditorServer.undo()
-		8: EditorServer.redo()
+		7: ProjectServer2.undo()
+		8: ProjectServer2.redo()
 		10: EditorServer.popup_save_option_or_save(get_tree().quit)
 
 func _on_editor_popup_id_pressed(id: int) -> void:
@@ -312,11 +332,11 @@ func _on_editor_popup_id_pressed(id: int) -> void:
 
 func _on_help_popup_id_pressed(id: int) -> void:
 	match id:
-		0: print("Report")
-		2: print("Learn")
-		3: print("Community")
-		5: print("About")
-		6: OS.shell_open(EditorServer.main.support_link)
+		0: EditorServer.report_bugs()
+		2: EditorServer.popup_learn()
+		3: EditorServer.go_to_community()
+		5: EditorServer.popup_about()
+		6: OS.shell_open(EditorServer.version_info.support_link)
 
 
 

@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name Vector2Controller extends BoxContainer
 
 signal val_changed(new_val: Vector2)
@@ -9,17 +28,16 @@ var curr_val: Vector2:
 			x_edit.set_curr_val_manually(val.x)
 			y_edit.set_curr_val_manually(val.y)
 
-@onready var x_edit: FloatController = IS.create_float_controller(curr_val.x, -INF, INF, .001, .01)
-@onready var y_edit: FloatController = IS.create_float_controller(curr_val.y, -INF, INF, .001, .01)
+var x_edit: FloatController = IS.create_float_controller(curr_val.x, -INF, INF, .001, .01)
+var y_edit: FloatController = IS.create_float_controller(curr_val.y, -INF, INF, .001, .01)
 
 func _ready() -> void:
 	IS.describe_box_container(self, 6, true)
 	var x_split: SplitContainer = IS.create_split_container(2, false, {custom_minimum_size = Vector2(0, 32.0), dragging_enabled = false})
 	var y_split: SplitContainer = IS.create_split_container(2, false, {custom_minimum_size = Vector2(0, 32.0), dragging_enabled = false})
-	var x_label: Label = IS.create_label("X", IS.label_settings_bold, {modulate = Color.RED})
-	var y_label: Label = IS.create_label("Y", IS.label_settings_bold, {modulate = Color.GREEN})
+	var x_label: Label = IS.create_label("X", "", IS.label_settings_bold, {modulate = Color.RED})
+	var y_label: Label = IS.create_label("Y", "", IS.label_settings_bold, {modulate = Color.GREEN})
 	
-	y_split.add_child(y_label)
 	IS.add_children(x_split, [x_label, x_edit])
 	IS.add_children(y_split, [y_label, y_edit])
 	IS.add_children(self, [

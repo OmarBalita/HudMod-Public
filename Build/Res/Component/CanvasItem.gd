@@ -1,3 +1,11 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompCanvasItem extends SnippetShaderComponentRes
 
 enum BlendMode {
@@ -42,7 +50,6 @@ enum TextureRepeat {
 	MIRROR
 }
 
-
 @export var position: Vector2
 @export var rotation_degrees: float
 @export var scale: Vector2 = Vector2.ONE
@@ -62,7 +69,6 @@ enum TextureRepeat {
 func has_method_type() -> bool: return false
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	
 	return {
 		&"Transform": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"position": export(vec2_args(position)),
@@ -129,7 +135,7 @@ func _get_shader_fragment_snip() -> String:
 	float {final_alpha} = {tex_color}.a * {opacity};
 	
 	if ({blend_mode} == 0) {
-		//color = {tex_color}.rgb;
+		color = {tex_color}.rgb;
 		alpha = {final_alpha};
 	
 	} else {

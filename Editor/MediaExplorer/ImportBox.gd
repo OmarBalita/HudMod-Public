@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name ImportBox extends CreatedBox
 
 @export var texture_folder: Texture2D = preload("res://Asset/Icons/folder.png")
@@ -18,7 +37,7 @@ func _ready_options() -> void:
 	
 	import_category = add_category("Import", false)
 	
-	import_button = IS.create_button("", media_explorer.texture_file, true)
+	import_button = IS.create_button("", media_explorer.texture_file, "Import", true)
 	import_button.pressed.connect(on_import_button_pressed)
 	options_container.add_child(import_button)
 
@@ -52,8 +71,10 @@ func on_file_dialog_files_selected(paths: PackedStringArray) -> void:
 	load_files(paths)
 
 func load_files(paths: PackedStringArray) -> void:
-	var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(600, 400))
+	var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(600, 400), "Load files")
 	var box_container: BoxContainer = IS.create_box_container(12, true)
+	
+	window_margin.get_window().borderless = true
 	
 	progress_window = window_margin.get_window()
 	progress_list = ItemList.new()
@@ -81,6 +102,7 @@ func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) ->
 	var total: int = paths.size()
 	
 	for index: int in total:
+		
 		var path: String = paths.get(index)
 		_report_start.call_deferred(index, path)
 		var load_err: MediaCache.LOAD_ERR = await create_file(curr_display_path, path)
@@ -133,7 +155,7 @@ func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 
 class ImportCard extends CreatedBox.CreatedCard:
 	
-	@export var type: MediaServer.MediaTypes
+	@export var type: MediaServer.MediaType
 	
 	static func get_imported_res_from_type(type: int, path: String) -> MediaClipRes:
 		var clip_res: MediaClipRes

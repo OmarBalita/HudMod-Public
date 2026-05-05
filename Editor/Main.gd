@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 extends Control
 
 @onready var box: VBoxContainer = %Box
@@ -12,15 +31,8 @@ extends Control
 
 @onready var freeze_rect: ColorRect = %FreezeRect
 
-@export_group("Version")
-@export var version_name: StringName
-@export var version_banner: Texture2D
-@export var banner_owner: StringName
-@export var banner_owner_link: StringName
+@onready var messages_container: BoxContainer = %MessagesContainer
 
-@export_group("About & Support")
-@export var website_link: StringName
-@export var support_link: StringName
 
 @export_group("Editor")
 @export var editors: Dictionary[StringName, EditorControl]
@@ -48,9 +60,12 @@ var layout_button_group:= ButtonGroup.new()
 
 func _ready() -> void:
 	
-	get_window().borderless = false
-	get_window().mode = Window.MODE_MAXIMIZED
-	get_window().min_size = Vector2i(1600, 900)
+	var window: Window = get_window()
+	
+	window.borderless = false
+	window.mode = Window.MODE_MAXIMIZED
+	window.min_size = Vector2i(DisplayServer.screen_get_size(window.current_screen) * .8)
+	
 	get_tree().set_auto_accept_quit(false)
 	
 	IS.set_base_panel_settings(bg_panel_container, IS.style_cornerless_dark)
@@ -98,9 +113,9 @@ func _update_layout_editor(open_what: LayoutRootInfo = null) -> void:
 	
 	open_layout(open_what if open_what else preset_layouts[0])
 
-
 func register_layout_button(layout: LayoutRootInfo) -> void:
-	var button: Button = IS.create_button(layout.layout_name.capitalize(), layout.layout_image, false, true)
+	var layout_name: String = layout.layout_name.capitalize()
+	var button: Button = IS.create_button(layout_name, layout.layout_image, layout_name, false, true)
 	
 	button.toggle_mode = true
 	button.custom_minimum_size.x = 220.0
@@ -240,25 +255,25 @@ func _on_layout_btn_pressed(button: Button, layout: LayoutRootInfo) -> void:
 		open_layout(layout)
 
 func _on_add_layout_btn_pressed() -> void:
-	var layout_name_edit: LineEdit = IS.create_string_edit(&"Layout Name", &"", &"Custom Layout")[0]
+	var layout_name_edit: EditContainer = IS.create_string_edit(&"Layout Name", &"", &"Custom Layout")
+	var layout_name_ctrlr: LineEdit = layout_name_edit.controller
 	
 	var accept_func: Callable = func() -> void:
-		create_new_layout(curr_layout_container, layout_name_edit.text)
+		create_new_layout(curr_layout_container, layout_name_ctrlr.text)
 	
 	var box: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2(400., 150.), &"New Layout", accept_func)
-	box.add_child(layout_name_edit.get_parent())
+	box.add_child(layout_name_ctrlr.get_parent())
 	
-	layout_name_edit.grab_focus()
-	layout_name_edit.select_all()
+	layout_name_ctrlr.grab_focus()
+	layout_name_ctrlr.select_all()
 	
-	layout_name_edit.text_submitted.connect(func(layout_name: StringName) -> void:
+	layout_name_ctrlr.text_submitted.connect(func(layout_name: StringName) -> void:
 		accept_func.call()
 		box.get_window().queue_free()
 	)
 
 func _on_delete_layout_btn_pressed() -> void:
 	delete_custom_layout(curr_layout)
-
 
 
 

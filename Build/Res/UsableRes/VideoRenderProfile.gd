@@ -1,3 +1,22 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+#############################################################################
 class_name VideoRenderProfile extends UsableRes
 
 signal renderer_created_successfully(output_path: String, video_renderer: VideoRenderer, audio_renderer: AudioRenderer)
@@ -7,7 +26,7 @@ static var video_formats_info: Dictionary[VideoFormat, VideoFormatInfo] = {
 	VideoFormat.MP4: VideoFormatInfo.new(&"mp4", &"mp4", [VideoCodec.H_264, VideoCodec.H_265, VideoCodec.VP9, VideoCodec.AV1, VideoCodec.MPEG4], ["yuva420p", "yuva422p", "yuva444p", "yuva420p10le", "yuva422p10le", "yuva444p10le", "yuva420p12le", "yuva422p12le", "yuva444p12le"]),
 	VideoFormat.MKV: VideoFormatInfo.new(&"mkv", &"matroska", [VideoCodec.H_264, VideoCodec.H_265, VideoCodec.VP9, VideoCodec.AV1, VideoCodec.ProRes, VideoCodec.FFV1], []),
 	VideoFormat.AVI: VideoFormatInfo.new(&"avi", &"avi", [VideoCodec.H_264, VideoCodec.MPEG4], []),
-	VideoFormat.WEBM: VideoFormatInfo.new(&"webm", &"webm", [VideoCodec.AV1, VideoCodec.VP8, VideoCodec.VP9], []),
+	VideoFormat.WEBM: VideoFormatInfo.new(&"webm", &"webm", [VideoCodec.AV1, VideoCodec.VP8, VideoCodec.VP9], [])
 }
 
 static var video_codecs_info: Dictionary[VideoCodec, VideoCodecInfo] = {
@@ -129,8 +148,8 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Audio": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
 
-func _exported_props_controllers_created(main_edit: EditBoxContainer, props_controllers: Dictionary[StringName, Control]) -> void:
-	super(main_edit, props_controllers)
+func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+	super(main_edit, props_controls)
 	await Engine.get_main_loop().process_frame
 	_update_options()
 	_try_to_update_ui()
@@ -221,7 +240,7 @@ static func find_available_pixel_formats_for_video_codec(video_codec: VideoCodec
 func create_renderer_from_profile() -> void:
 	
 	if file_path.is_empty() or file_name.is_empty():
-		renderer_creation_failed.emit("Please fill in both 'File Path' and 'File Name'")
+		renderer_creation_failed.emit("Please fill in both 'File Path' and 'File Name'.")
 		return
 	
 	if not DirAccess.dir_exists_absolute(file_path):

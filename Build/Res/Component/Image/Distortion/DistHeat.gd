@@ -1,9 +1,21 @@
+#############################################################################
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
+## ----------------------------------------------------------------------- ##
+##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+## ----------------------------------------------------------------------- ##
+## GPLv3                                                                   ##
+#############################################################################
 class_name CompDistortionHeat extends PassShaderComponentRes
 
-@export var noise_texture: NoiseTexture2D = GlobalServer.global_usable_res.noise_texture_seamless
+@export var noise_texture: NoiseTexture2D
 @export var direction: Vector2 = Vector2.UP
 @export var speed: float = .1
 @export var force: float = .02
+
+func _init() -> void:
+	await GlobalServer.until_load()
+	noise_texture = GlobalServer.global_usable_res.noise_texture_seamless
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
