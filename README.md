@@ -1,7 +1,7 @@
 # HudMod Video Editor
 
 
-[HudMod Preview](Asset/Images/Screenshot%202026-05-05%20034051.png)
+![HudMod Preview](Asset/Images/Screenshot%202026-05-05%20034051.png)
 
 ## About:
 HudMod is an open-source video editor under the GPLv3 license. It is fast and equipped with advanced tools. Development began on June 17, 2025, to fill a gap in the video editing software market.
