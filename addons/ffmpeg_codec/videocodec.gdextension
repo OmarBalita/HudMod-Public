@@ -12,6 +12,6 @@ windows.release.x86_64 = "res://addons/ffmpeg_codec/win64/VideoCodec.windows.tem
 windows.release.x86_32 = "res://addons/ffmpeg_codec/win32/VideoCodec.windows.template_release.x86_32.dll"
 windows.release.arm64 = "res://addons/ffmpeg_codec/winarm64/VideoCodec.windows.template_release.arm64.dll"
 
-linux.release.x86_64 = "res://addons/ffmpeg_codec/libVideoCodec.linux.template_release.x86_64.so"
+linux.release.x86_64 = "res://addons/ffmpeg_codec/linux64/libVideoCodec.linux.template_release.x86_64.so"
 linux.release.x86_32 = "res://addons/ffmpeg_codec/linux32/libVideoCodec.linux.template_release.x86_32.so"
 linux.release.arm64 = "res://addons/ffmpeg_codec/linuxarm64/libVideoCodec.linux.template_release.arm64.so"
