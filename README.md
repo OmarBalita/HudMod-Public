@@ -67,11 +67,11 @@ The first Alpha version was launched concurrently with the publication of this a
 
 ## Setup Guide:
 - Download HudMod files from this repository to your local machine.
-- Download appropriate VideoCodec release for your OS and arch from: [VIDEO_CODEC_LINK].
+- Download appropriate VideoCodec release for your OS and arch from: [GDExtension Releases](https://github.com/OmarBalita/HudMod-VideoCodec/releases).
 - Place the VideoCodec binary along with its associated FFmpeg libraries (.dll's or .so's) into the following directory: `addons/ffmpeg_codec/`
 - Open HudMod using Godot 4.6+.
 
 ---
-**Support HudMod:** [PATREON_LINK]
-**Join Discord Server:** [DISCORD_SERVER_LINK]
-**Download releases from:** [ITCHIO_LINK] or [RELEASES_LINK]
+**Support HudMod:** [Patreon](https://www.patreon.com/10610068/join)
+**Join Discord Server:** [Discord Server](https://discord.gg/zN3MsJ5d8E)
+**Download releases from:** [Itch IO](https://omar-top.itch.io/hudmod-video-editor) or [Releases](https://github.com/OmarBalita/HudMod-Public/releases)
