@@ -76,7 +76,7 @@ const IMAGE_FORMAT_INDEXER: Dictionary[int, String] = {
 
 const IMAGE_EXTENSIONS: PackedStringArray = [
 	"png", "jpg", "jpeg", "bmp", "webp", "tga", "tif", "tiff",
-	"svg", "hdr", "exr", "dds"
+	"svg", "hdr", "exr"
 ]
 const VIDEO_EXTENSIONS: PackedStringArray = [
 	"webm","mkv","flv","vob","ogv","ogg","mng","avi","mts","m2ts","ts","mov",
