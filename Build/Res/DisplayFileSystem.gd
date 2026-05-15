@@ -70,7 +70,7 @@ func create_files(display_path: Array, files_pathes: PackedStringArray) -> Array
 
 
 func create_file_at(dir: Dictionary, file_path: String, used_ids: PackedStringArray, file_id: String) -> MediaCache.LOAD_ERR:
-	var media_type_result: MediaCache.LOAD_ERR = MediaCache.register_from_path(file_path, used_ids, file_id, thumbnail_path, waveform_path)
+	var media_type_result: MediaCache.LOAD_ERR = MediaCache.register_from_path(file_path, used_ids, file_id, -1, thumbnail_path, waveform_path)
 	if media_type_result == MediaCache.LOAD_ERR.SUCCESS:
 		dir[file_path] = {
 			&"type": "file",
@@ -143,7 +143,7 @@ func check_for_discard_paths() -> void:
 			if file_info.has(&"discard"):
 				if FileAccess.file_exists(path_or_name):
 					file_info.erase(&"discard")
-					MediaCache.register_from_path(path_or_name, [], file_info.id, thumbnail_path, waveform_path)
+					MediaCache.register_from_path(path_or_name, [], file_info.id, -1, thumbnail_path, waveform_path)
 	)
 
 func get_files_and_folders_at(display_path: Array) -> Dictionary:

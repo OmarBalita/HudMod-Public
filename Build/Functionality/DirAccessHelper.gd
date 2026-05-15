@@ -91,4 +91,8 @@ static func create_unique_path(path: String) -> String:
 	
 	return new_path
 
-
+static func get_files_names_at(dir_path: String) -> PackedStringArray:
+	var files_names: PackedStringArray
+	for path: String in DirAccess.get_files_at(dir_path):
+		files_names.append(path.get_file().split(".")[0])
+	return files_names

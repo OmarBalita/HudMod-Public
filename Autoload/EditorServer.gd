@@ -441,7 +441,7 @@ func replace_paths(paths_for_replace: Dictionary[String, String], discard_option
 	ProjectServer2.import_file_system.replace_paths(paths_for_replace, discard_option)
 	GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
 	format_paths(paths_for_replace)
-	MediaCache.update_videos_cache_max_cache_size()
+	MediaCache.video_contexts_update_max_cache_size()
 	media_explorer.import_box.update()
 
 func discard_paths(paths: PackedStringArray) -> void:
@@ -1038,8 +1038,8 @@ func update_from_edit_settings() -> void:
 func update_from_performance_settings() -> void:
 	Scene2.update_viewport()
 	RenderFarm.update_pprs()
-	MediaCache.clear_all_videos_cache_frames()
-	PlaybackServer.update_videos_clips_ress()
+	MediaCache.video_contexts_clear_video_decoders()
+	MediaCache.video_contexts_clear_frames()
 
 func update_from_theme_settings() -> void:
 	var content_scale: float = editor_settings.theme.content_scale

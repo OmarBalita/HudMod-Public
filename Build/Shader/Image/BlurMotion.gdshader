@@ -8,7 +8,7 @@ uniform int quality: hint_range(1, 64) = 4;
 uniform bool clip_border = false;
 uniform bool transparancy = true;
 
-void vertex(){
+void vertex() {
 	if (clip_border == false) {
 		vec2 blur_size = abs(normalize(dir) * blur_amount) * 2.;
 		VERTEX *= blur_size + 1.;
@@ -16,7 +16,7 @@ void vertex(){
 	}
 }
 
-void fragment(){
+void fragment() {
 	float in_square = inside_unit_square(UV);
 	float num_samples = in_square;
 	
@@ -24,7 +24,7 @@ void fragment(){
 	vec2 step_size = normalize(dir) * blur_amount / (float(quality));
 	vec2 uv;
 	
-	for(int i = 1; i <= quality; i++){
+	for (int i = 1; i <= quality; i++){
 		vec2 uv_scalar = step_size * float(i);
 		
 		uv = UV + uv_scalar;

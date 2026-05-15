@@ -121,8 +121,6 @@ func _get_shader_global_params_snip() -> String:
 uniform vec4 {modulate}: source_color = vec4(1., 1., 1., 1.);
 uniform int {blend_mode}: hint_range(0, 15) = 0;
 uniform float {opacity}: hint_range(.0, 1.) = 1.;
-
-uniform sampler2D {SCREEN_TEXTURE}: hint_screen_texture, filter_linear_mipmap;
 "
 
 
@@ -140,7 +138,7 @@ func _get_shader_fragment_snip() -> String:
 	
 	} else {
 		
-		vec4 {screen_col} = texture({SCREEN_TEXTURE}, SCREEN_UV);
+		vec4 {screen_col} = texture(SCREEN_TEXTURE, SCREEN_UV);
 		
 		vec3 {base} = {screen_col}.rgb;
 		vec3 {blend} = {tex_color}.rgb;

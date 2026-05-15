@@ -81,7 +81,5 @@ func _inout(frame: int) -> void:
 func _update_inout_durs_f() -> void:
 	in_dur_f = maxf(1., int(ProjectServer2.fps * in_duration))
 	out_dur_f = maxf(1., int(ProjectServer2.fps * out_duration))
-	out_frame = owner.length - out_dur_f
-
-
+	if owner: out_frame = owner.length - out_dur_f
 

@@ -110,7 +110,7 @@ func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) ->
 		
 		load_errs.append(load_err)
 	
-	MediaCache.update_videos_cache_max_cache_size()
+	MediaCache.video_contexts_update_max_cache_size()
 
 func _report_start(index: int, path: String) -> void:
 	progress_list.add_item(path, texture_wait)
@@ -167,7 +167,7 @@ class ImportCard extends CreatedBox.CreatedCard:
 			1:
 				clip_res = VideoClipRes.new()
 				clip_res.video = path
-				clip_res.length = MediaCache.get_video_info(path).duration * ProjectServer2.fps
+				clip_res.length = MediaCache.get_video_context(path).duration * ProjectServer2.fps
 			2:
 				clip_res = AudioClipRes.new()
 				clip_res.stream = path

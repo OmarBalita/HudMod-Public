@@ -83,7 +83,7 @@ func import_media(file_path: String, update: bool = true) -> void:
 func delete_file_or_folder(path_or_name: String, update: bool = true) -> void:
 	import_box.delete_file_or_folder(import_box.curr_display_path, path_or_name)
 	if update:
-		MediaCache.update_videos_cache_max_cache_size()
+		MediaCache.video_contexts_update_max_cache_size()
 		update()
 
 func update() -> void:

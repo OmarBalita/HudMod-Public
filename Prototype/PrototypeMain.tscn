@@ -258,7 +258,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("30_sruw6")
-metadata/_custom_type_script = "uid://dhcmxesxndwle"
 
 [node name="DrawableRect" type="ColorRect" parent="." unique_id=1023361327 groups=["drawable_rect"]]
 layout_mode = 1

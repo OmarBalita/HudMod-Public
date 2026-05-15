@@ -213,7 +213,7 @@ func delete_file_or_folder(display_path: Array, path_or_name: String, delete_rea
 
 func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray, delete_real_file: bool = false) -> void:
 	display_file_system.delete_packed(display_path, pathes_or_names, delete_real_file)
-	MediaCache.update_videos_cache_max_cache_size()
+	MediaCache.video_contexts_update_max_cache_size()
 	EditorServer.scan_media_existent()
 
 func delete_selected(delete_real_files: bool = false) -> void:

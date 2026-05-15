@@ -96,6 +96,7 @@ var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Text2DClipRes": {sections = [&"Display2D", &"Text"]},
 	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"]},
 	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"]},
+	&"AdjustmentClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"]},
 	&"Camera2DClipRes": {sections = [&"Display2D", &"Camera"]},
 	&"Audio2DClipRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel}
 }
@@ -1390,16 +1391,16 @@ func get_audio_file_info(key_as_path: StringName) -> Dictionary[StringName, Stri
 	})
 
 func get_video_file_info(key_as_path: StringName) -> Dictionary[StringName, String]:
-	var info: Dictionary = MediaCache.get_video_info(key_as_path)
-	var res: Vector2i = info.resolution
+	var video_ctx: MediaCache.VideoContext = MediaCache.get_video_context(key_as_path)
+	var res: Vector2i = video_ctx.resolution
 	var result: Dictionary[StringName, String] = get_file_main_info(key_as_path).merged({
 		&"title": "Video",
 		&"resolution": "(%s x %s)" % [res.x, res.y],
 		&"frame_pixels": str(res.x * res.y),
-		&"duration": "%s s" % info.duration,
-		&"fps": "%s fps" % info.fps,
-		&"total_frames": "%s frame" % info.total_frames,
-		&"bit_depth": str(info.bit_depth, "-bit"),
+		&"duration": "%s s" % video_ctx.duration,
+		&"fps": "%s fps" % video_ctx.fps,
+		&"total_frames": "%s frame" % video_ctx.total_frames,
+		&"bit_depth": str(video_ctx.bit_depth, "-bit"),
 	})
 	return result
 

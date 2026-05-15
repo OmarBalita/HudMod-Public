@@ -239,7 +239,7 @@ func build_shader_pipeline() -> void:
 
 
 func _get_shader_header() -> String:
-	return "shader_type canvas_item;\n#include \"res://Build/Shader/Global.gdshaderinc\"\n"
+	return "shader_type canvas_item;\n#include \"res://Build/Shader/Global.gdshaderinc\"\nuniform sampler2D SCREEN_TEXTURE: hint_screen_texture, filter_linear_mipmap;\n"
 
 func _get_shader_fragment(fragment_section: String) -> String:
 	return "

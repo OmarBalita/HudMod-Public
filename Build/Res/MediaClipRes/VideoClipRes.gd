@@ -12,35 +12,20 @@ class_name VideoClipRes extends Display2DClipRes
 @export var video: String:
 	set(val):
 		
-		var can_open: bool = val and MediaCache.videos_info_has(val)
+		var can_open: bool = val and MediaCache.video_contexts_has(val)
 		
-		if video == val and can_open == is_opening:
-			return
+		#if video == val and can_open == is_opening:
+			#return
 		
 		video = val
 		
 		if can_open:
 			
-			if not video_decoder:
-				video_decoder = VideoDecoder.new()
-			
-			var video_info: Dictionary = MediaCache.get_video_info(video)
-			
-			video_decoder.set_video_path(video)
-			video_decoder.set_internal_enhance(EditorServer.use_high_quality())
-			video_decoder.open()
-			video_cache = MediaCache.get_video_cache(video)
-			seek_frame_smart(0)
-			
+			video_ctx = MediaCache.get_video_context(video)
 			audio_data_res = MediaCache.get_audio_data(video)
-			
-			fps = video_info.fps
-			
-			if post_shader_material:
-				_init_video_shader_params()
+			fps = video_ctx.fps
 		else:
-			if video_decoder:
-				video_decoder.close()
+			video_ctx = null
 			audio_data_res = MediaCache.default_audio_f32_data
 		
 		is_opening = can_open
@@ -51,8 +36,8 @@ class_name VideoClipRes extends Display2DClipRes
 var stream_player: CustomAudioStreamPlayer
 
 var is_opening: bool
+var video_ctx: MediaCache.VideoContext
 var video_decoder: VideoDecoder
-var video_cache: MediaCache.VideoCache
 var audio_data_res: MediaCache.AudioF32Data = MediaCache.default_audio_f32_data
 var fps: float
 
@@ -74,7 +59,7 @@ static func is_media_clip_spawnable() -> bool: return true
 
 func get_min_from() -> float: return .0
 func get_max_length() -> float:
-	if is_opening: return MediaCache.get_video_info(video).duration * ProjectServer2.fps
+	if is_opening: return video_ctx.duration * ProjectServer2.fps
 	else: return +INF
 
 func get_self_main_texture() -> Texture2D: return texture_y
@@ -98,6 +83,9 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 
 func enter(node: Node) -> void:
 	super(node)
+	video_decoder = video_ctx.request_video_decoder()
+	_init_video_shader_params()
+	seek_frame_smart(0)
 	node.texture = get_self_texture()
 	Scene2.add_video_player(self)
 
@@ -115,20 +103,33 @@ func _process_comps(frame: int) -> void:
 
 func exit(node: Node) -> void:
 	super(node)
+	
+	video_decoder.set_channel_y([])
+	video_decoder.set_channel_u([])
+	video_decoder.set_channel_v([])
+	texture_y = null
+	texture_u = null
+	texture_v = null
+	
+	video_ctx.push_video_decoder_front(video_decoder)
+	video_decoder = null
+	
+	_update_video_shader_params()
 	Scene2.remove_video_player(self)
 
 func seek_frame_smart(at: int) -> void:
 	
-	if video_cache.has_frame(at):
-		var yuv: Array[Texture2D] = video_cache.get_frame(at)
+	if video_ctx.has_frame(at):
+		var yuv: Array[Texture2D] = video_ctx.get_frame(at)
 		texture_y = yuv[0]
 		texture_u = yuv[1]
 		texture_v = yuv[2]
 	
 	else:
-		if not video_decoder.seek_frame_smart(at): return
+		if not video_decoder.seek_frame_smart(at):
+			return
 		_update_video_frame()
-		video_cache.push_frame(at, [texture_y, texture_u, texture_v])
+		video_ctx.push_frame(at, [texture_y, texture_u, texture_v])
 
 func _update_video_frame() -> void:
 	

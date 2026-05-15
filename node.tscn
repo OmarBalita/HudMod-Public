@@ -5,6 +5,8 @@ script/source = "extends Node
 
 const VERCEL_URL: String = \"https://hud-mod-api.vercel.app/api/supporters\"
 
+@export var video_decoder: VideoDecoder
+
 func _ready() -> void:
 	fetch_patrons()
 
@@ -23,5 +25,8 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 			var response: Dictionary = json.get_data()
 "
 
+[sub_resource type="VideoDecoder" id="VideoDecoder_nxiqb"]
+
 [node name="Node" type="Node" unique_id=1265524575]
 script = SubResource("GDScript_nxiqb")
+video_decoder = SubResource("VideoDecoder_nxiqb")

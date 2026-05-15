@@ -83,7 +83,8 @@ func step() -> void:
 			return
 		play(false)
 		return
-	
+	position += step
+		
 	var start: int = opened_clip_res.clip_pos
 	var end: int = start + opened_clip_res.length
 	
@@ -94,8 +95,6 @@ func step() -> void:
 		else:
 			stop()
 		return
-	
-	position += step
 	
 	if is_playing():
 		step()
@@ -185,13 +184,5 @@ func free_clip(clip_res: MediaClipRes) -> void:
 
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()
-
-func update_videos_clips_ress() -> void:
-	ProjectServer2.project_res.root_clip_res.loop_layers_children_deep({},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
-			var clip_res: MediaClipRes = layer.get_clip_res(frame)
-			if clip_res is VideoClipRes:
-				clip_res.video = clip_res.video
-	)
 
 
