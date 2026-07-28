@@ -1021,6 +1021,18 @@ func create_list_edit(name: String, list: Array, list_type: StringName = &"", ca
 	return edit_cont
 
 
+func create_clip_res_edit(name: String, clip_res: MediaClipRes) -> EditContainer:
+	var edit_cont: EditContainer = create_edit_cont(name)
+	var clip_res_controller: MediaClipResController
+	edit_cont.add_child(clip_res_controller)
+	
+	edit_cont.curr_val = clip_res
+	edit_cont.controller = clip_res_controller
+	
+	return edit_cont
+
+
+
 
 func get_main_controller_from(controllers: Array[Control]) -> Control:
 	var controller: Control

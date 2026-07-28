@@ -64,8 +64,8 @@ var project_res: ProjectRes:
 			fps = project_res.fps
 			delta = project_res.delta
 
-var import_file_system: DisplayFileSystemRes
-var preset_file_system: DisplayFileSystemRes
+var import_file_system: FileSystem
+var preset_file_system: FileSystem
 
 var undo_redo: UndoRedo = UndoRedo.new()
 var saved_version: int
@@ -103,8 +103,8 @@ func new_project(project_res: ProjectRes, dir_path: String) -> ProjectRes:
 		EditorServer.push_message("Problem save project resource.")
 		return null
 	
-	ResourceSaver.save(DisplayFileSystemRes.new(), paths.import_sys)
-	ResourceSaver.save(DisplayFileSystemRes.new(), paths.preset_sys)
+	ResourceSaver.save(FileSystem.new(), paths.import_sys)
+	ResourceSaver.save(FileSystem.new(), paths.preset_sys)
 	
 	EditorServer.popup_save_option_or_save(open_project.bind(project_path), "Save & Open")
 	
@@ -119,33 +119,34 @@ func open_project(_project_path: String) -> bool:
 		return false
 	
 	var _temp_prj_path:= project_path
-	var _temp_imp_file_sys:= import_file_system
-	var _temp_pre_file_sys:= preset_file_system
-	
 	project_path = _project_path
 	
-	import_file_system = ResLoadHelper.load_or_save(project_paths.import_sys, DisplayFileSystemRes)
-	preset_file_system = ResLoadHelper.load_or_save(project_paths.preset_sys, DisplayFileSystemRes)
-	
-	import_file_system.thumbnail_path = project_thumbnail_path
-	import_file_system.waveform_path = project_waveform_path
-	
-	is_project_loaded = false
+	#var _temp_imp_file_sys:= import_file_system
+	#var _temp_pre_file_sys:= preset_file_system
 	
 	var _project_res: Resource = ResourceLoader.load(project_paths.project_res)
-	if _project_res is not ProjectRes:
-		is_project_loaded = true
-		project_path = _temp_prj_path; import_file_system = _temp_imp_file_sys; preset_file_system = _temp_pre_file_sys
-		EditorServer.push_message("The project could not be opened.")
-		return false
 	
 	_project_res = _project_res as ProjectRes
 	
+	if _project_res is not ProjectRes:
+		#is_project_loaded = true
+		project_path = _temp_prj_path#; import_file_system = _temp_imp_file_sys; preset_file_system = _temp_pre_file_sys
+		EditorServer.push_message("The project could not be opened.")
+		return false
+	
 	if _project_res.version_name != EditorServer.version_info.version_name:
-		is_project_loaded = true
-		project_path = _temp_prj_path; import_file_system = _temp_imp_file_sys; preset_file_system = _temp_pre_file_sys
+		#is_project_loaded = true
+		project_path = _temp_prj_path#; import_file_system = _temp_imp_file_sys; preset_file_system = _temp_pre_file_sys
 		EditorServer.push_message("The project requires version \"%s\" of HudMod, the current version \"%s\"" % [_project_res.version_name, EditorServer.version_info.version_name])
 		return false
+	
+	is_project_loaded = false
+	
+	import_file_system = ResLoadHelper.load_or_save(project_paths.import_sys, FileSystem)
+	preset_file_system = ResLoadHelper.load_or_save(project_paths.preset_sys, FileSystem)
+	
+	import_file_system.thumbnail_path = project_thumbnail_path
+	import_file_system.waveform_path = project_waveform_path
 	
 	undo_redo.max_steps = 50
 	undo_redo.clear_history()
@@ -203,8 +204,6 @@ func save() -> void:
 	ResourceSaver.save(project_res, project_paths.project_res)
 	
 	GlobalServer.save_global()
-	MediaServer.save_not_saved_yet()
-	MediaServer.delete_not_deleted_yet()
 	
 	saved_version = undo_redo.get_version()
 	

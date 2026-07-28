@@ -1463,5 +1463,3 @@ func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[V
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
 	update_clips(coords)
 
-
-

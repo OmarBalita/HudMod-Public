@@ -28,7 +28,7 @@ func _ready_options() -> void:
 	super()
 	preset_category = add_category(&"Preset", false)
 
-func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
+func _init_card(key: String, info: Dictionary) -> CreatedCard:
 	var preset_card:= PresetCard.new(self, 0)
 	var preset_clip_res: MediaClipRes = MediaCache.get_preset_media_res(key)
 	preset_card.path_or_name = key
@@ -44,14 +44,13 @@ func _get_created_box_category() -> Category:
 
 func create_presets(preset_media_ress: Array[MediaClipRes], global: bool) -> void:
 	var preset_files_pathes: PackedStringArray = EditorServer.create_presets(preset_media_ress, global)
-	set_display_file_system(get_true_file_system(global))
-	create_files(curr_display_path, preset_files_pathes)
+	set_file_system(get_true_file_system(global))
+	create_files(file_system, curr_display_path, preset_files_pathes)
 	update()
 
-func delete_selected(delete_real_files: bool = false) -> void:
-	var paths_or_names: PackedStringArray = get_selected_paths_or_names()
-	for path: String in paths_or_names: MediaServer.store_not_deleted_resource(path)
-	delete_files_or_folders(curr_display_path, paths_or_names, delete_real_files)
+func delete_selected() -> void:
+	var paths_or_names: PackedStringArray = get_selected_pathes_or_names()
+	delete_files_or_folders(file_system, curr_display_path, paths_or_names)
 	update()
 
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
@@ -59,7 +58,7 @@ func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	await get_tree().process_frame
 	project_file_system = ProjectServer2.preset_file_system
 	global_file_system = GlobalServer.preset_file_system
-	display_file_system = project_file_system
+	file_system = project_file_system
 	update()
 
 

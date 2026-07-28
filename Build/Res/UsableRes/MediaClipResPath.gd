@@ -26,8 +26,11 @@ signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 		
 		if media_res != val:
 			media_res_changed.emit(media_res, val)
+		
 		if val:
 			retarget_id = val.id
+		else:
+			retarget_id = &""
 		
 		media_res = val
 		
@@ -78,8 +81,8 @@ func _exported_props_controllers_created(main_edit: EditContainer, props_control
 func _try_update_editor() -> void:
 	
 	if EditorServer.has_usable_res_controllers(self):
-		var path_edit: EditContainer = EditorServer.get_usable_res_property_controller(self, &"path_ctrlr")
-		var path_line: LineEdit = path_edit.controller
+		var path_edit: BoxContainer = EditorServer.get_usable_res_property_controller(self, &"path_ctrlr")
+		var path_line: LineEdit = path_edit.get_child(0)
 		
 		if media_res:
 			path_line.text = ("(Self) " if media_res == owner else "") + media_res.get_display_name()

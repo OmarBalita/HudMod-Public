@@ -86,6 +86,11 @@ func _ready() -> void:
 	
 	add_child(clips_panel)
 	clips_panel.add_child(clips_body)
+	
+	update_lock_button()
+	update_hide_button()
+	if layer_res is RootLayerRes:
+		update_mute_button()
 
 
 func get_clip(frame: int) -> MediaServer.ClipPanel:
@@ -181,6 +186,13 @@ func update_size() -> void:
 			target_size = max(target_size, clip.box_container.size.y + 8.)
 	
 	custom_minimum_size.y = target_size
+
+func update_lock_button() -> void:
+	lock_btn.button_pressed = layer_res.locked; lock_btn.update_button()
+func update_hide_button() -> void:
+	hide_btn.button_pressed = layer_res.hidden; hide_btn.update_button()
+func update_mute_button() -> void:
+	mute_btn.button_pressed = layer_res.mute; mute_btn.update_button()
 
 
 func select_clips() -> void:
@@ -292,13 +304,14 @@ func _on_more_btn_pressed() -> void:
 func _on_layer_res_lock_changed(to: bool) -> void:
 	timeline.sort_layers()
 	clips_panel.update_ui()
-	lock_btn.button_pressed = to; (lock_btn as IS.CustomTextureButton).update_button()
+	update_lock_button()
 
 func _on_layer_res_hidden_changed(to: bool) -> void:
-	hide_btn.button_pressed = to; hide_btn.update_button()
+	update_hide_button()
 
 func _on_layer_res_mute_changed(to: bool) -> void:
-	mute_btn.button_pressed = to; mute_btn.update_button()
+	update_mute_button()
+
 
 class ClipsPanelContainer extends PanelContainer:
 	

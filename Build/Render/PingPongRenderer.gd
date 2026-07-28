@@ -59,6 +59,7 @@ func _ready() -> void:
 
 func request_process_output(input_tex: Texture2D, shader_materials: Array[ShaderMaterial], render_scale: float = 1., render_margin: Vector2i = Vector2i()) -> Texture2D:
 	
+	
 	process_id += 1
 	var curr_process_id: int = process_id
 	

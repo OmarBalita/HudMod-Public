@@ -32,6 +32,8 @@ var progress_window: Window
 var progress_list: ItemList
 var progress_bar: ProgressBar
 
+var latest_success_pathes: PackedStringArray
+
 func _ready_options() -> void:
 	super()
 	
@@ -41,8 +43,8 @@ func _ready_options() -> void:
 	import_button.pressed.connect(on_import_button_pressed)
 	options_container.add_child(import_button)
 
-func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
-	var media_type: int = info.media_type
+func _init_card(key: String, info: Dictionary) -> CreatedCard:
+	var media_type: int = info.import_t
 	var import_card:= ImportCard.new(self, 0)
 	
 	import_card.display_name = key.get_file()
@@ -55,7 +57,7 @@ func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
 	return import_card
 
 func replace_selected() -> void:
-	var paths_or_names: PackedStringArray = get_selected_paths_or_names(true, false)
+	var paths_or_names: PackedStringArray = get_selected_pathes_or_names(true, false)
 	EditorServer.popup_replace_paths(paths_or_names, false, true)
 
 func on_import_button_pressed() -> void:
@@ -67,10 +69,10 @@ func on_import_button_pressed() -> void:
 	file_dialog.files_selected.connect(on_file_dialog_files_selected)
 	file_dialog.popup_file_dialog()
 
-func on_file_dialog_files_selected(paths: PackedStringArray) -> void:
-	load_files(paths)
+func on_file_dialog_files_selected(pathes: PackedStringArray) -> void:
+	load_files(pathes)
 
-func load_files(paths: PackedStringArray) -> void:
+func load_files(pathes: PackedStringArray) -> void:
 	var window_margin: MarginContainer = WindowManager.popup_window(get_window(), Vector2i(600, 400), "Load files")
 	var box_container: BoxContainer = IS.create_box_container(12, true)
 	
@@ -78,13 +80,7 @@ func load_files(paths: PackedStringArray) -> void:
 	
 	progress_window = window_margin.get_window()
 	progress_list = ItemList.new()
-	progress_bar = IS.create_progress_bar(.0, .0, 100.0, .01)
-	progress_bar.value_changed.connect(
-		func(value: float) -> void:
-			if value >= progress_bar.max_value:
-				update()
-				progress_window.queue_free()
-	)
+	progress_bar = IS.create_progress_bar(.0, .0, 100., .01)
 	
 	box_container.add_child(progress_list)
 	box_container.add_child(progress_bar)
@@ -93,38 +89,62 @@ func load_files(paths: PackedStringArray) -> void:
 	IS.set_base_settings(progress_list)
 	IS.expand(progress_list, true, true)
 	
-	var thread: Thread = Thread.new()
-	thread.start(_thread_create_files.bind(paths, curr_display_path))
+	var display_path: Array = curr_display_path.duplicate()
+	latest_success_pathes = PackedStringArray()
+	var success_pathes: PackedStringArray = latest_success_pathes
+	
+	var task_id: int = WorkerThreadPool.add_task(_create_files.bind(file_system, display_path, pathes, _worker_thread_create_files))
+	WorkerThreadPool.wait_for_task_completion(task_id)
+	
+	ProjectServer2.commit_action(
+		"load_files",
+		_create_files.bind(file_system, display_path, success_pathes, _main_thread_create_files),
+		delete_files_or_folders.bind(file_system, display_path, success_pathes, false),
+		false
+	)
 
-func _thread_create_files(paths: PackedStringArray, curr_display_path: Array) -> void:
-	
-	var load_errs: Array[MediaCache.LOAD_ERR]
-	var total: int = paths.size()
-	
-	for index: int in total:
-		
-		var path: String = paths.get(index)
-		_report_start.call_deferred(index, path)
-		var load_err: MediaCache.LOAD_ERR = await create_file(curr_display_path, path)
-		_report_progress.call_deferred(index, total, path, load_err == 0)
-		
-		load_errs.append(load_err)
-	
-	MediaCache.video_contexts_update_max_cache_size()
+
+func _create_files(file_sys: FileSystem, display_path: Array, pathes: PackedStringArray, method_create_files: Callable) -> void:
+	var pathes_size: int = pathes.size()
+	const GROUP_SIZE: int = 4
+	for start_idx: int in range(0, pathes_size, GROUP_SIZE):
+		var curr_group_size: int = mini(GROUP_SIZE, pathes_size - start_idx)
+		await method_create_files.call(start_idx, curr_group_size, file_sys, display_path, pathes)
+	update()
+	if progress_window:
+		progress_window.queue_free()
+
+func _worker_thread_create_files(start_idx: int, group_size: int, file_sys: FileSystem, display_path: Array, pathes: PackedStringArray) -> void:
+	var group_task_id: int = WorkerThreadPool.add_group_task(_create_file.bind(start_idx, file_sys, display_path, pathes), group_size, -1, true)
+	WorkerThreadPool.wait_for_group_task_completion(group_task_id)
+
+func _main_thread_create_files(start_idx: int, group_size: int, file_sys: FileSystem, display_path: Array, pathes: PackedStringArray) -> void:
+	for idx: int in range(start_idx, start_idx + group_size):
+		create_files(file_sys, display_path, [pathes[idx]])
+
+func _create_file(idx: int, start_idx: int, file_sys: FileSystem, display_path: Array, pathes: PackedStringArray) -> void:
+	idx += start_idx
+	var path: String = pathes[idx]
+	_report_start.call_deferred(idx, path)
+	var load_err: MediaCache.LOAD_ERR = create_files(file_sys, display_path, [path])[0]
+	var success: bool = load_err == MediaCache.LOAD_ERR.SUCCESS
+	if success: latest_success_pathes.append(path)
+	_report_progress.call_deferred(idx, pathes, success)
 
 func _report_start(index: int, path: String) -> void:
 	progress_list.add_item(path, texture_wait)
 
-func _report_progress(index: int, total: int, path: String, load_success: bool) -> void:
+func _report_progress(index: int, pathes: PackedStringArray, load_success: bool) -> void:
 	progress_list.set_item_custom_bg_color(index, Color(Color.GREEN_YELLOW, .1))
-	progress_list.set_item_text(index, path.get_file())
-	progress_list.set_item_icon(index, texture_check if load_success else texture_x_mark)
+	progress_list.set_item_text(index, pathes[index])
+	if load_success:
+		progress_list.set_item_icon(index, texture_check)
+	else:
+		progress_list.set_item_icon(index, texture_x_mark)
+		pathes[index] = ""
 	
-	var tween: Tween = create_tween()
-	var progress_bar_val: float = ((index + 1) / float(total)) * 100.0
-	tween.tween_property(progress_bar, "value", progress_bar_val, .2)
+	progress_bar.value += 100. / pathes.size()
 	
-	await get_tree().process_frame
 	var scroll_bar: VScrollBar = progress_list.get_v_scroll_bar()
 	scroll_bar.value = scroll_bar.max_value
 
@@ -148,7 +168,7 @@ func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	await get_tree().process_frame
 	project_file_system = ProjectServer2.import_file_system
 	global_file_system = GlobalServer.import_file_system
-	display_file_system = project_file_system
+	file_system = project_file_system
 	update()
 
 

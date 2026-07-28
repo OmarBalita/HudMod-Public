@@ -39,17 +39,22 @@ var default_audio_f32_data: AudioF32Data = AudioF32Data.new(PackedByteArray())
 
 
 func _ready() -> void:
+	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
 	EditorServer.editor_settings.settings_updated.connect(_on_editor_settings_settings_updated)
 
 
-func load_media_cache_from_file_system(file_system: DisplayFileSystemRes) -> void:
+func load_media_cache_from_file_system(file_system: FileSystem) -> void:
 	
 	var thumb_path: String = file_system.thumbnail_path
 	var waveform_path: String = file_system.waveform_path
-	var ids_exists: PackedStringArray = EditorServer.get_ids_from_pathes(DirAccess.get_files_at(thumb_path))
-	file_system.loop_files_deep({}, func(dir: Dictionary, path_or_name: StringName, file_info: Dictionary, info: Dictionary[StringName, Variant]) -> void:
-		if file_info.type == "file":
-			register_from_path(path_or_name, ids_exists, file_info.id, -1, thumb_path, waveform_path)
+	
+	var ids_exists: PackedStringArray = DirAccessHelper.get_files_names_at(thumb_path)
+	file_system.loop_directories_deep_at(file_system.root,
+		func(dir: Dictionary, metadata: Dictionary[StringName, Variant]) -> void:
+			for path_or_name: String in dir:
+				var entity_info: Dictionary = dir[path_or_name]
+				if entity_info.t == FileSystem.EntityType.FILE:
+					register_from_path(path_or_name, ids_exists, entity_info.id, -1, thumb_path, waveform_path)
 	)
 	video_contexts_update_max_cache_size()
 
@@ -164,13 +169,7 @@ func register_preset_media_res(path: StringName, ids_exists: PackedStringArray, 
 	
 	var preset_media_res: Resource = ResourceLoader.load(path)
 	
-	if not preset_media_res:
-		preset_media_res = MediaServer.get_not_saved_resource(path)
-		
-		if not preset_media_res:
-			return LOAD_ERR.LOAD_ERR_CANT_OPEN
-	
-	if preset_media_res is not MediaClipRes:
+	if not preset_media_res or preset_media_res is not MediaClipRes:
 		return LOAD_ERR.LOAD_ERR_CANT_OPEN
 	
 	preset_media_ress[path] = preset_media_res
@@ -199,25 +198,25 @@ func replace_path(from: StringName, to: StringName) -> void:
 	MediaServer.server_replace_media_path(from, to)
 
 
-func deregister_from_path(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
+func deregister_from_path(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	match MediaServer.get_media_type_from_path(path):
-		0: deregister_image(path, id, thumbnail_path, delete_images_on_disk)
-		1: deregister_video(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
-		2: deregister_audio(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
+		0: deregister_image(path, id, thumbnail_path)
+		1: deregister_video(path, id, thumbnail_path, waveform_path)
+		2: deregister_audio(path, id, thumbnail_path, waveform_path)
 		_: deregister_preset_media_res(path, id, thumbnail_path, waveform_path)
 
 
-func deregister_image(path: StringName, id: String, thumbnail_path: String, delete_images_on_disk: bool = false) -> void:
-	MediaServer.server_deregister_image(path, id, thumbnail_path, delete_images_on_disk)
+func deregister_image(path: StringName, id: String, thumbnail_path: String) -> void:
+	MediaServer.server_deregister_image(path, id, thumbnail_path)
 	images.erase(path)
 	textures.erase(path)
 
-func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
-	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
+func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path)
 	video_contexts.erase(path)
 
-func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool = false) -> void:
-	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path, delete_images_on_disk)
+func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
+	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path)
 	audio_datas.erase(path)
 
 func deregister_preset_media_res(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
@@ -324,6 +323,9 @@ class AudioF32Data extends Resource:
 	const BYTES_PER_SAMPLE = 4 # float32 = 4bytes
 	const BYTES_PER_FRAME: int = 4 * 2
 	
+	static var samples_per_frame: int
+	static var bytes_per_video_frame: int
+	
 	@export var data: PackedByteArray:
 		set(val):
 			data = val
@@ -341,18 +343,17 @@ class AudioF32Data extends Resource:
 	func set_length(new_val: float) -> void: length = new_val
 	
 	func extract_frame_samples(frame: int) -> PackedByteArray:
-		
-		var samples_per_frame: int = SAMPLE_RATE / ProjectServer2.fps
-		var bytes_per_video_frame: int = samples_per_frame * BYTES_PER_FRAME
-		
 		var start: int = frame * bytes_per_video_frame
-		var size: int = bytes_per_video_frame
 		
 		if start >= data.size():
 			return PackedByteArray()
 		
-		return data.slice(start, start + size)
+		return data.slice(start, start + bytes_per_video_frame)
 
+
+func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
+	AudioF32Data.samples_per_frame = AudioF32Data.SAMPLE_RATE / project_res.get_fps()
+	AudioF32Data.bytes_per_video_frame = AudioF32Data.samples_per_frame * AudioF32Data.BYTES_PER_FRAME
 
 func _on_editor_settings_settings_updated() -> void:
 	video_contexts_update_max_cache_size()

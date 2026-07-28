@@ -93,11 +93,8 @@ func _init_clip_res() -> void:
 	pass
 
 func emit_clip_res_changed() -> void:
-	emit_res_changed()
-	clip_res_changed.emit()
-
-func emit_res_changed() -> void:
 	update()
+	clip_res_changed.emit()
 
 func is_frame_exists(frame: Variant = null) -> bool:
 	if frame == null: frame = curr_frame
@@ -204,8 +201,9 @@ func remove_at_component(section_key: String, at: int) -> void:
 	var comp_res: ComponentRes = section_comps[at]
 	section_comps.remove_at(at)
 	emit_clip_res_changed()
-	if curr_node: comp_res._delete()
-	process_here()
+	if curr_node:
+		comp_res._delete()
+		process_here()
 
 func remove_component(section_key: String, component_id: StringName) -> void:
 	for component: ComponentRes in get_section_comps_absolute(section_key):

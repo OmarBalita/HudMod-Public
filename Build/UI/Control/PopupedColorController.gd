@@ -571,7 +571,6 @@ class PaletteBox extends PanelContainer:
 	func on_remove_palette_button_pressed() -> void:
 		control_root.custom_color_palettes.erase(color_palette)
 		palette_removed.emit()
-		print("remove palette it self !")
 	
 	func on_color_button_pressed(color: Color) -> void:
 		color_selected.emit(color)
@@ -583,7 +582,6 @@ class PaletteBox extends PanelContainer:
 			control_root.save()
 			update_colors()
 			color_removed.emit(color)
-			printt("remove color from the palette", color)
 	
 	
 	class SavedColorButton extends Button:

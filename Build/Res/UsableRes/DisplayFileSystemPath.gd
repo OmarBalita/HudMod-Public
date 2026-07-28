@@ -58,7 +58,7 @@ func update_disk_path() -> void:
 		ctrlrs[&"thumbnail"].texture = get_file_thumb()
 		EditorServer.update_usable_res_ui_profile(self)
 
-func get_file_sys() -> DisplayFileSystemRes:
+func get_file_sys() -> FileSystem:
 	return EditorServer.get_import_file_system(sys_is_global)
 
 func is_valid_file() -> bool:

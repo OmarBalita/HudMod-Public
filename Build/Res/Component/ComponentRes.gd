@@ -58,9 +58,7 @@ func _set_owner(new_owner: MediaClipRes) -> void:
 
 func _set_enabled(new_enabled: bool) -> void:
 	enabled = new_enabled
-	emit_res_changed()
-	if owner:
-		owner.emit_clip_res_changed()
+	if owner: owner.emit_clip_res_changed()
 
 func get_forced() -> bool:
 	return forced

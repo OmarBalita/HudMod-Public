@@ -156,6 +156,10 @@ func close_curr_layout() -> void:
 		curr_layout_container = null
 
 func create_new_layout(layout_container: SplitContainer, layout_name: StringName) -> void:
+	
+	if layout_name.is_empty():
+		layout_name = "Custom Layout"
+	
 	var new_layout: LayoutRootInfo = LayoutRootInfo.parse(layout_container)
 	new_layout.set_layout_name(layout_name)
 	custom_layouts.append(new_layout)

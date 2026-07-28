@@ -96,8 +96,7 @@ func _delete(dir: Dictionary, path_or_name: String, delete_real_file: bool, serv
 	
 	if info.type == "file":
 		var file_id: String = info.id
-		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path, server_delete_images_on_disk)
-		if delete_real_file: MediaServer.store_not_deleted_resource(path_or_name)
+		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path)
 	
 	else:
 		

@@ -79,12 +79,12 @@ func _ready_editor() -> void:
 		sub_editor.visible = visibility
 		IS.expand(sub_editor, true, true)
 		
-		bool_edit.val_changed.connect(func(usable_res: UsableRes, key: StringName, new_val: Variant) -> void:
-			var _request_calculate: bool = not color_scope_sub_editors_visib.has(true)
-			color_scope_sub_editors_visib[index] = new_val
-			sub_editor.visible = new_val
-			if _request_calculate:
-				request_calculate()
+		bool_edit.val_changed.connect(
+			func(new_val: bool) -> void:
+				var _request_calculate: bool = not color_scope_sub_editors_visib.has(true)
+				color_scope_sub_editors_visib[index] = new_val
+				sub_editor.visible = new_val
+				if _request_calculate: request_calculate()
 		)
 		
 		header_container.add_child(bool_edit)

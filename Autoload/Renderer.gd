@@ -94,7 +94,11 @@ func send_frame() -> void:
 	
 	if audio_renderer:
 		var all_layers_samples: Array[PackedByteArray] = _extract_root_samples_at(ProjectServer2.project_res.root_clip_res, PlaybackServer.position)
-		var samples: PackedByteArray = AudioMixer.mix_buffers(all_layers_samples, 1.)
+		var samples: PackedByteArray
+		
+		if all_layers_samples.is_empty(): samples.resize(MediaCache.AudioF32Data.bytes_per_video_frame)
+		else: samples = AudioMixer.mix_buffers(all_layers_samples, 1.)
+		
 		audio_renderer.push_samples(samples)
 	
 	frame_sended.emit(PlaybackServer.position)

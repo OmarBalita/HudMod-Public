@@ -238,7 +238,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 					prop_edit_cont.keyframe_sended.connect(
 						func(new_value: Variant) -> void:
 							for _component_res: ComponentRes in usable_ress:
-								_component_res.request_animation_keyframe(usable_res, key, new_value)
+								_component_res.request_animation_keyframe(_component_res, key, new_value)
 					)
 				
 				curr_box_container.add_child(prop_edit_cont)

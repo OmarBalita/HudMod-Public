@@ -76,17 +76,8 @@ func _ready_editor() -> void:
 func set_curr_media_box(new_media_box: int) -> void:
 	curr_media_box = new_media_box
 
-func import_media(file_path: String, update: bool = true) -> void:
-	import_box.create_file(import_box.curr_display_path, file_path)
-	if update: update()
-
-func delete_file_or_folder(path_or_name: String, update: bool = true) -> void:
-	import_box.delete_file_or_folder(import_box.curr_display_path, path_or_name)
-	if update:
-		MediaCache.video_contexts_update_max_cache_size()
-		update()
-
 func update() -> void:
 	import_box.update()
+	preset_box.update()
 
 

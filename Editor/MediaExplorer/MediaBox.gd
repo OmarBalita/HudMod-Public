@@ -308,7 +308,7 @@ class MediaCard extends PanelContainer:
 					MOUSE_BUTTON_LEFT:
 						_select(event.alt_pressed, not event.ctrl_pressed)
 					MOUSE_BUTTON_RIGHT:
-						_select(event.alt_pressed, not event.ctrl_pressed)
+						_select(event.alt_pressed, false)
 						popup_context_menu()
 	
 	func _select(delete: bool, preclear: bool) -> void:
@@ -364,7 +364,6 @@ class MediaCard extends PanelContainer:
 	
 	func _on_context_menu_id_pressed(id: int) -> void:
 		pass
-	
 	
 	class SelectPanel extends Panel:
 		

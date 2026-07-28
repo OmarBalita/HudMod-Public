@@ -52,6 +52,7 @@ func play(emit_played: bool = true) -> void:
 	if emit_played:
 		played.emit(position)
 	
+	await get_tree().process_frame
 	step()
 
 func stop() -> void:
@@ -78,13 +79,13 @@ func step() -> void:
 		await get_tree().create_timer(delay).timeout
 	
 	elif delay < -.05:
-		await get_tree().process_frame
 		if not is_playing():
 			return
 		play(false)
 		return
+	
 	position += step
-		
+	
 	var start: int = opened_clip_res.clip_pos
 	var end: int = start + opened_clip_res.length
 	

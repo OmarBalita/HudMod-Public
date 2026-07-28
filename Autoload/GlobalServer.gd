@@ -31,8 +31,8 @@ var import_file_system_path: String = global_path + "file_system_import.res"
 var preset_file_system_path: String = global_path + "file_system_preset.res"
 var global_usable_res_path: String = global_path + "global_usable_res.res"
 
-var import_file_system: DisplayFileSystemRes
-var preset_file_system: DisplayFileSystemRes
+var import_file_system: FileSystem
+var preset_file_system: FileSystem
 var global_usable_res: GlobalUsableRes:
 	set(val):
 		global_usable_res = val
@@ -46,8 +46,8 @@ func load_global() -> void:
 	
 	is_global_cache_loaded = false
 	
-	import_file_system = ResLoadHelper.load_or_save(import_file_system_path, DisplayFileSystemRes)
-	preset_file_system = ResLoadHelper.load_or_save(preset_file_system_path, DisplayFileSystemRes)
+	import_file_system = ResLoadHelper.load_or_save(import_file_system_path, FileSystem)
+	preset_file_system = ResLoadHelper.load_or_save(preset_file_system_path, FileSystem)
 	global_usable_res = ResLoadHelper.load_or_save(global_usable_res_path, GlobalUsableRes)
 	
 	import_file_system.thumbnail_path = global_thumbnail_path

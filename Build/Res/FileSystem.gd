@@ -76,26 +76,52 @@ func _create_file(dir: Dictionary, file_path: String) -> MediaCache.LOAD_ERR:
 			&"t": EntityType.FILE,
 			&"import_t": expected_media_type,
 			&"id": new_id,
-			&"data": Time.get_unix_time_from_system()
+			&"date": Time.get_unix_time_from_system()
 		}
 		already_exists_ids.append(new_id)
 	
 	return register_or_load_err
 
 
-func create_folders(target_dir: PackedStringArray, folders_names: PackedStringArray) -> void:
+func create_folders(target_dir: PackedStringArray, folders_names: PackedStringArray) -> PackedStringArray:
 	var dir: Dictionary = navigate_to_dir(target_dir)
+	
+	var success: PackedStringArray
 	
 	for folder_name: String in folders_names:
 		
+		folder_name = folder_name.validate_filename()
+		
 		if dir.has(folder_name):
+			EditorServer.push_message("There is already a folder with the same name you chose.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
 			continue
 		
-		dir[folder_name.validate_filename()] = {
+		dir[folder_name] = {
 			&"t": EntityType.FOLDER,
 			&"forward": {},
 			&"date": Time.get_unix_time_from_system()
 		}
+		success.append(folder_name)
+	
+	return success
+
+func add_precreated_folders(target_dir: PackedStringArray, folders: Dictionary[String, Dictionary]) -> PackedStringArray:
+	var dir: Dictionary = navigate_to_dir(target_dir)
+	
+	var success: PackedStringArray
+	
+	for folder_name: String in folders:
+		
+		folder_name = folder_name.validate_filename()
+		
+		if dir.has(folder_name):
+			EditorServer.push_message("There is already a folder with the same name you chose.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
+			continue
+		
+		dir[folder_name] = folders[folder_name]
+		success.append(folder_name)
+	
+	return success
 
 func delete_packet(target_dir: PackedStringArray, paths_or_names: PackedStringArray) -> void:
 	var dir: Dictionary = navigate_to_dir(target_dir)
@@ -103,12 +129,12 @@ func delete_packet(target_dir: PackedStringArray, paths_or_names: PackedStringAr
 	for path_or_name: String in paths_or_names:
 		_delete(dir, path_or_name)
 
-func _delete(dir: Dictionary, path_or_name: StringName) -> void:
+func _delete(dir: Dictionary, path_or_name: String) -> void:
 	var entity_info: Dictionary = dir[path_or_name]
 	
-	if entity_info.t == EntityType:
+	if entity_info.t == EntityType.FILE:
 		var file_id: String = entity_info.id
-		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path, false)
+		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path)
 	
 	else:
 		
@@ -176,10 +202,25 @@ func get_directories_deep_at(dir: Dictionary) -> Array[Dictionary]:
 	return result
 
 func loop_directories_deep_at(dir: Dictionary, method: Callable, metadata: Dictionary[StringName, Variant] = {}) -> Dictionary[StringName, Variant]:
-	var directories_deep: Array[Dictionary]
+	var directories_deep: Array[Dictionary] = get_directories_deep_at(dir)
 	for _dir: Dictionary in directories_deep:
 		method.call(_dir, metadata)
 	return metadata
+
+
+func get_files_pathes() -> PackedStringArray:
+	return loop_directories_deep_at(root,
+		func(dir: Dictionary, metadata: Dictionary[StringName, Variant]) -> void:
+			for path_or_name: String in dir:
+				var entity_info: Dictionary = dir[path_or_name]
+				if entity_info.t == EntityType.FILE:
+					if not entity_info.has(&"discard"):
+						metadata.files_pathes.append(path_or_name)
+			pass,
+		{&"files_pathes": PackedStringArray()}
+	).files_pathes
+
+
 
 
 func build_tree(tree: Tree, root_name: StringName = &"Fake Filesystem", tree_type: int = 0, selected_path: Array = [], filter: PackedStringArray = []) -> void:
@@ -219,6 +260,3 @@ func _create_tree_item(tree: Tree, parent_item: TreeItem, text: String, icon: Te
 	tree_item.set_icon(0, icon)
 	tree_item.set_metadata(0, display_path)
 	return tree_item
-
-
-

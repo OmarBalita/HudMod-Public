@@ -368,7 +368,6 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 	for preset_media_res: MediaClipRes in presets:
 		var id: String = StringHelper.generate_new_id(used_ids, 12)
 		var save_path: String = str(target_path, id, ".res")
-		MediaServer.store_not_saved_resource(save_path, preset_media_res)
 		used_ids.append(id)
 		save_paths.append(save_path)
 	return save_paths
@@ -392,10 +391,10 @@ func scan_media_existent() -> void:
 	if ProjectServer2.project_res == null:
 		return
 	
-	var project_imp_sys: DisplayFileSystemRes = ProjectServer2.import_file_system
-	var project_pres_sys: DisplayFileSystemRes = ProjectServer2.preset_file_system
-	var global_imp_sys: DisplayFileSystemRes = GlobalServer.import_file_system
-	var global_pres_sys: DisplayFileSystemRes = GlobalServer.preset_file_system
+	var project_imp_sys: FileSystem = ProjectServer2.import_file_system
+	var project_pres_sys: FileSystem = ProjectServer2.preset_file_system
+	var global_imp_sys: FileSystem = GlobalServer.import_file_system
+	var global_pres_sys: FileSystem = GlobalServer.preset_file_system
 	
 	if not project_imp_sys or not global_imp_sys:
 		return
@@ -406,11 +405,11 @@ func scan_media_existent() -> void:
 	project_imp_sys.check_for_discard_paths()
 	global_imp_sys.check_for_discard_paths()
 	
-	var project_import_paths: PackedStringArray = project_imp_sys.get_files_paths()
-	var project_preset_paths: PackedStringArray = project_pres_sys.get_files_paths()
+	var project_import_paths: PackedStringArray = project_imp_sys.get_files_pathes()
+	var project_preset_paths: PackedStringArray = project_pres_sys.get_files_pathes()
 	
-	var global_import_paths: PackedStringArray = global_imp_sys.get_files_paths()
-	var global_preset_paths: PackedStringArray = global_pres_sys.get_files_paths()
+	var global_import_paths: PackedStringArray = global_imp_sys.get_files_pathes()
+	var global_preset_paths: PackedStringArray = global_pres_sys.get_files_pathes()
 	
 	var all_import_paths: PackedStringArray = project_import_paths + global_import_paths
 	
@@ -438,11 +437,20 @@ func scan_media_existent() -> void:
 	media_explorer.preset_box.update()
 
 func replace_paths(paths_for_replace: Dictionary[String, String], discard_option: bool) -> void:
-	ProjectServer2.import_file_system.replace_paths(paths_for_replace, discard_option)
-	GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
-	format_paths(paths_for_replace)
-	MediaCache.video_contexts_update_max_cache_size()
-	media_explorer.import_box.update()
+	
+	var reversed_paths_for_replace: Dictionary[String, String]
+	for from_path: String in paths_for_replace:
+		var to_path: String = paths_for_replace[from_path]
+		reversed_paths_for_replace[to_path] = from_path
+	
+	var replace_method: Callable = func(paths_for_replace: Dictionary[String, String]) -> void:
+		ProjectServer2.import_file_system.replace_paths(paths_for_replace, discard_option)
+		GlobalServer.import_file_system.replace_paths(paths_for_replace, discard_option)
+		format_paths(paths_for_replace)
+		MediaCache.video_contexts_update_max_cache_size()
+		media_explorer.import_box.update()
+	
+	ProjectServer2.commit_action("replace_pathes", replace_method.bind(paths_for_replace), replace_method.bind(reversed_paths_for_replace))
 
 func discard_paths(paths: PackedStringArray) -> void:
 	ProjectServer2.import_file_system.discard_paths(paths)
@@ -450,12 +458,15 @@ func discard_paths(paths: PackedStringArray) -> void:
 
 func format_paths(paths_for_format: Dictionary[String, String]) -> void:
 	ProjectServer2.project_res.root_clip_res.format_paths_deep(paths_for_format)
-	ProjectServer2.preset_file_system.preset_media_ress_format_paths(paths_for_format)
-	GlobalServer.preset_file_system.preset_media_ress_format_paths(paths_for_format)
+	
+	var preset_media_ress: Dictionary[StringName, MediaClipRes] = MediaCache.get_preset_media_ress()
+	for key_as_path: StringName in preset_media_ress:
+		var preset_media_res: MediaClipRes = preset_media_ress[key_as_path]
+		preset_media_res.format_paths_deep(paths_for_format)
 
 
-func get_import_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.import_file_system if global else ProjectServer2.import_file_system
-func get_preset_file_system(global: bool) -> DisplayFileSystemRes: return GlobalServer.preset_file_system if global else ProjectServer2.preset_file_system
+func get_import_file_system(global: bool) -> FileSystem: return GlobalServer.import_file_system if global else ProjectServer2.import_file_system
+func get_preset_file_system(global: bool) -> FileSystem: return GlobalServer.preset_file_system if global else ProjectServer2.preset_file_system
 
 
 # Popup Windows
@@ -478,7 +489,7 @@ func popup_version_panel() -> void:
 	version_window.content_scale_factor = editor_settings.theme.content_scale
 	version_window.size = Vector2i(800, 750)
 	version_window.borderless = true
-	version_window.exclusive = true
+	#version_window.exclusive = true
 	WindowManager.popup_custom_window(version_window)
 	version_window.popup_centered()
 	
@@ -856,14 +867,14 @@ func popup_replace_paths(paths: PackedStringArray, discard_option: bool = true, 
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		
-		var on_update_path_func: Callable = func(usable_res: UsableRes, key: StringName, val: String) -> void:
+		var on_update_path_func: Callable = func(val: String) -> void:
 			paths_for_replace[path] = val
 			
 			var cond1: bool = FileAccess.file_exists(val)
 			var cond2: bool = MediaServer.get_media_type_from_path(val) == type
 			valid_path_rect.texture = IS.TEXTURE_CHECK if cond1 and cond2 else IS.TEXTURE_X_MARK
 		
-		on_update_path_func.call(null, &"", new_path)
+		on_update_path_func.call(new_path)
 		
 		path_edit.header_cont.add_child(icon_rect)
 		path_edit.header_cont.add_child(valid_path_rect)

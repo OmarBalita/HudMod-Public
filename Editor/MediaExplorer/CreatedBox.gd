@@ -19,12 +19,12 @@
 #############################################################################
 class_name CreatedBox extends MediaBox
 
-var project_file_system: DisplayFileSystemRes
-var global_file_system: DisplayFileSystemRes
+var project_file_system: FileSystem
+var global_file_system: FileSystem
 
-var display_file_system: DisplayFileSystemRes:
+var file_system: FileSystem:
 	set(val):
-		display_file_system = val
+		file_system = val
 		if path_controller:
 			var root_name: String
 			match val:
@@ -53,14 +53,14 @@ func _ready() -> void:
 func _init_media_select_cont() -> MediaBox.MediaSelectContainer:
 	return CreatedSelectContainer.new(self)
 
-func get_display_file_system() -> DisplayFileSystemRes:
-	return display_file_system
+func get_file_system() -> FileSystem:
+	return file_system
 
-func set_display_file_system(new_val: DisplayFileSystemRes, _update: bool = true) -> void:
-	display_file_system = new_val
+func set_file_system(new_val: FileSystem, _update: bool = true) -> void:
+	file_system = new_val
 	if _update: update()
 
-func get_true_file_system(global: bool) -> DisplayFileSystemRes:
+func get_true_file_system(global: bool) -> FileSystem:
 	return global_file_system if global else project_file_system
 
 func _ready_options() -> void:
@@ -119,9 +119,15 @@ func undo(times: int) -> void:
 
 func update() -> void:
 	
+	if file_system == null: return
+	
+	var files_and_folders: Variant = file_system.navigate_to_dir(curr_display_path)
+	
+	if files_and_folders is not Dictionary:
+		curr_display_path.clear()
+		files_and_folders = file_system.navigate_to_dir(curr_display_path)
+	
 	path_controller.update(curr_display_path)
-	if display_file_system == null: return
-	var files_and_folders: Dictionary = display_file_system.get_files_and_folders_at(curr_display_path)
 	
 	var created_box_cat: Category = _get_created_box_category()
 	if created_box_cat == null: return
@@ -132,11 +138,11 @@ func update() -> void:
 	for key: String in files_and_folders:
 		
 		var info: Dictionary = files_and_folders[key]
-		var type: String = info.type
+		var type: FileSystem.EntityType = info.t
 		
 		var card: CreatedCard
 		
-		if type == "folder":
+		if type == FileSystem.EntityType.FOLDER:
 			var folder_card:= FolderCard.new(self, 0)
 			folder_card.created_card_type = -1
 			folder_card.path_or_name = key
@@ -144,7 +150,7 @@ func update() -> void:
 			folder_card.contents = info.forward
 			card = folder_card
 		else:
-			card = _init_card(key, info, type)
+			card = _init_card(key, info)
 		
 		card.create_date = info.date
 		card.custom_minimum_size = media_explorer.card_display_size
@@ -157,21 +163,21 @@ func update() -> void:
 	update_select_container()
 	update_cards_selection()
 
-func _init_card(key: String, info: Dictionary, type: String) -> CreatedCard:
+func _init_card(key: String, info: Dictionary) -> CreatedCard:
 	return null
 
 func popup_root_menu() -> void:
 	var root_button: Button = path_controller.get_child(0)
 	IS.popup_menu([
-		MenuOption.new("Project", null, set_display_file_system.bind(project_file_system)),
-		MenuOption.new("Global", null, set_display_file_system.bind(global_file_system)),
+		MenuOption.new("Project", null, set_file_system.bind(project_file_system)),
+		MenuOption.new("Global", null, set_file_system.bind(global_file_system)),
 	], root_button)
 
 func _get_created_box_category() -> Category:
 	return null
 
-func get_selected_paths_or_names(accept_files: bool = true, accept_folders: bool = true) -> PackedStringArray:
-	var paths_or_names: PackedStringArray
+func get_selected_pathes_or_names(accept_files: bool = true, accept_folders: bool = true) -> PackedStringArray:
+	var pathes_or_names: PackedStringArray
 	
 	var cats: Array[Category] = categories.values()
 	
@@ -187,97 +193,133 @@ func get_selected_paths_or_names(accept_files: bool = true, accept_folders: bool
 		for idx: int in port:
 			var card: CreatedCard = cards[idx]
 			
-			if (card is ImportBox.ImportCard or card is PresetBox.PresetCard) and accept_files:
-				paths_or_names.append(card.path_or_name)
+			if card is FolderCard:
+				if accept_folders:
+					pathes_or_names.append(card.path_or_name)
 			
-			elif card is FolderCard and accept_folders:
-				paths_or_names.append(card.path_or_name)
+			elif accept_files:
+				pathes_or_names.append(card.path_or_name)
 	
-	return paths_or_names
-
-func create_folder(display_path: Array, folder_name: String) -> void:
-	display_file_system.create_folder(display_path, folder_name)
+	return pathes_or_names
 
 func create_folders(display_path: Array, folders_names: PackedStringArray) -> void:
-	display_file_system.create_folders(display_path, folders_names)
-
-func create_file(display_path: Array, file_path: String) -> MediaCache.LOAD_ERR:
-	return display_file_system.create_file(display_path, file_path)
-
-func create_files(display_path: Array, files_pathes: PackedStringArray) -> Array[MediaCache.LOAD_ERR]:
-	return display_file_system.create_files(display_path, files_pathes)
-
-func delete_file_or_folder(display_path: Array, path_or_name: String, delete_real_file: bool = false) -> void:
-	display_file_system.delete(display_path, path_or_name, delete_real_file)
-	EditorServer.scan_media_existent()
-
-func delete_files_or_folders(display_path: Array, pathes_or_names: PackedStringArray, delete_real_file: bool = false) -> void:
-	display_file_system.delete_packed(display_path, pathes_or_names, delete_real_file)
-	MediaCache.video_contexts_update_max_cache_size()
-	EditorServer.scan_media_existent()
-
-func delete_selected(delete_real_files: bool = false) -> void:
-	var paths_or_names: PackedStringArray = get_selected_paths_or_names()
-	delete_files_or_folders(curr_display_path, paths_or_names, delete_real_files)
+	var target_file_sys: FileSystem = file_system
+	display_path = display_path.duplicate()
+	var success: PackedStringArray = target_file_sys.create_folders(display_path, folders_names)
 	update()
+	ProjectServer2.commit_action(
+		"create_folders",
+		func() -> void:
+			target_file_sys.create_folders(display_path, success)
+			update(),
+		func() -> void:
+			target_file_sys.delete_packet(display_path, success)
+			update(),
+		false
+	)
+
+func create_files(file_system: FileSystem, display_path: Array, files_pathes: PackedStringArray) -> Array[MediaCache.LOAD_ERR]:
+	return file_system.create_files(display_path, files_pathes)
+
+func delete_files_or_folders(file_sys: FileSystem, display_path: Array, pathes_or_names: PackedStringArray, undo_redo: bool = true) -> void:
+	
+	display_path = display_path.duplicate()
+	
+	var do_method: Callable = func() -> void:
+		file_system.delete_packet(display_path, pathes_or_names)
+		MediaCache.video_contexts_update_max_cache_size()
+		EditorServer.scan_media_existent()
+		update()
+	
+	if undo_redo:
+		
+		var internal_dir: Dictionary = file_sys.navigate_to_dir(display_path)
+		var files_and_folders: Dictionary[StringName, PackedStringArray] = _separate_files_and_folders(pathes_or_names)
+		var folders_names: PackedStringArray = files_and_folders.folders
+		
+		var folders: Dictionary[String, Dictionary]
+		for folder_name: String in folders_names:
+			folders[folder_name] = internal_dir[folder_name].duplicate(true)
+		
+		var undo_method: Callable = func() -> void:
+			file_sys.create_files(display_path, files_and_folders.files)
+			file_sys.add_precreated_folders(display_path, folders)
+			MediaCache.video_contexts_update_max_cache_size()
+			EditorServer.scan_media_existent()
+			update()
+		
+		ProjectServer2.commit_action("delete_files", do_method, undo_method)
+	
+	else:
+		do_method.call()
+
+
+func delete_selected() -> void:
+	var pathes_or_names: PackedStringArray = get_selected_pathes_or_names()
+	delete_files_or_folders(file_system, curr_display_path, pathes_or_names)
 
 # move_option: 0 = MOVE_TO_PROJECT, 1 = MOVE_TO_GLOBAL
-func move_selected(move_option: int, move_to_display_path: Array, move_fake_files: bool, move_real_files: bool) -> void:
+func move_selected(move_option: int, move_to_display_path: Array) -> void:
 	
-	var move_from: Dictionary = display_file_system.get_dir(curr_display_path)
+	var before_path: Array = curr_display_path.duplicate()
 	
-	var is_global: bool = move_option == 1
-	var target_file_system: DisplayFileSystemRes = get_true_file_system(is_global)
+	var before_file_sys: FileSystem = file_system
+	var after_file_sys: FileSystem = get_true_file_system(move_option == 1)
 	
-	var paths_or_names: PackedStringArray = get_selected_paths_or_names()
+	var move_from: Dictionary = before_file_sys.navigate_to_dir(before_path)
+	var move_to: Dictionary = after_file_sys.navigate_to_dir(move_to_display_path)
 	
-	var files_paths: PackedStringArray
+	var pathes_or_names: PackedStringArray = get_selected_pathes_or_names()
+	var files_and_folders: Dictionary[StringName, PackedStringArray] = _separate_files_and_folders(pathes_or_names)
+	var files_pathes: PackedStringArray = files_and_folders.files
+	var folders_names: PackedStringArray = files_and_folders.folders
 	var folders: Dictionary[String, Dictionary]
 	
-	for path_or_name: String in paths_or_names:
-		if path_or_name.is_absolute_path():
-			files_paths.append(path_or_name)
-		elif path_or_name.is_valid_filename():
-			var folder_display_path: Array = curr_display_path + [path_or_name]
-			if display_file_system == target_file_system and folder_display_path == move_to_display_path:
+	if before_file_sys == after_file_sys:
+		for folder_name: String in folders_names:
+			var folder_path: Array = before_path + [folder_name]
+			if folder_path == move_to_display_path:
 				continue
-			folders[path_or_name] = move_from[path_or_name]
+			folders[folder_name] = move_from[folder_name]
+	else:
+		for folder_name: String in folders_names:
+			folders[folder_name] = move_from[folder_name]
 	
-	if move_real_files:
+	var move_method: Callable = func(from_file_sys: FileSystem, to_file_sys: FileSystem, from_path: Array, to_path: Array) -> void:
 		
-		var paths_for_format: Dictionary[String, String] = {}
-		var media_dir_path: String = EditorServer.get_media_path(is_global)
+		var _files_pathes:= files_pathes.duplicate()
+		var _folders:= folders.duplicate()
 		
-		for index: int in files_paths.size():
-			
-			var from: String = files_paths[index]
-			var to: String = DirAccessHelper.create_unique_path(str(media_dir_path, from.get_file()))
-			
-			files_paths.set(index, to)
-			move_from[to] = move_from[from]
-			move_from.erase(from)
-			
-			paths_for_format[from] = to
-			
-			DirAccess.rename_absolute(from, to)
-			
-			MediaCache.replace_path(from, to)
+		from_file_sys.delete_packet(from_path, _files_pathes)
+		to_file_sys.create_files(to_path, _files_pathes)
+		var success_folders: PackedStringArray = to_file_sys.add_precreated_folders(to_path, _folders)
+		from_file_sys.delete_packet(from_path, success_folders)
 		
-		EditorServer.format_paths(paths_for_format)
+		file_system = to_file_sys
+		curr_display_path = to_path
+		
+		EditorServer.scan_media_existent()
+		update()
 	
-	if move_fake_files:
-		
-		display_file_system.delete_packed(curr_display_path, files_paths, false)
-		target_file_system.create_files(move_to_display_path, files_paths)
-		display_file_system.delete_packed(curr_display_path, folders.keys(), false)
-		target_file_system.add_folders(move_to_display_path, folders)
-		
-		display_file_system = target_file_system
-		curr_display_path = move_to_display_path
+	ProjectServer2.commit_action(
+		"move_files",
+		move_method.bind(before_file_sys, after_file_sys, before_path, move_to_display_path),
+		move_method.bind(after_file_sys, before_file_sys, move_to_display_path, before_path)
+	)
+
+
+func _separate_files_and_folders(pathes_or_names: PackedStringArray) -> Dictionary[StringName, PackedStringArray]:
+	var files_pathes: PackedStringArray
+	var folders: PackedStringArray
 	
-	update()
-	EditorServer.scan_media_existent()
-	ProjectServer2.save()
+	for path_or_name: String in pathes_or_names:
+		if path_or_name.is_absolute_path(): files_pathes.append(path_or_name)
+		elif path_or_name.is_valid_filename(): folders.append(path_or_name)
+	
+	return {
+		&"files": files_pathes,
+		&"folders": folders
+	}
 
 func _on_folder_button_pressed() -> void:
 	var name_line: LineEdit = IS.create_line_edit("Type Folder Name", "New Folder")
@@ -285,9 +327,7 @@ func _on_folder_button_pressed() -> void:
 		get_tree().current_scene,
 		Vector2(400, 150),
 		"Create Folder",
-		func():
-			create_folder(curr_display_path, name_line.text)
-			update()
+		create_folders.bind(curr_display_path, [name_line.text])
 	)
 	box.add_child(name_line)
 	box.move_child(name_line, 0)
@@ -355,8 +395,8 @@ class CreatedCard extends MediaBox.MediaCard:
 			var target_name: String = "Global" if move_to_global else "Project"
 			
 			#tree.visible = move_fake_files_checkbutton.button_pressed
-			var move_to_file_system: DisplayFileSystemRes = media_box.get_true_file_system(move_to_global)
-			move_to_file_system.build_tree(tree, "%s (Fake Files)" % target_name)
+			var move_to_file_system: FileSystem = media_box.get_true_file_system(move_to_global)
+			move_to_file_system.build_tree(tree, target_name)
 			tree.set_selected(tree.get_root(), 0)
 			
 			#if move_fake_files_checkbutton.button_pressed:
@@ -372,13 +412,9 @@ class CreatedCard extends MediaBox.MediaCard:
 		#move_real_file_checkbutton.pressed.connect(update_ui_func)
 		
 		var box: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2i(400, 600), "Move to", func() -> void:
-			media_box.move_selected(
+			(media_box as CreatedBox).move_selected(
 				move_optionbutton.selected_id,
-				tree.get_selected().get_metadata(0),
-				true,
-				false
-				#move_fake_files_checkbutton.button_pressed,
-				#move_real_file_checkbutton.button_pressed
+				tree.get_selected().get_metadata(0).duplicate(),
 			)
 		)
 		IS.add_children(box, [

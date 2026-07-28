@@ -44,7 +44,7 @@ static func remove_directory_recursive(path: String) -> bool:
 		DirAccess.remove_absolute(path)
 		return true
 	else:
-		EditorServer.push_message("An error occurred when trying to access the path: {path}".format({"path": path}))
+		#EditorServer.push_message("An error occurred when trying to access the path: {path}".format({"path": path}))
 		return false
 
 # Written by Gemini

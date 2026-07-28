@@ -22,7 +22,6 @@ class_name ColorRangeControl extends Control
 signal val_changed()
 
 var color_range_controller: ColorRangeController = ColorRangeController.new()
-var interpolation_mode_button: OptionController
 var xpos_edit: FloatController
 var color_edit: ColorButton
 
@@ -36,21 +35,22 @@ func _ready() -> void:
 	
 	color_range_controller.custom_minimum_size.y = 20.0
 	
-	interpolation_mode_button = IS.create_float_edit.callv(["interpolation_mode"] + UsableRes.options_args(color_range.interpolation_mode, ColorRangeRes.INTERPOLATION_MODE))[0]
+	var interpolation_mode_edit: EditContainer = IS.create_float_edit.callv(["interpolation_mode"] + UsableRes.options_args(color_range.interpolation_mode, ColorRangeRes.INTERPOLATION_MODE))
+	
 	var xpos_edit_cont: EditContainer = IS.create_float_edit("key_position", .0, .0, 1.)
 	var color_edit_cont: EditContainer = IS.create_color_edit("key_color", Color.BLACK)
 	xpos_edit = xpos_edit_cont.controller
 	color_edit = color_edit_cont.controller
 	
-	interpolation_mode_button.selected_option_changed.connect(on_interpolation_mode_button_selected_option_changed)
-	color_range_controller.selected_key_changed.connect(on_selected_key_changed)
-	xpos_edit.val_changed.connect(on_xpos_edit_val_changed)
-	color_edit.color_changed.connect(on_color_edit_val_changed)
+	interpolation_mode_edit.val_changed.connect(_on_interpolation_mode_edit_val_changed)
+	color_range_controller.selected_key_changed.connect(_on_selected_key_changed)
+	xpos_edit.val_changed.connect(_on_xpos_edit_val_changed)
+	color_edit.color_changed.connect(_on_color_edit_val_changed)
 	
 	box.add_child(color_range_controller)
-	box.add_child(interpolation_mode_button.get_parent())
-	box.add_child(xpos_edit.get_parent())
-	box.add_child(color_edit.get_parent())
+	box.add_child(interpolation_mode_edit)
+	box.add_child(xpos_edit_cont)
+	box.add_child(color_edit_cont)
 	
 	margin.add_child(box)
 	add_child(margin)
@@ -64,18 +64,18 @@ func _update_ui(x_pos: float, color: Color) -> void:
 	xpos_edit.visible = is_key_available
 	color_edit.visible = is_key_available
 
-func on_interpolation_mode_button_selected_option_changed(id: int, option: MenuOption) -> void:
-	color_range_controller.color_range_res.interpolation_mode = id
+func _on_interpolation_mode_edit_val_changed(new_val: Variant) -> void:
+	color_range_controller.color_range_res.interpolation_mode = new_val
 
-func on_selected_key_changed(x_pos: float, color: Color) -> void:
+func _on_selected_key_changed(x_pos: float, color: Color) -> void:
 	_update_ui(x_pos, color)
 	val_changed.emit()
 
-func on_xpos_edit_val_changed(new_pos: float) -> void:
+func _on_xpos_edit_val_changed(new_pos: float) -> void:
 	color_range_controller.move_selected_key(new_pos)
 	val_changed.emit()
 
-func on_color_edit_val_changed(new_color: Color) -> void:
+func _on_color_edit_val_changed(new_color: Color) -> void:
 	var color_range_res = color_range_controller.color_range_res
 	color_range_res.update_key_color(color_range_controller.selected_key, new_color)
 	val_changed.emit()

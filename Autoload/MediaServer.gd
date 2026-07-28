@@ -110,8 +110,8 @@ var thumbnails: Dictionary[StringName, Dictionary]
 var timeline_video_textures: Dictionary[StringName, Dictionary]
 var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
-var not_saved_yet: Dictionary[String, Resource] = {}
-var not_deleted_yet: Array[String] = []
+#var not_saved_yet: Dictionary[String, Resource] = {}
+#var not_deleted_yet: Array[String] = []
 
 
 func _init() -> void:
@@ -122,8 +122,6 @@ func clear_media_server() -> void:
 	thumbnails.clear()
 	timeline_video_textures.clear()
 	timeline_waveform_textures.clear()
-	not_saved_yet.clear()
-	not_deleted_yet.clear()
 
 
 func server_register_image(path: String, image: Image, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
@@ -175,42 +173,23 @@ func server_replace_media_path(from: String, to: String) -> void:
 	if timeline_waveform_textures.has(from):
 		timeline_waveform_textures[to] = timeline_waveform_textures[from]
 		timeline_waveform_textures.erase(from)
-	
-	if not_saved_yet.has(from):
-		not_saved_yet[to] = not_saved_yet[from]
-		not_saved_yet.erase(from)
-	
-	if not_deleted_yet.has(from):
-		not_deleted_yet.append(to)
-		not_deleted_yet.erase(from)
 
 
-func server_deregister_image(path: String, id: String, thumbnail_path: String, delete_images_on_disk: bool) -> void:
+func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
 	thumbnails.erase(path)
-	if delete_images_on_disk:
-		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
-	else:
-		store_not_deleted_thumbnail(thumbnail_path, id)
+	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
 
-func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool) -> void:
+func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
 	timeline_waveform_textures.erase(path)
-	if delete_images_on_disk:
-		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
-		DirAccessHelper.remove_directory_recursive(waveform_path + id)
-	else:
-		store_not_deleted_thumbnail(thumbnail_path, id)
-		store_not_deleted_dir(str(waveform_path, id))
+	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
+	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
-func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String, delete_images_on_disk: bool) -> void:
+func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
 	timeline_waveform_textures.erase(path)
-	if delete_images_on_disk:
-		DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
-		DirAccessHelper.remove_directory_recursive(waveform_path + id)
-	else:
-		store_not_deleted_thumbnail(thumbnail_path, id)
-		store_not_deleted_dir(str(waveform_path, id))
+	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
+	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
 func load_thumbnail(media_path: String, thumbnail_path: String, id: String) -> void:
 	var thumb_image: Image = Image.load_from_file(str(thumbnail_path, id, ".png"))
@@ -240,53 +219,6 @@ func load_waveform(media_path: String, thumbnail_path: String, id: String) -> vo
 	
 	timeline_waveform_textures[StringName(media_path)] = {&"textures": waveform_textures, &"total_width": total_width}
 
-func save_not_saved_yet() -> void:
-	for path: String in not_saved_yet:
-		var res: Resource = not_saved_yet[path]
-		DirAccess.make_dir_absolute(path.get_base_dir())
-		if res is Image:
-			res.save_png(path)
-		elif res is AudioStreamWAV:
-			res.save_to_wav(path)
-		else:
-			ResourceSaver.save(res, path, ResourceSaver.FLAG_COMPRESS)
-	not_saved_yet.clear()
-
-func store_not_saved_resource(full_path: String, res: Resource) -> void:
-	not_saved_yet[full_path] = res
-
-func store_not_saved_thumbnail(thumbnail_path: String, id: String, image: Image) -> void:
-	not_saved_yet[str(thumbnail_path, id, ".png")] = image
-
-func get_not_saved_resource(full_path: String) -> Resource:
-	return not_saved_yet.get(full_path)
-
-func delete_not_deleted_yet() -> void:
-	for path: String in not_deleted_yet:
-		var result: Error = DirAccess.remove_absolute(path)
-		if result != OK:
-			DirAccessHelper.remove_directory_recursive(path)
-	not_deleted_yet.clear()
-
-func store_not_deleted_resource(path: String) -> void:
-	if not_saved_yet.has(path): not_saved_yet.erase(path)
-	else: not_deleted_yet.append(path)
-
-func store_not_deleted_thumbnail(thumbnail_path: String, id: String) -> void:
-	store_not_deleted_resource(str(thumbnail_path, id, ".png"))
-
-func store_not_deleted_dir(dir_path: String) -> void:
-	var deleteable: PackedStringArray
-	
-	for path: String in not_saved_yet:
-		if path.begins_with(dir_path):
-			deleteable.append(path)
-	
-	for path: String in deleteable:
-		not_saved_yet.erase(path)
-	
-	not_deleted_yet.append(dir_path)
-
 func get_thumbnail(key_as_path: StringName) -> Dictionary:
 	return thumbnails[key_as_path] if thumbnails.has(key_as_path) else THUMBNAIL_DISCARD
 
@@ -301,8 +233,6 @@ func create_thumbnail_from_image(key_as_path: StringName, image: Image, thumbnai
 		result_image = image.duplicate(true)
 		result_image.resize(THUMBNAIL_TARGET_WIDTH, target_height, Image.INTERPOLATE_LANCZOS)
 		result_texture = ImageTexture.create_from_image(result_image)
-		
-		store_not_saved_thumbnail(thumbnail_path, id, result_image)
 	
 	else:
 		result_image = image
@@ -321,7 +251,6 @@ func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDe
 func create_thumbnail_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, thumbnail_path: String, id: String) -> Dictionary:
 	var thumbnail_image: Image = MediaHelper.GenerateWaveformImage(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
-	store_not_saved_thumbnail(thumbnail_path, id, thumbnail_image)
 	return thumbnails[key_as_path]
 
 func create_timeline_video_textures_from_video_path(video_path: StringName) -> Array[Image]:
@@ -342,7 +271,7 @@ func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio
 	for index: int in waveform_images.size():
 		var image: Image = waveform_images[index]
 		var image_path: String = str(waveform_port_path, index, ".png")
-		not_saved_yet[image_path] = image
+		#not_saved_yet[image_path] = image
 		total_width += image.get_width()
 	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
 	
@@ -375,7 +304,7 @@ func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_meth
 	const GROUP_SIZE: int = 4
 	
 	for start_idx: int in range(0, images_count, GROUP_SIZE):
-		var curr_group_size: int = min(GROUP_SIZE, images_count - start_idx)
+		var curr_group_size: int = mini(GROUP_SIZE, images_count - start_idx)
 		var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
 		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
 	
@@ -1446,6 +1375,3 @@ func get_media_classname_from_type(type: MediaType) -> StringName:
 
 func is_media_type_preset(path: String) -> bool:
 	return path.get_extension() in ["res", "tres"]
-
-
-

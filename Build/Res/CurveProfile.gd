@@ -322,7 +322,6 @@ func _interpolate_elastic(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t:
 	return lerp(a.value, b.value, u)
 
 func _interpolate_bounce(time_a: int, time_b: int, a: CurveKey, b: CurveKey, t: float) -> float:
-	print(time_a)
 	var u: float
 	if t < 1. / 2.75:
 		u = 7.5625 * t * t

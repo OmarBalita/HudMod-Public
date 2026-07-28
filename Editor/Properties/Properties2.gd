@@ -615,6 +615,7 @@ func _on_panel_mouse_exited(panel: PanelContainer) -> void:
 
 
 class ComponentInfo extends Resource:
+	
 	@export var index: int
 	@export var component_res_id: StringName
 	@export var component_res_owner: UsableRes
