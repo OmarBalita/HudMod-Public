@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dc4482b1y8kvh"]
+
+[ext_resource type="Script" path="res://Prototype/KeyboardDebugTest.gd" id="2_4c4e5"]
+
+[sub_resource type="GDScript" id="GDScript_tetkd"]
+script/source = "extends Node
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+"
+
+[node name="PrototypeKeyboard" type="Control" unique_id=964684430]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Control" type="PanelContainer" parent="." unique_id=1592036815]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 40.0
+grow_horizontal = 2
+script = SubResource("GDScript_tetkd")
+metadata/_custom_type_script = "uid://bsunkx73li7qe"
+
+[node name="Label" type="Label" parent="." unique_id=1503473520 node_paths=PackedStringArray("keyboard")]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = 70.0
+offset_right = 31.0
+offset_bottom = 117.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 34
+text = "Non"
+script = ExtResource("2_4c4e5")
+keyboard = NodePath("../Control")

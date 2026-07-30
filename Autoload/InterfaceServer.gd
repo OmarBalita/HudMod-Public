@@ -437,6 +437,10 @@ func create_menu_button(text: String, items_info: Array[Dictionary], more: Dicti
 	ObjectServer.describe(button, more)
 	return button
 
+func create_keyboard(record_mode: bool = true):
+	var keyboard = KeyboardControl.new()
+	keyboard.record_mode = record_mode
+	return keyboard
 
 func create_popup_menu(items_info: Array[Dictionary], more: Dictionary = {}) -> PopupMenu:
 	var _popup_menu:= PopupMenu.new()
@@ -1065,4 +1069,3 @@ func add_children(parent: Node, children: Array[Node]) -> void:
 func clear_children(parent: Node) -> void:
 	for child: Node in parent.get_children():
 		child.queue_free()
-

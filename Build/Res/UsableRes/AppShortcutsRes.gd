@@ -103,23 +103,30 @@ func load_shortcuts_to(shortcut_node: ShortcutNode) -> void:
 		register_prop(shortcut_node.key, shortcut_node.get_shortcuts())
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	var shortcuts_cont:= ShortcutsContainer.new()
+	var shortcuts_cont:= ShortcutsCommandsContainer.new()
 	for prop_key: StringName in properties:
 		shortcuts_cont.add_controller(prop_key, get_prop(prop_key), _default_all_shortcuts[prop_key])
 	return {&"Shortcuts": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [shortcuts_cont])}
 
+func create_shortcuts_container() -> ShortcutsContainer:
+	return ShortcutsContainer.new(self)
 
-class ShortcutsContainer extends VBoxContainer:
+class ShortcutsCommandsContainer extends VBoxContainer:
 	
 	static var val_comp_method: Callable =\
 		func(default: InputEventKey, new_val: InputEventKey) -> bool:
 			return default.is_match(new_val)
+	
+	var categories: Dictionary[String, Category]
+	var category_items: Dictionary[String, Array]
 	
 	func add_controller(key: StringName, shortcuts: Dictionary, default: Dictionary) -> void:
 		
 		var category: Category = IS.create_category(true, key, Color.TRANSPARENT, Vector2.ZERO, false)
 		
 		category.is_expanded = true
+		
+		var items: Array[Dictionary] = []
 		
 		for shortcut_key: StringName in shortcuts:
 			
@@ -152,10 +159,33 @@ class ShortcutsContainer extends VBoxContainer:
 			sh_edit_cont.add_child(switch_btn)
 			category.add_content(sh_edit_cont)
 			
+			items.append({edit_cont = sh_edit_cont, label = String(shortcut_key).to_lower()})
+			
 			IS.expand(sh_edit_cont)
 			IS.expand(switch_btn)
 		
+		categories[key] = category
+		category_items[key] = items
+		
 		add_child(category)
+	
+	func filter(search_query: String) -> void:
+		
+		var query: String = search_query.strip_edges().to_lower()
+		
+		for cat_key: String in categories:
+			
+			var category: Category = categories[cat_key]
+			var items: Array = category_items[cat_key]
+			var any_visible: bool = false
+			
+			for item: Dictionary in items:
+				var edit_cont: EditContainer = item.edit_cont
+				var is_finded: bool = query.is_empty() or StringHelper.fuzzy_search(query, item.label)
+				edit_cont.visible = is_finded
+				any_visible = any_visible or is_finded
+			
+			category.visible = any_visible
 
 
 	class SwitchButton extends Button:
@@ -212,7 +242,220 @@ class ShortcutsContainer extends VBoxContainer:
 			var kc = event.keycode
 			return kc == KEY_CTRL or kc == KEY_SHIFT or kc == KEY_ALT or kc == KEY_META
 
+class ShortcutsActiveKeyContainer extends VBoxContainer:
+	var shortcuts_container: ShortcutsCommandsContainer
+	var rows: Dictionary[String, Label] = {}
+	var rows_box: VBoxContainer
+	 
+	func _init(container: ShortcutsCommandsContainer = null) -> void:
+		shortcuts_container = container
+		var col_header := IS.create_box_container(16, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+		
+		var panel_col_label := IS.create_label("Panel", "", IS.label_settings_main)
+		panel_col_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel_col_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		
+		var commands_col_label := IS.create_label("Commands", "", IS.label_settings_main)
+		commands_col_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		commands_col_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		
+		col_header.add_child(panel_col_label)
+		col_header.add_child(commands_col_label)
+		add_child(col_header)
+		add_child(IS.create_h_line_panel())
+		
+		var scroll := ScrollContainer.new()
+		IS.expand(scroll, true, true)
+		
+		rows_box = VBoxContainer.new()
+		IS.expand(rows_box, true, false)
+		scroll.add_child(rows_box)
+		add_child(scroll)
+		
+		if shortcuts_container:
+			_build_rows()
+		
+		clear()
+	 
+	func set_shortcuts_container(container: ShortcutsCommandsContainer) -> void:
+		shortcuts_container = container
+		for child in rows_box.get_children():
+			child.queue_free()
+		rows.clear()
+		
+		_build_rows()
+		clear()
+	 
+	 
+	func _build_rows() -> void:
+		for category_key: String in shortcuts_container.categories:
+			var row := IS.create_box_container(16, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+			
+			var panel_label := IS.create_label(category_key, "", IS.label_settings_main)
+			panel_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			panel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			IS.set_font_colors(panel_label)
+			
+			var commands_label := Label.new()
+			commands_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			commands_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			IS.set_font_colors(commands_label)
+			
+			row.add_child(panel_label)
+			row.add_child(commands_label)
+			rows_box.add_child(row)
+			
+			rows[category_key] = commands_label
+	 
+	func show_active_key(key_string: String) -> void:
+		var normalized: String = key_string.strip_edges()
+		
+		if shortcuts_container == null or normalized.is_empty():
+			_clear_rows()
+			return
+		
+		for category_key: String in shortcuts_container.category_items:
+			if not rows.has(category_key):
+				continue
+			
+			var items: Array = shortcuts_container.category_items[category_key]
+			var matched_labels: Array[String] = []
+			
+			for item: Dictionary in items:
+				var edit_cont: EditContainer = item.edit_cont
+				var event: InputEventKey = edit_cont.curr_val
+				
+				if event and _key_string_matches(event, normalized):
+					matched_labels.append(String(item.label).capitalize())
+			
+			rows[category_key].text = ", ".join(matched_labels)
+	 
+	func clear() -> void:
+		_clear_rows()
+	
+	func _clear_rows() -> void:
+		for category_key: String in rows:
+			rows[category_key].text = ""
+	
+	func _key_string_matches(event: InputEventKey, key_string: String) -> bool:
+		if event.as_text() == key_string:
+			return true
+		
+		var event_tokens: Array = event.as_text().to_lower().split("+")
+		var input_tokens: Array = key_string.to_lower().split("+")
+		
+		event_tokens.sort()
+		input_tokens.sort()
+		
+		return event_tokens == input_tokens
 
-
-
-
+class ShortcutsContainer extends MarginContainer:
+	
+	var commands_container: ShortcutsCommandsContainer
+	var active_key_container: ShortcutsActiveKeyContainer
+	var search_line: LineEdit
+	var key_badge: Label
+	
+	func _init(shortcuts: AppShortcutsRes) -> void:
+		IS.expand(self, true, true)
+		
+		var shortcut_panel := IS.create_panel_container(Vector2.ZERO, IS.style_body)
+		IS.expand(shortcut_panel, true, true)
+		
+		var margin := IS.create_margin_container()
+		
+		var split_cont: SplitContainer = IS.create_split_container()
+		IS.expand(split_cont, true, true)
+		
+		var active_key_panel := IS.create_panel_container(Vector2.ZERO, IS.style_panel)
+		IS.expand(active_key_panel, true, true)
+		
+		var active_key_margin := IS.create_margin_container()
+		IS.expand(active_key_margin, true, true)
+		
+		var active_key_vbox := IS.create_box_container(8, true)
+		IS.expand(active_key_vbox, true, true)
+		
+		var active_key_header := IS.create_box_container(8, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+		
+		var active_key_title := IS.create_label("Active Key: ", "", IS.label_settings_main)
+		active_key_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		active_key_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		
+		key_badge = Label.new()
+		key_badge.custom_minimum_size = Vector2(36, 24)
+		key_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		IS.set_font_colors(key_badge)
+		
+		active_key_header.add_child(active_key_title)
+		active_key_header.add_child(key_badge)
+		
+		commands_container = ShortcutsCommandsContainer.new()
+		for key: StringName in shortcuts.properties:
+			commands_container.add_controller(
+				key,
+				shortcuts.get_prop(key),
+				AppShortcutsRes._default_all_shortcuts[key]
+			)
+		commands_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		commands_container.custom_minimum_size.x = 0
+		commands_container.size_flags_stretch_ratio = 1.0
+		
+		active_key_container = ShortcutsActiveKeyContainer.new(commands_container)
+		IS.expand(active_key_container, true, true)
+		
+		active_key_vbox.add_child(active_key_header)
+		active_key_vbox.add_child(active_key_container)
+		
+		active_key_margin.add_child(active_key_vbox)
+		active_key_panel.add_child(active_key_margin)
+		
+		var v_line := IS.create_v_line_panel()
+		
+		var commands_panel := IS.create_panel_container(Vector2.ZERO, IS.style_panel)
+		IS.expand(commands_panel, true, true)
+		
+		var commands_margin := IS.create_margin_container()
+		IS.expand(commands_margin, true, true)
+		
+		var commands_vbox := IS.create_box_container(16, true)
+		IS.expand(commands_vbox, true, true)
+		
+		search_line = IS.create_line_edit("Search", "", null)
+		
+		var commands_label := IS.create_label("Commands: ", "", IS.label_settings_main)
+		commands_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		IS.expand(commands_label, true, false)
+		
+		var top_commands_container := IS.create_box_container(16, false, {size_flags_horizontal = Control.SIZE_EXPAND_FILL})
+		
+		search_line.text_changed.connect(
+			func(new_text: String) -> void:
+				commands_container.filter(new_text)
+		)
+		
+		var scroll := ScrollContainer.new()
+		IS.expand(scroll, true, true)
+		scroll.add_child(commands_container)
+		
+		top_commands_container.add_child(commands_label)
+		top_commands_container.add_child(search_line)
+		commands_vbox.add_child(top_commands_container)
+		commands_vbox.add_child(scroll)
+		
+		commands_margin.add_child(commands_vbox)
+		commands_panel.add_child(commands_margin)
+		
+		split_cont.add_child(active_key_panel)
+		split_cont.add_child(v_line)
+		split_cont.add_child(commands_panel)
+		
+		margin.add_child(split_cont)
+		shortcut_panel.add_child(margin)
+		add_child(shortcut_panel)
+	
+	
+	func show_active_key(key_string: String) -> void:
+		key_badge.text = key_string
+		active_key_container.show_active_key(key_string)

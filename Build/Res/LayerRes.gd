@@ -133,5 +133,3 @@ func duplicate_layer_res() -> LayerRes:
 	dupl_res.clips = new_clips
 	
 	return dupl_res
-
-

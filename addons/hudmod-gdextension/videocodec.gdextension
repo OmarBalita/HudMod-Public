@@ -1,0 +1,19 @@
+[configuration]
+
+entry_symbol = "library_init"
+compatibility_minimum = "4.6"
+reloadable = true
+
+[libraries]
+
+windows.release.x86_64 = "res://addons/hudmod-gdextension/win64/libhudmod.windows.template_release.x86_64.dll"
+windows.debug.x86_64 = "res://addons/hudmod-gdextension/win64/libhudmod.windows.template_debug.x86_64.dll"
+windows.release.x86_32 = "res://addons/hudmod-gdextension/win32/libhudmod.windows.template_release.x86_32.dll"
+windows.debug.x86_32 = "res://addons/hudmod-gdextension/win32/libhudmod.windows.template_debug.x86_32.dll"
+windows.release.arm64 = "res://addons/hudmod-gdextension/winarm64/libhudmod.windows.template_release.arm64.dll"
+windows.debug.arm64 = "res://addons/hudmod-gdextension/winarm64/libhudmod.windows.template_debug.arm64.dll"
+
+linux.release.x86_64 = "res://addons/hudmod-gdextension/linux64/libhudmod.linux.template_release.x86_64.so"
+linux.debug.x86_64 = "res://addons/hudmod-gdextension/linux64/libhudmod.linux.template_debug.x86_64.so"
+linux.release.arm64 = "res://addons/hudmod-gdextension/linuxarm64/libhudmod.linux.template_release.arm64.so"
+linux.debug.arm64 = "res://addons/hudmod-gdextension/linuxarm64/libhudmod.linux.template_debug.arm64.so"

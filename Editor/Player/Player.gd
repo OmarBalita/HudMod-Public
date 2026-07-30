@@ -143,6 +143,7 @@ func _ready_header() -> void:
 	
 	var editor_btn: MenuButton = IS.create_menu_button("Editor", [
 		{text = "Editor Settings"},
+		{text = "Keyboard Customization"},
 		{as_separator = true},
 		{text = "Layout", icon = preload("res://Asset/Icons/grid.png"), submenu = EditorServer.popup_menu_layout},
 		{text = "Docks", submenu = EditorServer.popup_menu_docks},
@@ -328,7 +329,8 @@ func _on_project_popup_id_pressed(id: int) -> void:
 func _on_editor_popup_id_pressed(id: int) -> void:
 	match id:
 		0: EditorServer.popup_editor_settings()
-		4: EditorServer.toggle_fullscreen()
+		1: EditorServer.popup_keyboard_customization()
+		5: EditorServer.toggle_fullscreen()
 
 func _on_help_popup_id_pressed(id: int) -> void:
 	match id:
@@ -337,8 +339,3 @@ func _on_help_popup_id_pressed(id: int) -> void:
 		3: EditorServer.go_to_community()
 		5: EditorServer.popup_about()
 		6: OS.shell_open(EditorServer.version_info.support_link)
-
-
-
-
-

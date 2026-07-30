@@ -952,7 +952,27 @@ func popup_editor_settings() -> void:
 	
 	win_cont.get_window().close_requested.connect(ResourceSaver.save.bind(editor_settings, editor_settings_path))
 
-
+func popup_keyboard_customization() -> void:
+	var win_cont: MarginContainer = WindowManager.popup_window_base(get_window(), Vector2i(1280, 720), "Keyboard Customization")
+	
+	var root: BoxContainer = IS.create_box_container(12, true)
+	IS.expand(root, true, true)
+	
+	var shortcuts_res: AppShortcutsRes = editor_settings.shortcuts
+	
+	var keyboard: KeyboardControl = IS.create_keyboard()
+	IS.expand(keyboard, true, true)
+	
+	var shortcuts_container = shortcuts_res.create_shortcuts_container()
+	IS.expand(shortcuts_container, true, true)
+	
+	keyboard.shortcut_recorded.connect(shortcuts_container.show_active_key)
+	
+	root.add_child(keyboard)
+	root.add_child(shortcuts_container)
+	win_cont.add_child(root)
+	
+	win_cont.get_window().close_requested.connect(ResourceSaver.save.bind(editor_settings, editor_settings_path))
 
 func popup_save_option_or_save(method: Callable, accept_text: String = "Save & Quit", cancel_text: String = "Don't Save") -> void:
 	
@@ -1120,6 +1140,3 @@ func _on_window_focus_entered() -> void:
 
 func _on_window_files_dropped(files_pathes: Array[String]) -> void:
 	pass
-
-
-
