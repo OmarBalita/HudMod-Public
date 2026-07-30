@@ -15,11 +15,18 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 
-**/*.dll*
-**/*.so*
-**/*.lib*
-**/*.dylib*
-**/*.exp*
+**/*.dll
+**/*.so
+**/*.lib
+**/*.dylib
+**/*.exp
 **/*.o
 **/*.obj
-**/*.pdb*
+**/*pdb
+
+**/*.dll.*
+**/*.so.*
+**/*.lib.*
+**/*.dylib.*
+**/*.exp.*
+**/*.pdb.*
