@@ -502,6 +502,9 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	var usable_ress: Array[UsableRes]
 	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
 	var mediares_edit_cont: EditContainer = curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit)
+	
+	_connect_and_update_usable_ress_controller(curr_focused_media_res, curr_focused_media_res, mediares_edit_cont)
+	
 	header_cont.add_child(mediares_edit_cont)
 
 func _spawn_component_controller(section_key: StringName, comp_info: ComponentInfo) -> void:
@@ -556,15 +559,20 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	
 	curr_section_controls.box.add_child(comp_editor)
 	
-	var update_usable_ress_func: Callable = func(new_frame: int) -> void:
-		var media_res: MediaClipRes = comp_res_owner.get_owner()
-		
-		var new_local_frame: int = clamp(new_frame - media_res.clip_pos, 0, media_res.length)
-		comp_res_owner.update_controllers(new_local_frame)
-	
+	_connect_and_update_usable_ress_controller(comp_res_owner, comp_res_owner.get_owner(), comp_editor)
+
+
+func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_clip_res: MediaClipRes, edit_cont: EditContainer) -> void:
+	var update_usable_ress_func: Callable = _get_update_usable_ress_controller_method(usable_res, owner_as_clip_res)
 	update_usable_ress_func.call(PlaybackServer.position)
 	PlaybackServer.position_changed.connect(update_usable_ress_func)
-	comp_editor.tree_exited.connect(func() -> void: PlaybackServer.position_changed.disconnect(update_usable_ress_func))
+	edit_cont.tree_exited.connect(func() -> void: PlaybackServer.position_changed.disconnect(update_usable_ress_func))
+
+func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
+	return func(new_frame: int) -> void:
+		var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
+		owner_as_clip_res.update_specific_controller(usable_res, new_frame)
+
 
 func _update_notification_label() -> String:
 	var notif_text: String

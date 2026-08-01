@@ -348,8 +348,8 @@ class ClipPanel extends Panel:
 	
 	func _ready() -> void:
 		
-		clip_res.comp_keyframe_added.connect(_on_comp_keyframe_added)
-		clip_res.comp_keyframe_removed.connect(_on_comp_keyframe_removed)
+		clip_res.keyframe_added.connect(_on_comp_keyframe_added)
+		clip_res.keyframe_removed.connect(_on_comp_keyframe_removed)
 		
 		update_has_clips()
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -561,70 +561,64 @@ class ClipPanel extends Panel:
 	func open_graph_editor() -> void:
 		close_graph_editor()
 		
-		var comps: Dictionary[StringName, Array] = clip_res.components
-		
 		var index: int
 		
-		for section_key: String in comps.keys():
-			var section_comps: Array = comps[section_key]
+		var anims: Dictionary[UsableRes, Dictionary] = clip_res.get_animations()
+		
+		for usable_res: UsableRes in anims:
+			var animated_props: Dictionary = anims[usable_res]
+			var usable_res_port: Dictionary[StringName, Category] = graph_editors.get_or_add(usable_res, {} as Dictionary[StringName, Category])
 			
-			for comp_res: ComponentRes in section_comps:
-				var anims: Dictionary[UsableRes, Dictionary] = comp_res.animations
+			for prop_key: StringName in animated_props:
 				
-				for usable_res: UsableRes in anims:
-					var animated_props: Dictionary = anims[usable_res]
-					var usable_res_port: Dictionary[StringName, Category] = graph_editors.get_or_add(usable_res, {} as Dictionary[StringName, Category])
-					
-					for prop_key: StringName in animated_props:
-						
-						var anim_res: AnimationRes = animated_props[prop_key]
-						
-						if not AnimationRes.funcs_indexer.has(anim_res.value_type):
-							continue
-						
-						var graph_category:= IS.create_category(true, str(comp_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.), false)
-						var graph_editor:= CurveController.new()
-						
-						var minmax_vals: Vector2 = anim_res.find_minmax_vals()
-						var length: float = minmax_vals.y - minmax_vals.x
-						
-						if length in [.0, -INF, INF]:
-							minmax_vals.x = -10.
-							minmax_vals.y = 10.
-							length = minmax_vals.y - minmax_vals.x
-						
-						var length_square: float = length * 2.
-						
-						graph_editor.custom_minimum_size.y = 200.
-						graph_editor.curves_profiles = anim_res.profiles
-						graph_editor.min_domain = clip_res.from
-						graph_editor.max_domain = clip_res.from + clip_res.length
-						graph_editor.min_val = minmax_vals.x
-						graph_editor.max_val = minmax_vals.y
-						graph_editor.zoom_max = length_square
-						graph_editor.draw_val_step = maxi(1, snappedi(length_square / 10, 1))
-						graph_editor.draw_y_small_step = graph_editor.draw_val_step
-						graph_editor.draw_y_big_step = graph_editor.draw_y_small_step * 2
-						
-						graph_editor.mouse_entered.connect(_on_graph_editor_mouse_entered.bind(graph_editor))
-						graph_editor.mouse_exited.connect(_on_graph_editor_mouse_exited.bind(graph_editor))
-						graph_editor.keys_editing.connect(_on_graph_editor_keys_editing)
-						
-						graph_category.add_content(graph_editor)
-						box_container.add_child(graph_category)
-						
-						IS.set_margin_settings(graph_category.content_margin_container, 2, 2, 0, 2)
-						graph_category.content_color = Color.BLACK
-						
-						IS.expand(graph_editor, true, true)
-						graph_category.mouse_filter = Control.MOUSE_FILTER_STOP
-						graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
-						graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
-						graph_category.expand_changed.connect(_on_graph_category_expand_changed)
-						
-						usable_res_port[prop_key] = graph_category
-						
-						index += 1
+				var anim_res: AnimationRes = animated_props[prop_key]
+				
+				if not AnimationRes.funcs_indexer.has(anim_res.value_type):
+					continue
+				
+				var graph_category:= IS.create_category(true, str(usable_res.get_classname(), ":", prop_key), Color.TRANSPARENT, Vector2(.0, 250.), false)
+				var graph_editor:= CurveController.new()
+				
+				var minmax_vals: Vector2 = anim_res.find_minmax_vals()
+				var length: float = minmax_vals.y - minmax_vals.x
+				
+				if length in [.0, -INF, INF]:
+					minmax_vals.x = -10.
+					minmax_vals.y = 10.
+					length = minmax_vals.y - minmax_vals.x
+				
+				var length_square: float = length * 2.
+				
+				graph_editor.custom_minimum_size.y = 200.
+				graph_editor.curves_profiles = anim_res.profiles
+				graph_editor.min_domain = clip_res.from
+				graph_editor.max_domain = clip_res.from + clip_res.length
+				graph_editor.min_val = minmax_vals.x
+				graph_editor.max_val = minmax_vals.y
+				graph_editor.zoom_max = length_square
+				graph_editor.draw_val_step = maxi(1, snappedi(length_square / 10, 1))
+				graph_editor.draw_y_small_step = graph_editor.draw_val_step
+				graph_editor.draw_y_big_step = graph_editor.draw_y_small_step * 2
+				
+				graph_editor.mouse_entered.connect(_on_graph_editor_mouse_entered.bind(graph_editor))
+				graph_editor.mouse_exited.connect(_on_graph_editor_mouse_exited.bind(graph_editor))
+				graph_editor.keys_editing.connect(_on_graph_editor_keys_editing)
+				
+				graph_category.add_content(graph_editor)
+				box_container.add_child(graph_category)
+				
+				IS.set_margin_settings(graph_category.content_margin_container, 2, 2, 0, 2)
+				graph_category.content_color = Color.BLACK
+				
+				IS.expand(graph_editor, true, true)
+				graph_category.mouse_filter = Control.MOUSE_FILTER_STOP
+				graph_category.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+				graph_category.is_expanded = graph_editors_expanded.size() - 1 >= index and graph_editors_expanded[index]
+				graph_category.expand_changed.connect(_on_graph_category_expand_changed)
+				
+				usable_res_port[prop_key] = graph_category
+				
+				index += 1
 		
 		select_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
@@ -647,8 +641,8 @@ class ClipPanel extends Panel:
 		
 		PlaybackServer.position_changed.disconnect(_on_playback_server_position_changed)
 	
-	func _on_comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void: update_spacial_frames_and_update_timeline()
-	func _on_comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_spacial_frames_and_update_timeline()
+	func _on_comp_keyframe_added(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void: update_spacial_frames_and_update_timeline()
+	func _on_comp_keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_spacial_frames_and_update_timeline()
 	
 	func _on_mouse_entered() -> void:
 		EditorServer.media_clips_focused.append(self)
@@ -714,7 +708,7 @@ class ClipPanel extends Panel:
 		func update_spacial_frames() -> void:
 			clear_spacial_frames()
 			var clip_res: MediaClipRes = owner_as_clip.clip_res
-			clip_res.loop_components_animations_keys({},
+			clip_res.loop_animations_keyframes({},
 				func(pos: int, curve_key: CurveKey, info: Dictionary[StringName, Variant]) -> void:
 					if pos >= clip_res.from and pos <= clip_res.from + clip_res.length:
 						pos -= clip_res.from
@@ -1373,5 +1367,7 @@ func get_media_classname_from_type(type: MediaType) -> StringName:
 		2: return &"AudioClipRes"
 	return &""
 
+const RES_EXTENSIONS: PackedStringArray = ["res", "tres"]
+
 func is_media_type_preset(path: String) -> bool:
-	return path.get_extension() in ["res", "tres"]
+	return path.get_extension() in RES_EXTENSIONS

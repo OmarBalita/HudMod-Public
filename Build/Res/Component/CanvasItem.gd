@@ -111,9 +111,9 @@ func _process(frame: int) -> void:
 
 
 func _apply_custom_stacked_values(frame: int, dict: Dictionary[StringName, Array]) -> void:
-	apply_stacked_value(dict, &"position", sample_or_get(self, &"position", frame))
-	apply_stacked_value(dict, &"rotation_degrees", sample_or_get(self, &"rotation_degrees", frame))
-	apply_stacked_value(dict, &"scale", sample_or_get(self, &"scale", frame))
+	apply_stacked_value(dict, &"position", owner.sample_or_get(self, &"position", frame))
+	apply_stacked_value(dict, &"rotation_degrees", owner.sample_or_get(self, &"rotation_degrees", frame))
+	apply_stacked_value(dict, &"scale", owner.sample_or_get(self, &"scale", frame))
 
 
 func _get_shader_global_params_snip() -> String:

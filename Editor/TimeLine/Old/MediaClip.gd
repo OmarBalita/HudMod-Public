@@ -85,8 +85,8 @@
 	#
 	#func _init(_owner_as_media_clip: MediaClip) -> void:
 		#owner_as_media_clip = _owner_as_media_clip
-		#owner_as_media_clip.clip_res.comp_keyframe_added.connect(_on_clip_res_comp_keyframe_added)
-		#owner_as_media_clip.clip_res.comp_keyframe_removed.connect(_on_clip_res_comp_keyframe_removed)
+		#owner_as_media_clip.clip_res.keyframe_added.connect(_on_clip_res_comp_keyframe_added)
+		#owner_as_media_clip.clip_res.keyframe_removed.connect(_on_clip_res_comp_keyframe_removed)
 	#
 	#func _ready() -> void:
 		#IS.set_base_panel_settings(self, STYLE_SELECT)
@@ -220,8 +220,8 @@
 	#
 	## Connections
 	#clip_res.res_changed.connect(on_media_res_changed)
-	#clip_res.comp_animation_res_added.connect(on_media_res_animation_res_added)
-	#clip_res.comp_animation_res_removed.connect(on_media_res_animation_res_removed)
+	#clip_res.animation_res_added.connect(on_media_res_animation_res_added)
+	#clip_res.animation_res_removed.connect(on_media_res_animation_res_removed)
 	#
 	#focus_changed.connect(on_focus_changed)
 	#drag_started.connect(on_drag_started)

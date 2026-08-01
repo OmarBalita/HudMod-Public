@@ -12,10 +12,10 @@ signal processed(frame: int)
 
 signal clip_res_changed()
 
-signal comp_animation_res_added(comp: ComponentRes, usable_res: UsableRes, property_key: StringName, animation_res: AnimationRes)
-signal comp_animation_res_removed(comp: ComponentRes, usable_res: UsableRes, property_key: StringName)
-signal comp_keyframe_added(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int)
-signal comp_keyframe_removed(comp: ComponentRes, usable_res: UsableRes, prop_key: StringName, frame: int)
+signal animation_res_added(usable_res: UsableRes, property_key: StringName, animation_res: AnimationRes)
+signal animation_res_removed(usable_res: UsableRes, property_key: StringName)
+signal keyframe_added(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int)
+signal keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int)
 
 signal layer_added(layer_idx: int, layer: LayerRes)
 signal layer_removed(layer_idx: int, layer: LayerRes)
@@ -48,6 +48,15 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 
 @export var layers: Array[LayerRes]
 @export var components: Dictionary[StringName, Array]
+@export var animations: Dictionary[UsableRes, Dictionary]:
+	set(val):
+		animations = val
+		loop_animations(0,
+		func(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+			for profile: CurveProfile in anim_res.get_profiles():
+				profile.res_changed.connect(update)
+				profile.res_changed.connect(update_controllers_here)
+		)
 
 var stacked_values: Dictionary[StringName, Array]
 
@@ -109,11 +118,11 @@ func has_clips() -> bool:
 			return true
 	return false
 
-func get_components() -> Dictionary[StringName, Array]:
-	return components
+func get_components() -> Dictionary[StringName, Array]: return components
+func set_components(_components: Dictionary[StringName, Array]) -> void: components = _components
 
-func set_components(_components: Dictionary[StringName, Array]) -> void:
-	components = _components
+func get_animations() -> Dictionary[UsableRes, Dictionary]: return animations
+func set_animations(new_val: Dictionary[UsableRes, Dictionary]) -> void: animations = new_val
 
 func get_curr_node() -> Node: return curr_node
 func set_curr_node(new_node: Node) -> void: curr_node = new_node
@@ -127,43 +136,49 @@ func call_node_method_if(method_name: StringName, args: Array = []) -> void:
 func duplicate_media_res() -> MediaClipRes:
 	var duplicated: MediaClipRes = duplicate()
 	
+	var ress_peers: Dictionary[UsableRes, UsableRes] = {self: duplicated}
+	
 	# Duplicate Components
 	var new_components: Dictionary[StringName, Array]
 	
 	for section_key: StringName in components:
 		
-		var curr_section_comp: Array = components.get(section_key)
-		var new_section_comp: Array[ComponentRes]
+		var curr_section_comps: Array = components.get(section_key)
+		var new_section_comps: Array[ComponentRes]
 		
-		for curr_component: ComponentRes in curr_section_comp:
-			
+		for curr_component: ComponentRes in curr_section_comps:
 			var new_component: ComponentRes = curr_component.duplicate(true)
-			
-			var new_comp_anims: Dictionary
-			
-			if curr_component.animations.has(curr_component):
-				var comp_anims: Dictionary = curr_component.animations.get(curr_component)
-				for anim_key: StringName in comp_anims:
-					var new_anim_res: AnimationRes = comp_anims[anim_key].duplicate_anim_res()
-					new_comp_anims[anim_key] = new_anim_res
-			
 			new_component.set_owner(duplicated)
-			new_component.animations = {new_component: new_comp_anims} as Dictionary[UsableRes, Dictionary]
 			new_component.properties = new_component.properties.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
-			
-			new_section_comp.append(new_component)
+			new_section_comps.append(new_component)
+			ress_peers.set(curr_component, new_component)
 		
-		new_components[section_key] = new_section_comp
+		new_components[section_key] = new_section_comps
+	
+	# Duplicate Animations
+	var new_anims: Dictionary[UsableRes, Dictionary]
+	
+	for res: UsableRes in animations:
+		var new_res: UsableRes = ress_peers[res]
+		
+		var curr_res_anims: Dictionary = animations[res]
+		var new_res_anims: Dictionary
+		
+		for anim_key: StringName in curr_res_anims:
+			var new_anim_res: AnimationRes = (curr_res_anims[anim_key] as AnimationRes).duplicate_anim_res()
+			new_res_anims[anim_key] = new_anim_res
+		
+		new_anims[new_res] = new_res_anims
 	
 	duplicated.components = new_components
+	duplicated.animations = new_anims
 	
 	# Duplicate Layers
 	var dupl_layers: Array[LayerRes] = []
-	
 	for layer: LayerRes in layers:
 		dupl_layers.append(layer.duplicate_layer_res())
-	
 	duplicated.layers = dupl_layers
+	
 	duplicated.emit_clip_res_changed()
 	
 	# Return New one
@@ -234,31 +249,133 @@ func loop_components(method: Callable, args: Array = []) -> void:
 			if component.enabled:
 				method.callv([component] + args)
 
-func loop_components_animations_keys(info: Dictionary[StringName, Variant], method: Callable) -> Dictionary[StringName, Variant]:
-	for section_key: String in components:
-		var section_comps: Array = components[section_key]
-		
-		for comp_res: ComponentRes in section_comps:
-			
-			var anims: Dictionary[UsableRes, Dictionary] = comp_res.animations
-			
-			for usable_res: UsableRes in anims:
-				var res_anims: Dictionary = anims[usable_res]
-				
-				for anim_key: String in res_anims:
-					var anim_res: AnimationRes = res_anims[anim_key]
-					
-					for channel_index: int in anim_res.profiles.size():
-						var channel_profile: CurveProfile = anim_res.profiles[channel_index]
-						var anim_keys: Dictionary[int, CurveKey] = channel_profile.keys
-						
-						for key_pos: int in anim_keys:
-							method.call(
-								key_pos,
-								anim_keys[key_pos],
-								info
-							)
+func loop_animations(frame: float, method: Callable) -> void:
+	var abs_frame: int = frame + from
+	for usable_res: UsableRes in animations:
+		var usable_res_section: Dictionary = animations.get(usable_res)
+		for prop_key: StringName in usable_res_section:
+			var anim_res: AnimationRes = usable_res_section.get(prop_key)
+			method.call(usable_res, prop_key, anim_res, frame)
+
+func loop_animations_keyframes(info: Dictionary[StringName, Variant], method: Callable) -> Dictionary[StringName, Variant]:
+	
+	for usable_res: UsableRes in animations:
+		var res_anims: Dictionary = animations[usable_res]
+		for anim_key: StringName in res_anims:
+			var anim_res: AnimationRes = res_anims[anim_key]
+			for channel_idx: int in anim_res.profiles.size():
+				var channel_profile: CurveProfile = anim_res.profiles[channel_idx]
+				var anim_keys: Dictionary[int, CurveKey] = channel_profile.keys
+				for key_pos: int in anim_keys:
+					method.call(
+						key_pos,
+						anim_keys[key_pos],
+						info
+					)
+	
 	return info
+
+
+func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
+	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
+
+func update_controllers(frame: int) -> void:
+	loop_animations(frame, _update_controller_method)
+
+func update_controllers_here() -> void:
+	update_controllers(curr_frame)
+
+func update_specific_controller(usable_res: UsableRes, frame: int) -> void:
+	var section: Dictionary = animations.get(usable_res, {})
+	for prop_key: StringName in section: _update_controller_method(usable_res, prop_key, section[prop_key], frame)
+
+func push_animations_result(frame: float) -> void:
+	loop_animations(frame, _push_animation_result_method)
+
+func _update_controller_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+	var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
+	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame), prop_has_keyframe)
+
+func _push_animation_result_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+	usable_res.set_prop(prop_key, anim_res.sample_func.call(frame))
+
+func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
+	return animations[usable_res][property_key]
+
+func has_animation(usable_res: UsableRes, property_key: StringName) -> bool:
+	return animations.has(usable_res) and animations[usable_res].has(property_key)
+
+func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> bool:
+	if not has_animation(usable_res, property_key): return false
+	return animations[usable_res][property_key].has_key(frame)
+
+func make_animation_absolute(usable_res: UsableRes, property_key: StringName, property_type: int) -> AnimationRes:
+	var res_section: Dictionary = animations.get_or_add(usable_res, {})
+	
+	if not res_section.has(property_key):
+		
+		var anim_res: AnimationRes = AnimationRes.new()
+		anim_res.set_value_type(property_type)
+		anim_res.update_profiles()
+		res_section[property_key] = anim_res
+		
+		for profile: CurveProfile in anim_res.profiles:
+			profile.res_changed.connect(update)
+			profile.res_changed.connect(update_controllers)
+		
+		animation_res_added.emit(usable_res, property_key, anim_res)
+		shared_data_clear()
+	
+	return res_section.get(property_key)
+
+func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) -> void:
+	var res_section: Variant = animations.get(usable_res)
+	if res_section is Dictionary:
+		res_section.erase(property_key)
+		animation_res_removed.emit(usable_res, property_key)
+		shared_data_clear()
+		if res_section.size() == 0:
+			animations.erase(res_section)
+
+func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
+	frame = get_frame_or_curr_frame(frame)
+	var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, typeof(property_val))
+	var is_remove_request: bool = can_remove and anim_res.has_key(frame)
+	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame)
+	else: add_animation_keyframe(usable_res, property_key, property_val, frame)
+	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
+
+func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
+	var do_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, property_val, frame)
+	var undo_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
+	ProjectServer2.commit_action("add_keyframe", do_method, undo_method)
+
+func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
+	var tmp_property_val: Variant = get_animation(usable_res, property_key).get_key(frame)
+	var do_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
+	var undo_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, tmp_property_val, frame)
+	ProjectServer2.commit_action("remove_keyframe", do_method, undo_method)
+
+func _add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
+	make_animation_absolute(usable_res, property_key, typeof(property_val)).add_key(frame, property_val)
+	keyframe_added.emit(usable_res, property_key, property_val, frame)
+	shared_data_clear()
+
+func _remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
+	var anim_res: AnimationRes = get_animation(usable_res, property_key)
+	anim_res.remove_key(frame)
+	if not anim_res.has_any_key():
+		remove_animation_absolute(usable_res, property_key)
+	keyframe_removed.emit(usable_res, property_key, frame)
+	shared_data_clear()
+
+
+func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
+	super(property_key, property_val)
+	if not has_animation(self, property_key): return
+	request_animation_keyframe(self, property_key, property_val, null, false)
+
+
 
 func wait_until_media_res_processed(media_res: MediaClipRes) -> int:
 	if media_res.layer_index > layer_index:
@@ -283,6 +400,7 @@ func _before_process_comps(frame: int) -> void:
 
 func _process_comps(frame: int) -> void:
 	var loop_args: Array = [frame]
+	push_animations_result(frame)
 	loop_components(process_component, loop_args)
 	loop_components(postprocess_component, loop_args)
 
@@ -307,14 +425,13 @@ func return_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array
 	return custom_dict
 
 func update() -> void:
-	if curr_node:
-		process_here()
+	if curr_node: process_here()
+
 
 func enter_component(component: ComponentRes) -> void:
 	component._enter()
 
 func process_component(component: ComponentRes, frame: int) -> void:
-	component.push_animations_result(frame)
 	component._process(frame)
 
 func postprocess_component(component: ComponentRes, frame: int) -> void:
@@ -386,6 +503,8 @@ func shared_data_delete(key: StringName) -> bool:
 
 func shared_data_clear() -> void:
 	shared_data.clear()
+
+
 
 
 func _new_layer() -> LayerRes:

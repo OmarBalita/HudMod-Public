@@ -40,12 +40,12 @@ func _process(frame: int) -> void:
 
 func _apply_custom_stacked_values(frame: int, dict: Dictionary[StringName, Array]) -> void:
 	apply_stacked_value(dict, &"position", get_wave_result_at(frame,
-		sample_or_get(self, &"enable_x", frame),
-		sample_or_get(self, &"enable_y", frame),
-		sample_or_get(self, &"wave_method", frame),
-		sample_or_get(self, &"x_offset", frame),
-		sample_or_get(self, &"speed", frame),
-		sample_or_get(self, &"domain", frame)
+		owner.sample_or_get(self, &"enable_x", frame),
+		owner.sample_or_get(self, &"enable_y", frame),
+		owner.sample_or_get(self, &"wave_method", frame),
+		owner.sample_or_get(self, &"x_offset", frame),
+		owner.sample_or_get(self, &"speed", frame),
+		owner.sample_or_get(self, &"domain", frame)
 	))
 
 func get_wave_result_at(frame: int, enable_x: bool, enable_y: bool, wave_method: WaveMethod, x_offset: float, speed: float, domain: float) -> Vector2:

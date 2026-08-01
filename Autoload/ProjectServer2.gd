@@ -171,10 +171,10 @@ func open_project(_project_path: String) -> bool:
 			clip_res.loop_components(
 				func(comp: ComponentRes) -> void:
 					comp.set_owner_from_loader(clip_res)
-					comp.loop_animations(frame,
-						func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
-							anim_res.update_funcs()
-					)
+			)
+			clip_res.loop_animations(frame,
+				func(usable_res: UsableRes, prop_key: StringName, anim_res, frame: int) -> void:
+					anim_res.update_funcs()
 			)
 			if clip_res is Display2DClipRes:
 				clip_res.build_shader_pipeline()

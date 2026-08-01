@@ -76,6 +76,11 @@ func set_prop(property_key: StringName, property_val: Variant) -> void:
 		dirty_level = max(1, dirty_level)
 	super(property_key, property_val)
 
+func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
+	super(property_key, property_val)
+	update()
+
+
 func _init() -> void:
 	font = FontRes.new()
 

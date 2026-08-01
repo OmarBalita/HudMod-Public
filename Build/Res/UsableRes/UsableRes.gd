@@ -92,7 +92,8 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
 	pass
 
-const VALUES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
+const TYPES_UNANIMATABLES: Array[int] = [TYPE_ARRAY, TYPE_OBJECT]
+const TYPES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
 
 static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
 	
@@ -100,6 +101,9 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	
 	if not usable_ress.has(usable_res):
 		usable_ress.append(usable_res)
+	
+	var usable_res_classname: StringName = usable_res_script.get_global_name()
+	var usable_res_inh: Array[StringName] = ClassServer.classname_get_inh(usable_res_classname)
 	
 	var exported_props: Dictionary[StringName, ExportInfo] = usable_res._get_exported_props()
 	
@@ -189,9 +193,9 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 			var prop_edit_cont: EditContainer = ClassServer.create_prop_editor(key, val, ctrlr_args, usable_ress, search_line_edit)
 			
 			if prop_edit_cont:
-				var is_object: bool = typeof(val) == TYPE_OBJECT
-				var changeable: bool = not is_object and ctrlr_info.keyframable
-				var keyframable: bool = usable_res is ComponentRes and changeable
+				var is_type_animatable: bool = typeof(val) not in TYPES_UNANIMATABLES
+				var changeable: bool = is_type_animatable and ctrlr_info.keyframable
+				var keyframable: bool = changeable and (usable_res_inh.has(&"ComponentRes") or usable_res_inh.has(&"MediaClipRes"))
 				
 				prop_edit_cont.default_val = ClassServer.classname_get_property_default_value(usable_res.get_classname(), key)
 				
@@ -221,15 +225,22 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 								var owner_target_val: Variant = target_values[owner_usable_res_idx]
 								var prop_edit_cont_for_update: EditContainer = EditorServer.get_usable_res_property_controller(usable_res, key)
 								prop_edit_cont_for_update.set_curr_value_manually(owner_target_val)
-								if update_ctrlr:
-									prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
+								if update_ctrlr: prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
 								EditorServer.update_usable_res_ui_profile(usable_res)
 						
 						method_set_all.call(new_values, false)
+						
 						if not usable_res.has_meta(UNDO_REDO_COMMIT_SET_PROP):
-							if ClassServer.value_get_classname(new_value) in VALUES_HAVE_SCROLL_CONTROLLERS:
+							if ClassServer.value_get_classname(new_value) in TYPES_HAVE_SCROLL_CONTROLLERS:
 								usable_res.set_meta(UNDO_REDO_COMMIT_SET_PROP, true)
-							ProjectServer2.commit_action("set_{prop_key}".format({"prop_key": key}), method_set_all.bind(new_values, true), method_set_all.bind(old_values, true), false)
+							
+							ProjectServer2.commit_action(
+								"set_{prop_key}".format({"prop_key": key}),
+								method_set_all.bind(new_values, true),
+								method_set_all.bind(old_values, true),
+								false
+							)
+							
 							await Engine.get_main_loop().create_timer(.4).timeout
 							usable_res.remove_meta(UNDO_REDO_COMMIT_SET_PROP)
 				)
@@ -237,8 +248,8 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				if keyframable:
 					prop_edit_cont.keyframe_sended.connect(
 						func(new_value: Variant) -> void:
-							for _component_res: ComponentRes in usable_ress:
-								_component_res.request_animation_keyframe(_component_res, key, new_value)
+							for _usable_res: UsableRes in usable_ress:
+								_usable_res.request_animation_keyframe(_usable_res, key, new_value)
 					)
 				
 				curr_box_container.add_child(prop_edit_cont)
