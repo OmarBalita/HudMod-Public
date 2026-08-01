@@ -979,5 +979,3 @@ static func _create_empty_edit_data() -> Dictionary[StringName, Variant]:
 		&"edit_lengths": {} as Dictionary[MediaClipRes, Vector2i], # x: from, y: to
 		&"forupdate": [] as Array[Vector2i]
 	}
-
-

@@ -9,6 +9,7 @@
 [ext_resource type="Resource" uid="uid://bbwxn0hatvia6" path="res://Resources/Layout/LayoutPlayer.tres" id="5_cd0xf"]
 [ext_resource type="Resource" uid="uid://5y7dbynprvcx" path="res://Resources/Layout/LayoutExport.tres" id="6_k2li5"]
 [ext_resource type="Texture2D" uid="uid://drrpumpojwc7y" path="res://Asset/Icons/add.png" id="6_t7s5e"]
+[ext_resource type="Texture2D" uid="uid://dbs7xkngqfgch" path="res://Asset/Icons/home.png" id="10_2kogo"]
 [ext_resource type="Script" uid="uid://cxhg0wsinlupc" path="res://Editor/ColorCorrection/ColorCorrectionEditor.gd" id="10_x7e6b"]
 [ext_resource type="Script" uid="uid://dt1yr8e1g6vi8" path="res://Editor/RenderProperties/RenderProperties.gd" id="21_13ga7"]
 [ext_resource type="Script" uid="uid://jyhrc5jyau06" path="res://Editor/RenderViewer/RenderViewer.gd" id="22_kg1lx"]
@@ -95,26 +96,29 @@ theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Margin/Box/Bottom/MarginContainer" unique_id=1493160752]
+[node name="BoxContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer" unique_id=1627732420]
 layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Margin/Box/Bottom/MarginContainer/BoxContainer" unique_id=1493160752]
+layout_mode = 2
+size_flags_horizontal = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer" unique_id=280385886]
+[node name="Box" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/BoxContainer/ScrollContainer" unique_id=280385886]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="LayoutButtonContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=131722417]
+[node name="LayoutButtonContainer" type="HBoxContainer" parent="Margin/Box/Bottom/MarginContainer/BoxContainer/ScrollContainer/Box" unique_id=131722417]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 alignment = 1
 script = SubResource("GDScript_sruw6")
 
-[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1936103180 groups=["theme_icon"]]
+[node name="AddLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/BoxContainer/ScrollContainer/Box" unique_id=1936103180 groups=["theme_icon"]]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -125,7 +129,7 @@ theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("6_t7s5e")
 flat = true
 
-[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/ScrollContainer/Box" unique_id=1034418709 groups=["theme_icon"]]
+[node name="DeleteLayoutButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/BoxContainer/ScrollContainer/Box" unique_id=1034418709 groups=["theme_icon"]]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
@@ -135,6 +139,18 @@ theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
 theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
 theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
 icon = ExtResource("26_s30d6")
+flat = true
+
+[node name="HomeButton" type="Button" parent="Margin/Box/Bottom/MarginContainer/BoxContainer" unique_id=1334850411 groups=["theme_icon"]]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+focus_mode = 0
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 0.588235)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 0.588235)
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bn3x6")
+icon = ExtResource("10_2kogo")
 flat = true
 
 [node name="EditorsFolder" type="Control" parent="." unique_id=320146041]

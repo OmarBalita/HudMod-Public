@@ -241,4 +241,3 @@ class HeaderPanel extends PanelContainer:
 	
 	func _on_window_close_request() -> void:
 		target_to_layout()
-

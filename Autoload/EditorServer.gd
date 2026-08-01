@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -126,9 +126,17 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	
 	update_popup_menus()
 	
-	popup_version_panel()
-	
 	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
+	
+	var launch_args: PackedStringArray = OS.get_cmdline_user_args()
+	var launch_project_path: String = launch_args[0].simplify_path() if launch_args.size() > 0 else ""
+	var launch_project_res_path: String = launch_project_path.path_join("project.res")
+
+	if not launch_project_path.is_empty() and FileAccess.file_exists(launch_project_res_path):
+		if not ProjectServer2.open_project(launch_project_path):
+			popup_version_panel()
+	else:
+		popup_version_panel()
 	
 	popup_menu_recent.id_pressed.connect(_on_popup_menu_recent_id_pressed)
 	popup_menu_layout.id_pressed.connect(_on_popup_menu_layout_id_pressed)
@@ -493,10 +501,16 @@ func popup_version_panel() -> void:
 	WindowManager.popup_custom_window(version_window)
 	version_window.popup_centered()
 	
+	version_window.close_requested.connect(func() -> void:
+		if ProjectServer2.is_project_loaded:
+			version_window.queue_free()
+	)
+	
 	var vsplit_cont: SplitContainer = IS.create_split_container(0, true)
 	vsplit_cont.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 	
-	var version_rect: TextureRect = IS.create_texture_rect(version_info.version_banner, {expand_mode = TextureRect.EXPAND_IGNORE_SIZE, stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED})
+	var version_rect: TextureRect = IS.create_texture_rect(version_info.version_banner,
+		{expand_mode = TextureRect.EXPAND_IGNORE_SIZE, stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED})
 	var gradient_rect: ColorRect = IS.create_color_rect(Color.WHITE, {material = gradient_mat, custom_minimum_size = Vector2(.0, 150.)})
 	
 	var version_label: Label = Label.new()
@@ -504,6 +518,12 @@ func popup_version_panel() -> void:
 	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	version_label.custom_minimum_size = Vector2(100., 60.)
 	version_label.add_theme_color_override(&"font_color", Color.BLACK)
+
+	var close_btn: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/close.png"))
+	close_btn.visible = ProjectServer2.is_project_loaded
+	close_btn.custom_minimum_size = Vector2(16., 16.)
+	close_btn.ignore_texture_size = true
+	close_btn.stretch_mode = TextureButton.STRETCH_SCALE
 	
 	var banner_owner_btn: LinkButton = LinkButton.new()
 	banner_owner_btn.text = "A photo by %s" % version_info.banner_owner
@@ -534,6 +554,7 @@ func popup_version_panel() -> void:
 	vsplit_cont.add_child(version_rect)
 	version_rect.add_child(gradient_rect)
 	version_rect.add_child(version_label)
+	version_rect.add_child(close_btn)
 	gradient_rect.add_child(support_btn)
 	gradient_rect.add_child(banner_owner_btn)
 	
@@ -563,6 +584,7 @@ func popup_version_panel() -> void:
 	version_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	banner_owner_btn.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	support_btn.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	close_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	
 	gradient_rect.position.y -= 150.
 	banner_owner_btn.position.x += 10.
@@ -575,17 +597,18 @@ func popup_version_panel() -> void:
 	var new_method: Callable = func() -> void:
 		var line_edit: LineEdit = path_edit.controller
 		var dir: String = line_edit.text + "/" + new_project_res.project_name
-		ProjectServer2.new_project(new_project_res, dir)
+		ProjectServer2.new_project(new_project_res, dir, ProjectServer2.open_or_launch_project)
 	
 	recent_projs_list.item_activated.connect(func(idx: int) -> void:
-		if not await ProjectServer2.open_project(recent_projs_list.get_item_text(idx)):
+		if not await ProjectServer2.open_or_launch_project(recent_projs_list.get_item_text(idx)):
 			editor_state.recent_projects.erase(recent_projs_list.get_item_text(idx))
 			recent_projs_list.remove_item(idx)
 			ResourceSaver.save(editor_state, editor_state_path)
 			update_popup_menus()
 	)
-	open_btn.pressed.connect(popup_open_project)
+	open_btn.pressed.connect(popup_open_or_launch_project)
 	new_btn.pressed.connect(new_method)
+	close_btn.pressed.connect(version_window.close_requested.emit)
 
 
 func popup_learn() -> void:
@@ -793,7 +816,14 @@ func popup_new_project() -> void:
 	var accept_method: Callable = func() -> void:
 		var line_edit: LineEdit = path_edit.controller
 		var dir: String = line_edit.text + "/" + project_res.project_name
-		ProjectServer2.new_project(project_res, dir)
+		ProjectServer2.new_project(
+			project_res,
+			dir,
+			func(project_path: String) -> void:
+				popup_save_option_or_save(
+					ProjectServer2.open_project.bind(project_path), "Save & Open"
+				)
+		)
 	
 	var win_cont: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2(600., 400.), "New Project", accept_method)
 	var win: Window = win_cont.get_window()
@@ -811,6 +841,19 @@ func popup_open_project(on_project_opened_successfully: Callable = Callable()) -
 				push_message("The file must end with '.res'", MessageMode.MESSAGE_MODE_WARNING)
 				return
 			popup_save_option_or_save(ProjectServer2.open_project.bind(path.get_base_dir()), "Save & Open")
+	)
+	file_dialog.popup_file_dialog()
+
+func popup_open_or_launch_project() -> void:
+	
+	var file_dialog: FileDialog = WindowManager.create_file_dialog_window(get_window(), FileDialog.FILE_MODE_OPEN_FILE, [".res"], Vector2.ZERO, "Select Project")
+	file_dialog.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
+	file_dialog.file_selected.connect(
+		func _on_file_dialog_file_selected(path: String) -> void:
+			if not path.ends_with(".res"):
+				push_message("The file must end with '.res'", MessageMode.MESSAGE_MODE_WARNING)
+				return
+			ProjectServer2.open_or_launch_project(path.get_base_dir())
 	)
 	file_dialog.popup_file_dialog()
 
@@ -931,6 +974,13 @@ func popup_editor_settings() -> void:
 		var idx_settings_edit: EditContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], search_line)
 		idx_settings_edit.show()
 		
+		if (idx == 2):
+			var commands_search_line = IS.create_line_edit("Filter Shortcut", "", null)
+			idx_settings_edit.controller.add_child(commands_search_line)
+			idx_settings_edit.controller.move_child(commands_search_line, 0)
+			# I didn't find a better way to access the shortcut commands cont
+			commands_search_line.text_changed.connect(idx_settings_edit.controller.get_child(1).filter)
+		
 		sett_split_cont.add_child(search_line)
 		
 		sett_split_cont.add_child(scroll_cont)
@@ -967,6 +1017,7 @@ func popup_keyboard_customization() -> void:
 	IS.expand(shortcuts_container, true, true)
 	
 	keyboard.shortcut_recorded.connect(shortcuts_container.show_active_key)
+	shortcuts_container.commands_container.shortcut_selected.connect(keyboard.set_key_by_text)
 	
 	root.add_child(keyboard)
 	root.add_child(shortcuts_container)
@@ -1077,7 +1128,6 @@ func update_from_theme_settings() -> void:
 	get_window().content_scale_factor = content_scale
 	for window: Window in WindowManager.popuped_windows:
 		window.content_scale_factor = content_scale
-
 
 func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	
