@@ -67,8 +67,8 @@ The first Alpha version was launched concurrently with the publication of this a
 
 ## Setup Guide:
 - Download HudMod files from this repository to your local machine.
-- Download appropriate VideoCodec release for your OS and arch from: [GDExtension Releases](https://github.com/OmarBalita/HudMod-GDExtension/releases).
-- Place the VideoCodec binary along with its associated FFmpeg libraries (.dll's or .so's) into the following directory: `addons/hudmod-gdextension/`
+- Download appropriate HudMod-GDExtension release for your OS and arch from: [GDExtension Releases](https://github.com/OmarBalita/HudMod-GDExtension/releases).
+- Place HudMod-GDExtension binary along with its associated FFmpeg libraries (.dll's or .so's) into the following directory: `addons/hudmod-gdextension/`
 - Open HudMod using Godot 4.6+ (Mono Version).
 
 ---
