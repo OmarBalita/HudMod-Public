@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -79,7 +79,7 @@ var opened_clip_res_path: Array[MediaClipRes]
 # Project Management
 # ---------------------------------------------------
 
-func new_project(project_res: ProjectRes, dir_path: String) -> ProjectRes:
+func _create_project_files(project_res: ProjectRes, dir_path: String) -> String:
 	
 	project_res.version_name = EditorServer.version_info.version_name
 	
@@ -88,35 +88,48 @@ func new_project(project_res: ProjectRes, dir_path: String) -> ProjectRes:
 	
 	if DirAccess.dir_exists_absolute(dir_path):
 		EditorServer.push_message("There is already a folder or file with the same name; please change the name or path.")
-		return null
+		return ""
 	
 	var project_path: String = dir_path.simplify_path()
 	var paths: Dictionary[StringName, String] = ProjectServer2._get_project_paths(project_path)
 	
 	if DirAccess.make_dir_recursive_absolute(dir_path) != Error.OK:
 		EditorServer.push_message("Problem creating project folder.")
-		return null
+		return ""
 	
 	project_res.root_clip_res = RootClipRes.new()
 	
 	if ResourceSaver.save(project_res, paths.project_res) != Error.OK:
 		EditorServer.push_message("Problem save project resource.")
-		return null
+		return ""
 	
 	ResourceSaver.save(FileSystem.new(), paths.import_sys)
 	ResourceSaver.save(FileSystem.new(), paths.preset_sys)
 	
-	EditorServer.popup_save_option_or_save(open_project.bind(project_path), "Save & Open")
+	return project_path
+
+func new_project(project_res: ProjectRes, dir_path: String, method_post: Callable) -> ProjectRes:
+	var project_path: String = _create_project_files(project_res, dir_path)
+	if project_path.is_empty():
+		return null
 	
+	method_post.call(project_path)
 	return project_res
+
+func launch_project(_project_path: String) -> bool:
+	if not _check_for_project_file_exist(_project_path.path_join("project.res")): return false
+	
+	var pid: int = OS.create_process(OS.get_executable_path(), _get_launch_args(_project_path))
+	if pid == -1:
+		EditorServer.push_message("Could not launch a new instance for this project.")
+		return false
+	
+	return true
 
 func open_project(_project_path: String) -> bool:
 	
 	var project_paths: Dictionary[StringName, String] = _get_project_paths(_project_path)
-	
-	if not FileAccess.file_exists(project_paths.project_res):
-		EditorServer.push_message("The project file 'project.res' was not found in the correct path.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
-		return false
+	if not _check_for_project_file_exist(project_paths.project_res): return false
 	
 	var _temp_prj_path:= project_path
 	project_path = _project_path
@@ -195,6 +208,15 @@ func open_project(_project_path: String) -> bool:
 	
 	return true
 
+func open_or_launch_project(path: String) -> bool:
+	if ProjectServer2.is_project_loaded and path.simplify_path() == ProjectServer2.project_path.simplify_path():
+		EditorServer.popup_save_option_or_save(ProjectServer2.open_project.bind(path), "Save & Open")
+		return true
+	
+	if ProjectServer2.is_project_loaded:
+		return ProjectServer2.launch_project(path)
+	
+	return ProjectServer2.open_project(path)
 
 func save() -> void:
 	var project_paths: Dictionary[StringName, String] = _get_project_paths(project_path)
@@ -262,6 +284,20 @@ func _get_project_paths(_project_path: String) -> Dictionary[StringName, String]
 		&"preset_sys": _project_path.path_join("preset_file_sys.res")
 	}
 
+func _get_launch_args(project_path: String) -> PackedStringArray:
+	if OS.has_feature("editor"):
+		var godot_project_path: String = ProjectSettings.globalize_path("res://")
+		return ["--path", godot_project_path, "--", project_path]
+	else:
+		return [project_path]
+
+func _check_for_project_file_exist(project_path: String) -> bool:
+	if not FileAccess.file_exists(project_path):
+		EditorServer.push_message("The project file 'project.res' was not found in the correct path.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
+		return false
+	return true
+
+
 func open_clip_res(clip_res: MediaClipRes) -> void:
 	var old_one: MediaClipRes = null if opened_clip_res_path.is_empty() else opened_clip_res_path.back()
 	opened_clip_res_path.append(clip_res)
@@ -277,6 +313,3 @@ func try_exit_clip_res(times: int = 1) -> void:
 
 func emit_opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
 	opened_clip_res_changed.emit(old_one, new_one)
-
-
-

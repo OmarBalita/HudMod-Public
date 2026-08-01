@@ -154,7 +154,3 @@ func play_video_stream_player(video_clip_res: VideoClipRes, at: int, fps_f: floa
 
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	start_scene()
-
-
-
-
