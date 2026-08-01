@@ -40,6 +40,7 @@ class_name VersionInfo extends Resource
 
 @export_group("Version")
 @export var version_name: StringName = "1.0.0.alpha"
+@export var version_banner_high: Texture2D = preload("res://Asset/Images/banner-high.jpg")
 @export var version_banner: Texture2D = preload("res://Asset/Images/banner-mid.jpg")
 @export var banner_owner: StringName = "Erik Karits"
 @export var banner_owner_link: String = "https://www.pexels.com/@erik-karits-2093459/"

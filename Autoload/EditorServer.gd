@@ -127,16 +127,17 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	update_popup_menus()
 	
 	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
+	ProjectServer2.project_launched.connect(_on_project_server2_project_launched)
 	
 	var launch_args: PackedStringArray = OS.get_cmdline_user_args()
 	var launch_project_path: String = launch_args[0].simplify_path() if launch_args.size() > 0 else ""
 	var launch_project_res_path: String = launch_project_path.path_join("project.res")
-
-	if not launch_project_path.is_empty() and FileAccess.file_exists(launch_project_res_path):
-		if not ProjectServer2.open_project(launch_project_path):
-			popup_version_panel()
-	else:
+	
+	if launch_project_path.is_empty():
 		popup_version_panel()
+	elif FileAccess.file_exists(launch_project_res_path):
+		if ProjectServer2.open_project(launch_project_path): pass
+		else: popup_version_panel()
 	
 	popup_menu_recent.id_pressed.connect(_on_popup_menu_recent_id_pressed)
 	popup_menu_layout.id_pressed.connect(_on_popup_menu_layout_id_pressed)
@@ -488,6 +489,8 @@ func popup_version_panel() -> void:
 	
 	var bg_color: Color = IS.color_base_dark.darkened(.3)
 	
+	main.freeze_rect.show()
+	
 	var gradient_mat:= ShaderMaterial.new()
 	gradient_mat.shader = preload("res://UI&UX/Shader/ShaderTranspGrad.gdshader")
 	gradient_mat.set_shader_parameter(&"flip", true)
@@ -497,14 +500,9 @@ func popup_version_panel() -> void:
 	version_window.content_scale_factor = editor_settings.theme.content_scale
 	version_window.size = Vector2i(800, 750)
 	version_window.borderless = true
-	#version_window.exclusive = true
+	version_window.exclusive = true
 	WindowManager.popup_custom_window(version_window)
 	version_window.popup_centered()
-	
-	version_window.close_requested.connect(func() -> void:
-		if ProjectServer2.is_project_loaded:
-			version_window.queue_free()
-	)
 	
 	var vsplit_cont: SplitContainer = IS.create_split_container(0, true)
 	vsplit_cont.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
@@ -589,6 +587,7 @@ func popup_version_panel() -> void:
 	gradient_rect.position.y -= 150.
 	banner_owner_btn.position.x += 10.
 	support_btn.position.x -= 10.
+	close_btn.position += Vector2(-20., 5.)
 	
 	for idx: int in range(editor_state.recent_projects.size() - 1, -1, -1):
 		var path: String = editor_state.recent_projects[idx]
@@ -609,6 +608,12 @@ func popup_version_panel() -> void:
 	open_btn.pressed.connect(popup_open_or_launch_project)
 	new_btn.pressed.connect(new_method)
 	close_btn.pressed.connect(version_window.close_requested.emit)
+	
+	version_window.close_requested.connect(
+		func() -> void:
+			main.freeze_rect.hide()
+			version_window.queue_free()
+	)
 
 
 func popup_learn() -> void:
@@ -963,6 +968,7 @@ func popup_editor_settings() -> void:
 	
 	var settings: AppEditorSettings = editor_settings
 	var arr_of_settings: Array[UsableRes] = [settings.edit, settings.performance, settings.shortcuts, settings.theme]
+	var arr_of_editors: Array[EditContainer] = []
 	
 	for idx: int in arr_of_settings.size():
 		var idx_settings: UsableRes = arr_of_settings[idx]
@@ -974,13 +980,6 @@ func popup_editor_settings() -> void:
 		var idx_settings_edit: EditContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], search_line)
 		idx_settings_edit.show()
 		
-		if (idx == 2):
-			var commands_search_line = IS.create_line_edit("Filter Shortcut", "", null)
-			idx_settings_edit.controller.add_child(commands_search_line)
-			idx_settings_edit.controller.move_child(commands_search_line, 0)
-			# I didn't find a better way to access the shortcut commands cont
-			commands_search_line.text_changed.connect(idx_settings_edit.controller.get_child(1).filter)
-		
 		sett_split_cont.add_child(search_line)
 		
 		sett_split_cont.add_child(scroll_cont)
@@ -989,14 +988,24 @@ func popup_editor_settings() -> void:
 		right_margin.add_child(sett_split_cont)
 		
 		IS.expand(idx_settings_edit, true, true)
+		
+		arr_of_editors.append(idx_settings_edit)
+	
+	var app_shortcut_res_edit: EditContainer = arr_of_editors[2]
+	var shortcuts_cont: BoxContainer = app_shortcut_res_edit.controller
+	var shortcut_ctrlr: AppShortcutsRes.ShortcutsCommandsContainer = get_usable_res_property_controller(settings.shortcuts, &"Shortcuts")
+	var commands_search_line: LineEdit = IS.create_line_edit("Filter Shortcuts", "", null)
+	
+	shortcuts_cont.add_child(commands_search_line)
+	shortcuts_cont.move_child(commands_search_line, 0)
+	
+	commands_search_line.text_changed.connect(shortcut_ctrlr.filter)
 	
 	left_menu.buttons_container.alignment = BoxContainer.ALIGNMENT_BEGIN
-	
 	var set_focused_idx: Callable = func(idx: int) -> void:
 		for ctrl: Control in right_margin.get_children(): ctrl.hide()
 		var shown_ctrl: Control = right_margin.get_child(idx)
 		shown_ctrl.show()
-	
 	set_focused_idx.call(0)
 	left_menu.focus_index_changed.connect(set_focused_idx)
 	
@@ -1151,10 +1160,10 @@ func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	update_popup_menus()
 	update_title()
 	
-	main.freeze_rect.hide()
-	
-	if version_window:
-		version_window.queue_free()
+	if version_window: version_window.close_requested.emit()
+
+func _on_project_server2_project_launched(project_path: String) -> void:
+	if version_window: version_window.close_requested.emit()
 
 func _on_popup_menu_recent_id_pressed(id: int) -> void:
 	popup_save_option_or_save(

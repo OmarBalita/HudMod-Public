@@ -20,7 +20,7 @@
 extends Node
 
 signal project_opened(project_res: ProjectRes)
-signal open_project_finished()
+signal project_launched(project_path: String)
 
 signal opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 
@@ -124,6 +124,8 @@ func launch_project(_project_path: String) -> bool:
 		EditorServer.push_message("Could not launch a new instance for this project.")
 		return false
 	
+	project_launched.emit(_project_path)
+	
 	return true
 
 func open_project(_project_path: String) -> bool:
@@ -201,7 +203,6 @@ func open_project(_project_path: String) -> bool:
 	is_project_loaded = true
 	project_opened.emit(project_res)
 	
-	
 	open_clip_res(project_res.root_clip_res)
 	
 	EditorServer.push_message("Project opened: %s" % _project_path, EditorServer.MessageMode.MESSAGE_MODE_IDLE)
@@ -209,14 +210,14 @@ func open_project(_project_path: String) -> bool:
 	return true
 
 func open_or_launch_project(path: String) -> bool:
-	if ProjectServer2.is_project_loaded and path.simplify_path() == ProjectServer2.project_path.simplify_path():
-		EditorServer.popup_save_option_or_save(ProjectServer2.open_project.bind(path), "Save & Open")
+	if is_project_loaded and path.simplify_path() == project_path.simplify_path():
+		EditorServer.popup_save_option_or_save(open_project.bind(path), "Save & Open")
 		return true
 	
-	if ProjectServer2.is_project_loaded:
-		return ProjectServer2.launch_project(path)
+	if is_project_loaded:
+		return launch_project(path)
 	
-	return ProjectServer2.open_project(path)
+	return open_project(path)
 
 func save() -> void:
 	var project_paths: Dictionary[StringName, String] = _get_project_paths(project_path)

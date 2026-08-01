@@ -296,6 +296,14 @@ func _on_key_button_pressed(key: String, is_keypad: bool = false) -> void:
 	key_pressed.emit(get_display_text(key, is_keypad))
 	consume_shift()
 
+func set_key_by_text(text: String) -> void:
+	active_keys.clear()
+	if text.contains("+"):
+		for part in text.split("+"):
+			_on_key_button_pressed(part)
+	else:
+		_on_key_button_pressed(text)
+
 func _apply_record_mode() -> void:
 	if not is_inside_tree():
 		return

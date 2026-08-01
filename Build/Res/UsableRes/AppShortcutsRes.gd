@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright Â© 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name AppShortcutsRes extends UsableRes
 
@@ -119,6 +119,8 @@ class ShortcutsCommandsContainer extends VBoxContainer:
 	
 	var categories: Dictionary[String, Category]
 	var category_items: Dictionary[String, Array]
+
+	signal shortcut_selected(text: StringName)
 	
 	func add_controller(key: StringName, shortcuts: Dictionary, default: Dictionary) -> void:
 		
@@ -147,6 +149,15 @@ class ShortcutsCommandsContainer extends VBoxContainer:
 			switch_btn.switched_to.connect(
 				func _on_switch_btn_switched_to(event: InputEventKey) -> void:
 					sh_edit_cont.set_curr_value(event)
+			)
+			
+			sh_edit_cont.name_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			
+			sh_edit_cont.name_label.gui_input.connect(
+				func _on_name_label_gui_input(event: InputEvent) -> void:
+					if event is InputEventMouseButton and event.is_pressed():
+						if event.button_index == MOUSE_BUTTON_LEFT:
+							shortcut_selected.emit(switch_btn.curr_event.as_text())
 			)
 			
 			sh_edit_cont.val_changed.connect(
@@ -355,7 +366,7 @@ class ShortcutsContainer extends MarginContainer:
 	var active_key_container: ShortcutsActiveKeyContainer
 	var search_line: LineEdit
 	var key_badge: Label
-	
+
 	func _init(shortcuts: AppShortcutsRes) -> void:
 		IS.expand(self, true, true)
 		

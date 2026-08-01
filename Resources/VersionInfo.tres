@@ -1,7 +1,8 @@
 [gd_resource type="Resource" script_class="VersionInfo" format=3 uid="uid://blh6ctt5fa7u"]
 
 [ext_resource type="Script" uid="uid://dpwmxad5d2fd1" path="res://Build/Res/VersionInfo.gd" id="1_xerrr"]
-[ext_resource type="Texture2D" uid="uid://lvvrg1inxx60" path="res://Asset/Images/banner-mid.jpg" id="2_irybg"]
+[ext_resource type="Texture2D" uid="uid://bqvhpp74lndqd" path="res://Asset/Images/banner-mid-alpha-2.jpg" id="2_irybg"]
+[ext_resource type="Texture2D" uid="uid://d0rn3nnyru2is" path="res://Asset/Images/banner-high-alpha-2.jpg" id="3_irybg"]
 
 [resource]
 script = ExtResource("1_xerrr")
@@ -122,4 +123,6 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [url=https://www.gnu.org/licenses/]GNU General Public License[/url] for more details.
 [/code]"
 version_name = &"1.0.0.alpha.2"
+version_banner_high = ExtResource("3_irybg")
+version_banner = ExtResource("2_irybg")
 metadata/_custom_type_script = "uid://dpwmxad5d2fd1"
