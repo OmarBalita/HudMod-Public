@@ -92,7 +92,3 @@ func move_timemarker(from_frame: int, to_frame: int) -> void:
 	timemarkers.erase(timemarker)
 	timemarkers[to_frame] = timemarker
 	timemarker_moved.emit(from_frame, to_frame, timemarker)
-
-
-
-

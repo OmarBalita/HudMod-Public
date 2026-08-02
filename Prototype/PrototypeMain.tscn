@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://jyhrc5jyau06" path="res://Editor/RenderViewer/RenderViewer.gd" id="22_kg1lx"]
 [ext_resource type="Script" uid="uid://4jnese7xpyxa" path="res://Editor/Properties/Properties2.gd" id="23_pajpo"]
 [ext_resource type="Texture2D" uid="uid://dno5kf805dotb" path="res://Asset/Icons/plus.png" id="24_sruw6"]
+[ext_resource type="Script" uid="uid://obbt6yw35yjf" path="res://Build/Node/DiscordManager.gd" id="25_2kogo"]
 [ext_resource type="Texture2D" uid="uid://cqat0ylr2kw0w" path="res://Asset/Icons/magnifying-glass.png" id="25_gck3f"]
 [ext_resource type="Script" uid="uid://d1jx0qooyty3l" path="res://Build/UI/DrawableRect.gd" id="25_ig1nw"]
 [ext_resource type="Texture2D" uid="uid://dmxkq6igt7fh" path="res://Asset/Icons/trash-can.png" id="26_s30d6"]
@@ -322,3 +323,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 vertical = true
+
+[node name="DiscordManager" type="Node" parent="." unique_id=971534591]
+script = ExtResource("25_2kogo")
+metadata/_custom_type_script = "uid://obbt6yw35yjf"
