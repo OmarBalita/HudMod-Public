@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name TimeLine2 extends EditorControl
 
@@ -122,7 +122,7 @@ var opened_clip_res: MediaClipRes
 var layers: Dictionary[LayerRes, Layer2]
 
 var latest_press_event: InputEventKey
-
+var latest_mouse_event: InputEventMouse
 
 
 func _ready_editor() -> void:
@@ -222,17 +222,26 @@ func _ready_editor() -> void:
 	ProjectServer2.opened_clip_res_changed.connect(_on_project_server_opened_clip_res_changed)
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		update_edges_navs_velocity()
+		if latest_mouse_event:
+			var delta: Vector2 = event.global_position - latest_mouse_event.global_position
+			latest_mouse_event = event
+			center += -delta.x / displ_frame_size
+			scroll_cont.scroll_vertical -= delta.y
+			update_timeline_view()
 	elif event is InputEventKey:
 		if event.is_pressed(): latest_press_event = event
 		else: latest_press_event = null
 
+
 func _body_gui_input(event: InputEvent) -> void:
-	
 	if event is InputEventMouseButton:
+		
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			latest_mouse_event = event if event.is_pressed() else null
+			return
 		
 		var method: Callable
 		
@@ -268,7 +277,12 @@ func navigate_horizontal(dir: int) -> void:
 	var nav_speed: int = dir * (navigation_horizontal_speed * ProjectServer2.project_res.fps) * zoom_factor
 	if abs(nav_speed) == 0: center += dir
 	else: center += nav_speed
-func navigate_horizontal_to(target_center: int, t: float = 1.) -> void: center = lerp(center, target_center, t)
+# func navigate_horizontal_to(target_center: int, t: float = 1.) -> void: center = lerp(center, target_center, t)
+func navigate_horizontal_to(target_center: int, duration: float = .25) -> void:
+	var smooth_nav_tween: Tween = create_tween()
+	smooth_nav_tween.set_trans(Tween.TRANS_QUINT)
+	smooth_nav_tween.set_ease(Tween.EASE_OUT)
+	smooth_nav_tween.tween_method(_set_center_and_update, center, float(target_center), duration)
 func navigate_to_cursor(nav_dir: int) -> void:
 	var cursor_pos: float = get_display_pos_from_cursor()
 	if cursor_pos < .0 or cursor_pos > size.x:
@@ -395,6 +409,11 @@ func _update_waveforms_pixelate_scale() -> void:
 	elif zoom > 2.: pixel_scale = 2.
 	else: pixel_scale = 1.
 	MediaServer.WaveformBoxContainer.set_pixelate_scale(pixel_scale)
+
+
+func _set_center_and_update(value: float) -> void:
+	center = value
+	update_timeline_view()
 
 
 func switch_edit_mode() -> void:
@@ -1423,6 +1442,10 @@ func _on_project_server_opened_clip_res_changed(old_one: MediaClipRes, new_one: 
 func _on_playback_server_position_changed(position: int) -> void:
 	if PlaybackServer.is_playing():
 		navigate_to_cursor(-1)
+	else:
+		var cursor_pos: float = get_display_pos_from_cursor()
+		if cursor_pos < .0 or cursor_pos > timemark_panel.size.x:
+			navigate_horizontal_to(position)
 	update_timeline_view()
 
 func _on_clip_res_layer_added(layer_idx: int, layer: LayerRes) -> void:
@@ -1462,4 +1485,3 @@ func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[V
 
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
 	update_clips(coords)
-

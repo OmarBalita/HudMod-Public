@@ -357,5 +357,3 @@ func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 
 func _on_editor_settings_settings_updated() -> void:
 	video_contexts_update_max_cache_size()
-
-

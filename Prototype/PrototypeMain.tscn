@@ -164,8 +164,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Properties" type="Control" parent="EditorsFolder" unique_id=691186840]
-clip_contents = true
 custom_minimum_size = Vector2(400, 400)
+clip_contents = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -183,8 +183,8 @@ texture_delete = ExtResource("26_s30d6")
 texture_drag = ExtResource("27_30lmd")
 
 [node name="Player" type="Control" parent="EditorsFolder" unique_id=2134777024]
-clip_contents = true
 custom_minimum_size = Vector2(400, 400)
+clip_contents = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -197,8 +197,8 @@ size_flags_stretch_ratio = 1.7
 script = ExtResource("2_7i47x")
 
 [node name="MediaExplorer" type="Control" parent="EditorsFolder" unique_id=2118222730]
-clip_contents = true
 custom_minimum_size = Vector2(400, 400)
+clip_contents = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name Player extends EditorControl
 
@@ -69,6 +69,7 @@ var play_button: IS.CustomTextureButton
 var replay_button: IS.CustomTextureButton
 var time_code_label: Label
 var max_time_label: Label
+var time_code_edit: LineEdit
 
 var volume_control: VolumeControl = VolumeControl.new()
 
@@ -198,12 +199,33 @@ func _ready_body() -> void:
 	replay_button = IS.create_texture_button(texture_replay, null, null, "Replay", true)
 	time_code_label = IS.create_label("", "", IS.label_settings_bold)
 	max_time_label = IS.create_label("")
+
+	time_code_edit = LineEdit.new()
+	time_code_edit.visible = false
+	time_code_edit.context_menu_enabled = false
+	time_code_edit.select_all_on_focus = true
+	time_code_edit.caret_blink = true
+	
+	IS.set_font_from_label_settings(time_code_edit, IS.label_settings_bold)    
+	time_code_edit.add_theme_color_override("caret_color", IS.label_settings_bold.font_color)
+	time_code_edit.add_theme_constant_override(&"outline_size", .0)
+
+	time_code_edit.add_theme_stylebox_override("normal", IS.style_box_empty)
+	time_code_edit.add_theme_stylebox_override("focus", IS.style_box_empty)
+	time_code_edit.add_theme_stylebox_override("read_only", IS.style_box_empty)
+
+	time_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	time_code_label.gui_input.connect(_on_time_code_label_gui_input)
+	time_code_edit.gui_input.connect(_on_time_code_edit_gui_input)
+	time_code_edit.text_submitted.connect(_on_time_code_edit_text_submitted)
+	time_code_edit.focus_exited.connect(_on_time_code_edit_focus_exited)
 	
 	full_screen_button = IS.create_texture_button(texture_full_screen, null, null, "Fullscreen")
 	#ratio_button = IS.create_texture_button(texture_ratio)
 	#more_button = IS.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
+	time_container.add_child(time_code_edit)
 	time_container.add_child(max_time_label)
 	time_panel.add_child(time_container)
 	
@@ -270,6 +292,18 @@ func update_timecode() -> void:
 	max_time_label.set_text(video_length_timecode)
 	time_code_label2.set_text(curr_frame_timecode + " / " + video_length_timecode)
 
+func _start_timecode_edit_mode() -> void:
+	time_code_edit.text = time_code_label.text
+	time_code_edit.custom_minimum_size = time_code_label.size
+	time_code_label.visible = false
+	time_code_edit.visible = true
+	time_code_edit.grab_focus()
+	time_code_edit.select_all()
+
+func _exit_timecode_edit_mode() -> void:
+	time_code_edit.visible = false
+	time_code_label.visible = true
+	update_timecode()
 
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	update_ui()
@@ -299,6 +333,29 @@ func _on_replay_button_pressed() -> void:
 
 func _on_full_screen_button_pressed() -> void:
 	set_is_full_screen(true)
+
+
+func _on_time_code_label_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.double_click and event.is_pressed():
+		_start_timecode_edit_mode()
+
+func _on_time_code_edit_gui_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+		time_code_edit.text = time_code_label.text
+		_exit_timecode_edit_mode()
+		get_viewport().set_input_as_handled()
+
+func _on_time_code_edit_text_submitted(new_text: String) -> void:
+	var frame: int = TimeServer.timecode_to_frame(new_text)
+	if frame != -1:
+		var max_frame: int = ProjectServer2.project_res.root_clip_res.length
+		frame = clampi(frame, 0, max_frame)
+		PlaybackServer.stop()
+		PlaybackServer.position = frame
+	_exit_timecode_edit_mode()
+
+func _on_time_code_edit_focus_exited() -> void:
+	_exit_timecode_edit_mode()
 
 #func _on_ratio_button_pressed() -> void:
 	#pass

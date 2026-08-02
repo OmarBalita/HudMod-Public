@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://ckmqu1nrqmxml"]
 
 [ext_resource type="Texture2D" uid="uid://jqccs6nb6n16" path="res://Asset/Images/banner-high.jpg" id="1_ersp8"]
+[ext_resource type="FontFile" uid="uid://c5m3t2bfd28w0" path="res://Asset/Fonts/montserrat.semibold.ttf" id="2_8x2kx"]
+[ext_resource type="FontFile" uid="uid://cin2epfmio6y4" path="res://Asset/Fonts/montserrat.medium.ttf" id="3_23fxe"]
 
 [sub_resource type="GDScript" id="GDScript_ersp8"]
 script/source = "extends Control
@@ -26,7 +28,6 @@ func _process(delta: float) -> void:
 	if load_status == ResourceLoader.THREAD_LOAD_LOADED:
 		var packed_scene: PackedScene = ResourceLoader.load_threaded_get(main_path)
 		get_tree().change_scene_to_packed(packed_scene)
-
 "
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0vf8b"]
@@ -86,6 +87,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_constants/shadow_offset_x = 5
 theme_override_constants/shadow_offset_y = 5
+theme_override_fonts/font = ExtResource("2_8x2kx")
 theme_override_font_sizes/font_size = 100
 text = "HUDMOD"
 horizontal_alignment = 1
@@ -94,6 +96,7 @@ vertical_alignment = 1
 [node name="DescriptionLabel" type="Label" parent="SplitContainer/MarginContainer/VBoxContainer" unique_id=59249570]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_23fxe")
 theme_override_font_sizes/font_size = 30
 text = "Edit as the hoopoe flies."
 horizontal_alignment = 1

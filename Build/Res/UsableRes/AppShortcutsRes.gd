@@ -150,11 +150,11 @@ class ShortcutsCommandsContainer extends VBoxContainer:
 				func _on_switch_btn_switched_to(event: InputEventKey) -> void:
 					sh_edit_cont.set_curr_value(event)
 			)
-			
+
 			sh_edit_cont.name_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			
 			sh_edit_cont.name_label.gui_input.connect(
-				func _on_name_label_gui_input(event: InputEvent) -> void:
+				func(event: InputEvent) -> void:
 					if event is InputEventMouseButton and event.is_pressed():
 						if event.button_index == MOUSE_BUTTON_LEFT:
 							shortcut_selected.emit(switch_btn.curr_event.as_text())

@@ -61,6 +61,7 @@ const NAVIGATION_KEYS: Array = [
 const KEYPAD_KEYS: Array = [
 	["Num", "/", "*", "-"],
 	["7", "8", "9", "+"],
+	["4", "5", "6"],
 	["1", "2", "3", "KpEnter"],
 	["0", "."]
 ]
@@ -160,7 +161,7 @@ func spawn_keypad_keys() -> void:
 		".": {size_flags_horizontal = Control.SIZE_EXPAND_FILL},
 		"-": {size_flags_vertical = Control.SIZE_EXPAND_FILL, size_flags_stretch_ratio = 1.0},
 		"+": {size_flags_vertical = Control.SIZE_EXPAND_FILL, size_flags_stretch_ratio = 2.0},
-		"KpEnter": {size_flags_vertical = Control.SIZE_EXPAND_FILL, size_flags_stretch_ratio = 1.0},
+		"KpEnter": {size_flags_vertical = Control.SIZE_EXPAND_FILL, size_flags_stretch_ratio = 2.0},
 	}
 	
 	var main_row: BoxContainer = IS.create_box_container(key_spacing, false)

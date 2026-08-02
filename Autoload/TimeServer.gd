@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -45,4 +45,49 @@ func frame_to_timecode(frame: int, fps: int = 0) -> String:
 	var seconds:= int(total_seconds % 60)
 	var frames:= int(frame % fps)
 	return "%02d:%02d:%02d:%02d" % [hours, minutes, seconds, frames]
+
+func timecode_to_frame(text: String) -> int:
+
+	return 0
+	#var raw: String = text.strip_edges()
+	#if raw.is_empty():
+	#	return -1
+	#
+	#var parts: PackedStringArray = raw.replace(";", ":").split(":")
+	#var size: int = parts.size()
+	#
+	#if size < 1 or size > 4:
+	#	return -1
+	#
+	#for i: int in size:
+	#	parts[i] = parts[i].strip_edges()
+	#	if parts[i].is_empty() or not parts[i].is_valid_int():
+	#		return -1
+	#
+	#var fps: int = ProjectServer2.fps
+	#var hours: int = 0
+	#var minutes: int = 0
+	#var seconds: int = 0
+	#var frames: int = 0
+	#
+	#match size:
+	#	1:
+	#		minutes = int(parts[0])
+	#	2:
+	#		minutes = int(parts[0])
+	#		seconds = int(parts[1])
+	#	3:
+	#		hours = int(parts[0])
+	#		minutes = int(parts[1])
+	#		seconds = int(parts[2])
+	#	4:
+	#		hours = int(parts[0])
+	#		minutes = int(parts[1])
+	#		seconds = int(parts[2])
+	#		frames = int(parts[3])
+	#
+	#if frames >= fps:
+	#	return -1
+	#
+	#return (hours * 3600 + minutes * 60 + seconds) * fps + frames
 

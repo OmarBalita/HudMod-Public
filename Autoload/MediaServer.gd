@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -96,9 +96,9 @@ var object_clip_info: Dictionary[StringName, Dictionary] = {
 	&"Text2DClipRes": {sections = [&"Display2D", &"Text"]},
 	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"]},
 	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"]},
-	&"AdjustmentClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"]},
 	&"Camera2DClipRes": {sections = [&"Display2D", &"Camera"]},
-	&"Audio2DClipRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel}
+	&"Audio2DClipRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel},
+	&"RenderPassClipRes": {sections = [&"RenderPass"]}
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
@@ -115,8 +115,7 @@ var timeline_waveform_textures: Dictionary[StringName, Dictionary]
 
 
 func _init() -> void:
-	MediaHelper.SetWaveformGradient(EditorServer.editor_settings.media_explorer_waveform_gradient)
-
+	MediaHelper.set_waveform_gradient(EditorServer.editor_settings.media_explorer_waveform_gradient)
 
 func clear_media_server() -> void:
 	thumbnails.clear()
@@ -141,13 +140,13 @@ func server_register_video(path: String, video_decoder: VideoDecoder, audio_data
 		if not audio_data_res:
 			return
 		var data_id: int = audio_data_res.get_instance_id()
-		MediaHelper.PushAudioData(data_id, audio_data_res.get_data())
+		MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
 		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
-		MediaHelper.FreeAudioData(data_id)
+		MediaHelper.free_audio_data(data_id)
 
 func server_register_audio(path: String, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	var data_id: int = audio_data_res.get_instance_id()
-	MediaHelper.PushAudioData(data_id, audio_data_res.get_data())
+	MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
 	
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
@@ -159,7 +158,7 @@ func server_register_audio(path: String, audio_data_res: MediaCache.AudioF32Data
 	else:
 		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
 	
-	MediaHelper.FreeAudioData(data_id)
+	MediaHelper.free_audio_data(data_id)
 
 func server_replace_media_path(from: String, to: String) -> void:
 	if thumbnails.has(from):
@@ -249,7 +248,7 @@ func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDe
 	return create_thumbnail_from_image(key_as_path, image, thumbnail_path, id)
 
 func create_thumbnail_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, thumbnail_path: String, id: String) -> Dictionary:
-	var thumbnail_image: Image = MediaHelper.GenerateWaveformImage(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
+	var thumbnail_image: Image = MediaHelper.generate_waveform_image(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
 	return thumbnails[key_as_path]
 
@@ -310,7 +309,7 @@ func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_meth
 	
 	if pixels_remained > 0:
 		var length_remained: float = pixels_remained / float(pixels_per_second)
-		images.append(MediaHelper.GenerateWaveformImage(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
+		images.append(MediaHelper.generate_waveform_image(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
 	
 	return images
 
@@ -318,7 +317,7 @@ func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], 
 	idx += start_idx
 	var second_from: float = idx * chunk_length
 	var second_to: float = second_from + chunk_length
-	images[idx] = MediaHelper.GenerateWaveformImage(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
+	images[idx] = MediaHelper.generate_waveform_image(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
 
 
 class ClipPanel extends Panel:

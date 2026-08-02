@@ -611,8 +611,9 @@ func popup_version_panel() -> void:
 	
 	version_window.close_requested.connect(
 		func() -> void:
-			main.freeze_rect.hide()
-			version_window.queue_free()
+			if ProjectServer2.is_project_loaded:
+				main.freeze_rect.hide()
+				version_window.queue_free()
 	)
 
 

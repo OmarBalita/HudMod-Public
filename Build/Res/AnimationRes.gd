@@ -234,6 +234,3 @@ func find_minmax_vals() -> Vector2:
 			_max = max(_max, value)
 	
 	return Vector2(_min, _max)
-
-
-

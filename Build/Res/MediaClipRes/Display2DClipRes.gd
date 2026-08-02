@@ -288,4 +288,3 @@ static func _format_shader_snip(shader_snip: String, params_names_list: Dictiona
 func emit_clip_res_changed() -> void:
 	await build_shader_pipeline()
 	super()
-
