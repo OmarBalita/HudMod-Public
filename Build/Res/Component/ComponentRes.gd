@@ -13,17 +13,6 @@ signal ready_from_loader(owner: MediaClipRes)
 
 var owner: MediaClipRes: set = _set_owner
 
-#@export var animations: Dictionary[UsableRes, Dictionary]:
-	#set(val):
-		#animations = val
-		#await until_ready()
-		#loop_animations(0,
-		#func(usable_res: UsableRes, anim_res: AnimationRes, prop_key: StringName, frame: int) -> void:
-			#for profile: CurveProfile in anim_res.profiles:
-				#profile.res_changed.connect(_update_parent_here)
-				#profile.res_changed.connect(update_controllers_here)
-		#)
-
 @export var forced: bool = false
 @export var enabled: bool = true: set = _set_enabled
 @export var method_type: MethodType = 1:
@@ -79,6 +68,11 @@ func get_method_type() -> MethodType:
 
 func set_method_type(new_method_type: MethodType) -> void:
 	method_type = new_method_type
+
+
+func _get_gizmos() -> Array[Callable]:
+	return []
+
 
 func _enter() -> void:
 	pass
@@ -152,102 +146,9 @@ func submit_stacked_values(stacked_values: Dictionary[StringName, Variant]) -> v
 	for key: StringName in stacked_values:
 		owner.add_stacked_value(key, stacked_values[key], method_type)
 
-#func loop_animations(frame: float, method: Callable) -> void:
-	#frame += owner.from
-	#for usable_res: UsableRes in animations.keys():
-		#var usable_res_section: Dictionary = animations.get(usable_res)
-		#for property_key: StringName in usable_res_section.keys():
-			#var anim_res: AnimationRes = usable_res_section.get(property_key)
-			#method.call(usable_res, anim_res, property_key, frame)
-
-#func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
-	#return get_animation(usable_res, prop_key).sample_func.call(frame + owner.from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
-
-#func push_animation_result_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
-	#usable_res.set_prop(property_key, anim_res.sample_func.call(frame))
-
-#func update_controller_func(usable_res: UsableRes, anim_res: AnimationRes, property_key: StringName, frame: int) -> void:
-	#var property_has_keyframe: bool = owner.has_animation_keyframe(usable_res, property_key, frame)
-	#EditorServer.update_usable_res_property_controller(usable_res, property_key, anim_res.sample(frame), property_has_keyframe)
-
-#func push_animations_result(frame: float) -> void:
-	#loop_animations(frame, push_animation_result_func)
-	#pass
-
-#func update_controllers(frame: float) -> void:
-	#loop_animations(frame, update_controller_func)
-	#pass
-
 func owner_update_my_controller(frame: int) -> void:
 	owner.update_specific_controller(self, frame)
 
-
-#func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
-	#return animations[usable_res][property_key]
-#
-#func has_animation(usable_res: UsableRes, property_key: StringName) -> bool:
-	#return animations.has(usable_res) and animations[usable_res].has(property_key)
-#
-#func has_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> bool:
-	#if not has_animation(usable_res, property_key): return false
-	#return animations[usable_res][property_key].has_key(frame)
-
-#func make_animation_absolute(usable_res: UsableRes, property_key: StringName, property_type: int) -> AnimationRes:
-	#var res_section: Dictionary = animations.get_or_add(usable_res, {})
-	#if not res_section.has(property_key):
-		#var anim_res: AnimationRes = AnimationRes.new()
-		#anim_res.set_value_type(property_type)
-		#anim_res.update_profiles()
-		#res_section[property_key] = anim_res
-		#for profile: CurveProfile in anim_res.profiles:
-			#profile.res_changed.connect(_update_parent_here)
-			#profile.res_changed.connect(update_controllers_here)
-		#owner.animation_res_added.emit(usable_res, property_key, anim_res)
-		#owner.shared_data_clear()
-	#return res_section.get(property_key)
-
-#func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) -> void:
-	#var res_section: Variant = animations.get(usable_res)
-	#if res_section is Dictionary:
-		#res_section.erase(property_key)
-		#owner.animation_res_removed.emit(usable_res, property_key)
-		#owner.shared_data_clear()
-		#if res_section.size() == 0:
-			#animations.erase(res_section)
-
 func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
 	owner.request_animation_keyframe(usable_res, property_key, property_val, frame, can_remove)
-	#frame = owner.get_frame_or_curr_frame(frame)
-	#var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, typeof(property_val))
-	#var is_remove_request: bool = can_remove and anim_res.has_key(frame)
-	#if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame)
-	#else: add_animation_keyframe(usable_res, property_key, property_val, frame)
-	#EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
-
-#func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
-	#var do_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, property_val, frame)
-	#var undo_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
-	#ProjectServer2.commit_action("add_keyframe", do_method, undo_method)
-#
-#func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
-	#var tmp_property_val: Variant = get_animation(usable_res, property_key).get_key(frame)
-	#var do_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
-	#var undo_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, tmp_property_val, frame)
-	#ProjectServer2.commit_action("remove_keyframe", do_method, undo_method)
-
-
-#func _add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
-	#make_animation_absolute(usable_res, property_key, typeof(property_val)).add_key(frame, property_val)
-	#owner.keyframe_added.emit(usable_res, property_key, property_val, frame)
-	#owner.shared_data_clear()
-#
-#func _remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
-	#var anim_res: AnimationRes = get_animation(usable_res, property_key)
-	#anim_res.remove_key(frame)
-	#if not anim_res.has_any_key():
-		#remove_animation_absolute(usable_res, property_key)
-	#owner.keyframe_removed.emit(usable_res, property_key, frame)
-	#owner.shared_data_clear()
-
-
 

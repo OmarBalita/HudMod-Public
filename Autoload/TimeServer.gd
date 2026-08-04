@@ -46,48 +46,46 @@ func frame_to_timecode(frame: int, fps: int = 0) -> String:
 	var frames:= int(frame % fps)
 	return "%02d:%02d:%02d:%02d" % [hours, minutes, seconds, frames]
 
-func timecode_to_frame(text: String) -> int:
+func timecode_to_frame(timecode: String, fps: int = 0) -> int:
+	if fps == 0: fps = ProjectServer2.fps
+	
+	timecode = timecode.strip_edges()
+	if timecode.is_empty():
+		return -1
+	
+	var units: PackedStringArray = timecode.replace(";", ":").split(":")
+	var size: int = units.size()
+	
+	if size < 1 or size > 4:
+		return -1
+	
+	for idx: int in size:
+		var unit: String = units[idx].strip_edges()
+		if unit.is_empty() or not unit.is_valid_int():
+			return -1
+		units[idx] = unit
+	
+	var hours: int
+	var minutes: int
+	var seconds: int
+	var frames: int
+	
+	match size:
+		1:
+			frames = int(units[0])
+		2:
+			seconds = int(units[0])
+			frames = int(units[1])
+		3:
+			minutes = int(units[0])
+			seconds = int(units[1])
+			frames = int(units[2])
+		4:
+			hours = int(units[0])
+			minutes = int(units[1])
+			seconds = int(units[2])
+			frames = int(units[3])
+	
+	return (hours * 3600 + minutes * 60 + seconds) * fps + frames
 
-	return 0
-	#var raw: String = text.strip_edges()
-	#if raw.is_empty():
-	#	return -1
-	#
-	#var parts: PackedStringArray = raw.replace(";", ":").split(":")
-	#var size: int = parts.size()
-	#
-	#if size < 1 or size > 4:
-	#	return -1
-	#
-	#for i: int in size:
-	#	parts[i] = parts[i].strip_edges()
-	#	if parts[i].is_empty() or not parts[i].is_valid_int():
-	#		return -1
-	#
-	#var fps: int = ProjectServer2.fps
-	#var hours: int = 0
-	#var minutes: int = 0
-	#var seconds: int = 0
-	#var frames: int = 0
-	#
-	#match size:
-	#	1:
-	#		minutes = int(parts[0])
-	#	2:
-	#		minutes = int(parts[0])
-	#		seconds = int(parts[1])
-	#	3:
-	#		hours = int(parts[0])
-	#		minutes = int(parts[1])
-	#		seconds = int(parts[2])
-	#	4:
-	#		hours = int(parts[0])
-	#		minutes = int(parts[1])
-	#		seconds = int(parts[2])
-	#		frames = int(parts[3])
-	#
-	#if frames >= fps:
-	#	return -1
-	#
-	#return (hours * 3600 + minutes * 60 + seconds) * fps + frames
 

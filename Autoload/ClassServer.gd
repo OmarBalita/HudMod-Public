@@ -45,7 +45,8 @@ var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
 	&"Text": CompsSectionInfo.new(null, "", [&"Basic", &"Shape", &"Color", &"Animation", &"InOutAnimation", &"Generate"]),
 	#&"Draw": CompsSectionInfo.new(null, "", []),
 	&"Particles": CompsSectionInfo.new(null, "", [&"Display", &"Physics"]),
-	&"Camera": CompsSectionInfo.new(null, "", [&"Basic", &"PostProcessing"])
+	&"Camera": CompsSectionInfo.new(null, "", [&"Basic", &"PostProcessing"]),
+	&"RenderPass": CompsSectionInfo.new(null, "")
 }
 
 @onready var base_classes: Dictionary[Variant.Type, BaseClassInfo] = {

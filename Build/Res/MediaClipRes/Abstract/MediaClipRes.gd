@@ -392,7 +392,7 @@ func enter(node: Node) -> void:
 func process(frame: int) -> void:
 	_before_process_comps(frame)
 	_process_comps(frame)
-	_after_process_comps(frame)
+	await _after_process_comps(frame)
 
 func _before_process_comps(frame: int) -> void:
 	curr_frame = frame

@@ -24,15 +24,14 @@ signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 @export var media_res: MediaClipRes:
 	set(val):
 		
-		if media_res != val:
-			media_res_changed.emit(media_res, val)
-		
-		if val:
-			retarget_id = val.id
-		else:
-			retarget_id = &""
-		
+		var tmp_old_val: MediaClipRes = media_res
 		media_res = val
+		
+		if val: retarget_id = val.id
+		else: retarget_id = &""
+		
+		if tmp_old_val != val:
+			media_res_changed.emit(tmp_old_val, val)
 		
 		emit_res_changed()
 		_try_update_editor()
@@ -125,8 +124,9 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 		
 		drawable_rect.clear_drawn_entities()
 		
-		media_res_picker_button.button_pressed = false
-		media_res_picker_button.update_button()
+		if media_res_picker_button:
+			media_res_picker_button.button_pressed = false
+			media_res_picker_button.update_button()
 		
 		EditorServer.picking_clip = false
 
@@ -143,3 +143,6 @@ func is_valid() -> bool: return media_res != null and media_res.curr_node != nul
 
 static func any_cond(media_res: MediaClipRes) -> bool: return true
 static func node2d_cond(media_res: MediaClipRes) -> bool: return media_res is Display2DClipRes
+static func renderpass_cond(media_res: MediaClipRes) -> bool: return media_res is RenderPassClipRes
+
+

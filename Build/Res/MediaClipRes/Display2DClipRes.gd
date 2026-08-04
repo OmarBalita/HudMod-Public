@@ -13,8 +13,6 @@ signal pre_shader_material_changed()
 signal post_shader_material_changed()
 signal shader_pipeline_builded()
 
-@export var render_pass_margin: Vector2
-
 var pre_shader_material: ShaderMaterial: set = _set_pre_shader_material
 var ppsm: Array[ShaderMaterial]
 var ppr: PingPongRenderer
@@ -43,9 +41,6 @@ func _set_post_shader_material(val: ShaderMaterial) -> void:
 func _init_clip_res() -> void:
 	add_component(&"Display2D", CompCanvasItem.new(), true)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	return {&"render_pass_margin": export(vec2_args(render_pass_margin))}
-
 func get_pre_shader_material() -> ShaderMaterial:
 	return pre_shader_material
 
@@ -57,6 +52,84 @@ func get_post_shader_material() -> ShaderMaterial:
 
 func set_post_shader_material(new_shader_material: ShaderMaterial) -> void:
 	post_shader_material = new_shader_material
+
+
+
+func _get_gizmos() -> Array[Callable]:
+	
+	var result: Array[Callable] = [
+		_gizmosMethod_getTransformation
+	]
+	loop_components(
+		func(comp_res: ComponentRes) -> void:
+			result.append(comp_res._get_gizmos())
+	)
+	return result
+
+
+func _gizmosMethod_getTransformation() -> Array[Dictionary]:
+	
+	var displ2d_comps: Array = components.get(&"Display2D")
+	if displ2d_comps.is_empty(): return []
+	var first_comp: ComponentRes = displ2d_comps[0]
+	if first_comp is not CompCanvasItem: return []
+	first_comp = first_comp as CompCanvasItem
+	
+	var tex: Texture2D = get_self_texture()
+	var size: Vector2 = (tex.get_size() if tex else Vector2.ZERO) * first_comp.scale
+	
+	var vp_pos: Vector2 = GizmosDrawer.world2d_to_editor_viewport(first_comp.position)
+	
+	var size_half: Vector2 = size / 2.
+	
+	var local_corners: Array[Vector2] = [
+		Vector2(-size_half.x, -size_half.y),
+		Vector2(size_half.x, -size_half.y),
+		Vector2(size_half.x, size_half.y),
+		Vector2(-size_half.x, size_half.y)
+	]
+	
+	var vp_corners: Array[Vector2] = []
+	for corner: Vector2 in local_corners:
+		var rotated_corner: Vector2 = corner.rotated(curr_node.rotation)
+		var world_corner: Vector2 = curr_node.position + rotated_corner
+		vp_corners.append(GizmosDrawer.world2d_to_editor_viewport(world_corner))
+	
+	var result: Array[Dictionary] = [
+		{
+			&"type": GizmosDrawer.GizmoType.GIZMO_TYPE_CIRCLE,
+			&"args": circle_args(vp_pos, 10.),
+			&"handle": _gizmosHandlerMethod,
+		},
+	]
+	
+	var c1: Vector2 = vp_corners[0]; var c2: Vector2 = vp_corners[1]
+	var c3: Vector2 = vp_corners[2]; var c4: Vector2 = vp_corners[3]
+	result.append_array([
+		{&"type": 0, &"args": line_args(c1, c2), &"handle": _gizmosHandlerMethod},
+		{&"type": 0, &"args": line_args(c2, c3), &"handle": _gizmosHandlerMethod},
+		{&"type": 0, &"args": line_args(c3, c4), &"handle": _gizmosHandlerMethod},
+		{&"type": 0, &"args": line_args(c4, c1), &"handle": _gizmosHandlerMethod}
+	])
+	result.append_array([
+		{&"type": 2, &"args": circle_args(c1, 5., Color.GRAY, true)},
+		{&"type": 2, &"args": circle_args(c2, 5., Color.GRAY, true)},
+		{&"type": 2, &"args": circle_args(c3, 5., Color.GRAY, true)},
+		{&"type": 2, &"args": circle_args(c4, 5., Color.GRAY, true)},
+	])
+	
+	return result
+
+
+func _gizmosHandlerMethod(event: InputEvent, type: int, args: Array) -> bool:
+	return true
+
+
+static func line_args(from: Vector2, to: Vector2, color: Color = Color.GRAY, width: float = 2., antialiasing: bool = true) -> Array: return [from, to, color, width, antialiasing]
+static func rect_args(rect2: Rect2, color: Color = Color.GRAY, filled: bool = false, width = 2., antialiasing: bool = true) -> Array: return [rect2, color, filled, width, antialiasing]
+static func circle_args(pos: Vector2, radius: float, color: Color = Color.GRAY, filled: bool = false, width = 2., antialiasing: bool = true) -> Array: return [pos, radius, color, filled, width, antialiasing]
+
+
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, Node2D.new())
@@ -100,8 +173,6 @@ func process_material(frame: int) -> void:
 		for sm: ShaderMaterial in ppsm:
 			sm.set_shader_parameter(&"time", frame_f)
 		
-		curr_node.texture_scale = Vector2.ONE
-		
 		if ppr.is_in_process:
 			await ppr.process_finished
 			if mat_process_id != curr_mat_process_id:
@@ -109,7 +180,7 @@ func process_material(frame: int) -> void:
 		await process_passes_materials(1.)
 
 func process_passes_materials(render_scale: float) -> void:
-	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale, render_pass_margin)
+	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale)
 
 func get_self_main_texture() -> Texture2D: return null
 func get_self_texture() -> Texture2D:

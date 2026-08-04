@@ -351,3 +351,6 @@ static func method_exit_cat_args() -> Array: return []
 static func method_callable_args(callable: Callable, color: Color = IS.color_accent, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
 static func method_custom_args(control: Control) -> Array: return [control]
 
+
+
+

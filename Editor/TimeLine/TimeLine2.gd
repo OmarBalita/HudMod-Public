@@ -223,7 +223,14 @@ func _ready_editor() -> void:
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
+	
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			var cond1: bool = body.get_global_rect().has_point(event.global_position)
+			var cond2: bool = event.is_pressed()
+			latest_mouse_event = event if cond1 and cond2 else null
+	
+	elif event is InputEventMouseMotion:
 		update_edges_navs_velocity()
 		if latest_mouse_event:
 			var delta: Vector2 = event.global_position - latest_mouse_event.global_position
@@ -231,6 +238,7 @@ func _input(event: InputEvent) -> void:
 			center += -delta.x / displ_frame_size
 			scroll_cont.scroll_vertical -= delta.y
 			update_timeline_view()
+	
 	elif event is InputEventKey:
 		if event.is_pressed(): latest_press_event = event
 		else: latest_press_event = null
@@ -238,10 +246,6 @@ func _input(event: InputEvent) -> void:
 
 func _body_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		
-		if event.button_index == MOUSE_BUTTON_MIDDLE:
-			latest_mouse_event = event if event.is_pressed() else null
-			return
 		
 		var method: Callable
 		
@@ -283,14 +287,18 @@ func navigate_horizontal_to(target_center: int, duration: float = .25) -> void:
 	smooth_nav_tween.set_trans(Tween.TRANS_QUINT)
 	smooth_nav_tween.set_ease(Tween.EASE_OUT)
 	smooth_nav_tween.tween_method(_set_center_and_update, center, float(target_center), duration)
+
 func navigate_to_cursor(nav_dir: int) -> void:
-	var cursor_pos: float = get_display_pos_from_cursor()
-	if cursor_pos < .0 or cursor_pos > size.x:
+	if cursor_out_of_box():
 		var displacement: int = displ_timemark_size_h / displ_frame_size
 		navigate_horizontal_to(PlaybackServer.position + displacement * nav_dir)
 
 func navigate_vertical(dir: int) -> void: scroll_cont.scroll_vertical += dir * navigation_vertical_speed
 func navigate_vertical_to(target: int, t: float = 1.) -> void: scroll_cont.scroll_vertical = lerp(scroll_cont.scroll_vertical, target, t)
+
+func cursor_out_of_box() -> bool:
+	var cursor_pos: float = get_display_pos_from_cursor()
+	return cursor_pos < .0 or cursor_pos > size.x
 
 
 func try_effect_zoom(dir: int) -> void:
@@ -1442,10 +1450,6 @@ func _on_project_server_opened_clip_res_changed(old_one: MediaClipRes, new_one: 
 func _on_playback_server_position_changed(position: int) -> void:
 	if PlaybackServer.is_playing():
 		navigate_to_cursor(-1)
-	else:
-		var cursor_pos: float = get_display_pos_from_cursor()
-		if cursor_pos < .0 or cursor_pos > timemark_panel.size.x:
-			navigate_horizontal_to(position)
 	update_timeline_view()
 
 func _on_clip_res_layer_added(layer_idx: int, layer: LayerRes) -> void:

@@ -89,16 +89,17 @@ const MEDIA_EXTENSIONS: PackedStringArray = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS 
 const ARR_MEDIA_EXTENSIONS: Array[PackedStringArray] = [IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, AUDIO_EXTENSIONS]
 
 var object_clip_info: Dictionary[StringName, Dictionary] = {
-	&"Display2DClipRes": {sections = [&"Display2D"]},
+	&"Display2DClipRes": {sections = [&"Display2D"], clip_panel = Object2DClipPanel},
 	&"ImageClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = ImageClipPanel, color = Color("ffcb59"), icon = preload("res://Asset/Icons/Objects/image.png")},
 	&"VideoClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition", &"Sound"], clip_panel = VideoClipPanel, color = Color("7ae65c"), icon = preload("res://Asset/Icons/Objects/video.png")},
 	&"AudioClipRes": {sections = [&"Sound"], clip_panel = AudioClipPanel, color = Color("62c4f5"), icon = preload("res://Asset/Icons/Objects/audio.png")},
-	&"Text2DClipRes": {sections = [&"Display2D", &"Text"]},
-	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"]},
-	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"]},
-	&"Camera2DClipRes": {sections = [&"Display2D", &"Camera"]},
+	&"Text2DClipRes": {sections = [&"Display2D", &"Text"], clip_panel = Object2DClipPanel},
+	&"Shape2DClipRes": {sections = [&"Display2D", &"Shape"], clip_panel = Object2DClipPanel},
+	&"Particles2DClipRes": {sections = [&"Display2D", &"Particles"], clip_panel = Object2DClipPanel},
+	&"Camera2DClipRes": {sections = [&"Display2D", &"Camera"], clip_panel = Object2DClipPanel},
 	&"Audio2DClipRes": {sections = [&"Display2D", &"Sound"], clip_panel = Audio2DClipPanel},
-	&"RenderPassClipRes": {sections = [&"RenderPass"]}
+	&"RenderPassClipRes": {sections = [&"RenderPass"]},
+	&"RenderViewerClipRes": {sections = [&"Display2D", &"Image", &"Color", &"Transition"], clip_panel = Object2DClipPanel}
 }
 
 const THUMBNAIL_TARGET_WIDTH: int = 128
@@ -1127,8 +1128,17 @@ class ObjectClipPanel extends ClipPanel:
 	
 	func _ready() -> void:
 		super()
+		add_theme_stylebox_override(&"panel", preload("uid://bam1qejo8sgh5"))
+	
+	func _ready_ui() -> void:
+		super()
 		thumbnail_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		thumbnail_rect.custom_minimum_size.x = 50.
+
+class Object2DClipPanel extends ObjectClipPanel:
+	
+	func _ready() -> void:
+		super()
 		add_theme_stylebox_override(&"panel", preload("uid://dxxh6guqix0k"))
 
 class Audio2DClipPanel extends ObjectClipPanel:

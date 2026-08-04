@@ -24,6 +24,7 @@ class_name FlexViewportControl extends Control
 		enabled = val
 		viewport_container.stretch = not val
 		update()
+
 @export var viewport_container: SubViewportContainer
 
 func _init() -> void:
@@ -42,30 +43,28 @@ func update() -> void:
 	
 	if enabled:
 		var viewport: SubViewport = null
-		for child in viewport_container.get_children():
+		for child: Node in viewport_container.get_children():
 			if child is SubViewport:
 				viewport = child
 				break
 		if not viewport:
 			return
 		
-		var viewport_size = viewport.size
+		var viewport_size: Vector2i = viewport.size
 		
-		var scale_ratio = min(
+		var scale_ratio: float = minf(
 			size.x / viewport_size.x,
 			size.y / viewport_size.y
 		)
 		
 		viewport_container.scale = Vector2.ONE * scale_ratio
 		
-		var scaled_size = Vector2(viewport_size) * viewport_container.scale
+		var scaled_size: Vector2 = Vector2(viewport_size) * viewport_container.scale
 		viewport_container.position = (size - scaled_size) / 2.0
 	else:
 		viewport_container.scale = Vector2.ONE
 		viewport_container.position = Vector2.ZERO
 		viewport_container.size = size
-
-
 
 
 

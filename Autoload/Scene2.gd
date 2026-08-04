@@ -51,6 +51,7 @@ func start_scene() -> void:
 	camera = Camera2D.new()
 	root.add_child(camera)
 	viewport.add_child(root)
+	add_child(viewport)
 	
 	update_viewport()
 

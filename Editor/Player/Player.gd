@@ -44,12 +44,12 @@ var is_full_screen: bool:
 		if val:
 			if header_panel.windowed:
 				header_panel.target_to_layout()
-			flex_view_control.reparent(get_tree().get_current_scene())
-			flex_view_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			viewport_texture_rect.reparent(get_tree().get_current_scene())
+			viewport_texture_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			EditorServer.full_screen_requested.append(get_instance_id())
 		else:
-			flex_view_control.reparent(screen_options_parent)
-			screen_options_parent.move_child(flex_view_control, 0)
+			viewport_texture_rect.reparent(screen_bg_color_rect)
+			viewport_texture_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			EditorServer.full_screen_requested.erase(get_instance_id())
 		
 		EditorServer.update_window_mode()
@@ -57,11 +57,11 @@ var is_full_screen: bool:
 
 # RealTime Nodes
 
-var tweener: TweenerComponent = TweenerComponent.new()
-
 var screen_options_parent: SplitContainer
 
-var flex_view_control: FlexViewportControl
+var screen_bg_color_rect: ColorRect
+var viewport_texture_rect: TextureRect
+var gizmos_drawer: GizmosDrawer
 var viewport: SubViewport
 
 var options_container: BoxContainer
@@ -74,8 +74,6 @@ var time_code_edit: LineEdit
 var volume_control: VolumeControl = VolumeControl.new()
 
 var full_screen_button: TextureButton
-#var ratio_button: TextureButton
-#var more_button: TextureButton
 
 var control_panel: PanelContainer
 var time_code_label2: Label
@@ -98,17 +96,14 @@ func _ready_editor() -> void:
 	play_button.pressed.connect(_on_play_button_pressed)
 	replay_button.pressed.connect(_on_replay_button_pressed)
 	full_screen_button.pressed.connect(_on_full_screen_button_pressed)
-	#ratio_button.pressed.connect(_on_ratio_button_pressed)
-	#more_button.pressed.connect(_on_more_button_pressed)
 	
 	cancel_full_screen_button.pressed.connect(_on_cancel_full_screen_button_pressed)
 
 
 func _ready_ui() -> void:
-	add_child(tweener)
-	
 	_ready_header()
 	_ready_body()
+	viewport = Scene2.viewport
 
 
 
@@ -179,21 +174,27 @@ func _ready_header() -> void:
 func _ready_body() -> void:
 	
 	screen_options_parent = IS.create_split_container(1, true)
-	flex_view_control = FlexViewportControl.new()
-	ObjectServer.describe(flex_view_control, {
-		size_flags_vertical = Control.SIZE_EXPAND_FILL,
-		draw_focus = false,
-	})
-	var view_container = IS.create_viewport_container({size_flags_vertical = Control.SIZE_EXPAND_FILL})
+	
+	screen_bg_color_rect = IS.create_color_rect(Color(.15, .15, .15, 1.))
+	IS.expand(screen_bg_color_rect, true, true)
+	
+	viewport_texture_rect = IS.create_texture_rect(Scene2.viewport.get_texture())
+	viewport_texture_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	viewport_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	viewport_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	
+	#IS.expand(viewport_texture_rect, true, true)
+	
 	options_container = IS.create_box_container(10, false,
 	{"custom_minimum_size": Vector2(.0, 50.0), "alignment": BoxContainer.ALIGNMENT_CENTER})
-	var time_panel = IS.create_panel_container(Vector2(300, 0))
-	var time_container = IS.create_box_container()
+	var time_panel: PanelContainer = IS.create_panel_container(Vector2(300, 0))
+	var time_container: BoxContainer = IS.create_box_container()
 	
-	viewport = Scene2.viewport
-	view_container.add_child(viewport)
-	flex_view_control.add_child(view_container)
-	flex_view_control.viewport_container = view_container
+	gizmos_drawer = GizmosDrawer.new()
+	gizmos_drawer.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	
+	viewport_texture_rect.add_child(gizmos_drawer)
+	screen_bg_color_rect.add_child(viewport_texture_rect)
 	
 	play_button = IS.create_texture_button(texture_play, null, texture_pause, "Play / Pause", true)
 	replay_button = IS.create_texture_button(texture_replay, null, null, "Replay", true)
@@ -221,8 +222,6 @@ func _ready_body() -> void:
 	time_code_edit.focus_exited.connect(_on_time_code_edit_focus_exited)
 	
 	full_screen_button = IS.create_texture_button(texture_full_screen, null, null, "Fullscreen")
-	#ratio_button = IS.create_texture_button(texture_ratio)
-	#more_button = IS.create_texture_button(texture_more)
 	
 	time_container.add_child(time_code_label)
 	time_container.add_child(time_code_edit)
@@ -237,17 +236,13 @@ func _ready_body() -> void:
 		time_panel,
 		volume_control,
 		full_screen_button,
-		#IS.create_v_line_panel(),
-		#ratio_button,
-		#more_button,
 		IS.create_empty_control()
 	])
 	
-	screen_options_parent.add_child(flex_view_control)
+	screen_options_parent.add_child(screen_bg_color_rect)
 	screen_options_parent.add_child(options_container)
 	body.add_child(screen_options_parent)
 	
-	# Time Slider
 	control_panel = IS.create_panel_container(Vector2(.0, 60.0), load("res://UI&UX/RangeBlack.tres"))
 	var control_margin: MarginContainer = IS.create_margin_container(20,20,20,20)
 	var control_box: BoxContainer = IS.create_box_container()
@@ -269,10 +264,13 @@ func _ready_body() -> void:
 	
 	control_margin.add_child(control_box)
 	control_panel.add_child(control_margin)
-	flex_view_control.add_child(control_panel)
+	viewport_texture_rect.add_child(control_panel)
 	
 	await get_tree().process_frame
 	control_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+
+
+
 
 
 func get_is_full_screen() -> bool:
@@ -304,11 +302,12 @@ func _exit_timecode_edit_mode() -> void:
 	time_code_edit.visible = false
 	time_code_label.visible = true
 	update_timecode()
+	if EditorServer.time_line2.cursor_out_of_box():
+		EditorServer.time_line2.navigate_horizontal_to(PlaybackServer.position)
 
 func _on_project_server_project_opened(project_res: ProjectRes) -> void:
 	update_ui()
-	flex_view_control.update()
-
+	#flex_view_control.update()
 
 func _on_playback_server_played(at: int) -> void:
 	play_button.button_pressed = true
@@ -346,22 +345,22 @@ func _on_time_code_edit_gui_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _on_time_code_edit_text_submitted(new_text: String) -> void:
+	
+	if Renderer.is_working:
+		return
+	
 	var frame: int = TimeServer.timecode_to_frame(new_text)
 	if frame != -1:
 		var max_frame: int = ProjectServer2.project_res.root_clip_res.length
 		frame = clampi(frame, 0, max_frame)
 		PlaybackServer.stop()
 		PlaybackServer.position = frame
+	
 	_exit_timecode_edit_mode()
 
 func _on_time_code_edit_focus_exited() -> void:
 	_exit_timecode_edit_mode()
 
-#func _on_ratio_button_pressed() -> void:
-	#pass
-#
-#func _on_more_button_pressed() -> void:
-	#pass
 
 func _on_cancel_full_screen_button_pressed() -> void:
 	set_is_full_screen(false)
