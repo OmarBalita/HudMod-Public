@@ -76,7 +76,7 @@ func _gizmosMethod_getTransformation() -> Array[Dictionary]:
 	first_comp = first_comp as CompCanvasItem
 	
 	var tex: Texture2D = get_self_texture()
-	var size: Vector2 = (tex.get_size() if tex else Vector2.ZERO) * first_comp.scale
+	var size: Vector2 = get_size(first_comp.scale)
 	
 	var vp_pos: Vector2 = GizmosDrawer.world2d_to_editor_viewport(first_comp.position)
 	
@@ -91,8 +91,8 @@ func _gizmosMethod_getTransformation() -> Array[Dictionary]:
 	
 	var vp_corners: Array[Vector2] = []
 	for corner: Vector2 in local_corners:
-		var rotated_corner: Vector2 = corner.rotated(curr_node.rotation)
-		var world_corner: Vector2 = curr_node.position + rotated_corner
+		var rotated_corner: Vector2 = corner.rotated(deg_to_rad(first_comp.rotation_degrees))
+		var world_corner: Vector2 = first_comp.position + rotated_corner
 		vp_corners.append(GizmosDrawer.world2d_to_editor_viewport(world_corner))
 	
 	var result: Array[Dictionary] = [
@@ -183,8 +183,8 @@ func process_passes_materials(render_scale: float) -> void:
 	await ppr.request_process_output(get_self_main_texture(), ppsm, render_scale)
 
 func get_self_main_texture() -> Texture2D: return null
-func get_self_texture() -> Texture2D:
-	return ppr.get_output_texture() if ppr else get_self_main_texture()
+func get_self_texture() -> Texture2D: return ppr.get_output_texture() if ppr else get_self_main_texture()
+func get_size(scale: Vector2) -> Vector2: return Vector2.ZERO
 
 func build_shader_pipeline() -> void:
 	

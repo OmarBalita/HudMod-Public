@@ -22,7 +22,6 @@ func set_render_pass_clip(new_val: MediaClipResPath) -> void: render_pass_clip =
 func get_texture() -> ViewportTexture: return texture
 func set_texture(new_val: ViewportTexture) -> void: texture = new_val
 
-
 func _init() -> void:
 	_init_render_pass_clip()
 
@@ -57,8 +56,10 @@ func process(frame: int) -> void:
 func exit(node: Node) -> void:
 	super(node)
 
-func get_self_main_texture() -> Texture2D:
-	return texture
+func get_self_main_texture() -> Texture2D: return texture
+func get_size(scale: Vector2) -> Vector2:
+	var tex: Texture2D = get_self_texture()
+	return tex.get_size() * scale if tex else Vector2.ZERO
 
 func build_shader_pipeline() -> void:
 	await super()

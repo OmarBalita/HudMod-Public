@@ -39,6 +39,9 @@ func get_thumbnail() -> Texture2D: return MediaServer.get_thumbnail(image).textu
 static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/image.png")
 
 func get_self_main_texture() -> Texture2D: return MediaCache.get_texture(image)
+func get_size(scale: Vector2) -> Vector2:
+	var tex: Texture2D = get_self_texture()
+	return tex.get_size() * curr_node.scale_factor * scale if tex else Vector2.ZERO
 
 func build_shader_pipeline() -> void:
 	await super()

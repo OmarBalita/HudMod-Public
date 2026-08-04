@@ -63,6 +63,9 @@ func get_max_length() -> float:
 	else: return +INF
 
 func get_self_main_texture() -> Texture2D: return texture_y
+func get_size(scale: Vector2) -> Vector2:
+	var tex: Texture2D = get_self_texture()
+	return tex.get_size() * curr_node.scale_factor * scale if tex else Vector2.ZERO
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
