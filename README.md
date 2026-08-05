@@ -69,7 +69,7 @@ The first Alpha version was launched concurrently with the publication of this a
 - Download HudMod files from this repository to your local machine.
 - Download appropriate HudMod-GDExtension release for your OS and arch from: [GDExtension Releases](https://github.com/OmarBalita/HudMod-GDExtension/releases).
 - Place HudMod-GDExtension binary along with its associated FFmpeg libraries (.dll's or .so's) into the following directory: `addons/hudmod-gdextension/`
-- Open HudMod using Godot 4.6+ (Mono Version).
+- Open HudMod using Godot 4.6+.
 
 ---
 **Support HudMod:** [Patreon](https://www.patreon.com/10610068/join)
