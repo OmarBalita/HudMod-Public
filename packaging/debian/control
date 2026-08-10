@@ -1,0 +1,27 @@
+Package: hudmod
+Version: 1.0.0~alpha.2
+Section: video
+Priority: optional
+Architecture: amd64
+Depends: libc6, libgcc-s1, libstdc++6, libgl1, libglu1-mesa, libx11-6,
+ libx11-xcb1, libxext6, libxcursor1, libxinerama1, libxrandr2, libxi6,
+ libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-cursor0,
+ libwayland-egl1, libasound2, libpulse0, libdbus-1-3, libfontconfig1,
+ libfreetype6, libzstd1, libvulkan1, libdecor-0
+Maintainer: Omar Mohammed Balita <omar-balita@users.noreply.github.com>
+Homepage: https://omar-top.itch.io/hudmod-video-editor
+Description: Fast open-source video editor built with Godot and FFmpeg
+ HudMod is an open-source video editor under the GPLv3 license. It is fast and
+ equipped with advanced tools, built to fill a gap in the video editing
+ software market, focusing on native Linux support and a fast workflow.
+ .
+ Features:
+  * Real-time playback and instant preview
+  * Effects based on a Components system (over 80 components)
+  * Animation for all properties (keyframes and curves)
+  * An integrated custom interface with Multi-Monitor support
+  * Multi-pass shader pipelines and color grading
+  * Video export through FFmpeg (MP4/MKV/AVI/WEBM, H.264/H.265/VP8/VP9/AV1/ProRes/FFV1)
+ .
+ Uses the Godot engine in the background and FFmpeg for media decoding and
+ encoding.

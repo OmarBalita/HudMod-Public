@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.itch.hudmod</id>
+  <name>HudMod Video Editor</name>
+  <summary>Fast open-source video editor built with Godot and FFmpeg</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.omarbalita">
+    <name>Omar Mohammed Balita</name>
+  </developer>
+  <description>
+    <p>HudMod is an open-source video editor under the GPLv3 license. It is fast and equipped with advanced tools, developed to fill a gap in the video editing software market, focusing primarily on Linux and a fast workflow.</p>
+    <p>HudMod uses the Godot engine in the background, and FFmpeg for media decoding and encoding.</p>
+    <p>Features:</p>
+    <ul>
+      <li>Real-time playback and instant preview</li>
+      <li>Effects based on a Components system</li>
+      <li>Animation for all properties</li>
+      <li>An integrated custom interface with Multi-Monitor support</li>
+      <li>Multi-pass shader pipelines and color grading</li>
+      <li>FFmpeg export with support for MP4/MKV/AVI/WEBM containers and H.264/H.265/VP8/VP9/AV1/ProRes/FFV1 codecs</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">hudmod.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The main HudMod editor interface</caption>
+      <image type="source">https://raw.githubusercontent.com/OmarBalita/HudMod-Public/main/Asset/Images/Screenshot%202026-05-05%20034051.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="1.0.0~alpha.2" date="2026-08-10">
+      <description>
+        <p>Alpha 2 release of HudMod. First public alpha builds.</p>
+      </description>
+    </release>
+  </releases>
+  <url type="homepage">https://omar-top.itch.io/hudmod-video-editor</url>
+  <url type="donation">https://www.patreon.com/10610068/join</url>
+  <url type="bugtracker">https://github.com/OmarBalita/HudMod-Public/issues</url>
+  <url type="vcs-browser">https://github.com/OmarBalita/HudMod-Public</url>
+</component>

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# HudMod Video Editor - launcher
+# Adds the bundled FFmpeg shared libraries to the dynamic linker path,
+# then launches the game binary.
+
+set -e
+
+HUDMOD_DIR="/usr/share/hudmod"
+HUDMOD_LIB_DIR="$HUDMOD_DIR/ffmpeg"
+
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+	export LD_LIBRARY_PATH="$HUDMOD_LIB_DIR:$LD_LIBRARY_PATH"
+else
+	export LD_LIBRARY_PATH="$HUDMOD_LIB_DIR"
+fi
+
+exec "$HUDMOD_DIR/hudmod" "$@"

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=HudMod Video Editor
+GenericName=Video Editor
+Comment=Fast open-source video editor built with Godot and FFmpeg
+Comment[ar]=محرر فيديو مفتوح المصدر وسريع مبني على Godot و FFmpeg
+Exec=/usr/bin/hudmod
+Icon=hudmod
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=video;editor;hudmod;ffmpeg;timeline;
+StartupNotify=true
+StartupWMClass=hudmod

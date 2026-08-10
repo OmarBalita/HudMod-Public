@@ -2,6 +2,9 @@
 .godot/
 .nomedia
 
+# Build artifacts
+dist/
+
 # Godot-specific ignores
 .import/
 export.cfg
