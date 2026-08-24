@@ -139,6 +139,7 @@ func deselect_val(port_idx: int, idx: int, update_focus: bool = false) -> void:
 	if update_focus: update_focused()
 
 func manage_val(port_idx: int, idx: int, delete: bool, preclear: bool) -> void:
+	
 	if delete:
 		if is_val_selected(port_idx, idx):
 			deselect_val(port_idx, idx, true)
@@ -147,6 +148,7 @@ func manage_val(port_idx: int, idx: int, delete: bool, preclear: bool) -> void:
 		select_val(port_idx, idx)
 
 func select_vals(coords: Dictionary[int, PackedInt32Array], preclear: bool) -> void:
+	
 	if preclear: clear_selected_vals()
 	for port_idx: int in coords:
 		
@@ -162,6 +164,7 @@ func select_vals(coords: Dictionary[int, PackedInt32Array], preclear: bool) -> v
 	update_focused()
 
 func deselect_vals(coords: Dictionary[int, PackedInt32Array]) -> void:
+	
 	for port_idx: int in coords:
 		if not selected.has(port_idx): continue
 		var port: Dictionary = selected[port_idx]
@@ -201,7 +204,10 @@ func delete_selected_vals() -> void:
 	clear_selected_vals()
 
 func copy_selected_vals(cut: bool) -> void:
-	copied = selected.duplicate(true)
+	_copy_vals(selected, cut)
+
+func _copy_vals(vals: Dictionary[int, Dictionary], cut: bool) -> void:
+	copied = vals.duplicate(true)
 	
 	var ports_indices: Array[int] = copied.keys()
 	var indices: Array[int]
@@ -361,10 +367,9 @@ func _gui_input(event: InputEvent) -> void:
 				if event.is_pressed():
 					var _request: bool = _request_box_selection()
 					
-					mouseevent_startpos = mouse_pos
-					if _request:
-						selectbox_rect = Rect2(mouse_pos, Vector2.ZERO)
+					if _request: selectbox_rect = Rect2(mouse_pos, Vector2.ZERO)
 					selectbox_is_started = _request
+					mouseevent_startpos = mouse_pos
 				
 				else:
 					if selectbox_is_started:

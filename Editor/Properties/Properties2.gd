@@ -19,6 +19,7 @@
 #############################################################################
 class_name Properties2 extends EditorControl
 
+signal properties_updated()
 signal property_changed()
 
 @export_group("Theme")
@@ -44,6 +45,17 @@ var components_body: MarginContainer
 var sections_controls: Dictionary[StringName, Dictionary]
 
 var media_properties_panel_container: PanelContainer
+
+
+
+func curr_clips_ress_map(cond_method: Callable, map_method: Callable) -> Array:
+	var arr: Array
+	for idx: int in curr_clip_ress.size():
+		var clip_res: MediaClipRes = curr_clip_ress[idx]
+		if not cond_method.call(clip_res): continue
+		arr.append(map_method.call(idx, clip_res))
+	return arr
+
 
 
 func _ready_editor() -> void:
@@ -256,6 +268,8 @@ func update_properties(section_key: StringName = &"") -> void:
 		_display_section_components(section_key, true)
 	
 	_update_margin()
+	
+	properties_updated.emit()
 
 func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	curr_clip_ress.clear()
@@ -315,6 +329,7 @@ func update_media_properties(info: Dictionary[StringName, String]) -> void:
 	media_properties_panel_container = panel_container
 
 func _update_displayed_components() -> Dictionary[StringName, Variant]:
+	
 	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
 	var selected_clips: Dictionary[int, Dictionary] = layers_body.selected
 	
@@ -571,7 +586,7 @@ func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_
 func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
 	return func(new_frame: int) -> void:
 		var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
-		owner_as_clip_res.update_specific_controller(usable_res, new_frame)
+		owner_as_clip_res.update_specific_controllers_by_animations_here(usable_res, new_frame)
 
 
 func _update_notification_label() -> String:

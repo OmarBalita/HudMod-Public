@@ -26,3 +26,6 @@ func _get_shader_global_params_snip() -> String: return ""
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
 
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
+	return super(name, usable_res, usable_ress, search_line_edit)
+

@@ -644,7 +644,7 @@ func _motion_control(coord: Vector2, mouse_pos: Vector2, finded_control: Diction
 	
 	set_control_func.call(curve_key, control_target_coord)
 	
-	if EditorServer.time_line2.edit_multiple_btn.selected_id == 1:
+	if EditorServer.time_line2.is_edit_multiple():
 		loop_selected_vals({},
 			func(port_idx: int, idx: int, _info: Dictionary[StringName, Variant]) -> void:
 				var curr_curve_key: CurveKey = keys_get(port_idx)[idx]

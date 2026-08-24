@@ -35,8 +35,8 @@ func _process(delta: float) -> void:
 	var magnitude: Vector2
 	if PlaybackServer.is_playing():
 		magnitude = analyzer.get_magnitude_for_frequency_range(0, 22000, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_MAX)
-	energy_left = clamp((linear_to_db(magnitude.x) + 60.) / 60., .0, 1.0)
-	energy_right = clamp((linear_to_db(magnitude.y) + 60.) / 60., .0, 1.0)
+	energy_left = clampf((linear_to_db(magnitude.x) + 60.) / 60., .0, 1.0)
+	energy_right = clampf((linear_to_db(magnitude.y) + 60.) / 60., .0, 1.0)
 	queue_redraw()
 
 

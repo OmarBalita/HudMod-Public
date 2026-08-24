@@ -6,7 +6,7 @@
 ## ----------------------------------------------------------------------- ##
 ## GPLv3                                                                   ##
 #############################################################################
-class_name GizmosDrawer extends Control
+class_name GizmosDrawer extends SelectContainer
 
 enum GizmoType {
 	GIZMO_TYPE_LINE,
@@ -14,110 +14,313 @@ enum GizmoType {
 	GIZMO_TYPE_CIRCLE
 }
 
-var gizmos_profiles: Dictionary[Display2DClipRes, GizmosProfile]
-var all_raw_data: Array[Dictionary]
+var layers_profiles: Dictionary[LayerRes, GizmosProfile]
 
-static var _canvas_transform: Transform2D
-static var _scale_factor: float
-static var _offset: Vector2
+var snap_raw_data: Array[Dictionary]
+var profiles_raw_data: Array[Dictionary]
+var custom_raw_data: Array[Dictionary]
 
+var main_snapping_points: PackedVector2Array
 
-func get_gizmos_profiles() -> Dictionary[Display2DClipRes, GizmosProfile]: return gizmos_profiles
-func set_gizmos_profiles(new_val: Dictionary[Display2DClipRes, GizmosProfile]) -> void: gizmos_profiles = new_val
-
-func clear_gizmos_profiles() -> void: gizmos_profiles.clear()
-
-func _init_gizmos_profile(clip_res: Display2DClipRes) -> GizmosProfile:
-	var profile:= GizmosProfile.new()
-	profile.set_gizmos(clip_res._get_gizmos())
-	return profile
-
-func _register_gizmos_profile(clip_res: Display2DClipRes, profile: GizmosProfile) -> void:
-	gizmos_profiles[clip_res] = profile
-
-func _update_gizmos_profiles_by_selected_clips() -> void:
-	
-	var remained_clips_ress: Array[Display2DClipRes] = gizmos_profiles.keys()
-	
-	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
-	var selected: Dictionary[int, Dictionary] = layers_body.selected
-	
-	for layer_idx: int in selected:
-		var port: Dictionary = selected[layer_idx]
-		for frame: int in port:
-			var clip_res: MediaClipRes = port[frame]
-			if clip_res is not Display2DClipRes: continue
-			_update_gizmos_profile_existent(clip_res)
-			remained_clips_ress.erase(clip_res)
-	
-	for clip_res: MediaClipRes in remained_clips_ress:
-		gizmos_profiles.erase(clip_res)
-
-func _update_curr_gizmos_profiles_existent() -> void:
-	for clip_res: MediaClipRes in gizmos_profiles:
-		_update_gizmos_profile_existent(clip_res)
-
-func _update_gizmos_profile_existent(clip_res: Display2DClipRes) -> void:
-	
-	if PlaybackServer.is_frame_at_clip_res(clip_res.clip_pos, clip_res):
-		
-		if gizmos_profiles.has(clip_res):
-			if gizmos_profiles[clip_res] == null:
-				_register_gizmos_profile(clip_res, _init_gizmos_profile(clip_res))
-		else: _register_gizmos_profile(clip_res, _init_gizmos_profile(clip_res))
-	
-	else:
-		gizmos_profiles[clip_res] = null
+var viewport_canvas_transform: Transform2D
+var scale_factor: float
+var screen_offset: Vector2
 
 
-func update_all_gizmos() -> void:
-	
-	await RenderingServer.frame_post_draw
+
+
+func get_main_snapping_points() -> PackedVector2Array: return main_snapping_points
+func set_main_snapping_points(new_val: PackedVector2Array) -> void: main_snapping_points = new_val
+
+
+func update_viewport_canvas_transformation_props() -> void:
 	
 	var viewport: SubViewport = Scene2.viewport
-	_canvas_transform = viewport.canvas_transform
+	viewport_canvas_transform = viewport.canvas_transform
 	var tex_size: Vector2i = viewport.size
-	_scale_factor = minf(
+	scale_factor = minf(
 		size.x / tex_size.x,
 		size.y / tex_size.y
 	)
-	var displayed_size: Vector2 = tex_size * _scale_factor
-	_offset = (size - displayed_size) * .5
+	var displayed_size: Vector2 = tex_size * scale_factor
+	screen_offset = (size - displayed_size) * .5
+
+func update_main_snapping_points() -> void:
 	
-	all_raw_data.clear()
+	main_snapping_points.clear()
 	
-	for clip_res: Display2DClipRes in gizmos_profiles:
+	var vp_size_h: Vector2i = Scene2.viewport.size / 2
+	var vp_right: Vector2 = Vector2(vp_size_h.x, .0)
+	var vp_down: Vector2 = Vector2(.0, vp_size_h.y)
+	
+	main_snapping_points.append_array([
+		world2d_to_editor_screen(Vector2.ZERO),
+		world2d_to_editor_screen(vp_right),
+		world2d_to_editor_screen(-vp_right),
+		world2d_to_editor_screen(vp_down),
+		world2d_to_editor_screen(-vp_down)
+	])
+
+
+func try_snap(point: Vector2) -> Vector2:
+	
+	var main_vp_point: Vector2 = world2d_to_editor_screen(point)
+	
+	var x: float = main_vp_point.x
+	var y: float = main_vp_point.y
+	var dist_x: float = 10.
+	var dist_y: float = 10.
+	
+	for other_point: Vector2 in main_snapping_points:
 		
-		if not clip_res.curr_node:
+		var new_dist_x: float = absf(other_point.x - main_vp_point.x)
+		var new_dist_y: float = absf(other_point.y - main_vp_point.y)
+		
+		if new_dist_x < dist_x:
+			x = other_point.x
+			dist_x = new_dist_x
+		
+		if new_dist_y < dist_y:
+			y = other_point.y
+			dist_y = new_dist_y
+	
+	var target_vp_point: Vector2 = Vector2(x, y)
+	var target_point: Vector2 = editor_screen_to_world2d(target_vp_point)
+	
+	if x != main_vp_point.x:
+		snap_raw_data.append({
+			&"type": GizmoType.GIZMO_TYPE_LINE,
+			&"args": Display2DClipRes.line_args(Vector2(target_vp_point.x, .0), Vector2(target_vp_point.x, size.y), Color.GREEN)
+		})
+	
+	if y != main_vp_point.y:
+		snap_raw_data.append({
+			&"type": GizmoType.GIZMO_TYPE_LINE,
+			&"args": Display2DClipRes.line_args(Vector2(.0, target_vp_point.y), Vector2(size.x, target_vp_point.y), Color.RED)
+		})
+	
+	return target_point
+
+func get_closer_snap(points: Dictionary[StringName, Vector2]) -> Dictionary[StringName, Variant]:
+	
+	var closer_xkey: StringName = &""
+	var closer_xpos: float = .0
+	var closer_xdist: float = INF
+	
+	var closer_ykey: StringName = &""
+	var closer_ypos: float = .0
+	var closer_ydist: float = INF
+	
+	for key: StringName in points:
+		var point: Vector2 = points[key]
+		var snapped_point: Vector2 = try_snap(point)
+		
+		var xdist: float = abs(snapped_point.x - point.x)
+		var ydist: float = abs(snapped_point.y - point.y)
+		
+		if xdist < closer_xdist and xdist > .01:
+			closer_xkey = key
+			closer_xpos = snapped_point.x
+			closer_xdist = xdist
+		
+		if ydist < closer_ydist and ydist > .01:
+			closer_ykey = key
+			closer_ypos = snapped_point.y
+			closer_ydist = xdist
+	
+	return {
+		&"xkey": closer_xkey,
+		&"xval": closer_xpos,
+		&"ykey": closer_ykey,
+		&"yval": closer_ypos
+	}
+
+
+
+
+func get_snap_raw_data() -> Array[Dictionary]: return snap_raw_data
+func set_snap_raw_data(new_val: Array[Dictionary]) -> void: snap_raw_data = new_val
+
+func get_profiles_raw_data() -> Array[Dictionary]: return profiles_raw_data
+func set_profiles_raw_data(new_val: Array[Dictionary]) -> void: profiles_raw_data = new_val
+
+func get_custom_raw_data() -> Array[Dictionary]: return custom_raw_data
+func set_custom_raw_data(new_val: Array[Dictionary]) -> void: custom_raw_data = new_val
+
+func get_viewport_canvas_transform() -> Transform2D: return viewport_canvas_transform
+func set_viewport_canvas_transform(new_val: Transform2D) -> void: viewport_canvas_transform = new_val
+
+func get_scale_factor() -> float: return scale_factor
+func set_scale_factor(new_val: float) -> void: scale_factor = new_val
+
+func get_screen_offset() -> Vector2: return screen_offset
+func set_screen_offset(new_val: Vector2) -> void: screen_offset = new_val
+
+
+
+func _update_selectables_at(clip_res: MediaClipRes) -> void:
+	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
+	
+	var layers: Array[LayerRes] = clip_res.layers
+	
+	clear_selectable_ports()
+	
+	for layer_idx: int in layers.size():
+		
+		var layer_res: LayerRes = layers[layer_idx]
+		
+		var spawned_clip_res: MediaClipRes = layer_res.displayed_clip_res
+		
+		if spawned_clip_res == null: continue
+		if spawned_clip_res is not Display2DClipRes: continue
+		
+		var frame: int = layer_res.displayed_frame
+		
+		spawned_clip_res = spawned_clip_res as Display2DClipRes
+		add_selectable_port(layer_idx, {frame: spawned_clip_res})
+		
+		if layers_body.is_val_selected(layer_idx, frame):
+			select_val(layer_idx, frame)
+
+
+func _update_layers_profiles_at(owner_clip_res: MediaClipRes) -> void:
+	var layers: Array[LayerRes] = owner_clip_res.layers
+	for layer_res: LayerRes in layers:
+		layers_profiles[layer_res] = GizmosProfile.new()
+
+
+func _try_update_layers_profiles_gizmos_methods() -> void:
+	
+	for layer_res: LayerRes in layers_profiles:
+		
+		var profile: GizmosProfile = layers_profiles[layer_res]
+		var spawned_clip_res: MediaClipRes = layer_res.displayed_clip_res
+		
+		if spawned_clip_res == profile.clip_res:
 			continue
 		
-		var profile: GizmosProfile = gizmos_profiles[clip_res]
-		if not profile: continue
+		if spawned_clip_res == null or spawned_clip_res is not Display2DClipRes:
+			profile.set_clip_res(null)
+			profile.set_gizmos([])
+			continue
+		
+		spawned_clip_res = spawned_clip_res as Display2DClipRes
+		
+		profile.set_clip_res(spawned_clip_res)
+		profile.set_gizmos(spawned_clip_res._get_gizmos())
+
+
+func _update_all_gizmos() -> void:
+	
+	profiles_raw_data.clear()
+	
+	for layer_res: LayerRes in layers_profiles:
+		
+		var profile: GizmosProfile = layers_profiles[layer_res]
+		var clip_res: Display2DClipRes = profile.clip_res
+		
+		if not clip_res_has_gizmos(clip_res): continue
 		
 		var gizmos: Array[Callable] = profile.get_gizmos()
 		var gizmos_raw_data: Array[Dictionary]
 		
 		for idx: int in gizmos.size():
-			var gizmo_method: Callable = gizmos[idx]
-			gizmos_raw_data.append_array(gizmo_method.call())
+			var gizmos_method: Callable = gizmos[idx]
+			gizmos_raw_data.append_array(gizmos_method.call())
 		
 		profile.set_gizmos_raw_data(gizmos_raw_data)
-		all_raw_data.append_array(gizmos_raw_data)
+		profiles_raw_data.append_array(gizmos_raw_data)
 	
 	queue_redraw()
 
 
 
+
+
 func _ready() -> void:
 	
+	super()
+	
+	IS.set_base_panel_settings(self, IS.style_box_empty)
 	clip_contents = true
 	
+	shortcut_node.key = &"Viewport"
+	shortcut_node.load_shortcuts_from_settings()
+	
 	resized.connect(_on_resized)
+	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
+	ProjectServer2.opened_clip_res_changed.connect(_on_project_server2_opened_clip_res_changed)
 	EditorServer.time_line2.layers_body.selected_changed.connect(_on_timeline_layers_body_selected_changed)
 	EditorServer.properties.property_changed.connect(_on_properties_property_changed)
 	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 
+
+func _gui_input(event: InputEvent) -> void:
+	
+	snap_raw_data.clear()
+	
+	for layer_res: LayerRes in layers_profiles:
+		
+		var profile: GizmosProfile = layers_profiles[layer_res]
+		var clip_res: Display2DClipRes = profile.clip_res
+		
+		if not clip_res_has_gizmos(clip_res):
+			continue
+		
+		if clip_res._gizmos_input(event, profile.input_info):
+			_update_all_gizmos()
+			return
+	
+	if event is InputEventMouseButton:
+		
+		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
+			if event.position.distance_to(mouseevent_startpos) < 10.:
+				_gui_input_try_select(event)
+	
+	super(event)
+	queue_redraw()
+
+
+func _gui_input_try_select(event: InputEventMouseButton) -> void:
+	var clips_ress_mouse_in: Array[Display2DClipRes]
+	
+	for port_idx: int in selectables:
+		var port: Dictionary = selectables[port_idx]
+		
+		for idx: int in port:
+			var clip_res: Display2DClipRes = port[idx]
+			
+			if clip_res_get_rect2(clip_res).has_point(event.position):
+				clips_ress_mouse_in.append(clip_res)
+	
+	var try_delete: bool = event.alt_pressed
+	var preclear: bool = not event.ctrl_pressed
+	
+	for clip_res: Display2DClipRes in clips_ress_mouse_in:
+		var port_idx: int = clip_res.layer_index
+		var idx: int = clip_res.clip_pos
+		
+		var is_selected: bool = is_val_selected(port_idx, idx)
+		
+		if (is_selected and not try_delete) or (not is_selected and try_delete):
+			continue
+		
+		manage_val(port_idx, idx, try_delete, preclear)
+		emit_selected_changed()
+		return
+	
+	if not clips_ress_mouse_in.is_empty():
+		var first_clip_res: Display2DClipRes = clips_ress_mouse_in[0]
+		manage_val(first_clip_res.layer_index, first_clip_res.clip_pos, try_delete, preclear)
+		emit_selected_changed()
+
+
 func _draw() -> void:
+	_draw_raw_data(profiles_raw_data)
+	_draw_raw_data(snap_raw_data)
+	_draw_raw_data(custom_raw_data)
+
+func _draw_raw_data(all_raw_data: Array[Dictionary]) -> void:
 	
 	for raw_data: Dictionary in all_raw_data:
 		
@@ -130,37 +333,120 @@ func _draw() -> void:
 			GizmoType.GIZMO_TYPE_CIRCLE: draw_circle.callv(args)
 
 
-static func world2d_to_editor_viewport(point: Vector2) -> Vector2:
-	var viewport_point: Vector2 = _canvas_transform * point
-	return _offset + viewport_point * _scale_factor
+func world2d_to_editor_screen(point: Vector2) -> Vector2:
+	var viewport_point: Vector2 = viewport_canvas_transform * point
+	return screen_offset + viewport_point * scale_factor
 
-#static func editor_viewport_to_world2d(point: Vector2) -> Vector2:
-	#return point
+func editor_screen_to_world2d(point: Vector2) -> Vector2:
+	var viewport_point: Vector2 = (point - screen_offset) / scale_factor
+	return viewport_canvas_transform.affine_inverse() * viewport_point
+
+
+func delete_selected_vals() -> void:
+	var timeline: TimeLine2 = EditorServer.time_line2
+	timeline.opened_clip_res.remove_clips(selected_to_coords())
+	timeline.layers_body.emit_selected_changed()
+
+func copy_selected_vals(cut: bool) -> void:
+	EditorServer.time_line2.layers_body._copy_vals(selected, cut)
+
+func past_selected_vals() -> void:
+	EditorServer.time_line2.layers_body.past_selected_vals()
+
+func emit_selected_changed() -> void:
+	var timeline: TimeLine2 = EditorServer.time_line2
+	var layers_body: TimeLine2.LayersSelectContainer = timeline.layers_body
+	layers_body.selected = selected.duplicate(true)
+	layers_body.focused = focused
+	layers_body.emit_selected_changed()
+	timeline.update_layers_clips_selection()
+	super()
+
+func clip_res_has_gizmos(clip_res: Display2DClipRes) -> bool:
+	return clip_res != null and is_val_selected(clip_res.layer_index, clip_res.clip_pos)
+
+func clip_res_get_rect2(clip_res: Display2DClipRes) -> Rect2:
+	var canvas_item: CompCanvasItem = clip_res.get_canvas_item_comp()
+	var size: Vector2 = clip_res.get_size(canvas_item.scale)
+	var size_vp: Vector2 = size * scale_factor
+	return Rect2(world2d_to_editor_screen(canvas_item.position) - size_vp / 2., size_vp)
+
+func selectables_get_first_clip_res_mouse_in() -> MediaClipRes:
+	var mouse_pos: Vector2 = get_local_mouse_position()
+	
+	for port_idx: int in selectables:
+		var port: Dictionary = selectables[port_idx]
+		for idx: int in port:
+			var clip_res: Display2DClipRes = port[idx]
+			if clip_res_get_rect2(clip_res).has_point(mouse_pos):
+				return clip_res
+	
+	return null
+
+func _request_box_selection() -> bool:
+	return selectables_get_first_clip_res_mouse_in() == null
+
+func _request_selection_box_select(port_idx: int, port_obj: Object, idx: int) -> bool:
+	var clip_res: MediaClipRes = selectables[port_idx][idx]
+	
+	clip_res = clip_res as Display2DClipRes
+	return selectbox_rect.intersects(clip_res_get_rect2(clip_res))
+
+
+
+
+
 
 func _on_resized() -> void:
-	update_all_gizmos()
+	await RenderingServer.frame_post_draw
+	update_viewport_canvas_transformation_props()
+	update_main_snapping_points()
+	_update_all_gizmos()
+
+func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
+	await RenderingServer.frame_post_draw
+	update_viewport_canvas_transformation_props()
+	update_main_snapping_points()
+	_update_all_gizmos()
+
+func _on_project_server2_opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
+	_update_selectables_at(new_one)
+	_update_layers_profiles_at(new_one)
+	_try_update_layers_profiles_gizmos_methods()
+	_update_all_gizmos()
 
 func _on_timeline_layers_body_selected_changed() -> void:
-	_update_gizmos_profiles_by_selected_clips()
-	update_all_gizmos()
+	_update_selectables_at(EditorServer.time_line2.opened_clip_res)
+	_update_all_gizmos()
 
 func _on_properties_property_changed() -> void:
-	update_all_gizmos()
+	await RenderingServer.frame_post_draw
+	update_viewport_canvas_transformation_props()
+	update_main_snapping_points()
+	_update_all_gizmos()
 
 func _on_playback_server_position_changed(position: int) -> void:
-	_update_curr_gizmos_profiles_existent()
-	update_all_gizmos()
+	update_viewport_canvas_transformation_props()
+	update_main_snapping_points()
+	_update_selectables_at(EditorServer.time_line2.opened_clip_res)
+	_try_update_layers_profiles_gizmos_methods()
+	_update_all_gizmos()
 
 
 class GizmosProfile extends RefCounted:
 	
+	@export var clip_res: Display2DClipRes
 	@export var gizmos: Array[Callable]
 	@export var modulate: Color = Color.WHITE
 	@export var locked: bool = false
 	
 	var gizmos_raw_data: Array[Dictionary]
+	var input_info: Dictionary[StringName, Variant]
 	
 	func _back() -> int: return gizmos.size() - 1
+	
+	func get_clip_res() -> Display2DClipRes: return clip_res
+	func set_clip_res(new_val: Display2DClipRes) -> void: clip_res = new_val
 	
 	func get_gizmos() -> Array[Callable]: return gizmos
 	func set_gizmos(new_val: Array[Callable]) -> void: gizmos = new_val
@@ -173,6 +459,9 @@ class GizmosProfile extends RefCounted:
 	
 	func get_gizmos_raw_data() -> Array[Dictionary]: return gizmos_raw_data
 	func set_gizmos_raw_data(new_val: Array[Dictionary]) -> void: gizmos_raw_data = new_val
+	
+	func get_input_info() -> Dictionary[StringName, Variant]: return input_info
+	func set_input_info(new_val: Dictionary[StringName, Variant]) -> void: input_info = new_val
 
 
 

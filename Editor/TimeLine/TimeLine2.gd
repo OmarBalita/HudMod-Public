@@ -449,6 +449,10 @@ func get_snapped_frame_from_mouse_pos() -> int:
 	return snap_frame(get_frame_from_mouse_pos(), false, false)
 
 
+func is_edit_multiple() -> bool:
+	return edit_multiple_btn.selected_id == 1
+
+
 class TimeMarkPanelContainer extends PanelContainer:
 	
 	var timeline: TimeLine2

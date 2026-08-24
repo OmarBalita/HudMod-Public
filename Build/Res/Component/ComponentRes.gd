@@ -73,6 +73,9 @@ func set_method_type(new_method_type: MethodType) -> void:
 func _get_gizmos() -> Array[Callable]:
 	return []
 
+func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> bool:
+	return false
+
 
 func _enter() -> void:
 	pass
@@ -147,7 +150,7 @@ func submit_stacked_values(stacked_values: Dictionary[StringName, Variant]) -> v
 		owner.add_stacked_value(key, stacked_values[key], method_type)
 
 func owner_update_my_controller(frame: int) -> void:
-	owner.update_specific_controller(self, frame)
+	owner.update_specific_controllers_by_animations_here(self, frame)
 
 func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
 	owner.request_animation_keyframe(usable_res, property_key, property_val, frame, can_remove)

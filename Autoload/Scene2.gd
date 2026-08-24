@@ -88,6 +88,7 @@ func remove_video_player(video_clip_res: VideoClipRes) -> void: video_players.er
 func add_camera(camera_clip_res: Camera2DClipRes) -> void:
 	cameras.append(camera_clip_res)
 	update_camera_enabling()
+
 func remove_camera(camera_clip_res: Camera2DClipRes) -> void:
 	cameras.erase(camera_clip_res)
 	update_camera_enabling()

@@ -55,7 +55,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 		func(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
 			for profile: CurveProfile in anim_res.get_profiles():
 				profile.res_changed.connect(update)
-				profile.res_changed.connect(update_controllers_here)
+				profile.res_changed.connect(update_controllers_by_animations_here)
 		)
 
 var stacked_values: Dictionary[StringName, Array]
@@ -276,25 +276,36 @@ func loop_animations_keyframes(info: Dictionary[StringName, Variant], method: Ca
 	return info
 
 
-func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
-	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
-
-func update_controllers(frame: int) -> void:
-	loop_animations(frame, _update_controller_method)
-
-func update_controllers_here() -> void:
-	update_controllers(curr_frame)
-
-func update_specific_controller(usable_res: UsableRes, frame: int) -> void:
-	var section: Dictionary = animations.get(usable_res, {})
-	for prop_key: StringName in section: _update_controller_method(usable_res, prop_key, section[prop_key], frame)
-
 func push_animations_result(frame: float) -> void:
 	loop_animations(frame, _push_animation_result_method)
 
+func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
+	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
+
+func update_controllers_by_animations(frame: int) -> void:
+	loop_animations(frame, _update_controller_method)
+
+func update_controllers_by_animations_here() -> void:
+	update_controllers_by_animations(curr_frame)
+
+func update_specific_controllers_by_animations_here(usable_res: UsableRes, frame: int) -> void:
+	var section: Dictionary = animations.get(usable_res, {})
+	for prop_key: StringName in section:
+		_update_controller_method(usable_res, prop_key, section[prop_key], frame)
+
+func update_controllers(usable_res: UsableRes, frame: int) -> void:
+	if not EditorServer.has_usable_res_controllers(usable_res): return
+	var props_editors: Dictionary[StringName, Control] = EditorServer.get_usable_res_controllers(usable_res)
+	for prop_key: StringName in props_editors:
+		var editor: Control = props_editors[prop_key]
+		if editor is EditContainer:
+			var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
+			var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
+			EditorServer.update_usable_res_property_controller(usable_res, prop_key, prop_val, prop_has_keyframe)
+
 func _update_controller_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
 	var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
-	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame), prop_has_keyframe)
+	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame + from), prop_has_keyframe)
 
 func _push_animation_result_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
 	usable_res.set_prop(prop_key, anim_res.sample_func.call(frame))
@@ -321,7 +332,7 @@ func make_animation_absolute(usable_res: UsableRes, property_key: StringName, pr
 		
 		for profile: CurveProfile in anim_res.profiles:
 			profile.res_changed.connect(update)
-			profile.res_changed.connect(update_controllers)
+			profile.res_changed.connect(update_controllers_by_animations_here)
 		
 		animation_res_added.emit(usable_res, property_key, anim_res)
 		shared_data_clear()
@@ -337,24 +348,30 @@ func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) 
 		if res_section.size() == 0:
 			animations.erase(res_section)
 
-func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
+func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true, undoredo: bool = true) -> void:
 	frame = get_frame_or_curr_frame(frame)
 	var anim_res: AnimationRes = make_animation_absolute(usable_res, property_key, typeof(property_val))
 	var is_remove_request: bool = can_remove and anim_res.has_key(frame)
-	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame)
-	else: add_animation_keyframe(usable_res, property_key, property_val, frame)
+	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame, undoredo)
+	else: add_animation_keyframe(usable_res, property_key, property_val, frame, undoredo)
 	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
 
-func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
+func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int, undoredo: bool = true) -> void:
 	var do_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, property_val, frame)
-	var undo_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
-	ProjectServer2.commit_action("add_keyframe", do_method, undo_method)
+	if undoredo:
+		var undo_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
+		ProjectServer2.commit_action("add_keyframe", do_method, undo_method)
+		return
+	do_method.call()
 
-func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int) -> void:
+func remove_animation_keyframe(usable_res: UsableRes, property_key: StringName, frame: int, undoredo: bool = true) -> void:
 	var tmp_property_val: Variant = get_animation(usable_res, property_key).get_key(frame)
 	var do_method: Callable = _remove_animation_keyframe.bind(usable_res, property_key, frame)
-	var undo_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, tmp_property_val, frame)
-	ProjectServer2.commit_action("remove_keyframe", do_method, undo_method)
+	if undoredo:
+		var undo_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, tmp_property_val, frame)
+		ProjectServer2.commit_action("remove_keyframe", do_method, undo_method)
+		return
+	do_method.call()
 
 func _add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int) -> void:
 	make_animation_absolute(usable_res, property_key, typeof(property_val)).add_key(frame, property_val)

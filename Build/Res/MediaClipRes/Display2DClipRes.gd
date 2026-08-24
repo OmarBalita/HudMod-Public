@@ -54,81 +54,366 @@ func set_post_shader_material(new_shader_material: ShaderMaterial) -> void:
 	post_shader_material = new_shader_material
 
 
+enum _TransformationEditMode {
+	EDIT_MODE_NONE,
+	EDIT_MODE_CENTER,
+	EDIT_MODE_ROTATION,
+	EDIT_MODE_SCALE_C1,
+	EDIT_MODE_SCALE_C2,
+	EDIT_MODE_SCALE_C3,
+	EDIT_MODE_SCALE_C4,
+	EDIT_MODE_SCALE_UP,
+	EDIT_MODE_SCALE_RIGHT,
+	EDIT_MODE_SCALE_DOWN,
+	EDIT_MODE_SCALE_LEFT
+}
+
+const _PRESS_MAX_DIST: float = 10.
+const _DRAG_MIN_DIST: float = 10.
+const _ROTATION_HANDLE_OFFSET: float = 30.
+
+const _SCALE_HANDLE_MODES: Dictionary[StringName, _TransformationEditMode] = {
+	&"c1": _TransformationEditMode.EDIT_MODE_SCALE_C1,
+	&"c2": _TransformationEditMode.EDIT_MODE_SCALE_C2,
+	&"c3": _TransformationEditMode.EDIT_MODE_SCALE_C3,
+	&"c4": _TransformationEditMode.EDIT_MODE_SCALE_C4,
+	&"up": _TransformationEditMode.EDIT_MODE_SCALE_UP,
+	&"right": _TransformationEditMode.EDIT_MODE_SCALE_RIGHT,
+	&"down": _TransformationEditMode.EDIT_MODE_SCALE_DOWN,
+	&"left": _TransformationEditMode.EDIT_MODE_SCALE_LEFT,
+}
 
 func _get_gizmos() -> Array[Callable]:
-	
-	var result: Array[Callable] = [
-		_gizmosMethod_getTransformation
-	]
+	var gizmos: Array[Callable] = [_gizmos_transform]
 	loop_components(
 		func(comp_res: ComponentRes) -> void:
-			result.append(comp_res._get_gizmos())
+			gizmos.append_array(comp_res._get_gizmos())
 	)
-	return result
+	return gizmos
+
+func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> bool:
+	
+	var canvas_item: CompCanvasItem = get_canvas_item_comp()
+	if not canvas_item: return false
+	
+	if event is InputEventMouseButton:
+		
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			
+			if event.is_pressed():
+				var picked_edit_mode: _TransformationEditMode = _pick_edit_mode(canvas_item, event.position, info)
+				info.set(&"edit_mode", picked_edit_mode)
+				if picked_edit_mode != _TransformationEditMode.EDIT_MODE_NONE:
+					info.set(&"button_event", event)
+					return true
+			else:
+				info.clear()
+			
+			info.set(&"button_event", event)
+	
+	elif event is InputEventMouseMotion:
+		
+		var edit_mode: _TransformationEditMode = info.get(&"edit_mode", 0)
+		
+		if edit_mode:
+			
+			var button_event: InputEventMouseButton = info.get(&"button_event")
+			
+			if info.get(&"is_dragging", false):
+				_apply_edit_mode(canvas_item, edit_mode, event, info)
+				process_here()
+				update_controllers(canvas_item, curr_frame)
+			else:
+				var event_pos_delta: Vector2 = event.position - button_event.position
+				if event_pos_delta.length() >= _DRAG_MIN_DIST:
+					info.set(&"is_dragging", true)
+			
+			return true
+	
+	for section_key: StringName in components:
+		var section: Array = components[section_key]
+		for comp_res: ComponentRes in section:
+			if comp_res._gizmos_input(event, info):
+				return true
+	
+	return false
+
+func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dictionary[StringName, Variant]) -> _TransformationEditMode:
+	
+	var gizmos_drawer: GizmosDrawer = EditorServer.player.gizmos_drawer
+	
+	var vp_center: Vector2 = gizmos_drawer.world2d_to_editor_screen(canvas_item.position)
+	if vp_center.distance_to(mouse_pos) <= _PRESS_MAX_DIST:
+		
+		info.set(&"pos_initial", canvas_item.position)
+		info.set(&"poss_initial", EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> Vector2: return clip_res.get_canvas_item_comp().position
+		))
+		
+		return _TransformationEditMode.EDIT_MODE_CENTER
+	
+	var handles: Dictionary[StringName, Vector2] = _get_transform_handles(canvas_item)
+	
+	if handles[&"rotation"].distance_to(mouse_pos) <= _PRESS_MAX_DIST:
+		info.set(&"rotation_initial", canvas_item.rotation_degrees)
+		info.set(&"angle_initial", (gizmos_drawer.editor_screen_to_world2d(mouse_pos) - canvas_item.position).angle())
+		
+		info.set(&"rotations_initial", EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> float: return clip_res.get_canvas_item_comp().rotation_degrees
+		))
+		
+		return _TransformationEditMode.EDIT_MODE_ROTATION
+	
+	for key: StringName in _SCALE_HANDLE_MODES:
+		if handles[key].distance_to(mouse_pos) <= _PRESS_MAX_DIST:
+			_begin_scale_drag(canvas_item, info)
+			return _SCALE_HANDLE_MODES[key]
+	
+	return _TransformationEditMode.EDIT_MODE_NONE
+
+func _begin_scale_drag(canvas_item: CompCanvasItem, info: Dictionary[StringName, Variant]) -> void:
+	info.set(&"scale_initial", canvas_item.scale)
+	info.set(&"rotation_at_scale_start", canvas_item.rotation_degrees)
+	info.set(&"center_at_scale_start", canvas_item.position)
+	info.set(&"size_half_initial", get_size(canvas_item.scale) / 2.)
+	
+	info.set(&"scales_initial", EditorServer.properties.curr_clips_ress_map(
+		MediaClipResPath.node2d_cond,
+		func(idx: int, clip_res: Display2DClipRes) -> Vector2:
+			return clip_res.get_canvas_item_comp().scale
+	))
+
+func _apply_edit_mode(canvas_item: CompCanvasItem, edit_mode: _TransformationEditMode, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
+	var gizmos_drawer: GizmosDrawer = EditorServer.player.gizmos_drawer
+	
+	var vp_pos: Vector2 = event.position
+	var world_pos: Vector2 = gizmos_drawer.editor_screen_to_world2d(vp_pos)
+	var snapped_world_pos: Vector2 = gizmos_drawer.try_snap(world_pos)
+	
+	match edit_mode:
+		_TransformationEditMode.EDIT_MODE_CENTER:
+			_apply_translation(canvas_item, snapped_world_pos, gizmos_drawer, event, info)
+		_TransformationEditMode.EDIT_MODE_ROTATION:
+			_apply_rotation(canvas_item, world_pos, event, info)
+		_TransformationEditMode.EDIT_MODE_SCALE_C1, _TransformationEditMode.EDIT_MODE_SCALE_C2, _TransformationEditMode.EDIT_MODE_SCALE_C3, _TransformationEditMode.EDIT_MODE_SCALE_C4:
+			_apply_corner_scale(canvas_item, snapped_world_pos, event, info)
+		_TransformationEditMode.EDIT_MODE_SCALE_UP, _TransformationEditMode.EDIT_MODE_SCALE_DOWN:
+			_apply_axis_scale(canvas_item, snapped_world_pos, false, event, info)
+		_TransformationEditMode.EDIT_MODE_SCALE_LEFT, _TransformationEditMode.EDIT_MODE_SCALE_RIGHT:
+			_apply_axis_scale(canvas_item, snapped_world_pos, true, event, info)
 
 
-func _gizmosMethod_getTransformation() -> Array[Dictionary]:
+func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2, gizmos_drawer: GizmosDrawer, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
+	canvas_item.set_prop_and_emit(&"position", snapped_world_pos)
 	
-	var displ2d_comps: Array = components.get(&"Display2D")
-	if displ2d_comps.is_empty(): return []
-	var first_comp: ComponentRes = displ2d_comps[0]
-	if first_comp is not CompCanvasItem: return []
-	first_comp = first_comp as CompCanvasItem
+	var local_points: Dictionary[StringName, Vector2] = _get_transform_local_points(canvas_item)
+	var world_points: Dictionary[StringName, Vector2] = _local_points_to_world_points(canvas_item, local_points)
+	world_points.erase(&"rotation")
 	
-	var tex: Texture2D = get_self_texture()
-	var size: Vector2 = get_size(first_comp.scale)
+	var closer_snap: Dictionary[StringName, Variant] = gizmos_drawer.get_closer_snap(world_points)
+	var xkey: StringName = closer_snap.xkey
+	var ykey: StringName = closer_snap.ykey
 	
-	var vp_pos: Vector2 = GizmosDrawer.world2d_to_editor_viewport(first_comp.position)
+	var rot_rad: float = deg_to_rad(canvas_item.rotation_degrees)
 	
-	var size_half: Vector2 = size / 2.
+	var target_point: Vector2 = Vector2(
+		snapped_world_pos.x if xkey.is_empty() else closer_snap.xval - local_points[xkey].rotated(rot_rad).x,
+		snapped_world_pos.y if ykey.is_empty() else closer_snap.yval - local_points[ykey].rotated(rot_rad).y
+	)
 	
-	var local_corners: Array[Vector2] = [
-		Vector2(-size_half.x, -size_half.y),
-		Vector2(size_half.x, -size_half.y),
-		Vector2(size_half.x, size_half.y),
-		Vector2(-size_half.x, size_half.y)
-	]
+	if EditorServer.time_line2.is_edit_multiple():
+		var pos_delta: Vector2 = target_point - info.pos_initial
+		var poss_initial: Array = info.poss_initial
+		
+		EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> Variant:
+				clip_res.get_canvas_item_comp().set_prop_and_emit(&"position", poss_initial[idx] + pos_delta)
+				return null
+		)
+
+func _apply_rotation(canvas_item: CompCanvasItem, world_pos: Vector2, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
 	
-	var vp_corners: Array[Vector2] = []
-	for corner: Vector2 in local_corners:
-		var rotated_corner: Vector2 = corner.rotated(deg_to_rad(first_comp.rotation_degrees))
-		var world_corner: Vector2 = first_comp.position + rotated_corner
-		vp_corners.append(GizmosDrawer.world2d_to_editor_viewport(world_corner))
+	var angle_now: float = (world_pos - canvas_item.position).angle()
+	var angle_initial: float = info.get(&"angle_initial")
+	var rotation_initial: float = info.get(&"rotation_initial")
+	var rot_deg: float = rotation_initial + rad_to_deg(angle_now - angle_initial)
+	
+	const SNAP_THRESHOLD: float = 5.
+	var nearest_snap: float = snappedf(rot_deg, 45.)
+	
+	if absf(rot_deg - nearest_snap) <= SNAP_THRESHOLD:
+		rot_deg = nearest_snap
+	
+	canvas_item.set_prop_and_emit(&"rotation_degrees", rot_deg)
+	
+	if EditorServer.time_line2.is_edit_multiple():
+		var rotation_delta: float = rot_deg - rotation_initial
+		var rots_initial: Array = info.rotations_initial
+		
+		EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> Variant:
+				clip_res.get_canvas_item_comp().set_prop_and_emit(&"rotation_degrees", rots_initial[idx] + rotation_delta)
+				return null
+		)
+
+func _apply_corner_scale(canvas_item: CompCanvasItem, world_pos: Vector2, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
+	var local_now: Vector2 = _to_local_unrotated(world_pos, info)
+	var size_half_initial: Vector2 = info.get(&"size_half_initial")
+	var scale_initial: Vector2 = info.get(&"scale_initial")
+	
+	var target_scale_x: float = scale_initial.x * (absf(local_now.x) / maxf(absf(size_half_initial.x), .001))
+	var target_scale_y: float = scale_initial.y * (absf(local_now.y) / maxf(absf(size_half_initial.y), .001))
+	var target_scale: Vector2
+	
+	if event.shift_pressed: target_scale = Vector2(target_scale_x, target_scale_y)
+	else: target_scale = Vector2.ONE * maxf(target_scale_x, target_scale_y)
+	
+	var scale_ratio: Vector2 = Vector2(
+		target_scale.x / maxf(absf(scale_initial.x), .001) * sign(scale_initial.x if scale_initial.x != 0 else 1.0),
+		target_scale.y / maxf(absf(scale_initial.y), .001) * sign(scale_initial.y if scale_initial.y != 0 else 1.0)
+	)
+	
+	canvas_item.set_prop_and_emit(&"scale", target_scale)
+	
+	if EditorServer.time_line2.is_edit_multiple():
+		var scales_initial: Array = info.scales_initial
+		EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> Variant:
+				var s0: Vector2 = scales_initial[idx]
+				clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", Vector2(s0.x * scale_ratio.x, s0.y * scale_ratio.y))
+				return null
+		)
+
+func _apply_axis_scale(canvas_item: CompCanvasItem, world_pos: Vector2, is_x_axis: bool, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
+	var local_now: Vector2 = _to_local_unrotated(world_pos, info)
+	var size_half_initial: Vector2 = info.get(&"size_half_initial")
+	var scale_initial: Vector2 = info.get(&"scale_initial")
+	
+	var scale_main: Vector2 = canvas_item.get_prop(&"scale")
+	var target_scale: Vector2 = scale_main
+	var axis_ratio: float = 1.0
+	
+	if is_x_axis:
+		var target_scale_x: float = scale_initial.x * (absf(local_now.x) / maxf(absf(size_half_initial.x), .001))
+		axis_ratio = target_scale_x / maxf(absf(scale_initial.x), .001) * sign(scale_initial.x if scale_initial.x != 0 else 1.0)
+		target_scale = Vector2(target_scale_x, scale_main.y)
+	else:
+		var target_scale_y: float = scale_initial.y * (absf(local_now.y) / maxf(absf(size_half_initial.y), .001))
+		axis_ratio = target_scale_y / maxf(absf(scale_initial.y), .001) * sign(scale_initial.y if scale_initial.y != 0 else 1.0)
+		target_scale = Vector2(scale_main.x, target_scale_y)
+	
+	canvas_item.set_prop_and_emit(&"scale", target_scale)
+	
+	if EditorServer.time_line2.is_edit_multiple():
+		
+		var scales_initial: Array = info.scales_initial
+		
+		EditorServer.properties.curr_clips_ress_map(
+			MediaClipResPath.node2d_cond,
+			func(idx: int, clip_res: Display2DClipRes) -> Variant:
+				var s0: Vector2 = scales_initial[idx]
+				var new_scale: Vector2 = s0
+				if is_x_axis:
+					new_scale.x = s0.x * axis_ratio
+				else:
+					new_scale.y = s0.y * axis_ratio
+				clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", new_scale)
+				return null
+		)
+
+
+func _to_local_unrotated(world_pos: Vector2, info: Dictionary[StringName, Variant]) -> Vector2:
+	var center: Vector2 = info.get(&"center_at_scale_start")
+	var rotation_initial: float = info.get(&"rotation_at_scale_start")
+	return (world_pos - center).rotated(-deg_to_rad(rotation_initial))
+
+func _get_transform_handles(canvas_item: CompCanvasItem) -> Dictionary[StringName, Vector2]:
+	var gizmos_drawer: GizmosDrawer = EditorServer.player.gizmos_drawer
+	
+	var local_points: Dictionary[StringName, Vector2] = _get_transform_local_points(canvas_item)
+	var world_points: Dictionary[StringName, Vector2] = _local_points_to_world_points(canvas_item, local_points)
+	
+	var handles: Dictionary[StringName, Vector2] = {}
+	for key: StringName in world_points:
+		handles[key] = gizmos_drawer.world2d_to_editor_screen(world_points[key])
+	
+	return handles
+
+func _get_transform_local_points(canvas_item: CompCanvasItem) -> Dictionary[StringName, Vector2]:
+	var size_half: Vector2 = get_size(canvas_item.scale) / 2.
+	var points: Dictionary[StringName, Vector2] = {
+		&"c1": Vector2(-size_half.x, -size_half.y),
+		&"c2": Vector2(size_half.x, -size_half.y),
+		&"c3": Vector2(size_half.x, size_half.y),
+		&"c4": Vector2(-size_half.x, size_half.y),
+		&"up": Vector2(0., -size_half.y),
+		&"right": Vector2(size_half.x, 0.),
+		&"down": Vector2(0., size_half.y),
+		&"left": Vector2(-size_half.x, 0.),
+		&"rotation": Vector2(size_half.x + _ROTATION_HANDLE_OFFSET, .0),
+	}
+	return points
+
+func _local_points_to_world_points(canvas_item: CompCanvasItem, local_points: Dictionary[StringName, Vector2]) -> Dictionary[StringName, Vector2]:
+	var rot_rad: float = deg_to_rad(canvas_item.rotation_degrees)
+	var world_points: Dictionary[StringName, Vector2] = {}
+	for key: StringName in local_points:
+		var world_point: Vector2 = canvas_item.position + local_points[key].rotated(rot_rad)
+		world_points[key] = world_point
+	return world_points
+
+
+func _gizmos_transform() -> Array[Dictionary]:
+	
+	var canvas_item: CompCanvasItem = get_canvas_item_comp()
+	if not canvas_item: return []
+	
+	var vp_pos: Vector2 = EditorServer.player.gizmos_drawer.world2d_to_editor_screen(canvas_item.position)
+	var handles: Dictionary[StringName, Vector2] = _get_transform_handles(canvas_item)
+	var c1: Vector2 = handles[&"c1"]
+	var c2: Vector2 = handles[&"c2"]
+	var c3: Vector2 = handles[&"c3"]
+	var c4: Vector2 = handles[&"c4"]
 	
 	var result: Array[Dictionary] = [
 		{
 			&"type": GizmosDrawer.GizmoType.GIZMO_TYPE_CIRCLE,
 			&"args": circle_args(vp_pos, 10.),
-			&"handle": _gizmosHandlerMethod,
 		},
 	]
 	
-	var c1: Vector2 = vp_corners[0]; var c2: Vector2 = vp_corners[1]
-	var c3: Vector2 = vp_corners[2]; var c4: Vector2 = vp_corners[3]
 	result.append_array([
-		{&"type": 0, &"args": line_args(c1, c2), &"handle": _gizmosHandlerMethod},
-		{&"type": 0, &"args": line_args(c2, c3), &"handle": _gizmosHandlerMethod},
-		{&"type": 0, &"args": line_args(c3, c4), &"handle": _gizmosHandlerMethod},
-		{&"type": 0, &"args": line_args(c4, c1), &"handle": _gizmosHandlerMethod}
+		{&"type": 0, &"args": line_args(c1, c2)},
+		{&"type": 0, &"args": line_args(c2, c3)},
+		{&"type": 0, &"args": line_args(c3, c4)},
+		{&"type": 0, &"args": line_args(c4, c1)},
 	])
 	result.append_array([
-		{&"type": 2, &"args": circle_args(c1, 5., Color.GRAY, true)},
-		{&"type": 2, &"args": circle_args(c2, 5., Color.GRAY, true)},
-		{&"type": 2, &"args": circle_args(c3, 5., Color.GRAY, true)},
-		{&"type": 2, &"args": circle_args(c4, 5., Color.GRAY, true)},
+		{&"type": 2, &"args": circle_args(c1, 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(c2, 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(c3, 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(c4, 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(handles[&"up"], 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(handles[&"right"], 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(handles[&"down"], 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(handles[&"left"], 5., Color.GRAY, true, -1.)},
+		{&"type": 2, &"args": circle_args(handles[&"rotation"], 6., Color.YELLOW, true, -1.)},
 	])
-	
 	return result
-
-
-func _gizmosHandlerMethod(event: InputEvent, type: int, args: Array) -> bool:
-	return true
 
 
 static func line_args(from: Vector2, to: Vector2, color: Color = Color.GRAY, width: float = 2., antialiasing: bool = true) -> Array: return [from, to, color, width, antialiasing]
 static func rect_args(rect2: Rect2, color: Color = Color.GRAY, filled: bool = false, width = 2., antialiasing: bool = true) -> Array: return [rect2, color, filled, width, antialiasing]
 static func circle_args(pos: Vector2, radius: float, color: Color = Color.GRAY, filled: bool = false, width = 2., antialiasing: bool = true) -> Array: return [pos, radius, color, filled, width, antialiasing]
 
+
+func get_canvas_item_comp() -> CompCanvasItem:
+	return components.get(&"Display2D")[0]
 
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
@@ -359,3 +644,4 @@ static func _format_shader_snip(shader_snip: String, params_names_list: Dictiona
 func emit_clip_res_changed() -> void:
 	await build_shader_pipeline()
 	super()
+

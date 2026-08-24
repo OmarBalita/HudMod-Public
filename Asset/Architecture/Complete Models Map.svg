@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1313.4362499999997 580" width="1313.4362499999997" height="580" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="cls-inherit" markerWidth="12" markerHeight="10" refX="12" refY="5" orient="auto-start-reverse">
+    <polygon points="0 0, 12 5, 0 10" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-composition" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="1" />
+  </marker>
+  <marker id="cls-aggregation" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto-start-reverse">
+    <polyline points="0 0, 8 3, 0 6" fill="none" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+</defs>
+<polyline class="class-relationship" data-from="Resource" data-to="UsableRes" data-type="inheritance" data-marker-at="from" points="1091.6909999999998,88 1091.6909999999998,148" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="ProjectRes" data-type="inheritance" data-marker-at="from" points="1121.6909999999998,196 1121.6909999999998,256 976.6909999999998,256 976.6909999999998,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="MediaClipRes" data-type="inheritance" data-marker-at="from" points="1136.6909999999998,196 1136.6909999999998,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="ComponentRes" data-type="inheritance" data-marker-at="from" points="1091.6909999999998,196 1091.6909999999998,236 632.6989999999998,236 632.6989999999998,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="VideoRenderProfile" data-type="inheritance" data-marker-at="from" points="1061.6909999999998,196 1061.6909999999998,216 300.53099999999984,216 300.53099999999984,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="AppEditorSettings" data-type="inheritance" data-marker-at="from" points="1076.6909999999998,196 1076.6909999999998,226 470.37199999999984,226 470.37199999999984,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="DrawingRes" data-type="inheritance" data-marker-at="from" points="1106.6909999999998,196 1106.6909999999998,246 816.6909999999998,246 816.6909999999998,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="UsableRes" data-to="LayoutRootInfo" data-type="inheritance" data-marker-at="from" points="1046.6909999999998,196 1046.6909999999998,206 133.01699999999983,206 133.01699999999983,266" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="MediaClipRes" data-to="RootClipRes" data-type="inheritance" data-marker-at="from" points="1136.6909999999998,314 1136.6909999999998,334 1004.3639999999998,334 1004.3639999999998,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="MediaClipRes" data-to="AudioClipRes" data-type="inheritance" data-marker-at="from" points="1106.6909999999998,314 1106.6909999999998,324 844.3639999999998,324 844.3639999999998,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="MediaClipRes" data-to="Display2DClipRes" data-type="inheritance" data-marker-at="from" points="1166.6909999999998,314 1166.6909999999998,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="VideoClipRes" data-type="inheritance" data-marker-at="from" points="1197.8544999999997,422 1197.8545,482 1053.4362499999997,482 1053.4362499999997,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="ImageClipRes" data-type="inheritance" data-marker-at="from" points="1213.4362499999997,422 1213.4362499999997,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="Text2DClipRes" data-type="inheritance" data-marker-at="from" points="1119.9457499999999,422 1119.9457499999999,432 214.2802499999998,432 214.2802499999998,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="Shape2DClipRes" data-type="inheritance" data-marker-at="from" points="1135.5274999999997,422 1135.5274999999997,442 374.2802499999998,442 374.2802499999998,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="Particles2DClipRes" data-type="inheritance" data-marker-at="from" points="1166.6909999999998,422 1166.6909999999998,462 720.5272499999999,462 720.5272499999999,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="Camera2DClipRes" data-type="inheritance" data-marker-at="from" points="1182.2727499999999,422 1182.2727499999999,472 890.3682499999998,472 890.3682499999998,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="Display2DClipRes" data-to="RenderPassClipRes" data-type="inheritance" data-marker-at="from" points="1151.1092499999997,422 1151.1092499999997,452 544.0172499999998,452 544.0172499999998,492" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="ComponentRes" data-to="DrawShapeComponentRes" data-type="inheritance" data-marker-at="from" points="620.6989999999998,314 620.6989999999998,334 288.26199999999994,334 288.26199999999994,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="ComponentRes" data-to="ShaderComponentRes" data-type="inheritance" data-marker-at="from" points="668.6989999999998,314 668.6989999999998,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="ComponentRes" data-to="CanvasItem" data-type="inheritance" data-marker-at="from" points="596.6989999999998,314 596.6989999999998,324 100,324 100,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<polyline class="class-relationship" data-from="ComponentRes" data-to="InOutComponentRes" data-type="inheritance" data-marker-at="from" points="644.6989999999998,314 644.6989999999998,344 484.7789999999999,344 484.7789999999999,374" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-inherit)" />
+<g class="class-node" data-id="Resource" data-label="Resource">
+  <rect x="1031.6909999999998" y="40" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1031.6909999999998" y="40" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1091.6909999999998" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Resource</text>
+  <line x1="1031.6909999999998" y1="72" x2="1151.6909999999998" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1031.6909999999998" y1="80" x2="1151.6909999999998" y2="80" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="UsableRes" data-label="UsableRes">
+  <rect x="1031.6909999999998" y="148" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1031.6909999999998" y="148" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1091.6909999999998" y="164" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">UsableRes</text>
+  <line x1="1031.6909999999998" y1="180" x2="1151.6909999999998" y2="180" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1031.6909999999998" y1="188" x2="1151.6909999999998" y2="188" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="ProjectRes" data-label="ProjectRes">
+  <rect x="916.6909999999998" y="266" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="916.6909999999998" y="266" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="976.6909999999998" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">ProjectRes</text>
+  <line x1="916.6909999999998" y1="298" x2="1036.6909999999998" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="916.6909999999998" y1="306" x2="1036.6909999999998" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="MediaClipRes" data-label="MediaClipRes">
+  <rect x="1076.6909999999998" y="266" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1076.6909999999998" y="266" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1136.6909999999998" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">MediaClipRes</text>
+  <line x1="1076.6909999999998" y1="298" x2="1196.6909999999998" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1076.6909999999998" y1="306" x2="1196.6909999999998" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="ComponentRes" data-label="ComponentRes">
+  <rect x="572.6989999999998" y="266" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="572.6989999999998" y="266" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="632.6989999999998" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">ComponentRes</text>
+  <line x1="572.6989999999998" y1="298" x2="692.6989999999998" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="572.6989999999998" y1="306" x2="692.6989999999998" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="VideoRenderProfile" data-label="VideoRenderProfile">
+  <rect x="233.01699999999983" y="266" width="135.02800000000002" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="233.01699999999983" y="266" width="135.02800000000002" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="300.53099999999984" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">VideoRenderProfile</text>
+  <line x1="233.01699999999983" y1="298" x2="368.04499999999985" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="233.01699999999983" y1="306" x2="368.04499999999985" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="AppEditorSettings" data-label="AppEditorSettings">
+  <rect x="408.04499999999985" y="266" width="124.654" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="408.04499999999985" y="266" width="124.654" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="470.37199999999984" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">AppEditorSettings</text>
+  <line x1="408.04499999999985" y1="298" x2="532.6989999999998" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="408.04499999999985" y1="306" x2="532.6989999999998" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="DrawingRes" data-label="DrawingRes">
+  <rect x="756.6909999999998" y="266" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="756.6909999999998" y="266" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="816.6909999999998" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">DrawingRes</text>
+  <line x1="756.6909999999998" y1="298" x2="876.6909999999998" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="756.6909999999998" y1="306" x2="876.6909999999998" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="LayoutRootInfo" data-label="LayoutRootInfo">
+  <rect x="73.01699999999983" y="266" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="73.01699999999983" y="266" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="133.01699999999983" y="282" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">LayoutRootInfo</text>
+  <line x1="73.01699999999983" y1="298" x2="193.01699999999983" y2="298" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="73.01699999999983" y1="306" x2="193.01699999999983" y2="306" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="RootClipRes" data-label="RootClipRes">
+  <rect x="944.3639999999998" y="374" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="944.3639999999998" y="374" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1004.3639999999998" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">RootClipRes</text>
+  <line x1="944.3639999999998" y1="406" x2="1064.3639999999998" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="944.3639999999998" y1="414" x2="1064.3639999999998" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="AudioClipRes" data-label="AudioClipRes">
+  <rect x="784.3639999999998" y="374" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="784.3639999999998" y="374" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="844.3639999999998" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">AudioClipRes</text>
+  <line x1="784.3639999999998" y1="406" x2="904.3639999999998" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="784.3639999999998" y1="414" x2="904.3639999999998" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Display2DClipRes" data-label="Display2DClipRes">
+  <rect x="1104.3639999999998" y="374" width="124.65399999999998" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1104.3639999999998" y="374" width="124.65399999999998" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1166.6909999999998" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Display2DClipRes</text>
+  <line x1="1104.3639999999998" y1="406" x2="1229.0179999999998" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1104.3639999999998" y1="414" x2="1229.0179999999998" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="VideoClipRes" data-label="VideoClipRes">
+  <rect x="993.4362499999997" y="492" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="993.4362499999997" y="492" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1053.4362499999997" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">VideoClipRes</text>
+  <line x1="993.4362499999997" y1="524" x2="1113.4362499999997" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="993.4362499999997" y1="532" x2="1113.4362499999997" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="ImageClipRes" data-label="ImageClipRes">
+  <rect x="1153.4362499999997" y="492" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1153.4362499999997" y="492" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1213.4362499999997" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">ImageClipRes</text>
+  <line x1="1153.4362499999997" y1="524" x2="1273.4362499999997" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1153.4362499999997" y1="532" x2="1273.4362499999997" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Text2DClipRes" data-label="Text2DClipRes">
+  <rect x="154.2802499999998" y="492" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="154.2802499999998" y="492" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="214.2802499999998" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Text2DClipRes</text>
+  <line x1="154.2802499999998" y1="524" x2="274.2802499999998" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="154.2802499999998" y1="532" x2="274.2802499999998" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Shape2DClipRes" data-label="Shape2DClipRes">
+  <rect x="314.2802499999998" y="492" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="314.2802499999998" y="492" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="374.2802499999998" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Shape2DClipRes</text>
+  <line x1="314.2802499999998" y1="524" x2="434.2802499999998" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="314.2802499999998" y1="532" x2="434.2802499999998" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Particles2DClipRes" data-label="Particles2DClipRes">
+  <rect x="653.7542499999998" y="492" width="133.546" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="653.7542499999998" y="492" width="133.546" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="720.5272499999999" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Particles2DClipRes</text>
+  <line x1="653.7542499999998" y1="524" x2="787.3002499999998" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="653.7542499999998" y1="532" x2="787.3002499999998" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Camera2DClipRes" data-label="Camera2DClipRes">
+  <rect x="827.3002499999998" y="492" width="126.13599999999998" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="827.3002499999998" y="492" width="126.13599999999998" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="890.3682499999998" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Camera2DClipRes</text>
+  <line x1="827.3002499999998" y1="524" x2="953.4362499999997" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="827.3002499999998" y1="532" x2="953.4362499999997" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="RenderPassClipRes" data-label="RenderPassClipRes">
+  <rect x="474.2802499999998" y="492" width="139.474" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="474.2802499999998" y="492" width="139.474" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="544.0172499999998" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">RenderPassClipRes</text>
+  <line x1="474.2802499999998" y1="524" x2="613.7542499999997" y2="524" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="474.2802499999998" y1="532" x2="613.7542499999997" y2="532" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="DrawShapeComponentRes" data-label="DrawShapeComponentRes">
+  <rect x="200" y="374" width="176.52399999999994" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="200" y="374" width="176.52399999999994" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="288.26199999999994" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">DrawShapeComponentRes</text>
+  <line x1="200" y1="406" x2="376.52399999999994" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="200" y1="414" x2="376.52399999999994" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="ShaderComponentRes" data-label="ShaderComponentRes">
+  <rect x="593.0339999999999" y="374" width="151.32999999999998" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="593.0339999999999" y="374" width="151.32999999999998" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="668.6989999999998" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">ShaderComponentRes</text>
+  <line x1="593.0339999999999" y1="406" x2="744.3639999999998" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="593.0339999999999" y1="414" x2="744.3639999999998" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="CanvasItem" data-label="CanvasItem">
+  <rect x="40" y="374" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="374" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="100" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">CanvasItem</text>
+  <line x1="40" y1="406" x2="160" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="40" y1="414" x2="160" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="InOutComponentRes" data-label="InOutComponentRes">
+  <rect x="416.5239999999999" y="374" width="136.51" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="416.5239999999999" y="374" width="136.51" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="484.7789999999999" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">InOutComponentRes</text>
+  <line x1="416.5239999999999" y1="406" x2="553.0339999999999" y2="406" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="416.5239999999999" y1="414" x2="553.0339999999999" y2="414" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</svg>

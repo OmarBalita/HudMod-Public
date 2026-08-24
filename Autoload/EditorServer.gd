@@ -516,7 +516,7 @@ func popup_version_panel() -> void:
 	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	version_label.custom_minimum_size = Vector2(100., 60.)
 	version_label.add_theme_color_override(&"font_color", Color.BLACK)
-
+	
 	var close_btn: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/close.png"))
 	close_btn.visible = ProjectServer2.is_project_loaded
 	close_btn.custom_minimum_size = Vector2(16., 16.)

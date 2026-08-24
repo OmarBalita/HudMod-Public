@@ -200,5 +200,3 @@ func _get_shader_fragment_snip() -> String:
 	}
 "
 
-
-

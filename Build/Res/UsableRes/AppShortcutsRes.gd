@@ -55,6 +55,8 @@ static var _default_global_shortcuts: Dictionary[StringName, Array] = {
 
 static var _default_media_explorer_shortcuts: Dictionary[StringName, Array] = _default_select_container_shortcuts
 
+static var _default_viewport_shortcuts: Dictionary[StringName, Array] = _default_select_container_shortcuts
+
 static var _default_timeline_shortcuts: Dictionary[StringName, Array] = _default_select_container_shortcuts.merged({
 	&"switch_edit_mode": [ShortcutNode.new_shortcut(Key.KEY_TAB), &"switch_edit_mode"],
 	&"enter_clip": [ShortcutNode.new_shortcut(Key.KEY_ENTER), &"enter_clip"],
@@ -86,6 +88,7 @@ static var _default_curve_editor_shortcuts: Dictionary[StringName, Array] = _def
 static var _default_all_shortcuts: Dictionary[StringName, Dictionary] = {
 	&"Global": _default_global_shortcuts,
 	&"Explorer": _default_media_explorer_shortcuts,
+	&"Viewport": _default_viewport_shortcuts,
 	&"Timeline": _default_timeline_shortcuts,
 	&"Curve Editor": _default_curve_editor_shortcuts,
 }
