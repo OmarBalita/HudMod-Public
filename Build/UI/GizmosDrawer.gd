@@ -184,6 +184,7 @@ func _update_selectables_at(clip_res: MediaClipRes) -> void:
 
 
 func _update_layers_profiles_at(owner_clip_res: MediaClipRes) -> void:
+	layers_profiles.clear()
 	var layers: Array[LayerRes] = owner_clip_res.layers
 	for layer_res: LayerRes in layers:
 		layers_profiles[layer_res] = GizmosProfile.new()
@@ -281,7 +282,7 @@ func _gui_input(event: InputEvent) -> void:
 	queue_redraw()
 
 
-func _gui_input_try_select(event: InputEventMouseButton) -> void:
+func _gui_input_try_select(event: InputEventMouseButton) -> bool:
 	var clips_ress_mouse_in: Array[Display2DClipRes]
 	
 	for port_idx: int in selectables:
@@ -290,7 +291,7 @@ func _gui_input_try_select(event: InputEventMouseButton) -> void:
 		for idx: int in port:
 			var clip_res: Display2DClipRes = port[idx]
 			
-			if clip_res_get_rect2(clip_res).has_point(event.position):
+			if clip_res_has_point(clip_res, event.position):
 				clips_ress_mouse_in.append(clip_res)
 	
 	var try_delete: bool = event.alt_pressed
@@ -307,12 +308,15 @@ func _gui_input_try_select(event: InputEventMouseButton) -> void:
 		
 		manage_val(port_idx, idx, try_delete, preclear)
 		emit_selected_changed()
-		return
+		return true
 	
 	if not clips_ress_mouse_in.is_empty():
 		var first_clip_res: Display2DClipRes = clips_ress_mouse_in[0]
 		manage_val(first_clip_res.layer_index, first_clip_res.clip_pos, try_delete, preclear)
 		emit_selected_changed()
+		return true
+	
+	return false
 
 
 func _draw() -> void:
@@ -367,9 +371,21 @@ func clip_res_has_gizmos(clip_res: Display2DClipRes) -> bool:
 
 func clip_res_get_rect2(clip_res: Display2DClipRes) -> Rect2:
 	var canvas_item: CompCanvasItem = clip_res.get_canvas_item_comp()
-	var size: Vector2 = clip_res.get_size(canvas_item.scale)
+	var size: Vector2 = clip_res.get_size(clip_res._get_global_canvas_transform(canvas_item)[2])
 	var size_vp: Vector2 = size * scale_factor
-	return Rect2(world2d_to_editor_screen(canvas_item.position) - size_vp / 2., size_vp)
+	# Use the global canvas transform so selection hit-testing works correctly for nested clips
+	var global_transform: Array = clip_res._get_global_canvas_transform(canvas_item)
+	var global_pos: Vector2 = global_transform[0]
+	
+	return Rect2(world2d_to_editor_screen(global_pos) - size_vp / 2., size_vp)
+
+func clip_res_get_screen_polygon(clip_res: Display2DClipRes) -> PackedVector2Array:
+	var canvas_item: CompCanvasItem = clip_res.get_canvas_item_comp()
+	var handles: Dictionary[StringName, Vector2] = clip_res._get_transform_handles(canvas_item)
+	return PackedVector2Array([handles.c1, handles.c2, handles.c3, handles.c4])
+
+func clip_res_has_point(clip_res: Display2DClipRes, screen_pos: Vector2) -> bool:
+	return Geometry2D.is_point_in_polygon(screen_pos, clip_res_get_screen_polygon(clip_res))
 
 func selectables_get_first_clip_res_mouse_in() -> MediaClipRes:
 	var mouse_pos: Vector2 = get_local_mouse_position()
@@ -378,7 +394,7 @@ func selectables_get_first_clip_res_mouse_in() -> MediaClipRes:
 		var port: Dictionary = selectables[port_idx]
 		for idx: int in port:
 			var clip_res: Display2DClipRes = port[idx]
-			if clip_res_get_rect2(clip_res).has_point(mouse_pos):
+			if clip_res_has_point(clip_res, mouse_pos):
 				return clip_res
 	
 	return null
@@ -387,10 +403,17 @@ func _request_box_selection() -> bool:
 	return selectables_get_first_clip_res_mouse_in() == null
 
 func _request_selection_box_select(port_idx: int, port_obj: Object, idx: int) -> bool:
-	var clip_res: MediaClipRes = selectables[port_idx][idx]
+	var clip_res: Display2DClipRes = selectables[port_idx][idx]
 	
-	clip_res = clip_res as Display2DClipRes
-	return selectbox_rect.intersects(clip_res_get_rect2(clip_res))
+	var clip_res_polygon: PackedVector2Array = clip_res_get_screen_polygon(clip_res)
+	var c1: Vector2 = clip_res_polygon[0]
+	
+	if c1 == clip_res_polygon[1] or c1 == clip_res_polygon[2]:
+		return Geometry2D.is_point_in_polygon(c1, selectbox_polygon)
+	
+	var intersection: PackedVector2Array = Geometry2D.intersect_polygons(selectbox_polygon, clip_res_polygon)
+	
+	return not intersection.is_empty()
 
 
 

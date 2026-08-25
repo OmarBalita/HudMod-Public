@@ -36,10 +36,18 @@ var search_line: LineEdit
 var curr_filter: int
 var curr_sort: int
 
+
+var is_moving: bool:
+	set(val):
+		is_moving = val
+		set_process_input(val)
+
 func _init(_media_explorer: MediaExplorer) -> void:
 	media_explorer = _media_explorer
 
 func _ready() -> void:
+	
+	is_moving = false
 	
 	body_container = IS.create_box_container(10, true)
 	options_container = IS.create_box_container(8)
@@ -64,6 +72,11 @@ func _ready() -> void:
 	
 	_ready_options()
 
+func _input(event: InputEvent) -> void:
+	
+	if event is InputEventMouseMotion:
+		print("is_moving")
+
 func _init_media_select_cont() -> MediaSelectContainer:
 	return MediaSelectContainer.new(self)
 
@@ -76,7 +89,6 @@ func _on_media_categories_box_gui_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
 			media_select_cont.deselect_all()
 			EditorServer.properties._clear_controls()
-
 
 
 
@@ -256,6 +268,9 @@ class MediaCard extends PanelContainer:
 	
 	var selection_port: int
 	
+	
+	var button_event: InputEventMouseButton
+	
 	func _init(_media_box: MediaBox, port: int) -> void:
 		media_box = _media_box
 		selection_port = port
@@ -300,6 +315,7 @@ class MediaCard extends PanelContainer:
 					var curr_time: float = Time.get_ticks_msec() / 1000.
 					if curr_time - get_meta(&"latest_time", .0) < double_click_threshold:
 						_activate()
+					
 					set_meta(&"latest_time", curr_time)
 			
 			else:
@@ -310,6 +326,19 @@ class MediaCard extends PanelContainer:
 					MOUSE_BUTTON_RIGHT:
 						_select(event.alt_pressed, false)
 						popup_context_menu()
+			
+			button_event = event
+		
+		elif event is InputEventMouseMotion:
+			
+			if media_box.is_moving:
+				return
+			
+			if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT and button_event.is_pressed():
+				if button_event.position.distance_to(event.position) > 10.:
+					_select(event.alt_pressed, not event.ctrl_pressed)
+					media_box.is_moving = true
+					print("start moving")
 	
 	func _select(delete: bool, preclear: bool) -> void:
 		media_box.media_select_cont.manage_val(selection_port, get_index(), delete, preclear)

@@ -28,6 +28,7 @@ var root: Node
 var camera: Camera2D
 
 var curr_nodes: Array[MediaClipRes]
+
 var stream_players: Array[MediaClipRes]
 var video_players: Array[VideoClipRes]
 var cameras: Array[Camera2DClipRes]

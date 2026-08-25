@@ -141,8 +141,11 @@ func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> 
 func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dictionary[StringName, Variant]) -> _TransformationEditMode:
 	
 	var gizmos_drawer: GizmosDrawer = EditorServer.player.gizmos_drawer
+	var global_transform: Array = _get_global_canvas_transform(canvas_item)
+	var global_pos: Vector2 = global_transform[0]
 	
-	var vp_center: Vector2 = gizmos_drawer.world2d_to_editor_screen(canvas_item.position)
+	var vp_center: Vector2 = gizmos_drawer.world2d_to_editor_screen(global_pos)
+	
 	if vp_center.distance_to(mouse_pos) <= _PRESS_MAX_DIST:
 		
 		info.set(&"pos_initial", canvas_item.position)
@@ -157,7 +160,9 @@ func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dict
 	
 	if handles[&"rotation"].distance_to(mouse_pos) <= _PRESS_MAX_DIST:
 		info.set(&"rotation_initial", canvas_item.rotation_degrees)
-		info.set(&"angle_initial", (gizmos_drawer.editor_screen_to_world2d(mouse_pos) - canvas_item.position).angle())
+		# Compute the initial angle relative to the global center
+		info.set(&"angle_initial", (gizmos_drawer.editor_screen_to_world2d(mouse_pos) - global_pos).angle())
+		info.set(&"global_pos_at_rotation_start", global_pos)
 		
 		info.set(&"rotations_initial", EditorServer.properties.curr_clips_ress_map(
 			MediaClipResPath.node2d_cond,
@@ -174,9 +179,14 @@ func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dict
 	return _TransformationEditMode.EDIT_MODE_NONE
 
 func _begin_scale_drag(canvas_item: CompCanvasItem, info: Dictionary[StringName, Variant]) -> void:
+	var global_transform: Array = _get_global_canvas_transform(canvas_item)
+	var global_pos: Vector2 = global_transform[0]
+	var global_rot: float = global_transform[1]
+	
 	info.set(&"scale_initial", canvas_item.scale)
-	info.set(&"rotation_at_scale_start", canvas_item.rotation_degrees)
-	info.set(&"center_at_scale_start", canvas_item.position)
+	# Store global rotation and global center so _to_local_unrotated works correctly for nested clips
+	info.set(&"rotation_at_scale_start", global_rot)
+	info.set(&"center_at_scale_start", global_pos)
 	info.set(&"size_half_initial", get_size(canvas_item.scale) / 2.)
 	
 	info.set(&"scales_initial", EditorServer.properties.curr_clips_ress_map(
@@ -206,7 +216,9 @@ func _apply_edit_mode(canvas_item: CompCanvasItem, edit_mode: _TransformationEdi
 
 
 func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2, gizmos_drawer: GizmosDrawer, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
-	canvas_item.set_prop_and_emit(&"position", snapped_world_pos)
+	# Convert the snapped world position to local space (undoes parent transforms)
+	var local_pos: Vector2 = _world_pos_to_local(snapped_world_pos)
+	canvas_item.set_prop_and_emit(&"position", local_pos)
 	
 	var local_points: Dictionary[StringName, Vector2] = _get_transform_local_points(canvas_item)
 	var world_points: Dictionary[StringName, Vector2] = _local_points_to_world_points(canvas_item, local_points)
@@ -216,15 +228,22 @@ func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2,
 	var xkey: StringName = closer_snap.xkey
 	var ykey: StringName = closer_snap.ykey
 	
-	var rot_rad: float = deg_to_rad(canvas_item.rotation_degrees)
+	# Use global rotation for rotating the edge offset correctly
+	var gt: Array = _get_global_canvas_transform(canvas_item)
+	var g_rot_rad: float = deg_to_rad(gt[1])
 	
-	var target_point: Vector2 = Vector2(
-		snapped_world_pos.x if xkey.is_empty() else closer_snap.xval - local_points[xkey].rotated(rot_rad).x,
-		snapped_world_pos.y if ykey.is_empty() else closer_snap.yval - local_points[ykey].rotated(rot_rad).y
+	# The target world position after considering edge snapping
+	var target_world: Vector2 = Vector2(
+		snapped_world_pos.x if xkey.is_empty() else closer_snap.xval - local_points[xkey].rotated(g_rot_rad).x,
+		snapped_world_pos.y if ykey.is_empty() else closer_snap.yval - local_points[ykey].rotated(g_rot_rad).y
 	)
 	
+	# Convert the final target world position back to local
+	var target_local: Vector2 = _world_pos_to_local(target_world)
+	canvas_item.set_prop_and_emit(&"position", target_local)
+	
 	if EditorServer.time_line2.is_edit_multiple():
-		var pos_delta: Vector2 = target_point - info.pos_initial
+		var pos_delta: Vector2 = target_local - info.pos_initial
 		var poss_initial: Array = info.poss_initial
 		
 		EditorServer.properties.curr_clips_ress_map(
@@ -236,7 +255,9 @@ func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2,
 
 func _apply_rotation(canvas_item: CompCanvasItem, world_pos: Vector2, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
 	
-	var angle_now: float = (world_pos - canvas_item.position).angle()
+	# Use the global center stored at the start of the rotation drag for angle computation
+	var global_center: Vector2 = info.get(&"global_pos_at_rotation_start", canvas_item.position)
+	var angle_now: float = (world_pos - global_center).angle()
 	var angle_initial: float = info.get(&"angle_initial")
 	var rotation_initial: float = info.get(&"rotation_initial")
 	var rot_deg: float = rotation_initial + rad_to_deg(angle_now - angle_initial)
@@ -326,11 +347,68 @@ func _apply_axis_scale(canvas_item: CompCanvasItem, world_pos: Vector2, is_x_axi
 				return null
 		)
 
-
 func _to_local_unrotated(world_pos: Vector2, info: Dictionary[StringName, Variant]) -> Vector2:
 	var center: Vector2 = info.get(&"center_at_scale_start")
 	var rotation_initial: float = info.get(&"rotation_at_scale_start")
+	# Use global center and global rotation so scale handles work correctly in nested clips
 	return (world_pos - center).rotated(-deg_to_rad(rotation_initial))
+
+## Returns [position, rotation_degrees, scale] accumulated globally from all
+## Display2DClipRes ancestors, stopping at the first non-Display2DClipRes parent.
+func _get_parent_global_transform() -> Array:
+	# Collect ancestor chain (root-first) by walking up via `parent`
+	var ancestors: Array[Display2DClipRes] = []
+	var p: MediaClipRes = parent
+	while p is Display2DClipRes:
+		ancestors.push_front(p as Display2DClipRes)
+		p = p.parent
+	
+	var g_pos:= Vector2.ZERO
+	var g_rot: float = .0
+	var g_scale:= Vector2.ONE
+	
+	for anc: Display2DClipRes in ancestors:
+		var anc_ci: CompCanvasItem = anc.get_canvas_item_comp()
+		var anc_rot_rad:= deg_to_rad(anc_ci.rotation_degrees)
+		# Apply this ancestor: translate local origin by scaled+rotated parent position
+		g_pos = g_pos + (anc_ci.position * g_scale).rotated(g_rot)
+		g_rot = g_rot + anc_rot_rad
+		g_scale = g_scale * anc_ci.scale
+	
+	return [g_pos, rad_to_deg(g_rot), g_scale]
+
+## Returns the global position, rotation_degrees, and effective scale of this clip's
+## canvas item, taking all Display2DClipRes ancestors into account.
+func _get_global_canvas_transform(canvas_item: CompCanvasItem) -> Array:
+	var parent_transform: Array = _get_parent_global_transform()
+	var g_pos: Vector2 = parent_transform[0]
+	var g_rot: float = parent_transform[1]
+	var g_scale: Vector2 = parent_transform[2]
+	
+	var local_pos: Vector2 = canvas_item.position
+	var local_rot: float = canvas_item.rotation_degrees
+	var local_scale: Vector2 = canvas_item.scale
+	
+	var world_pos: Vector2 = g_pos + (local_pos * g_scale).rotated(deg_to_rad(g_rot))
+	var world_rot: float = g_rot + local_rot
+	var world_scale: Vector2 = g_scale * local_scale
+	
+	return [world_pos, world_rot, world_scale]
+
+## Converts a global world position back to the local position for this clip's canvas item,
+## undoing all ancestor transforms.
+func _world_pos_to_local(world_pos: Vector2) -> Vector2:
+	var parent_transform: Array = _get_parent_global_transform()
+	var g_pos: Vector2 = parent_transform[0]
+	var g_rot: float = parent_transform[1]
+	var g_scale: Vector2 = parent_transform[2]
+	
+	# Undo parent: local_pos = ((world_pos - g_pos).rotated(-g_rot)) / g_scale
+	var rel: Vector2 = (world_pos - g_pos).rotated(-deg_to_rad(g_rot))
+	return Vector2(
+		rel.x / g_scale.x if g_scale.x != .0 else rel.x,
+		rel.y / g_scale.y if g_scale.y != .0 else rel.y
+	)
 
 func _get_transform_handles(canvas_item: CompCanvasItem) -> Dictionary[StringName, Vector2]:
 	var gizmos_drawer: GizmosDrawer = EditorServer.player.gizmos_drawer
@@ -345,7 +423,7 @@ func _get_transform_handles(canvas_item: CompCanvasItem) -> Dictionary[StringNam
 	return handles
 
 func _get_transform_local_points(canvas_item: CompCanvasItem) -> Dictionary[StringName, Vector2]:
-	var size_half: Vector2 = get_size(canvas_item.scale) / 2.
+	var size_half: Vector2 = get_size(_get_global_canvas_transform(canvas_item)[2]) / 2.
 	var points: Dictionary[StringName, Vector2] = {
 		&"c1": Vector2(-size_half.x, -size_half.y),
 		&"c2": Vector2(size_half.x, -size_half.y),
@@ -360,10 +438,15 @@ func _get_transform_local_points(canvas_item: CompCanvasItem) -> Dictionary[Stri
 	return points
 
 func _local_points_to_world_points(canvas_item: CompCanvasItem, local_points: Dictionary[StringName, Vector2]) -> Dictionary[StringName, Vector2]:
-	var rot_rad: float = deg_to_rad(canvas_item.rotation_degrees)
+	# Use the globally-accumulated transform so nested clips show Gizmos at the
+	# correct world-space position.
+	var gt: Array = _get_global_canvas_transform(canvas_item)
+	var g_pos: Vector2 = gt[0]
+	var g_rot_rad: float = deg_to_rad(gt[1])
+	
 	var world_points: Dictionary[StringName, Vector2] = {}
 	for key: StringName in local_points:
-		var world_point: Vector2 = canvas_item.position + local_points[key].rotated(rot_rad)
+		var world_point: Vector2 = g_pos + local_points[key].rotated(g_rot_rad)
 		world_points[key] = world_point
 	return world_points
 
@@ -373,7 +456,10 @@ func _gizmos_transform() -> Array[Dictionary]:
 	var canvas_item: CompCanvasItem = get_canvas_item_comp()
 	if not canvas_item: return []
 	
-	var vp_pos: Vector2 = EditorServer.player.gizmos_drawer.world2d_to_editor_screen(canvas_item.position)
+	# Use the global canvas transform so the center circle is at the correct world position
+	var gt: Array = _get_global_canvas_transform(canvas_item)
+	var global_pos: Vector2 = gt[0]
+	var vp_pos: Vector2 = EditorServer.player.gizmos_drawer.world2d_to_editor_screen(global_pos)
 	var handles: Dictionary[StringName, Vector2] = _get_transform_handles(canvas_item)
 	var c1: Vector2 = handles[&"c1"]
 	var c2: Vector2 = handles[&"c2"]

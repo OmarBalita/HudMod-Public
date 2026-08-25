@@ -73,6 +73,7 @@ var curr_frame: int:
 
 var shared_data: Dictionary
 
+var parent: MediaClipRes
 var layer_index: int
 var clip_pos: int
 
@@ -763,6 +764,7 @@ func just_place_clip(layer_idx: int, frame: int, clip_res: MediaClipRes, undored
 		var old_clip_res: MediaClipRes = layer.get_clip_res(frame)
 		edit_data.get_or_add(&"fordelete", {} as Dictionary[Vector2i, MediaClipRes])[Vector2i(layer_idx, frame)] = old_clip_res
 	
+	clip_res.parent = self
 	clip_res.layer_index = layer_idx
 	clip_res.clip_pos = frame
 	layer.add_clip_res(frame, clip_res)
@@ -1021,7 +1023,7 @@ func loop_layers_children_deep(info: Dictionary[StringName, Variant], method: Ca
 			premethod.call(layers, layer_idx, dupl_info)
 		
 		for frame: int in clips:
-			method.call(layers, layer_idx, layer, frame, dupl_info)
+			method.call(layers, layer_idx, self, layer, frame, dupl_info)
 			clips[frame].loop_layers_children_deep(info, method, premethod, postmethod)
 		
 		if post_valid:
@@ -1063,19 +1065,19 @@ func move_layers_clips_deep(offset: int) -> void:
 
 func format_layers_paths_deep(paths_for_format: Dictionary[String, String]) -> void:
 	loop_layers_children_deep({},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+		func(layers: Array[LayerRes], layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 			layer.get_clip_res(frame).format_paths(paths_for_format)
 	)
 
 func erase_layers_paths_deep(paths_for_erase: PackedStringArray) -> void:
 	loop_layers_children_deep({},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+		func(layers: Array[LayerRes], layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 			layer.get_clip_res(frame).erase_paths(paths_for_erase)
 	)
 
 func update_layers_paths_deep() -> void:
 	loop_layers_children_deep({},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+		func(layers: Array[LayerRes], layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 			layer.get_clip_res(frame).update_paths()
 	)
 

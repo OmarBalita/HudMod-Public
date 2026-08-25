@@ -798,6 +798,10 @@ class LayersSelectContainer extends SelectContainer:
 		if has_selectable_val(focused.x, focused.y):
 			var latest_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(focused.x).get_clip(focused.y)
 			if latest_clip: latest_clip.select_panel.modulate.a = .7
+		
+		if timeline.opened_clip_res.layers.size() <= new_val.x:
+			return
+		
 		var new_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(new_val.x).get_clip(new_val.y)
 		if new_clip: new_clip.select_panel.modulate.a = 1.
 		super(new_val)

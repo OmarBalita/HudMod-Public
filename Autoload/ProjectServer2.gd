@@ -179,8 +179,9 @@ func open_project(_project_path: String) -> bool:
 	
 	project_res.root_clip_res.loop_layers_children_deep(
 		{},
-		func(layers: Array[LayerRes], layer_idx: int, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
+		func(layers: Array[LayerRes], layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes, frame: int, dupl_info: Dictionary[StringName, Variant]) -> void:
 			var clip_res: MediaClipRes = layer.clips[frame]
+			clip_res.parent = parent_clip_res
 			clip_res.layer_index = layer_idx
 			clip_res.clip_pos = frame
 			clip_res.loop_components(

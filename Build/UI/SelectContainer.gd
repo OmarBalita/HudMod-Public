@@ -60,16 +60,30 @@ var draw_step: Vector2:
 			queue_redraw()
 
 var mouseevent_startpos: Vector2
+
 var selectbox_is_started: bool:
 	set(val):
 		selectbox_is_started = val
 		if val: selectbox_started.emit()
 		else: selectbox_finished.emit()
+
 var selectbox_rect: Rect2:
 	set(val):
+		var rect_pos: Vector2 = val.position
+		var rect_size: Vector2 = val.size
+		
 		selectbox_rect = val
-		selectbox_globalrect = Rect2(get_global_position() + selectbox_rect.position, selectbox_rect.size)
+		selectbox_globalrect = Rect2(get_global_position() + rect_pos, rect_size)
+		selectbox_polygon = [
+			rect_pos,
+			rect_pos + Vector2(rect_size.x, .0),
+			rect_pos + rect_size,
+			rect_pos + Vector2(.0, rect_size.y)
+		]
+
 var selectbox_globalrect: Rect2
+
+var selectbox_polygon: PackedVector2Array
 
 
 func _set_focused(new_val: Vector2i) -> void:
