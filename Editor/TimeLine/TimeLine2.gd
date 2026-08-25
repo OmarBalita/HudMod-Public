@@ -1293,7 +1293,7 @@ func _connect_clip_res(clip_res: MediaClipRes) -> void:
 
 
 func has_layer_from_idx(layer_idx: int) -> bool:
-	return opened_clip_res.layers.size() <= layer_idx
+	return opened_clip_res.layers.size() > layer_idx
 
 func has_layer(layer_res: LayerRes) -> bool:
 	return layers.has(layer_res)
