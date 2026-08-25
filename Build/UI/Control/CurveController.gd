@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 # The logic was written by Omar TOP, and then Claude AI took over the writing improvements.
 class_name CurveController extends SelectContainer
@@ -38,16 +38,9 @@ enum KeysType {
 	KEY_TYPE_VEC_4,
 }
 
-const KEYS_COLORS: Array[Color] = [
-	Color.RED,
-	Color.GREEN,
-	Color.BLUE,
-	Color.VIOLET,
-]
-
-const KEY_SIZE       := Vector2(24.0, 24.0)
+const KEY_SIZE		 := Vector2(24.0, 24.0)
 const KEY_SIZE_HALF  := KEY_SIZE / 2.0
-const CONTROL_KEY_SIZE      := Vector2(7.5, 7.5)
+const CONTROL_KEY_SIZE		:= Vector2(7.5, 7.5)
 const CONTROL_KEY_SIZE_HALF := CONTROL_KEY_SIZE / 2.0
 
 
@@ -61,33 +54,39 @@ const CONTROL_KEY_SIZE_HALF := CONTROL_KEY_SIZE / 2.0
 		_init_curves_profiles()
 
 @export_group("Range")
-@export var min_val:      float = -200.0
-@export var max_val:      float =  200.0
-@export var val_step:     float = .01
+@export var min_val:	  float = -200.0
+@export var max_val:	  float =  200.0
+@export var val_step:	  float = .01
 @export var min_domain:   float = -100.0
 @export var max_domain:   float =  100.0
 @export var domain_step:  float = 1.0
 
 @export_group("Draw", "draw")
-@export var draw_cursor:       bool  = false
-@export var draw_val_step:     int   = 1
-@export var draw_domain_step:  int   = 1
+@export var draw_cursor:	   bool  = false
+@export var draw_val_step:	   int	 = 1
+@export var draw_domain_step:  int	 = 1
 @export var draw_select_color: Color = Color.ORANGE
 
 @export_group("Theme")
 @export_subgroup("Texture")
 @export var keyframe_texture: Texture2D = preload("res://Asset/Icons/keyframe.png")
-@export var lock_texture:     Texture2D = preload("res://Asset/Icons/padlock.png")
+@export var lock_texture:	  Texture2D = preload("res://Asset/Icons/padlock.png")
 @export var unlock_texture:   Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
 @export_subgroup("Constant")
-@export var navigate_dist:  float = -10.0
+@export var navigate_dist:	float = -10.0
 @export var navigate_speed: float = 100.0
-@export var zoom_min:       float = .5
-@export var zoom_max:       float = 5.
+@export var zoom_min:		float = .5
+@export var zoom_max:		float = 5.
 
 @export_group("Font")
 @export var font: Font = preload("res://Asset/Fonts/Cascadia.ttf")
 
+var _keys_colors: Array[Color] = [
+	Color.RED,
+	Color.GREEN,
+	Color.BLUE,
+	Color.VIOLET,
+]
 
 # ==============================================================================
 # STATE
@@ -297,12 +296,12 @@ func keys_delete(keys_index: int, x: int, deselect_key: bool, sort_keys: bool = 
 
 func keys_move(keys_index: int, x_from: int, to: Vector2, sort_keys: bool = true, redraw: bool = true) -> bool:
 	if keys_index < 0: return false
-	x_from  = format_x(x_from)
-	to.x    = format_x(to.x)
+	x_from	= format_x(x_from)
+	to.x	= format_x(to.x)
 
-	var same_x:      bool = x_from == to.x
+	var same_x:		 bool = x_from == to.x
 	var has_old_key: bool = keys_has(keys_index, x_from)
-	var has_key:     bool = keys_has(keys_index, to.x)
+	var has_key:	 bool = keys_has(keys_index, to.x)
 	var can_move_to: bool = has_old_key and (
 		(not same_x and not has_key) or
 		(same_x and has_key) or
@@ -358,9 +357,9 @@ func _delete_val(port_idx: int, idx: int) -> void:
 
 
 func _past_val(port_idx: int, idx: int) -> void:
-	var new_idx:    int      = format_x(cursor_pos + idx - copied_start)
-	var copied_k:   CurveKey = copied[port_idx][idx]
-	var pasted_k:   CurveKey = CurveKey.new_curve_key(
+	var new_idx:	int		 = format_x(cursor_pos + idx - copied_start)
+	var copied_k:	CurveKey = copied[port_idx][idx]
+	var pasted_k:	CurveKey = CurveKey.new_curve_key(
 		copied_k.value, copied_k.left_control, copied_k.right_control, copied_k.control_mode
 	)
 	keys_add(port_idx, new_idx, pasted_k, false, false)
@@ -415,10 +414,10 @@ func find_key(mouse_pos: Vector2, ignored_keys: Dictionary) -> Dictionary[String
 
 func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, Variant]:
 	var default_result: Dictionary[StringName, Variant] = {
-		&"curve_key":     null,
+		&"curve_key":	  null,
 		&"control_type":  0,
-		&"keys_index":    -1,
-		&"coord":         Vector2.ZERO,
+		&"keys_index":	  -1,
+		&"coord":		  Vector2.ZERO,
 		&"mouse_dist_to": .0
 	}
 	if disabled:
@@ -428,25 +427,26 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 		func(object: Variant, key: int, info: Dictionary[StringName, Variant]) -> bool:
 			if not keys_info[object].v:
 				return false
-
+			
 			var curve_profile: CurveProfile = curves_profiles[object]
-			var key_index:     int          = curve_profile.keys_keys.find(key)
-			var curve_key:     CurveKey     = curve_profile.keys[key]
-			var key_coord:     Vector2      = Vector2(key, curve_key.value)
-
+			var key_index:	   int			= curve_profile.keys_keys.find(key)
+			var curve_key:	   CurveKey = curve_profile.keys.get(key)
+			if curve_key == null: return false
+			var key_coord:	   Vector2		= Vector2(key, curve_key.value)
+			
 			# --- left control ---
 			var left_coord:    Vector2 = key_coord + curve_key.left_control
 			var dist_to_left:  float   = get_display_pos_from_coord(left_coord).distance_to(mouse_pos)
-
+			
 			if key_index > 0:
-				var before_key:       int      = curve_profile.keys_keys[key_index - 1]
+				var before_key:		  int	   = curve_profile.keys_keys[key_index - 1]
 				var before_curve_key: CurveKey = curve_profile.keys[before_key]
 				if before_curve_key.interpolation_mode == 2 and dist_to_left <= control_close_dist:
-					info.curve_key     = curve_key
+					info.curve_key	   = curve_key
 					info.control_type  = 1
 					info.keys_index    = object
-					info.key_coord     = key_coord
-					info.coord         = left_coord
+					info.key_coord	   = key_coord
+					info.coord		   = left_coord
 					info.mouse_dist_to = dist_to_left
 					return true
 
@@ -456,11 +456,11 @@ func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, 
 
 			if key_index < curve_profile.keys.size() - 1:
 				if curve_key.interpolation_mode == 2 and dist_to_right <= control_close_dist:
-					info.curve_key     = curve_key
+					info.curve_key	   = curve_key
 					info.control_type  = 2
 					info.keys_index    = object
-					info.key_coord     = key_coord
-					info.coord         = right_coord
+					info.key_coord	   = key_coord
+					info.coord		   = right_coord
 					info.mouse_dist_to = dist_to_right
 					return true
 
@@ -540,7 +540,7 @@ func _handle_mouse_button(
 					motion_mode = 1
 				elif is_control_finded and finded_control.curve_key.control_mode != 3:
 					set_meta(&"keys_index",   curr_focused_keys_index)
-					set_meta(&"curve_key",    finded_control.curve_key)
+					set_meta(&"curve_key",	  finded_control.curve_key)
 					set_meta(&"control_type", finded_control.control_type)
 					set_meta(&"point_coord",  finded_control.key_coord)
 					motion_mode = 2
@@ -561,13 +561,13 @@ func _handle_mouse_button(
 			if event.ctrl_pressed: zoom_value(-5.0)
 		
 	if is_pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
-		set_meta(&"press_pos",   mouse_pos)
+		set_meta(&"press_pos",	 mouse_pos)
 		set_meta(&"mouse_moved", false)
 		if (not is_control_finded or finded_control.curve_key.control_mode == 3) \
 				and motion_mode not in [1, 2] \
 				and curr_focused_keys_index > -1:
-			var value:           Variant = curves_profiles[curr_focused_keys_index].sample(coord.x)
-			var has_key_already: bool    = keys_has(curr_focused_keys_index, coord.x)
+			var value:			 Variant = curves_profiles[curr_focused_keys_index].sample(coord.x)
+			var has_key_already: bool	 = keys_has(curr_focused_keys_index, coord.x)
 			if not has_key_already and event.button_index == MOUSE_BUTTON_LEFT:
 				keys_add(curr_focused_keys_index, coord.x, CurveKey.new_curve_key(value), true)
 			select_val(curr_focused_keys_index, coord.x)
@@ -748,7 +748,10 @@ func _get_menu_options() -> Array[Dictionary]:
 
 
 func _request_selection_box_select(port_idx: int, _port_object: Object, idx: int) -> bool:
-	return selectbox_rect.has_point(get_display_pos_from_coord(Vector2(idx, keys_get(port_idx)[idx].value)))
+	var curve_key: CurveKey = keys_get(port_idx).get(idx)
+	if curve_key == null:
+		return false
+	return selectbox_rect.has_point(get_display_pos_from_coord(Vector2(idx, curve_key.value)))
 
 
 func _request_box_selection() -> bool:
@@ -767,10 +770,10 @@ func _draw() -> void:
 
 
 func _draw_grid() -> void:
-	var val_size:    float = max_val - min_val
+	var val_size:	 float = max_val - min_val
 	var domain_size: float = max_domain - min_domain
 	
-	var y_offset:      float = min_val - float(int(min_val) % draw_val_step)
+	var y_offset:	   float = min_val - float(int(min_val) % draw_val_step)
 	var y_displacement: float = y_offset - int(y_offset)
 	
 	if is_snapped:
@@ -783,7 +786,7 @@ func _draw_grid() -> void:
 			var y_pos := get_display_pos_from_val(y_offset + snap_step * draw_step.y - y_displacement)
 			draw_line(Vector2(.0, y_pos), Vector2(size.x, y_pos), snap_grid_color)
 	
-	var grid_color      := Color(Color.WHITE, .2)
+	var grid_color		:= Color(Color.WHITE, .2)
 	var val_steps_count: int = val_size / draw_val_step + 2
 	for step: int in val_steps_count:
 		var val:   float = y_offset + step * draw_val_step - y_displacement
@@ -791,6 +794,8 @@ func _draw_grid() -> void:
 		draw_line(Vector2(.0, y_pos), Vector2(size.x, y_pos), grid_color, 2.0)
 		draw_string(font, Vector2(.0, y_pos) + Vector2(10., .0), str(val))
 
+func set_keys_colors(colors: Array[Color]) -> void:
+	_keys_colors = colors
 
 func _draw_curves() -> void:
 	var curves_profiles_size: int = curves_profiles.size()
@@ -802,7 +807,7 @@ func _draw_curves() -> void:
 		var keys_keys: Array = profile.keys_keys
 		
 		var color_alpha: float = 1.0 if (not is_cursor_focused and keys_index == focused_keys_index) else .5
-		var keys_color: Color = KEYS_COLORS[keys_index] if curves_profiles_size > 1 else Color.WHITE
+		var keys_color: Color = _keys_colors[keys_index] if curves_profiles_size > 1 else Color.WHITE
 		keys_color = Color(keys_color, color_alpha)
 		
 		_draw_curve_segments(profile, keys, keys_keys, keys_index, keys_color, color_alpha)
@@ -854,8 +859,8 @@ func _draw_curve_segments(
 
 
 func _draw_curve_endpoints(
-	keys:       Dictionary[int, CurveKey],
-	keys_keys:  Array,
+	keys:		Dictionary[int, CurveKey],
+	keys_keys:	Array,
 	keys_index: int,
 	keys_color: Color,
 	color_alpha: float
@@ -865,12 +870,12 @@ func _draw_curve_endpoints(
 		return
 
 	var back_curve_key: CurveKey = keys[keys_keys.back()]
-	var back_coord:     Vector2  = Vector2(keys_keys.back(), back_curve_key.value)
-	var front_pos:      Vector2  = get_display_pos_from_coord(Vector2(keys_keys.front(), keys[keys_keys.front()].value))
-	var back_pos:       Vector2  = get_display_pos_from_coord(back_coord)
+	var back_coord:		Vector2  = Vector2(keys_keys.back(), back_curve_key.value)
+	var front_pos:		Vector2  = get_display_pos_from_coord(Vector2(keys_keys.front(), keys[keys_keys.front()].value))
+	var back_pos:		Vector2  = get_display_pos_from_coord(back_coord)
 
-	draw_line(Vector2(.0,     front_pos.y), front_pos,               keys_color, 2.0)
-	draw_line(back_pos,       Vector2(size.x, back_pos.y),           keys_color, 2.0)
+	draw_line(Vector2(.0,	  front_pos.y), front_pos,				 keys_color, 2.0)
+	draw_line(back_pos,		  Vector2(size.x, back_pos.y),			 keys_color, 2.0)
 
 	# The last key also needs its diamond drawn
 	var last_draw_control: bool = keys[keys_keys[keys_keys.size() - 2]].interpolation_mode == 2 if keys.size() > 1 else false
@@ -911,13 +916,13 @@ func _draw_key(
 		
 		if left_control or right_control:
 			var padlock_texture: Texture2D
-			var padlock_color:   Color
+			var padlock_color:	 Color
 			if curve_key.control_mode in [2, 3]:
 				padlock_texture = lock_texture
-				padlock_color   = Color.PURPLE
+				padlock_color	= Color.PURPLE
 			else:
 				padlock_texture = unlock_texture
-				padlock_color   = Color.SPRING_GREEN
+				padlock_color	= Color.SPRING_GREEN
 			padlock_color = Color(padlock_color, color_alpha)
 			draw_texture_rect(
 				padlock_texture,

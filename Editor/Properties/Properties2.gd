@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name Properties2 extends EditorControl
 
@@ -30,6 +30,7 @@ signal property_changed()
 @export var texture_disable: Texture2D
 @export var texture_delete: Texture2D
 @export var texture_drag: Texture2D
+@export var texture_custom_edit: Texture2D
 
 var curr_clip_ress: Array[MediaClipRes]
 var curr_focused_media_res: MediaClipRes
@@ -268,7 +269,6 @@ func update_properties(section_key: StringName = &"") -> void:
 		_display_section_components(section_key, true)
 	
 	_update_margin()
-	
 	properties_updated.emit()
 
 func update_media_properties(info: Dictionary[StringName, String]) -> void:
@@ -535,6 +535,7 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	comp_editor.set_meta(&"component_res", comp_res_owner)
 	comp_editor.keyframable = false
 	
+	
 	if not comp_res_owner.get_forced():
 		
 		var header_ctrlrs: Dictionary[StringName, Control] = {}
@@ -551,6 +552,13 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 				update_component_method(section_key, comp_info, id))
 			editor_header.add_child(method_controller)
 			header_ctrlrs[&"method_type"] = method_controller
+
+		if comp_res_owner.is_support_custom_exported_props():
+			var specific_edit_button: IS.CustomTextureButton = IS.create_texture_button(texture_custom_edit, null, null, "Open specific editor")
+			specific_edit_button.pressed.connect(_on_component_specific_edit_button_pressed.bind(comp_info))
+			editor_header.add_child(specific_edit_button)
+			editor_header.add_child(IS.create_v_line_panel())
+			header_ctrlrs[&"specific_edit"] = specific_edit_button
 		
 		var enable_button: IS.CustomTextureButton = IS.create_texture_button(texture_enable, null, texture_disable, "Enable / Disable", true)
 		enable_button.button_pressed = not comp_res_owner.enabled
@@ -576,6 +584,14 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	
 	_connect_and_update_usable_ress_controller(comp_res_owner, comp_res_owner.get_owner(), comp_editor)
 
+func _on_component_specific_edit_button_pressed(comp_info: ComponentInfo) -> void:
+	var editor_cont: EditorControl
+	if comp_info.component_res_owner is SnippetShaderComponentRes:
+		editor_cont = EditorServer.color_correction_editor
+	
+	if editor_cont == null: return
+	if not editor_cont.is_visible_in_tree(): editor_cont.header_panel.to_window(null, false)
+	editor_cont.set_focus_component(comp_info)
 
 func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_clip_res: MediaClipRes, edit_cont: EditContainer) -> void:
 	var update_usable_ress_func: Callable = _get_update_usable_ress_controller_method(usable_res, owner_as_clip_res)
@@ -586,7 +602,7 @@ func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_
 func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
 	return func(new_frame: int) -> void:
 		var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
-		owner_as_clip_res.update_specific_controllers_by_animations_here(usable_res, new_frame)
+		owner_as_clip_res.update_specific_controllers_by_animations(usable_res, new_frame)
 
 
 func _update_notification_label() -> String:
@@ -651,5 +667,3 @@ class ComponentInfo extends Resource:
 	
 	func append_component_res(value: UsableRes) -> void:
 		components_ress.append(value)
-
-

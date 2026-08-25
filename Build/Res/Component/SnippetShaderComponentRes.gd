@@ -1,10 +1,10 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 @abstract class_name SnippetShaderComponentRes extends ShaderComponentRes
 
@@ -26,6 +26,4 @@ func _get_shader_global_params_snip() -> String: return ""
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
-	return super(name, usable_res, usable_ress, search_line_edit)
-
+func get_color_correction_exported_props() -> Dictionary[StringName, ExportInfo]: return {}

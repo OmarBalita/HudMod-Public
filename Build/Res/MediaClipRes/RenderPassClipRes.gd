@@ -67,5 +67,3 @@ func _update_viewport_props() -> void:
 	await RenderingServer.frame_post_draw
 	curr_node.render_target_update_mode = SubViewport.UPDATE_ONCE
 	viewport_props_updated.emit()
-
-

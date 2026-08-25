@@ -1,10 +1,10 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 class_name GizmosDrawer extends SelectContainer
 
@@ -191,7 +191,6 @@ func _update_layers_profiles_at(owner_clip_res: MediaClipRes) -> void:
 
 
 func _try_update_layers_profiles_gizmos_methods() -> void:
-	
 	for layer_res: LayerRes in layers_profiles:
 		
 		var profile: GizmosProfile = layers_profiles[layer_res]
@@ -327,7 +326,6 @@ func _draw() -> void:
 func _draw_raw_data(all_raw_data: Array[Dictionary]) -> void:
 	
 	for raw_data: Dictionary in all_raw_data:
-		
 		var type: GizmoType = raw_data.type
 		var args: Array = raw_data.args
 		
@@ -485,6 +483,3 @@ class GizmosProfile extends RefCounted:
 	
 	func get_input_info() -> Dictionary[StringName, Variant]: return input_info
 	func set_input_info(new_val: Dictionary[StringName, Variant]) -> void: input_info = new_val
-
-
-

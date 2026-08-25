@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name UsableRes extends Resource
 
@@ -45,7 +45,6 @@ var get_prop_func: Callable = get
 var set_prop_func: Callable = set
 
 const UNDO_REDO_COMMIT_SET_PROP: StringName = &"set_prop_action_sended"
-
 
 func _get_prop_default(property_key: StringName) -> Variant:
 	return properties[property_key].v
@@ -86,16 +85,25 @@ func loop_props(method: Callable) -> void:
 		var property_val: Variant = get_prop(property_name)
 		method.call(property_name, property_val)
 
+
+
+
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {}
 
 func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
 	pass
 
+
+
+
 const TYPES_UNANIMATABLES: Array[int] = [TYPE_ARRAY, TYPE_OBJECT]
 const TYPES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null) -> EditContainer:
+static func is_support_custom_exported_props() -> bool:
+	return false
+
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null, register_controllers: bool = true, horizontal: bool = false, custom_exported_props: Dictionary[StringName, ExportInfo] = {}) -> EditContainer:
 	
 	var usable_res_script: Script = usable_res.get_script()
 	
@@ -105,9 +113,9 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	var usable_res_classname: StringName = usable_res_script.get_global_name()
 	var usable_res_inh: Array[StringName] = ClassServer.classname_get_inh(usable_res_classname)
 	
-	var exported_props: Dictionary[StringName, ExportInfo] = usable_res._get_exported_props()
+	var exported_props: Dictionary[StringName, ExportInfo] = usable_res._get_exported_props() if custom_exported_props.is_empty() else custom_exported_props
 	
-	var edits_box_container: BoxContainer = IS.create_box_container(8, true)
+	var edits_box_container: BoxContainer = IS.create_box_container(8, not horizontal)
 	var categories_entered: Array[Category]
 	var curr_box_container: BoxContainer = edits_box_container
 	
@@ -129,7 +137,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	var ui_conds_vals: Array
 	
 	var properties_controls: Dictionary[StringName, Control] = {}
-	EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_cont, properties_controls, ui_profile)
+	if register_controllers: EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_cont, properties_controls, ui_profile)
 	
 	const UI_COND_RESULT: Array = [true]
 	
@@ -208,41 +216,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				
 				prop_edit_cont.val_changed.connect(
 					func(new_value: Variant) -> void:
-						
-						var owner_usable_res_idx: int = usable_ress.find(usable_res)
-						var old_values: Array = usable_ress.map(func(element: UsableRes) -> Variant: return element.get_prop(key))
-						var new_values: Array = []
-						new_values.resize(usable_ress.size())
-						new_values.fill(new_value)
-						
-						var method_set_all: Callable = func(target_values: Array, update_ctrlr: bool) -> void:
-							
-							for idx: int in usable_ress.size():
-								var _usable_res: UsableRes = usable_ress[idx]
-								_usable_res.set_prop_and_emit(key, target_values[idx])
-							
-							if EditorServer.has_usable_res_controllers(usable_res):
-								var owner_target_val: Variant = target_values[owner_usable_res_idx]
-								var prop_edit_cont_for_update: EditContainer = EditorServer.get_usable_res_property_controller(usable_res, key)
-								prop_edit_cont_for_update.set_curr_value_manually(owner_target_val)
-								if update_ctrlr: prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
-								EditorServer.update_usable_res_ui_profile(usable_res)
-						
-						method_set_all.call(new_values, false)
-						
-						if not usable_res.has_meta(UNDO_REDO_COMMIT_SET_PROP):
-							if ClassServer.value_get_classname(new_value) in TYPES_HAVE_SCROLL_CONTROLLERS:
-								usable_res.set_meta(UNDO_REDO_COMMIT_SET_PROP, true)
-							
-							ProjectServer2.commit_action(
-								"set_{prop_key}".format({"prop_key": key}),
-								method_set_all.bind(new_values, true),
-								method_set_all.bind(old_values, true),
-								false
-							)
-							
-							await Engine.get_main_loop().create_timer(.4).timeout
-							usable_res.remove_meta(UNDO_REDO_COMMIT_SET_PROP)
+						_handle_prop_value_changed(key, new_value, usable_res, usable_ress)
 				)
 				
 				if keyframable:
@@ -258,6 +232,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 		if control:
 			
 			key = key.replace("_", " ").to_lower()
+			IS.expand(control, true, true)
 			
 			if ui_cond:
 				var root_ui_cond: Array
@@ -284,6 +259,45 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 		)
 	
 	return edit_cont
+
+
+static func _handle_prop_value_changed(property_key: StringName, new_value: Variant, usable_res: UsableRes, usable_ress: Array[UsableRes] = []) -> void:
+	var owner_usable_res_idx: int = usable_ress.find(usable_res)
+	var old_values: Array = usable_ress.map(func(element: UsableRes) -> Variant: return element.get_prop(property_key))
+	var new_values: Array = []
+	new_values.resize(usable_ress.size())
+	new_values.fill(new_value)
+	
+	var method_set_all: Callable = func(target_values: Array, update_ctrlr: bool) -> void:
+		
+		for idx: int in usable_ress.size():
+			var _usable_res: UsableRes = usable_ress[idx]
+			_usable_res.set_prop_and_emit(property_key, target_values[idx])
+		
+		if EditorServer.has_usable_res_controllers(usable_res):
+			var owner_target_val: Variant = target_values[owner_usable_res_idx]
+			var prop_edit_cont_for_update: EditContainer = EditorServer.get_usable_res_property_controller(usable_res, property_key)
+			if prop_edit_cont_for_update:
+				prop_edit_cont_for_update.set_curr_value_manually(owner_target_val)
+				if update_ctrlr: prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
+			EditorServer.update_usable_res_ui_profile(usable_res)
+	
+	method_set_all.call(new_values, false)
+	
+	if not usable_res.has_meta(UNDO_REDO_COMMIT_SET_PROP):
+		if ClassServer.value_get_classname(new_value) in TYPES_HAVE_SCROLL_CONTROLLERS:
+			usable_res.set_meta(UNDO_REDO_COMMIT_SET_PROP, true)
+		
+		ProjectServer2.commit_action(
+			"set_{prop_key}".format({"prop_key": property_key}),
+			method_set_all.bind(new_values, true),
+			method_set_all.bind(old_values, true),
+			false
+		)
+		
+		await Engine.get_main_loop().create_timer(.4).timeout
+		usable_res.remove_meta(UNDO_REDO_COMMIT_SET_PROP)
+
 
 static func _is_method_key(key: StringName) -> bool:
 	return key.begins_with("[") and key.ends_with("]")
@@ -338,9 +352,9 @@ static func string_args(val: String, controller_type: IS.StringControllerType = 
 static func int_args(val: int, min: float = -INF, max: float = INF, step: int = 1, spin_scale: int = 1, magnet_step: int = 5, controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, true, controller_type]
 static func options_args(val: int, options: Dictionary) -> Array: return [val, -INF, INF, 1, 1, 1, true, IS.FloatControllerType.TYPE_OPTIONS, options]
 static func float_args(val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, magnet_step: float = 5., controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, false, controller_type]
-static func vec2_args(val: Vector2, is_int: bool = false) -> Array: return [val, is_int]
-static func vec3_args(val: Vector3) -> Array: return [val]
-static func color_args(val: Color) -> Array: return [val]
+static func vec2_args(val: Vector2, is_int: bool = false, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0) -> Array: return [val, is_int, has_lock_button, suffix]
+static func vec3_args(val: Vector3, suffix: FloatController.SuffixType = 0) -> Array: return [val, suffix]
+static func color_args(val: Color, min_size: Vector2 = IS.EDIT_BOX_MIN_SIZE, name_alignment: int = 0, controller_type: IS.ColorControllerType = 0) -> Array: return [val, min_size, name_alignment, controller_type]
 static func list_args(val: Array, list_classname: StringName, can_add_element: bool = true, can_remove_element: bool = true,
 	can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_elements_count: int = 0) -> Array:
 	return [val, list_classname, can_add_element, can_remove_element, can_duplicate_element, can_change_element_priority, min_elements_count]
@@ -350,7 +364,3 @@ static func method_enter_cat_args(cat_color: Color = Color.BLACK) -> Array: retu
 static func method_exit_cat_args() -> Array: return []
 static func method_callable_args(callable: Callable, color: Color = IS.color_accent, icon: Texture2D = IS.TEXTURE_MEGAPHONE) -> Array: return [callable, color, icon]
 static func method_custom_args(control: Control) -> Array: return [control]
-
-
-
-

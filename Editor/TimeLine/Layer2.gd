@@ -99,6 +99,28 @@ func get_clip(frame: int) -> MediaServer.ClipPanel:
 func get_locked_clip(frame: int) -> MediaServer.ClipPanel:
 	return locked_clips[frame]
 
+#func get_gap_at_frame(frame: int) -> Vector2i:
+	#var sorted_frames: PackedInt32Array = PackedInt32Array(clips.keys())
+	#sorted_frames.sort()
+	#
+	#var gap_start: int = 0
+	#var gap_end: int = -1
+	#
+	#for f: int in sorted_frames:
+		#var clip_res: MediaClipRes = clips[f].clip_res
+		#var clip_end: int = f + clip_res.length
+		#
+		#if frame >= f and frame < clip_end:
+			#return Vector2i(-1, -1)
+		#
+		#if frame < f:
+			#gap_end = f
+			#break
+		#
+		#gap_start = clip_end
+	#
+	#return Vector2i(gap_start, gap_end)
+
 func has_clip(frame: int) -> bool:
 	return clips.has(frame)
 
@@ -354,7 +376,9 @@ class ClipsPanelContainer extends PanelContainer:
 		var pos_end: float = timeline.get_display_pos_from_frame(timeline.frame_end) + displacement
 		var rect2_end: Rect2 = Rect2(Vector2(pos_end, .0), Vector2(size.x - pos_end, size.y))
 		draw_rect(rect2_end, color)
-
-
-
-
+		
+		#if timeline.has_gap_selected() and timeline.selected_gap_layer_idx == owner_as_layer.layer_idx:
+		#	var gap_start_pos: float = timeline.get_display_pos_from_frame(timeline.selected_gap_start) + displacement
+		#	var gap_end_pos: float = timeline.get_display_pos_from_frame(timeline.selected_gap_end) + displacement
+		#	var gap_rect: Rect2 = Rect2(Vector2(gap_start_pos, .0), Vector2(gap_end_pos - gap_start_pos, size.y))
+		#	draw_rect(gap_rect, Color(Color.WHITE, .25))

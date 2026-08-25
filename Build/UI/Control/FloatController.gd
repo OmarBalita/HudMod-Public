@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name FloatController extends Panel
 
@@ -33,12 +33,43 @@ signal val_changed(new_val: Variant)
 		is_int = v
 		if v: curr_val = int(curr_val)
 
+@export var prefix: String:
+	set(value):
+		prefix = value
+		queue_redraw()
+@export var suffix: String:
+	set(value):
+		suffix = value
+		queue_redraw()
+
 @export_group("Theme")
 @export var change_value_when_drag: bool = true
 @export var spin_scale: float = 1.0
 @export var spin_magnet_step: float = 10.
 
+@export var prefix_color: Color = Color(IS.color_label, 0.5):
+	set(value):
+		prefix_color = value
+		queue_redraw()
+@export var suffix_color: Color = Color(IS.color_label, 0.5):
+	set(value):
+		suffix_color = value
+		queue_redraw()
+
 enum _State { GRAB, TYPING }
+
+enum SuffixType {
+	TYPE_NULL,
+	TYPE_PIXEL,
+	TYPE_DEGREE,
+	TYPE_RADIAN,
+	TYPE_PERCENT,
+	TYPE_CHARACTER,
+	TYPE_METER,
+	TYPE_CENTIMETER,
+	TYPE_MILLIMETER,
+	TYPE_INCH,
+}
 
 var _state: _State = _State.GRAB
 var _is_grab: bool = false
@@ -73,6 +104,28 @@ func _ready() -> void:
 	
 	set_process_input(false)
 
+func set_suffix(text: String, color: Color = Color(IS.color_label, 0.5)):
+	suffix = text
+	suffix_color = color
+	queue_redraw()
+
+func set_suffix_by_type(type: SuffixType, color: Color = Color(IS.color_label, 0.5)):
+	match type:
+		SuffixType.TYPE_NULL: suffix = ""
+		SuffixType.TYPE_PIXEL: suffix = "px"
+		SuffixType.TYPE_DEGREE: suffix = "°"
+		SuffixType.TYPE_RADIAN: suffix = "rad"
+		SuffixType.TYPE_PERCENT: suffix = "%"
+		SuffixType.TYPE_CHARACTER: suffix = "ch"
+		SuffixType.TYPE_METER: suffix = "m"
+		SuffixType.TYPE_CENTIMETER: suffix = "cm"
+		SuffixType.TYPE_MILLIMETER: suffix = "mm"
+		SuffixType.TYPE_INCH: suffix = "in"
+	suffix_color = color
+
+func set_prefix(text: String, color: Color = Color(IS.color_label, 0.5)):
+	prefix = text
+	prefix_color = color
 
 func _draw() -> void:
 	if _state == _State.TYPING:
@@ -90,6 +143,16 @@ func _draw() -> void:
 	var text_size:= font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var text_pos:= Vector2((size.x - text_size.x) * 0.5, (size.y + text_size.y) * 0.5 - 2.0)
 	draw_string(font, text_pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, IS.color_label)
+	
+	if not prefix.is_empty():
+		var prefix_size:= font.get_string_size(prefix, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		var prefix_pos:= Vector2(margin, (size.y + prefix_size.y) * 0.5 - 2)
+		draw_string(font, prefix_pos, prefix, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, prefix_color)
+	
+	var suffix_spacing:= 4.0
+	if not suffix.is_empty():
+		var suffix_pos:= Vector2(text_pos.x + text_size.x + suffix_spacing, text_pos.y)
+		draw_string(font, suffix_pos, suffix, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, suffix_color)
 	
 	_draw_arrow(Vector2(10.0, size.y * 0.5), false)
 	_draw_arrow(Vector2(size.x - 10.0, size.y * 0.5), true)

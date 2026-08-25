@@ -65,11 +65,3 @@ func update() -> void:
 		viewport_container.scale = Vector2.ONE
 		viewport_container.position = Vector2.ZERO
 		viewport_container.size = size
-
-
-
-
-
-
-
-

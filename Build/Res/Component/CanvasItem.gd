@@ -1,10 +1,10 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 class_name CompCanvasItem extends SnippetShaderComponentRes
 
@@ -71,9 +71,9 @@ func has_method_type() -> bool: return false
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 	return {
 		&"Transform": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
-		&"position": export(vec2_args(position)),
+		&"position": export(vec2_args(position, false, false, 1)),
 		&"rotation_degrees": export(float_args(rotation_degrees)),
-		&"scale": export(vec2_args(scale)),
+		&"scale": export(vec2_args(scale, false, true, 1)),
 		&"skew": export(float_args(skew)),
 		&"_Transform": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 		

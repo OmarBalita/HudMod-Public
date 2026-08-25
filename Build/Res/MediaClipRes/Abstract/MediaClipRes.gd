@@ -284,15 +284,22 @@ func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> V
 	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
 
 func update_controllers_by_animations(frame: int) -> void:
-	loop_animations(frame, _update_controller_method)
+	loop_animations(frame, _update_controller_by_animation_method)
 
 func update_controllers_by_animations_here() -> void:
 	update_controllers_by_animations(curr_frame)
 
-func update_specific_controllers_by_animations_here(usable_res: UsableRes, frame: int) -> void:
+func update_specific_controllers_by_animations(usable_res: UsableRes, frame: int) -> void:
 	var section: Dictionary = animations.get(usable_res, {})
 	for prop_key: StringName in section:
-		_update_controller_method(usable_res, prop_key, section[prop_key], frame)
+		_update_controller_by_animation_method(usable_res, prop_key, section[prop_key], frame)
+
+func update_specific_prop_controller(usable_res: UsableRes, prop_key: StringName, frame: int) -> void:
+	var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
+	if not EditorServer.has_usable_res_controllers(self): return
+	var prop_edit_cont: EditContainer = EditorServer.get_usable_res_property_controller(self, prop_key)
+	prop_edit_cont.set_curr_value_manually(prop_val)
+	prop_edit_cont.set_controller_curr_value_manually(prop_val)
 
 func update_controllers(usable_res: UsableRes, frame: int) -> void:
 	if not EditorServer.has_usable_res_controllers(usable_res): return
@@ -304,7 +311,7 @@ func update_controllers(usable_res: UsableRes, frame: int) -> void:
 			var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
 			EditorServer.update_usable_res_property_controller(usable_res, prop_key, prop_val, prop_has_keyframe)
 
-func _update_controller_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+func _update_controller_by_animation_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
 	var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
 	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame + from), prop_has_keyframe)
 

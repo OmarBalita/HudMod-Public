@@ -276,7 +276,7 @@ func update_usable_res_ui_profile(usable_res: UsableRes) -> void:
 func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> Control:
 	if usable_ress_controllers.has(usable_res):
 		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
-		var property_container: Variant = curr_properties_containers[property_key]
+		var property_container: Variant = curr_properties_containers.get(property_key)
 		if not is_instance_valid(property_container):
 			return null
 		return property_container

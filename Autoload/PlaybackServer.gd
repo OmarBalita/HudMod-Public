@@ -185,5 +185,3 @@ func free_clip(clip_res: MediaClipRes) -> void:
 
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()
-
-

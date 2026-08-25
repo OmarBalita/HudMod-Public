@@ -19,4 +19,3 @@ func  _process(_delta) -> void:
 func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	DiscordRPC.set_details(project_res.project_name)
 	DiscordRPC.refresh()
-

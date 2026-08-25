@@ -52,5 +52,3 @@ func _draw() -> void:
 	if flip_v: rect.size.y *= -1.
 	
 	draw_texture_rect(texture, rect, false)
-
-

@@ -87,5 +87,3 @@ func timecode_to_frame(timecode: String, fps: int = 0) -> int:
 			frames = int(units[3])
 	
 	return (hours * 3600 + minutes * 60 + seconds) * fps + frames
-
-

@@ -1,10 +1,10 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 class_name CompWhiteBalance extends SnippetShaderComponentRes
 
@@ -28,6 +28,20 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"rgb_curve": export([rgb_curve]),
 		&"_Curves": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
+
+func get_color_correction_exported_props() -> Dictionary[StringName, ExportInfo]:
+	var curve_ctrlr := ColorCustomCurveController.new()
+	curve_ctrlr.curve_ctrlr.curves_profiles = [rgb_curve, red_curve, green_curve, blue_curve]
+	curve_ctrlr.bind_to_clip(owner)
+	
+	return {
+		&"White Balance Curves": export_method(
+			ExportMethodType.METHOD_CUSTOM_EXPORT,
+			[curve_ctrlr],
+		)
+	}
+
+static func is_support_custom_exported_props() -> bool: return true
 
 func _process(frame: int) -> void:
 	super(frame)

@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://drrpumpojwc7y" path="res://Asset/Icons/add.png" id="6_t7s5e"]
 [ext_resource type="Texture2D" uid="uid://dbs7xkngqfgch" path="res://Asset/Icons/home.png" id="10_2kogo"]
 [ext_resource type="Script" uid="uid://cxhg0wsinlupc" path="res://Editor/ColorCorrection/ColorCorrectionEditor.gd" id="10_x7e6b"]
+[ext_resource type="Texture2D" uid="uid://c6ldotl1vbxpt" path="res://Asset/Icons/slider-navigation.png" id="16_2kogo"]
 [ext_resource type="Script" uid="uid://dt1yr8e1g6vi8" path="res://Editor/RenderProperties/RenderProperties.gd" id="21_13ga7"]
 [ext_resource type="Script" uid="uid://jyhrc5jyau06" path="res://Editor/RenderViewer/RenderViewer.gd" id="22_kg1lx"]
 [ext_resource type="Script" uid="uid://4jnese7xpyxa" path="res://Editor/Properties/Properties2.gd" id="23_pajpo"]
@@ -182,6 +183,7 @@ texture_enable = ExtResource("32_cd0xf")
 texture_disable = ExtResource("32_t8vbk")
 texture_delete = ExtResource("26_s30d6")
 texture_drag = ExtResource("27_30lmd")
+texture_custom_edit = ExtResource("16_2kogo")
 
 [node name="Player" type="Control" parent="EditorsFolder" unique_id=2134777024]
 custom_minimum_size = Vector2(400, 400)

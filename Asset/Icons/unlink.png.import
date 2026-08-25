@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csl0e2px0cwc1"
-path="res://.godot/imported/Logo_V2_No_Bg.png-ed667fb599fe1e17ebcfc361ff7c9c93.ctex"
+uid="uid://bbwykd6qx8jmq"
+path="res://.godot/imported/unlink.png-fe1f43fe875d63eb8bfe142d1ddeb4a7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/discord-rpc-gd/Logo_V2_No_Bg.png"
-dest_files=["res://.godot/imported/Logo_V2_No_Bg.png-ed667fb599fe1e17ebcfc361ff7c9c93.ctex"]
+source_file="res://Asset/Icons/unlink.png"
+dest_files=["res://.godot/imported/unlink.png-fe1f43fe875d63eb8bfe142d1ddeb4a7.ctex"]
 
 [params]
 

@@ -1,16 +1,16 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 class_name CompLGG extends SnippetShaderComponentRes
 
-@export var lift:= Color.BLACK
-@export var gamma:= Color.WHITE
-@export var gain:= Color.WHITE
+@export var lift:= Color(0.5, 0.5, 0.5)
+@export var gamma:= Color(0.5, 0.5, 0.5)
+@export var gain:= Color(0.5, 0.5, 0.5)
 @export var offset: float
 
 func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
@@ -21,10 +21,19 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"offset": export(float_args(offset, -1., 1., .001))
 	}
 
+func get_color_correction_exported_props() -> Dictionary[StringName, ExportInfo]:
+	return {
+		&"lift": export(color_args(lift, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
+		&"gamma": export(color_args(gamma, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
+		&"gain": export(color_args(gain, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
+	}
+
+static func is_support_custom_exported_props() -> bool: return true
+
 func _process(frame: int) -> void:
-	set_shader_prop(&"lift", lift)
-	set_shader_prop(&"gamma", gamma)
-	set_shader_prop(&"gain", gain)
+	set_shader_prop(&"lift", (lift - Color(0.5, 0.5, 0.5)) * 2.0)
+	set_shader_prop(&"gamma", gamma * 2.0)
+	set_shader_prop(&"gain", gain * 2.0)
 	set_shader_prop(&"offset", offset)
 
 func _get_shader_global_params_snip() -> String:
@@ -40,4 +49,3 @@ func _get_shader_fragment_snip() -> String:
 	// LGG + Offset method
 	color = pow(max(vec3(.0), color * {gain} + {lift} + {offset}), 1. / {gamma});
 "
-

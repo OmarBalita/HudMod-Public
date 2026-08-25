@@ -48,8 +48,8 @@ gdscript/warnings/enable=false
 
 [display]
 
-window/size/viewport_width=1200
-window/size/viewport_height=600
+window/size/viewport_width=1280
+window/size/viewport_height=720
 window/size/borderless=true
 window/subwindows/embed_subwindows=false
 window/icon="uid://yb10nyikmf4a"

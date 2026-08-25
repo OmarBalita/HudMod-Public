@@ -740,7 +740,7 @@ func create_slider_controller(curr_val: float, min_val: float, max_val: float, s
 	ObjectServer.describe(slider_controller, more)
 	return slider_controller
 
-func create_float_controller(curr_val: float, min_val: float, max_val: float, step: float, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, more: Dictionary = {}) -> FloatController:
+func create_float_controller(curr_val: float, min_val: float, max_val: float, step: float, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, suffix: FloatController.SuffixType = 0, prefix: String = "", more: Dictionary = {}) -> FloatController:
 	var float_controller:= FloatController.new()
 	set_base_settings(float_controller)
 	set_base_panel_settings(float_controller, style_button)
@@ -751,23 +751,28 @@ func create_float_controller(curr_val: float, min_val: float, max_val: float, st
 	float_controller.spin_magnet_step = spin_magnet_step
 	float_controller.set_curr_val_manually(curr_val)
 	float_controller.is_int = is_int
+	float_controller.set_suffix_by_type(suffix)
+	float_controller.set_prefix(prefix)
 	ObjectServer.describe(float_controller, more)
 	return float_controller
 
-func create_vec2_controller(curr_val: Vector2, is_int: int, more: Dictionary = {}) -> Vector2Controller:
+func create_vec2_controller(curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0, more: Dictionary = {}) -> Vector2Controller:
 	var vec2_controller:= Vector2Controller.new()
 	vec2_controller.curr_val = curr_val
+	vec2_controller.has_lock_button = has_lock_button
 	vec2_controller.x_edit.is_int = is_int
 	vec2_controller.y_edit.is_int = is_int
 	if is_int:
 		vec2_controller.x_edit.step = 1; vec2_controller.x_edit.spin_scale = 10
 		vec2_controller.y_edit.step = 1; vec2_controller.y_edit.spin_scale = 10
+	vec2_controller.set_suffix(suffix)
 	ObjectServer.describe(vec2_controller, more)
 	return vec2_controller
 
-func create_vec3_controller(curr_val: Vector3) -> Vector3Controller:
+func create_vec3_controller(curr_val: Vector3, suffix: FloatController.SuffixType = 0) -> Vector3Controller:
 	var vec3_controller:= Vector3Controller.new()
 	vec3_controller.curr_val = curr_val
+	vec3_controller.set_suffix(suffix)
 	return vec3_controller
 
 func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
@@ -777,6 +782,12 @@ func create_color_button(color: Color, more: Dictionary = {}) -> ColorButton:
 	color_button.curr_color = color
 	ObjectServer.describe(color_button, more)
 	return color_button
+
+func create_color_wheel(color: Color, more: Dictionary = {}) -> ColorWheelController:
+	var color_wheel:= ColorWheelController.new()
+	color_wheel.curr_color = color
+	ObjectServer.describe(color_wheel, more)
+	return color_wheel
 
 func create_list_controller(list: Array, list_type: StringName = &"", can_add_element: bool = true, can_remove_element: bool = true, can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_elements_count: int = 0, more: Dictionary = {}) -> ListController:
 	var list_controller:= ListController.new()
@@ -809,6 +820,10 @@ enum FloatControllerType {
 	TYPE_SLIDER,
 	TYPE_OPTIONS,
 	TYPE_360DEG
+}
+enum ColorControllerType {
+	TYPE_BUTTON,
+	TYPE_WHEEL
 }
 
 func create_edit_cont(name: String, vertical: bool = false, keyframable: bool = false, resetable: bool = false, copypast: bool = true) -> EditContainer:
@@ -964,9 +979,9 @@ func create_float_edit(name: String, val: float, min: float = -INF, max: float =
 	
 	return edit_cont
 
-func create_vec2_edit(name: String, curr_val: Vector2, is_int: int) -> EditContainer:
+func create_vec2_edit(name: String, curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0) -> EditContainer:
 	var edit_cont: EditContainer = create_edit_cont(name, false)
-	var vec2_controller: Vector2Controller = create_vec2_controller(curr_val, is_int)
+	var vec2_controller: Vector2Controller = create_vec2_controller(curr_val, is_int, has_lock_button, suffix)
 	edit_cont.add_child(vec2_controller)
 	expand(vec2_controller)
 	
@@ -978,9 +993,9 @@ func create_vec2_edit(name: String, curr_val: Vector2, is_int: int) -> EditConta
 	
 	return edit_cont
 
-func create_vec3_edit(name: String, curr_val: Vector3) -> EditContainer:
+func create_vec3_edit(name: String, curr_val: Vector3, suffix: FloatController.SuffixType = 0) -> EditContainer:
 	var edit_cont: EditContainer = create_edit_cont(name, false)
-	var vec3_controller: Vector3Controller = create_vec3_controller(curr_val)
+	var vec3_controller: Vector3Controller = create_vec3_controller(curr_val, suffix)
 	edit_cont.add_child(vec3_controller)
 	expand(vec3_controller)
 	
@@ -993,18 +1008,31 @@ func create_vec3_edit(name: String, curr_val: Vector3) -> EditContainer:
 	
 	return edit_cont
 
-func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0) -> EditContainer:
-	var edit_cont: EditContainer = create_edit_cont(name, false)
-	var color_button: ColorButton = create_color_button(color)
-	edit_cont.add_child(color_button)
-	expand(color_button)
+func create_color_edit(name: String, color: Color = Color.BLACK, min_size: Vector2 = EDIT_BOX_MIN_SIZE, name_alignment: int = 0, controller_type: ColorControllerType = ColorControllerType.TYPE_BUTTON) -> EditContainer:
+	var edit_cont: EditContainer = create_edit_cont(name, controller_type == 1)
+	var controller: Control
 	
 	edit_cont.curr_val = color
-	edit_cont.controller = color_button
-	edit_cont.method_set = color_button.set_curr_color
-	edit_cont.method_set_manually = color_button.set_curr_color_manually
 	
-	color_button.color_changed.connect(edit_cont.set_curr_value)
+	match controller_type:
+		
+		ColorControllerType.TYPE_BUTTON:
+			controller = create_color_button(color)
+			controller.color_changed.connect(edit_cont.set_curr_value)
+			edit_cont.method_set = controller.set_curr_color
+			edit_cont.method_set_manually = controller.set_curr_color_manually
+		
+		ColorControllerType.TYPE_WHEEL:
+			controller = ColorWheelController.new()
+			controller.curr_color = color
+			controller.val_changed.connect(edit_cont.set_curr_value)
+			edit_cont.method_set = controller.set_curr_color
+			edit_cont.method_set_manually = controller.set_curr_color_manually
+	
+	edit_cont.controller = controller
+	
+	expand(controller)
+	edit_cont.add_child(controller)
 	
 	return edit_cont
 
