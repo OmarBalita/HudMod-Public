@@ -363,6 +363,7 @@ class CreatedCard extends MediaBox.MediaCard:
 	@export var path_or_name: String
 	
 	func popup_context_menu() -> void:
+		
 		var options: Array[Dictionary] = _get_context_menu_options()
 		
 		var context_menu: PopupMenu = IS.create_popup_menu(options)

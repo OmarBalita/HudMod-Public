@@ -122,7 +122,10 @@ func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> 
 			if info.get(&"is_dragging", false):
 				_apply_edit_mode(canvas_item, edit_mode, event, info)
 				process_here()
-				update_controllers(canvas_item, curr_frame)
+				
+				for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+					clip_res.update_controllers(clip_res.get_canvas_item_comp(), curr_frame)
+			
 			else:
 				var event_pos_delta: Vector2 = event.position - button_event.position
 				if event_pos_delta.length() >= _DRAG_MIN_DIST:

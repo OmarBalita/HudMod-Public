@@ -407,7 +407,7 @@ func _gui_input(event: InputEvent) -> void:
 		drawable_rect.clear_drawn_entities()
 		
 		if selectbox_is_started:
-			mouse_pos = Vector2(max(.0, mouse_pos.x), max(.0, mouse_pos.y))
+			mouse_pos = Vector2(maxf(.0, mouse_pos.x), maxf(.0, mouse_pos.y))
 			selectbox_rect = Rect2(mouseevent_startpos, mouse_pos - mouseevent_startpos).abs()
 			
 			var rect_pos:= selectbox_rect.position
@@ -417,10 +417,10 @@ func _gui_input(event: InputEvent) -> void:
 				Rect2(
 					global_position + rect_pos,
 					Vector2(
-						clamp(rect_size.x, .0, size.x - rect_pos.x),
-						clamp(rect_size.y, .0, size.y - rect_pos.y),
+						clampf(rect_size.x, .0, size.x - rect_pos.x),
+						clampf(rect_size.y, .0, size.y - rect_pos.y),
 					)
-				), IS.color_accent, false
+				), IS.color_accent
 			)
 
 func _delete_val(port_idx: int, idx: int) -> void:

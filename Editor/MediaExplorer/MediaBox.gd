@@ -37,10 +37,23 @@ var curr_filter: int
 var curr_sort: int
 
 
+
 var is_moving: bool:
 	set(val):
 		is_moving = val
+		move_start_pos = get_global_mouse_position()
+		
 		set_process_input(val)
+		
+		if is_moving:
+			pass
+		else:
+			EditorServer.drawable_rect.clear_drawn_entities()
+
+var move_start_pos: Vector2
+
+
+
 
 func _init(_media_explorer: MediaExplorer) -> void:
 	media_explorer = _media_explorer
@@ -74,8 +87,66 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	
-	if event is InputEventMouseMotion:
-		print("is_moving")
+	if event is InputEventMouseButton:
+		if event.is_released():
+			is_moving = false
+	
+	elif event is InputEventMouseMotion:
+		_input_move_selected_cards(event)
+
+
+func _input_move_selected_cards(event: InputEventMouseMotion) -> void:
+	
+	var mouse_pos: Vector2 = get_global_mouse_position()
+	var delta: Vector2 = mouse_pos - move_start_pos
+	
+	var drawable_rect: DrawableRect = EditorServer.drawable_rect
+	drawable_rect.clear_drawn_entities()
+	
+	var timeline: TimeLine2 = EditorServer.time_line2
+	var focused_layer: Layer2 = EditorServer.time_line2.find_first_layer_contain_point(mouse_pos)
+	
+	var media_cards: Array[Variant] = media_select_cont.selected_to_vals()
+	var cards_count: int = media_cards.size()
+	
+	if media_cards.is_empty():
+		return
+	
+	if focused_layer == null:
+			
+			var card_size: Vector2 = (media_cards[0] as MediaCard).size
+			
+			var count_fordraw: int = mini(cards_count, 4)
+			
+			const OFFSET: Vector2 = Vector2(24., 24.)
+			var card_pos: Vector2 = mouse_pos - card_size / 2.
+			
+			for idx: int in count_fordraw:
+				drawable_rect.draw_new_selection_box_rect(Rect2(
+					card_pos,
+					card_size
+				), Color.GRAY)
+				card_pos += OFFSET
+	
+	else:
+		
+		var target_layer_idx: int = focused_layer.layer_idx
+		
+		var target_frame: int = timeline.get_frame_from_mouse_pos()
+		var target_frame_displ_pos: float = timeline.get_display_pos_from_frame(target_frame) + timeline.global_position.x
+		
+		var count_fordraw: int = mini(cards_count, timeline.layers.size() - target_layer_idx)
+		
+		for idx: int in count_fordraw:
+			var target_layer: Layer2 = timeline.get_layer_from_idx(target_layer_idx)
+			
+			drawable_rect.draw_new_selection_box_rect(Rect2(
+				Vector2(target_frame_displ_pos, target_layer.global_position.y),
+				Vector2(100., target_layer.size.y)
+			), Color.GRAY)
+			
+			target_layer_idx += 1
+
 
 func _init_media_select_cont() -> MediaSelectContainer:
 	return MediaSelectContainer.new(self)
@@ -268,7 +339,6 @@ class MediaCard extends PanelContainer:
 	
 	var selection_port: int
 	
-	
 	var button_event: InputEventMouseButton
 	
 	func _init(_media_box: MediaBox, port: int) -> void:
@@ -336,9 +406,8 @@ class MediaCard extends PanelContainer:
 			
 			if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT and button_event.is_pressed():
 				if button_event.position.distance_to(event.position) > 10.:
-					_select(event.alt_pressed, not event.ctrl_pressed)
+					_select(false, false)
 					media_box.is_moving = true
-					print("start moving")
 	
 	func _select(delete: bool, preclear: bool) -> void:
 		media_box.media_select_cont.manage_val(selection_port, get_index(), delete, preclear)

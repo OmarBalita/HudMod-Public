@@ -706,7 +706,7 @@ func _update_drawable_cursor(coord: Vector2, mouse_pos: Vector2, is_key_finded: 
 	var drawable_rect: DrawableRect = EditorServer.drawable_rect
 	var target_global_mouse_pos: Vector2 = get_display_pos_from_coord(coord) + (self.global_position - drawable_rect.global_position)
 	var target_color: Color = Color.WHITE if is_key_finded or is_control_finded else Color(Color.WHITE, .5)
-	drawable_rect.draw_new_cursor(target_global_mouse_pos, target_color, false)
+	drawable_rect.draw_new_cursor(target_global_mouse_pos, target_color)
 	drawable_rect.draw_new_string(font, Vector2(20., -10.) + target_global_mouse_pos, str(coord), 0, 16, target_color)
 
 

@@ -744,7 +744,7 @@ class LayersSelectContainer extends SelectContainer:
 					var clip: MediaServer.ClipPanel = layer.get_clip(frame)
 					var frame_displ_pos: float = timeline.global_position.x + timeline.get_display_pos_from_frame(frame + move_frame_delta)
 					var rect: Rect2 = Rect2(Vector2(frame_displ_pos, layer_posy), clip.size)
-					drawable_rect.draw_new_theme_rect(rect, IS.color_accent, false)
+					drawable_rect.draw_new_theme_rect(rect, IS.color_accent)
 		
 		drawable_rect.queue_redraw()
 	
@@ -799,7 +799,7 @@ class LayersSelectContainer extends SelectContainer:
 			var latest_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(focused.x).get_clip(focused.y)
 			if latest_clip: latest_clip.select_panel.modulate.a = .7
 		
-		if timeline.opened_clip_res.layers.size() <= new_val.x:
+		if not timeline.has_layer_from_idx(new_val.x):
 			return
 		
 		var new_clip: MediaServer.ClipPanel = timeline.get_layer_from_idx(new_val.x).get_clip(new_val.y)
@@ -1292,6 +1292,12 @@ func _connect_clip_res(clip_res: MediaClipRes) -> void:
 	clip_res.clips_updated.connect(_on_clip_res_clips_updated)
 
 
+func has_layer_from_idx(layer_idx: int) -> bool:
+	return opened_clip_res.layers.size() <= layer_idx
+
+func has_layer(layer_res: LayerRes) -> bool:
+	return layers.has(layer_res)
+
 func get_layer_from_idx(layer_idx: int) -> Layer2:
 	return get_layer(opened_clip_res.get_layer(layer_idx))
 
@@ -1314,12 +1320,11 @@ func free_layer(layer_res: LayerRes) -> void:
 func is_layer_hidden(layer: Layer2) -> bool:
 	return not get_global_rect().intersects(layer.get_global_rect())
 
-func find_layer_that_contains_mouse() -> Layer2:
-	var mouse_glob_pos: Vector2 = get_global_mouse_position()
+func find_first_layer_contain_point(global_point: Vector2) -> Layer2:
 	
 	for layer_res: LayerRes in layers:
 		var layer: Layer2 = layers[layer_res]
-		if layer.get_global_rect().has_point(mouse_glob_pos):
+		if layer.get_global_rect().grow(1.).has_point(global_point):
 			return layer
 	
 	return null
