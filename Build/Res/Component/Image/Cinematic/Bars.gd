@@ -14,7 +14,7 @@ class_name CompBars extends SnippetShaderComponentRes
 @export var rotation_degrees: float
 @export var bars_color: Color
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"aspect_ratio": export(float_args(aspect_ratio, -1., 1.)),
 		&"smoothness": export(float_args(smoothness, .0, 1.)),

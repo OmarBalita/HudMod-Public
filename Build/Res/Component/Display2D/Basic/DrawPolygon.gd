@@ -13,7 +13,7 @@ class_name CompDrawPolygon extends DrawShapeComponentRes
 @export var scale: float = 100.:
 	set(val): scale = val; max_dirty()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"edges": export(int_args(edges, 3, 1024)),
 		&"scale": export(float_args(scale, -INF, INF, .01, .5)),

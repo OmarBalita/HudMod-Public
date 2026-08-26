@@ -13,7 +13,7 @@ class_name CompLGG extends SnippetShaderComponentRes
 @export var gain:= Color.WHITE
 @export var offset: float
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"lift": export(color_args(lift)),
 		&"gamma": export(color_args(gamma)),

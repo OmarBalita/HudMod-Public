@@ -37,7 +37,7 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 static func get_properties_section() -> StringName: return &"RenderPass"
 static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/render-pass.png")
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"size": export(vec2_args(size, true), [], false),
 		&"transparent_background": export(bool_args(transparent_background), [], false),

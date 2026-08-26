@@ -288,7 +288,10 @@ func move_selected(move_option: int, move_to_display_path: Array) -> void:
 	var move_method: Callable = func(from_file_sys: FileSystem, to_file_sys: FileSystem, from_path: Array, to_path: Array) -> void:
 		
 		var _files_pathes:= files_pathes.duplicate()
-		var _folders:= folders.duplicate()
+		var _folders:= folders.duplicate(true)
+		
+		print(_files_pathes)
+		print(_folders)
 		
 		from_file_sys.delete_packet(from_path, _files_pathes)
 		to_file_sys.create_files(to_path, _files_pathes)
@@ -327,7 +330,7 @@ func _on_folder_button_pressed() -> void:
 		get_tree().current_scene,
 		Vector2(400, 150),
 		"Create Folder",
-		create_folders.bind(curr_display_path, [name_line.text])
+		func() -> void: create_folders(curr_display_path, [name_line.text])
 	)
 	box.add_child(name_line)
 	box.move_child(name_line, 0)
@@ -456,9 +459,8 @@ class FolderCard extends CreatedCard:
 		var result: Array[MediaClipRes] = []
 		for key: String in contents:
 			var key_info: Dictionary = contents.get(key)
-			if key_info.type == "file" and not key_info.has(&"discard"):
-				var media_type: int = key_info.media_type
-				result.append(ImportBox.ImportCard.get_imported_res_from_type(media_type, key))
+			if key_info.t == FileSystem.EntityType.FILE and not key_info.has(&"discard"):
+				result.append(ImportBox.ImportCard.get_imported_res_from_type(key_info.import_t, key))
 		return result
 	
 	func _get_context_menu_options() -> Array[Dictionary]:

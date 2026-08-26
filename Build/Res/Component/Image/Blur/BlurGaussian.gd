@@ -12,7 +12,7 @@ class_name CompBlurGaussian extends PassShaderComponentRes
 @export var quality: int = 4
 @export var transparancy: bool = true
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"blur_amount": export(float_args(blur_amount, .0, 1., .001)),
 		&"quality": export(int_args(quality, 1, 32)),

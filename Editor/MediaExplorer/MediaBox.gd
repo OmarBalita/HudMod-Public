@@ -37,21 +37,43 @@ var curr_filter: int
 var curr_sort: int
 
 
-
 var is_moving: bool:
+	
 	set(val):
 		is_moving = val
-		move_start_pos = get_global_mouse_position()
-		
 		set_process_input(val)
 		
+		var timeline: TimeLine2 = EditorServer.time_line2
+		timeline.edges_nav_horizontal = val
+		timeline.edges_nav_vertical = val
+		timeline.edges_nav_while_mouse_entered = val
+		
 		if is_moving:
-			pass
+			moved_media_cards = media_select_cont.selected_to_vals()
+		
 		else:
+			
+			if moving_target.y != INF:
+				ProjectServer2.opened_clip_res_path.back().add_clips(
+					moving_target.x,
+					moving_target.y,
+					moved_media_ress,
+					EditorServer.time_line2.overlay_menu.focus_index
+				)
+			
+			moved_media_cards = []
 			EditorServer.drawable_rect.clear_drawn_entities()
 
-var move_start_pos: Vector2
+var moved_media_cards: Array[Variant]:
+	set(val):
+		moved_media_cards = val
+		moved_media_ress.clear()
+		for media_card: MediaCard in moved_media_cards:
+			moved_media_ress.append_array(media_card.get_media_ress())
 
+var moved_media_ress: Array[MediaClipRes]
+
+var moving_target: Vector2 = Vector2(INF, INF)
 
 
 
@@ -88,64 +110,64 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	
 	if event is InputEventMouseButton:
-		if event.is_released():
+		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
 			is_moving = false
 	
 	elif event is InputEventMouseMotion:
-		_input_move_selected_cards(event)
+		_input_move_selected_cards()
 
-
-func _input_move_selected_cards(event: InputEventMouseMotion) -> void:
+func _input_move_selected_cards() -> void:
 	
-	var mouse_pos: Vector2 = get_global_mouse_position()
-	var delta: Vector2 = mouse_pos - move_start_pos
+	EditorServer.drawable_rect.clear_drawn_entities()
 	
-	var drawable_rect: DrawableRect = EditorServer.drawable_rect
-	drawable_rect.clear_drawn_entities()
+	if moved_media_ress.is_empty(): return
 	
 	var timeline: TimeLine2 = EditorServer.time_line2
-	var focused_layer: Layer2 = EditorServer.time_line2.find_first_layer_contain_point(mouse_pos)
+	var focused_layer: Layer2 = timeline.find_first_layer_contains_point(get_global_mouse_position())
 	
-	var media_cards: Array[Variant] = media_select_cont.selected_to_vals()
-	var cards_count: int = media_cards.size()
+	if focused_layer == null: _input_move_selected_cards_in_space()
+	else: _input_move_selected_cards_in_timeline(timeline, focused_layer)
+
+
+func _input_move_selected_cards_in_space() -> void:
 	
-	if media_cards.is_empty():
-		return
+	moving_target = Vector2(INF, INF)
 	
-	if focused_layer == null:
-			
-			var card_size: Vector2 = (media_cards[0] as MediaCard).size
-			
-			var count_fordraw: int = mini(cards_count, 4)
-			
-			const OFFSET: Vector2 = Vector2(24., 24.)
-			var card_pos: Vector2 = mouse_pos - card_size / 2.
-			
-			for idx: int in count_fordraw:
-				drawable_rect.draw_new_selection_box_rect(Rect2(
-					card_pos,
-					card_size
-				), Color.GRAY)
-				card_pos += OFFSET
+	var card_size: Vector2 = (moved_media_cards[0] as MediaCard).size
 	
-	else:
+	var count_fordraw: int = mini(moved_media_ress.size(), 4)
+	
+	const OFFSET: Vector2 = Vector2(24., 24.)
+	var card_pos: Vector2 = get_global_mouse_position() - card_size / 2.
+	
+	for idx: int in count_fordraw:
+		EditorServer.drawable_rect.draw_new_dashed_theme_rect(Rect2(card_pos, card_size))
+		card_pos += OFFSET
+
+
+func _input_move_selected_cards_in_timeline(timeline: TimeLine2, focused_layer: Layer2) -> void:
+	var target_layer_idx: int = focused_layer.layer_idx
+	var target_frame: int = timeline.get_snapped_frame_from_mouse_pos()
+	
+	moving_target = Vector2(target_layer_idx, target_frame)
+	var target_frame_displ_pos: float = timeline.get_display_pos_from_frame(target_frame) + timeline.global_position.x
+	
+	var count_fordraw: int = mini(moved_media_ress.size(), timeline.layers.size() - target_layer_idx)
+	
+	for idx: int in count_fordraw:
+		var target_layer: Layer2 = timeline.get_layer_from_idx(target_layer_idx)
 		
-		var target_layer_idx: int = focused_layer.layer_idx
+		var clip_res: MediaClipRes = moved_media_ress[idx]
+		var length: int = clip_res.length
 		
-		var target_frame: int = timeline.get_frame_from_mouse_pos()
-		var target_frame_displ_pos: float = timeline.get_display_pos_from_frame(target_frame) + timeline.global_position.x
+		var position: Vector2 = Vector2(target_frame_displ_pos, target_layer.global_position.y)
+		var size: Vector2 = Vector2(length * timeline.displ_frame_size, target_layer.size.y)
 		
-		var count_fordraw: int = mini(cards_count, timeline.layers.size() - target_layer_idx)
+		EditorServer.drawable_rect.draw_new_dashed_theme_rect(Rect2(position, size))
 		
-		for idx: int in count_fordraw:
-			var target_layer: Layer2 = timeline.get_layer_from_idx(target_layer_idx)
-			
-			drawable_rect.draw_new_selection_box_rect(Rect2(
-				Vector2(target_frame_displ_pos, target_layer.global_position.y),
-				Vector2(100., target_layer.size.y)
-			), Color.GRAY)
-			
-			target_layer_idx += 1
+		target_layer_idx += 1
+
+
 
 
 func _init_media_select_cont() -> MediaSelectContainer:
@@ -315,7 +337,6 @@ class MediaSelectContainer extends SelectContainer:
 		media_box.update_cards_selection()
 
 
-
 class MediaCard extends PanelContainer:
 	
 	static var add_texture: Texture2D = preload("res://Asset/Icons/plus.png")
@@ -407,6 +428,7 @@ class MediaCard extends PanelContainer:
 			if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT and button_event.is_pressed():
 				if button_event.position.distance_to(event.position) > 10.:
 					_select(false, false)
+					button_event = null
 					media_box.is_moving = true
 	
 	func _select(delete: bool, preclear: bool) -> void:
@@ -438,16 +460,9 @@ class MediaCard extends PanelContainer:
 	func get_media_ress() -> Array[MediaClipRes]:
 		return []
 	
-	func add_media_ress(layer_index: int, frame_in: int, auto_init: bool = true) -> void:
-		
-		if disabled:
-			return
-		
+	func add_media_ress(layer_index: int, frame_in: int) -> void:
+		if disabled: return
 		var media_ress: Array[MediaClipRes] = get_media_ress()
-		
-		for clip_res: MediaClipRes in media_ress:
-			if auto_init and clip_res is Display2DClipRes:
-				clip_res._init_clip_res()
 		
 		ProjectServer2.opened_clip_res_path.back().add_clips(layer_index, frame_in, media_ress, EditorServer.time_line2.overlay_menu.focus_index)
 	
@@ -456,6 +471,7 @@ class MediaCard extends PanelContainer:
 	
 	func _on_mouse_exited() -> void:
 		MediaExplorer.focused_cards.erase(self)
+		button_event = null
 	
 	func _on_add_button_pressed() -> void:
 		add_media_ress(0, PlaybackServer.position)

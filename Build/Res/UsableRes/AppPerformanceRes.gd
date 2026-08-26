@@ -24,7 +24,7 @@ class_name AppPerformanceRes extends UsableRes
 @export_range(50, 5000) var video_max_frame_cache: int = 500
 @export_range(.1, 1., .1) var video_scale_factor: float = 1.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"low_quality_for_playback": export(bool_args(low_quality_for_playback)),
 		&"frames_dropped": export(int_args(frames_dropped, 0, 3)),

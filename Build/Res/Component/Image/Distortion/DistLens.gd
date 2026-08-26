@@ -11,7 +11,7 @@ class_name CompDistortionLens extends PassShaderComponentRes
 @export var force: float = .2
 @export var zoom: float = 1.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"force": export(float_args(force, -5., 5.)),
 		&"zoom": export(float_args(zoom, -2., 2.))

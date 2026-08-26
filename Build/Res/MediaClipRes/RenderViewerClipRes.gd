@@ -34,7 +34,7 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 static func get_icon() -> Texture2D:
 	return preload("res://Asset/Icons/Objects/render-viewer.png")
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({&"render_pass_clip": export([render_pass_clip])})
 
 

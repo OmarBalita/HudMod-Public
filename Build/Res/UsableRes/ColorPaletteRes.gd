@@ -23,7 +23,7 @@ class_name ColorPaletteRes extends UsableRes
 @export var colors: Array
 @export var built_in: bool = false
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"palette_name": export(string_args(palette_name)),
 		&"colors": export(list_args(colors, &"Color"))

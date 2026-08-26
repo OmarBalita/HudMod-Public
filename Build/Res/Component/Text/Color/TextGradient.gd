@@ -24,7 +24,7 @@ var _process_func: Callable = _process_offset_ratio
 func _init() -> void:
 	gradient.res_changed.connect(emit_res_changed)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"global_ratio": export([global_ratio]),
 		&"gradient": export([gradient])

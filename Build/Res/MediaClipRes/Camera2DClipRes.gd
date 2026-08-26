@@ -28,14 +28,14 @@ static func get_media_clip_info() -> Dictionary[StringName, String]:
 
 static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/camera-2d.png")
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"camera_enabled": export(bool_args(camera_enabled)),
 		&"offset": export(vec2_args(offset)),
 		&"anchor_mode": export(options_args(anchor_mode, AnchorMode)),
 		&"ignore_rotation": export(bool_args(ignore_rotation)),
 		&"zoom": export(vec2_args(zoom))
-	} as Dictionary[StringName, ExportInfo].merged(super())
+	} as Dictionary[StringName, Dictionary].merged(super())
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, Camera2D.new())

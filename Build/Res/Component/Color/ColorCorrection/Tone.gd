@@ -21,7 +21,7 @@ class_name CompTone extends SnippetShaderComponentRes
 @export var blacks_range: float = .2
 
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var adv_ui_cond: Array = [get.bind(&"advanced_settings"), [true]]
 	return {
 		&"exposure": export(float_args(exposure, -5., 5., .001)),

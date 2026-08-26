@@ -37,7 +37,7 @@ class_name CompCRT extends PassShaderComponentRes
 @export_range(0.0, 1.0) var vignette_opacity: float = 0.5
 
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		#&"overlay": export(bool_args(overlay)),
 		&"pixelate": export(bool_args(pixelate)),

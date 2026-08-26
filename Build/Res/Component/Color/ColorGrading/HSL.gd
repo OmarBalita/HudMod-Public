@@ -13,7 +13,7 @@ class_name CompHSL extends SnippetShaderComponentRes
 @export var vibrance: float = .0
 @export var luminance: float = 1.0
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"hue_shift": export(float_args(hue_shift, -1., 1., .001)),
 		&"saturation": export(float_args(saturation, .0, 5., .001)),

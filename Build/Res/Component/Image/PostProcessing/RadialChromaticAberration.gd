@@ -11,7 +11,7 @@ class_name CompRadialChromaticAberration extends PassShaderComponentRes
 @export var amount: float = 1.
 @export var quality: int = 8
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"amount": export(float_args(amount, .0, 256.)),
 		&"quality": export(int_args(quality, 1, 32))

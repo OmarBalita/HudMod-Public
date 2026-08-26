@@ -13,7 +13,7 @@ class_name CompBlurRay extends PassShaderComponentRes
 @export var quality: int = 12
 @export var edge_scale: float = .8
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"center": export(vec2_args(center)),
 		&"power": export(float_args(power, .0, 1., .001)),

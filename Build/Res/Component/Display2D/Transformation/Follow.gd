@@ -36,7 +36,7 @@ func set_owner(new_owner: MediaClipRes) -> void:
 func emit_res_changed() -> void:
 	super(); if owner: owner.shared_data_clear()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"target": export([target]),
 		

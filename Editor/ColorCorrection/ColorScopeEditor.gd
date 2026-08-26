@@ -107,13 +107,6 @@ func _ready_editor() -> void:
 	request_calculate()
 
 
-func _input(event: InputEvent) -> void:
-	if (EditorServer.properties.get_global_rect().has_point(get_global_mouse_position()) and Input.get_mouse_button_mask() == 1) or PlaybackServer.is_playing():
-		curr_samples_down_scale = inplay_samples_down_scale
-	else:
-		curr_samples_down_scale = samples_down_scale
-
-
 func request_calculate(force: bool = false) -> void:
 	if not is_visible_in_tree() or not color_scope_sub_editors_visib.has(true):
 		return
@@ -464,7 +457,8 @@ func _on_playback_server_stopped(at: int) -> void:
 	curr_samples_down_scale = samples_down_scale
 
 func _on_properties_property_changed() -> void:
-	request_calculate()
+	#request_calculate()
+	pass
 
 func _on_visibility_changed() -> void:
 	if is_visible_in_tree():

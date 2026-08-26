@@ -13,7 +13,7 @@ class_name CompGlow extends PassShaderComponentRes
 @export var radius: float = 5.
 @export var quality: int = 8
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"color": export(color_args(color)),
 		&"power": export(float_args(power, .0, 20.)),

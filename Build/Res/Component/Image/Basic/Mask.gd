@@ -24,7 +24,7 @@ enum MaskType {
 @export var reverse: bool
 @export var mask_texture: String
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"mask_type": export(options_args(mask_type, MaskType)),
 		&"center": export(vec2_args(center)),

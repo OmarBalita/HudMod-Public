@@ -79,8 +79,8 @@ class PresetCard extends CreatedBox.CreatedCard:
 		copy_clip_res.move_layers_clips_deep(PlaybackServer.position - copy_clip_res.get_meta(&"preset_offset", 0))
 		return [copy_clip_res]
 	
-	func add_media_ress(layer_index: int, frame_in: int, auto_init: bool = true) -> void:
-		super(layer_index, frame_in, false)
+	func add_media_ress(layer_index: int, frame_in: int) -> void:
+		super(layer_index, frame_in)
 	
 	func _get_context_menu_options() -> Array[Dictionary]:
 		return [

@@ -15,7 +15,7 @@ class_name CompDrawRect extends DrawShapeComponentRes
 @export_range(1, 32) var corner_details: int = 12:
 	set(val): corner_details = val; max_dirty()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"size": export(vec2_args(size)),
 		&"corner_scale": export(float_args(corner_scale, .0, 1., .001)),

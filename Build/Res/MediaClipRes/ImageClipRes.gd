@@ -14,7 +14,7 @@ class_name ImageClipRes extends Display2DClipRes
 		image = val
 		if curr_node:
 			curr_node.texture = get_self_texture()
-		update()
+
 
 
 static func get_media_clip_info() -> Dictionary[StringName, String]: return {
@@ -22,8 +22,8 @@ static func get_media_clip_info() -> Dictionary[StringName, String]: return {
 	&"description": ""
 }
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	return {&"image": export(string_args(image))} as Dictionary[StringName, ExportInfo].merged(super())
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+	return {&"image": export(string_args(image))} as Dictionary[StringName, Dictionary].merged(super())
 
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:

@@ -14,7 +14,7 @@ class_name CompDistortionRipple extends PassShaderComponentRes
 @export var thickness: float = .1
 @export var speed: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"center": export(vec2_args(center)),
 		&"force": export(float_args(force, -1., 1., .001)),

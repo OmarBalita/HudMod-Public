@@ -193,22 +193,24 @@ func _update_layers_profiles_at(owner_clip_res: MediaClipRes) -> void:
 func _try_update_layers_profiles_gizmos_methods() -> void:
 	
 	for layer_res: LayerRes in layers_profiles:
-		
-		var profile: GizmosProfile = layers_profiles[layer_res]
-		var spawned_clip_res: MediaClipRes = layer_res.displayed_clip_res
-		
-		if spawned_clip_res == profile.clip_res:
-			continue
-		
-		if spawned_clip_res == null or spawned_clip_res is not Display2DClipRes:
-			profile.set_clip_res(null)
-			profile.set_gizmos([])
-			continue
-		
-		spawned_clip_res = spawned_clip_res as Display2DClipRes
-		
-		profile.set_clip_res(spawned_clip_res)
-		profile.set_gizmos(spawned_clip_res._get_gizmos())
+		_try_update_layer_profile_gizmos_method(layer_res)
+
+func _try_update_layer_profile_gizmos_method(layer_res: LayerRes) -> void:
+	var profile: GizmosProfile = layers_profiles[layer_res]
+	var spawned_clip_res: MediaClipRes = layer_res.displayed_clip_res
+	
+	if spawned_clip_res == profile.clip_res:
+		return
+	
+	if spawned_clip_res == null or spawned_clip_res is not Display2DClipRes:
+		profile.set_clip_res(null)
+		profile.set_gizmos([])
+		return
+	
+	spawned_clip_res = spawned_clip_res as Display2DClipRes
+	
+	profile.set_clip_res(spawned_clip_res)
+	profile.set_gizmos(spawned_clip_res._get_gizmos())
 
 
 func _update_all_gizmos() -> void:
@@ -235,7 +237,18 @@ func _update_all_gizmos() -> void:
 	queue_redraw()
 
 
+func update_when_layers_changed(opened_clip_res: MediaClipRes) -> void:
+	_update_selectables_at(opened_clip_res)
+	_update_layers_profiles_at(opened_clip_res)
+	_try_update_layers_profiles_gizmos_methods()
+	_update_all_gizmos()
 
+func add_new_layer(layer_res: LayerRes) -> void:
+	layers_profiles[layer_res] = GizmosProfile.new()
+	_try_update_layer_profile_gizmos_method(layer_res)
+
+func free_layer(layer_res: LayerRes) -> void:
+	layers_profiles.erase(layer_res)
 
 
 func _ready() -> void:
@@ -317,6 +330,7 @@ func _gui_input_try_select(event: InputEventMouseButton) -> bool:
 		return true
 	
 	return false
+
 
 
 func _draw() -> void:
@@ -433,20 +447,18 @@ func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	_update_all_gizmos()
 
 func _on_project_server2_opened_clip_res_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
-	_update_selectables_at(new_one)
-	_update_layers_profiles_at(new_one)
-	_try_update_layers_profiles_gizmos_methods()
-	_update_all_gizmos()
+	update_when_layers_changed(new_one)
 
 func _on_timeline_layers_body_selected_changed() -> void:
 	_update_selectables_at(EditorServer.time_line2.opened_clip_res)
 	_update_all_gizmos()
 
 func _on_properties_property_changed() -> void:
-	await RenderingServer.frame_post_draw
-	update_viewport_canvas_transformation_props()
-	update_main_snapping_points()
-	_update_all_gizmos()
+	#await RenderingServer.frame_post_draw
+	#update_viewport_canvas_transformation_props()
+	#update_main_snapping_points()
+	#_update_all_gizmos()
+	pass
 
 func _on_playback_server_position_changed(position: int) -> void:
 	update_viewport_canvas_transformation_props()

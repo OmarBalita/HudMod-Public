@@ -34,7 +34,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			from = maxf(get_min_from(), val)
 			from = minf(from, get_max_length() - length)
-			update()
+			if curr_node: process_here()
 		else:
 			from = val
 
@@ -42,7 +42,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 	set(val):
 		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			length = clampf(val, 1., get_max_length() - from)
-			update()
+			if curr_node: process_here()
 		else:
 			length = val
 
@@ -103,7 +103,7 @@ func _init_clip_res() -> void:
 	pass
 
 func emit_clip_res_changed() -> void:
-	update()
+	if curr_node: process_here()
 	clip_res_changed.emit()
 
 func is_frame_exists(frame: Variant = null) -> bool:
@@ -284,15 +284,15 @@ func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> V
 	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
 
 func update_controllers_by_animations(frame: int) -> void:
-	loop_animations(frame, _update_controller_method)
+	loop_animations(frame, _update_controller_by_animation_method)
 
 func update_controllers_by_animations_here() -> void:
 	update_controllers_by_animations(curr_frame)
 
-func update_specific_controllers_by_animations_here(usable_res: UsableRes, frame: int) -> void:
+func update_specific_controllers_by_animations(usable_res: UsableRes, frame: int) -> void:
 	var section: Dictionary = animations.get(usable_res, {})
 	for prop_key: StringName in section:
-		_update_controller_method(usable_res, prop_key, section[prop_key], frame)
+		_update_controller_by_animation_method(usable_res, prop_key, section[prop_key], frame)
 
 func update_controllers(usable_res: UsableRes, frame: int) -> void:
 	if not EditorServer.has_usable_res_controllers(usable_res): return
@@ -304,7 +304,7 @@ func update_controllers(usable_res: UsableRes, frame: int) -> void:
 			var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
 			EditorServer.update_usable_res_property_controller(usable_res, prop_key, prop_val, prop_has_keyframe)
 
-func _update_controller_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+func _update_controller_by_animation_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
 	var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
 	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame + from), prop_has_keyframe)
 
@@ -443,7 +443,7 @@ func return_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array
 	return custom_dict
 
 func update() -> void:
-	if curr_node: process_here()
+	PlaybackServer.seek_here()
 
 
 func enter_component(component: ComponentRes) -> void:

@@ -15,7 +15,7 @@ class_name CompTextTransform extends ComponentRes
 @export var xo: float
 @export var yo: float
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"xx": export(float_args(xx)),
 		&"xy": export(float_args(xy)),

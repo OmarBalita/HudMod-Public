@@ -26,7 +26,7 @@ class_name CompLEDGrid extends PassShaderComponentRes
 @export var enable_dither: bool = true
 @export var enable_flicker: bool = true
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"grid_columns": export(int_args(grid_columns, 8, 256)),
 		&"grid_rows": export(int_args(grid_rows, 8, 256)),

@@ -60,7 +60,7 @@
 	#mesh.radial_segments = 4
 	#mesh.rings = rings
 #
-#func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+#func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	#var get_type: Callable = get.bind(&"mesh_type")
 	#var rect_cond: Array = [get_type, [0]]
 	#var sphere_cond: Array = [get_type, [1, 2]]

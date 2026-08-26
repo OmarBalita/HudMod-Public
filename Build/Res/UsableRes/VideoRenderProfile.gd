@@ -115,7 +115,7 @@ var pixel_formats_options: Dictionary
 func _init() -> void:
 	_update_options()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	
 	var get_ctrl_mode: Callable = get.bind(&"bitrate_control_mode")
 	

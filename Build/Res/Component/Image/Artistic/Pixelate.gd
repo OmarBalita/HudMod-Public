@@ -10,7 +10,7 @@ class_name CompPixelate extends PassShaderComponentRes
 
 @export var pixel_size: int = 32
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {&"pixel_size": export(int_args(pixel_size, 1, 12800))}
 
 static func _shader() -> Shader:

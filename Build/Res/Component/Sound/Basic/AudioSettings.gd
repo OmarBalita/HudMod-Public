@@ -17,7 +17,7 @@
 #@export var volume_db: float = .0
 #@export var mix_target: AudioStreamPlayer.MixTarget
 #
-#func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+#func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	#return {
 		#&"volume_db": export(float_args(volume_db, -80., 24.)),
 		#&"mix_target": export(options_args(mix_target, MixTarget))

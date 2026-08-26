@@ -10,15 +10,15 @@ class_name CompTextCurved extends Text2DComponentRes
 
 @export var curve: CurveProfile = CurveProfile.preset_constant_line(-1.):
 	set(val):
-		if curve: curve.res_changed.disconnect(_update_parent_here)
-		if val: val.res_changed.connect(_update_parent_here)
+		if curve: curve.res_changed.disconnect(update_parent)
+		if val: val.res_changed.connect(update_parent)
 		curve = val
 @export var domain: float = 250.
 
 func _init() -> void:
-	curve.res_changed.connect(_update_parent_here)
+	curve.res_changed.connect(update_parent)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"curve": export([curve]),
 		&"domain": export(float_args(domain))

@@ -13,7 +13,7 @@ class_name CompPerspective extends PassShaderComponentRes
 @export var y_rot: float = .0
 @export var x_rot: float = .0
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"fov": export(float_args(fov, 1., 179., .01, .2)),
 		&"cull_back": export(bool_args(cull_back)),

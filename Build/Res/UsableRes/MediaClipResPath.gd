@@ -53,7 +53,7 @@ static func new_mediares_path(_cond_func: Callable = any_cond, _media_res: Media
 	new_one.owner = owner
 	return new_one
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var path_box: BoxContainer = IS.create_box_container(12)
 	var path_line: LineEdit = IS.create_line_edit("[Empty]")
 	var media_res_picker_button: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/tool.png"), null, null, "Pick", true)

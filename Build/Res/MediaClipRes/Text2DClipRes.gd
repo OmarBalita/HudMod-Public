@@ -59,6 +59,7 @@ var postdraw: Array[Dictionary]
 var dirty_level: int = 0
 
 
+
 func duplicate_media_res() -> MediaClipRes:
 	var duplicated: Text2DClipRes = super()
 	duplicated.font = font.duplicate(true)
@@ -81,12 +82,16 @@ func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	update()
 
 
+func get_size(scale: Vector2) -> Vector2:
+	return Vector2(width, height) * scale
+
+
 func _init() -> void:
 	font = FontRes.new()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
-		&"text": export(string_args(text, 1)),
+		&"text": export(string_args(text, 1), [], false),
 		
 		&"horizontal_alignment": export(options_args(horizontal_alignment, AlignmentHorizontal)),
 		
@@ -109,7 +114,7 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"shadow_offset": export(vec2_args(shadow_offset)),
 		&"shadow_color": export(color_args(shadow_color)),
 		&"_Shadow": export_method(ExportMethodType.METHOD_EXIT_CATEGORY)
-	} as Dictionary[StringName, ExportInfo].merged(super())
+	} as Dictionary[StringName, Dictionary].merged(super())
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var text_2d:= Text2D.new()

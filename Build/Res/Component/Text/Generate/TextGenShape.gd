@@ -18,7 +18,7 @@ class_name CompTextGenShape extends Text2DComponentRes
 func get_result() -> Dictionary[int, Array]: return result
 func set_result(new_val: Dictionary[int, Array]) -> void: result = new_val
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"Generate": export_method(ExportMethodType.METHOD_CALLABLE, method_callable_args(_on_generate_button_pressed, Color.DIM_GRAY)),
 		&"subdivision": export(int_args(subdivision, 0, 6)),

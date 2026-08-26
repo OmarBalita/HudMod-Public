@@ -12,7 +12,7 @@ class_name CompFilmGrain extends SnippetShaderComponentRes
 @export var grain_size: float = 3.
 @export var monochrome: bool = true
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"intensity": export(float_args(intensity, .0, 1.)),
 		&"grain_size": export(float_args(grain_size, 1., 20.)),

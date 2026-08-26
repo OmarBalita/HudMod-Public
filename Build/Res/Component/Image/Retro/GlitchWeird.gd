@@ -20,7 +20,7 @@ class_name CompGlitchWeird extends PassShaderComponentRes
 @export var local_warp_strength: float = .14
 @export var flip_chance: float = .15
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"glitch_chance": export(float_args(glitch_chance, .0, 1.)),
 		&"glitch_speed": export(float_args(glitch_speed)),

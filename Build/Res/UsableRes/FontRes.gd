@@ -87,7 +87,7 @@ func update_transform() -> void:
 	)
 
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	
 	var custom_func: Callable = func() -> bool: return get_prop(&"use_custom_font")
 	

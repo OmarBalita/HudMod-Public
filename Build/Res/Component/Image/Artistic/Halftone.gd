@@ -14,7 +14,7 @@ class_name CompHalftone extends PassShaderComponentRes
 @export var dot_color: Color = Color.BLACK
 @export var back_color: Color = Color.WHITE
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"offset": export(vec2_args(offset)),
 		&"size": export(float_args(size)),

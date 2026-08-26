@@ -12,7 +12,7 @@ class_name CompShake extends ComponentRes
 @export var domain: float = 25.
 @export var normalized: bool
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"speed": export(float_args(speed, .0, INF)),
 		&"domain": export(float_args(domain, .0, INF)),

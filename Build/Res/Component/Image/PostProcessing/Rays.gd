@@ -18,7 +18,7 @@ class_name CompRays extends PassShaderComponentRes
 @export var darkness_threshold: float = .5
 @export var quality: int = 32
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"position": export(vec2_args(position)),
 		&"tint": export(color_args(tint)),

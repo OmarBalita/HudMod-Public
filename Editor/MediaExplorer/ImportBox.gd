@@ -192,6 +192,7 @@ class ImportCard extends CreatedBox.CreatedCard:
 				clip_res = AudioClipRes.new()
 				clip_res.stream = path
 				clip_res.length = MediaCache.get_audio_data(path).get_length() * ProjectServer2.fps
+		clip_res._init_clip_res()
 		return clip_res
 	
 	func get_media_ress() -> Array[MediaClipRes]:

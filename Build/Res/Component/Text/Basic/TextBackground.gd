@@ -23,7 +23,7 @@ enum Type {
 
 var _font_size: Vector2i
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"Theme": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		#&"type": export(options_args(type, Type)),

@@ -51,7 +51,7 @@ enum LayoutPreset {
 @export var pivot_offset: Vector2
 @export var pivot_offset_ratio: Vector2 = Vector2(.5, .5)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"clip_contents": export(bool_args(clip_contents)),
 		&"custom_minimum_size": export(vec2_args(custom_minimum_size)),

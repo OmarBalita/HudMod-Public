@@ -32,7 +32,11 @@ signal property_changed()
 @export var texture_drag: Texture2D
 
 var curr_clip_ress: Array[MediaClipRes]
-var curr_focused_media_res: MediaClipRes
+var curr_focused_media_res: MediaClipRes:
+	set(val):
+		if curr_focused_media_res: curr_focused_media_res.res_changed.disconnect(property_changed.emit)
+		if val: val.res_changed.connect(property_changed.emit)
+		curr_focused_media_res = val
 
 var curr_shown_section: StringName
 
@@ -333,6 +337,10 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
 	var selected_clips: Dictionary[int, Dictionary] = layers_body.selected
 	
+	for section_key: StringName in curr_displayed_components:
+		var comps_infos: Array = curr_displayed_components[section_key]
+		for comp_info: ComponentInfo in comps_infos:
+			comp_info.component_res_owner.res_changed.disconnect(property_changed.emit)
 	curr_displayed_components.clear()
 	
 	if selected_clips.is_empty() or not layers_body.is_focused_exists():
@@ -586,7 +594,7 @@ func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_
 func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
 	return func(new_frame: int) -> void:
 		var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
-		owner_as_clip_res.update_specific_controllers_by_animations_here(usable_res, new_frame)
+		owner_as_clip_res.update_specific_controllers_by_animations(usable_res, new_frame)
 
 
 func _update_notification_label() -> String:

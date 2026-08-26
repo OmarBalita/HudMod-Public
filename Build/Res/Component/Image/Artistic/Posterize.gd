@@ -14,7 +14,7 @@ class_name CompPosterize extends PassShaderComponentRes
 @export var filter_radius: float = 5.
 @export var filter_quality: float = .2
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"levels": export(float_args(levels, 2., 1024., .001)),
 		&"Gradient": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),

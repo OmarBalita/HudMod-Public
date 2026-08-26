@@ -12,7 +12,7 @@ class_name CompToonEdge extends PassShaderComponentRes
 @export var sensitivity: float = .2
 @export var line_color: Color = Color.BLACK
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"line_thickness": export(int_args(line_thickness, 0, 50)),
 		&"sensitivity": export(float_args(sensitivity, .0, 1.)),

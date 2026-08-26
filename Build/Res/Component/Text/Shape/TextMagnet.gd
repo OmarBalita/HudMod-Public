@@ -43,7 +43,7 @@ func set_owner(new_owner: MediaClipRes) -> void:
 	super(new_owner)
 	magnet_clip = MediaClipResPath.new()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var use_clip_func: Callable = get.bind(&"use_clip_as_magnet")
 	return {
 		&"use_clip_as_magnet": export(bool_args(use_clip_as_magnet)),

@@ -12,7 +12,7 @@ class_name CompTextPulse extends Text2DComponentRes
 @export var pulse_speed: float = 20.
 @export var phase_shift: float = 25.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"pulse_intensity": export(float_args(pulse_intensity)),
 		&"pulse_speed": export(float_args(pulse_speed)),

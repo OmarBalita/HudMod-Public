@@ -22,7 +22,7 @@ class_name CompTextWave extends Text2DComponentRes
 func _init() -> void:
 	horizontal_domain.res_changed.connect(emit_res_changed)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"offset": export(float_args(offset)),
 		&"speed": export(float_args(speed)),

@@ -13,7 +13,7 @@ class_name CompDenoise extends PassShaderComponentRes
 @export var size: float = 3.
 @export var sharpness: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"sigma": export(float_args(sigma, .001, 5., .001)),
 		&"k_sigma": export(float_args(k_sigma, .001, 1., .001)),

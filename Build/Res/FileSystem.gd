@@ -137,7 +137,6 @@ func _delete(dir: Dictionary, path_or_name: String) -> void:
 		MediaCache.deregister_from_path(path_or_name, file_id, thumbnail_path, waveform_path)
 	
 	else:
-		
 		var forward: Dictionary = entity_info.forward
 		var keys_for_delete: PackedStringArray = forward.keys()
 		

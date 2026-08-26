@@ -12,7 +12,7 @@ class_name CompBlurMin extends PassShaderComponentRes
 @export var circular: bool = false
 @export_range(1, 32) var quality: int = 4
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"blur_amount": export(float_args(blur_amount, .0, 500., .001)),
 		&"circular": export(bool_args(circular)),

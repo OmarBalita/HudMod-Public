@@ -14,7 +14,7 @@ class_name CompGlitch extends PassShaderComponentRes
 @export var block_size: float = 30.5
 @export var color_rate: float = .01
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"power": export(float_args(power)),
 		&"rate": export(float_args(rate, .0, 1.)),

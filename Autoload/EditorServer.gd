@@ -93,6 +93,7 @@ var picking_clip: bool
 var auto_save_id: int
 
 
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_CRASH:
 		popup_save_option_or_save(get_tree().quit)
@@ -1194,9 +1195,32 @@ func _on_popup_menu_docks_id_pressed(id: int) -> void:
 
 
 func _on_window_focus_entered() -> void:
+	
+	if not ProjectServer2.is_project_loaded: return
+	
+	_try_scan_media_existent()
+	
+	while DisplayServer.mouse_get_button_state():
+		drawable_rect.clear_drawn_entities()
+		
+		var rect_size: Vector2 = Vector2(200., 200.)
+		var rect: Rect2 = Rect2(get_window().get_mouse_position() - rect_size / 2., rect_size)
+		drawable_rect.draw_new_dashed_theme_rect(rect, Color.GRAY)
+		drawable_rect._draw_new_texture_rect(preload("uid://01m8qtkgd28i"), rect, false)
+		
+		await get_tree().process_frame
+	
+	drawable_rect.clear_drawn_entities()
+
+func _try_scan_media_existent() -> void:
 	await get_tree().process_frame
 	if WindowManager.popuped_windows.is_empty():
 		scan_media_existent()
 
 func _on_window_files_dropped(files_pathes: Array[String]) -> void:
-	pass
+	if not ProjectServer2.is_project_loaded: return
+
+
+
+
+

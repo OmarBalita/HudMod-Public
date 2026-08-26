@@ -12,7 +12,7 @@ class_name CompDirectionalChromaticAberration extends PassShaderComponentRes
 @export var amount: float = .02
 @export var quality: int = 8
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"direction": export(vec2_args(direction)),
 		&"amount": export(float_args(amount)),

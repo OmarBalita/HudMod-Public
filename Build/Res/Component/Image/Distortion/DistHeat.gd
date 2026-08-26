@@ -17,7 +17,7 @@ func _init() -> void:
 	await GlobalServer.until_load()
 	noise_texture = GlobalServer.global_usable_res.noise_texture_seamless
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"direction": export(vec2_args(direction)),
 		&"speed": export(float_args(speed, .0, 1., .0001)),
