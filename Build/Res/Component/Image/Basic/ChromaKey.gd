@@ -13,7 +13,7 @@ class_name ChromaKey extends SnippetShaderComponentRes
 @export var smoothness: float = .08
 @export var spill_removal: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"key_color": export(color_args(key_color)),
 		&"similarity": export(float_args(similarity, .0, 1.)),

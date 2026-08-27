@@ -14,9 +14,6 @@ class_name VideoClipRes extends Display2DClipRes
 		
 		var can_open: bool = val and MediaCache.video_contexts_has(val)
 		
-		#if video == val and can_open == is_opening:
-			#return
-		
 		video = val
 		
 		if can_open:
@@ -67,11 +64,11 @@ func get_size(scale: Vector2) -> Vector2:
 	var tex: Texture2D = get_self_texture()
 	return tex.get_size() * curr_node.scale_factor * scale if tex else Vector2.ZERO
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"video": export(string_args(video)),
 		#&"scale_factor": export(float_args(scale_factor, .1, 1., .1, .01, .1)),
-	} as Dictionary[StringName, ExportInfo].merged(super())
+	} as Dictionary[StringName, Dictionary].merged(super())
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	
@@ -86,9 +83,10 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 
 func enter(node: Node) -> void:
 	super(node)
-	video_decoder = video_ctx.request_video_decoder()
-	_init_video_shader_params()
-	seek_frame_smart(0)
+	if video_ctx:
+		video_decoder = video_ctx.request_video_decoder()
+		_init_video_shader_params()
+		seek_frame_smart(0)
 	node.texture = get_self_texture()
 	Scene2.add_video_player(self)
 
@@ -107,15 +105,17 @@ func _process_comps(frame: int) -> void:
 func exit(node: Node) -> void:
 	super(node)
 	
-	video_decoder.set_channel_y([])
-	video_decoder.set_channel_u([])
-	video_decoder.set_channel_v([])
+	if video_ctx:
+		video_decoder.set_channel_y([])
+		video_decoder.set_channel_u([])
+		video_decoder.set_channel_v([])
+		
+		video_ctx.push_video_decoder_front(video_decoder)
+		video_decoder = null
+	
 	texture_y = null
 	texture_u = null
 	texture_v = null
-	
-	video_ctx.push_video_decoder_front(video_decoder)
-	video_decoder = null
 	
 	_update_video_shader_params()
 	Scene2.remove_video_player(self)

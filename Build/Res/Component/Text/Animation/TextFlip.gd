@@ -11,7 +11,7 @@ class_name CompTextFlip extends Text2DComponentRes
 @export var phase_shift: float = 10.
 @export var speed: float = 10.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"phase_shift": export(float_args(phase_shift)),
 		&"speed": export(float_args(speed))

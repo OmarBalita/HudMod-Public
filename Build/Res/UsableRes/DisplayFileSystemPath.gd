@@ -79,7 +79,7 @@ func _update_media_func() -> void:
 		1: get_media_func = Callable()
 		2: get_media_func = MediaCache.get_audio_data
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var thumbnail_rect: TextureRect = IS.create_texture_rect(get_file_thumb(), {
 		custom_minimum_size = Vector2(.0, 180.),
 		expand_mode = TextureRect.EXPAND_IGNORE_SIZE,

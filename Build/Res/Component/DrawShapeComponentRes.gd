@@ -54,7 +54,7 @@ func max_dirty() -> void: dirty_level = maxi(dirty_level, 2)
 
 func has_method_type() -> bool: return false
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var draw_cond: Array = [get.bind(&"just_store"), [false]]
 	
 	return {

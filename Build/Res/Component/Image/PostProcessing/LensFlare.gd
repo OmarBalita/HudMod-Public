@@ -11,7 +11,7 @@ class_name CompLensFlare extends PassShaderComponentRes
 @export var sun_position: Vector2
 @export var tint: Vector3 = Vector3(1.4, 1.2, 1.)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"sun_position": export(vec2_args(sun_position)),
 		&"tint": export(vec3_args(tint))

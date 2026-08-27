@@ -18,7 +18,7 @@ class_name CompBlurRotational extends PassShaderComponentRes
 func emit_res_changed() -> void:
 	super(); if owner: owner.shared_data_clear()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"auto": export(bool_args(auto)),
 		&"center": export(vec2_args(center)),

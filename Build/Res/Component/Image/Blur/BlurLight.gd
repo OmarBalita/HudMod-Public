@@ -12,7 +12,7 @@ class_name CompBlurLight extends PassShaderComponentRes
 @export var blur_amount: float = .01
 @export var weight: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"rot_degrees": export(float_args(rot_degrees)),
 		&"blur_amount": export(float_args(blur_amount, .0, 1., .001)),

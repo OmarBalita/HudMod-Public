@@ -30,8 +30,8 @@ func get_min_from() -> float: return .0
 func get_max_length() -> float:
 	return audio_data_res.get_length() * ProjectServer2.fps if audio_data_res else +INF
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
-	return {&"stream": export(string_args(stream))} as Dictionary[StringName, ExportInfo].merged(super())
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+	return {&"stream": export(string_args(stream))} as Dictionary[StringName, Dictionary].merged(super())
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var player:= AudioStreamPlayer2D.new()

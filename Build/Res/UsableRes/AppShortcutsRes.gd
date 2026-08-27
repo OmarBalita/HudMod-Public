@@ -105,7 +105,7 @@ func load_shortcuts_to(shortcut_node: ShortcutNode) -> void:
 	else:
 		register_prop(shortcut_node.key, shortcut_node.get_shortcuts())
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var shortcuts_cont:= ShortcutsCommandsContainer.new()
 	for prop_key: StringName in properties:
 		shortcuts_cont.add_controller(prop_key, get_prop(prop_key), _default_all_shortcuts[prop_key])

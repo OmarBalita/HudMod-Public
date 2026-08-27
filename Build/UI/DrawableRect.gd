@@ -27,7 +27,8 @@ var draw_indexer: Dictionary[StringName, Callable] = {
 	&"rect": draw_rect,
 	&"circle": draw_circle,
 	&"string": draw_string,
-	&"string_outline": draw_string_outline
+	&"string_outline": draw_string_outline,
+	&"texture": draw_texture_rect
 }
 
 func draw_new_line(from: Vector2, to: Vector2, color: Color = Color.WHITE, width: float = 1.0, antialised: bool = false) -> int:
@@ -55,11 +56,16 @@ func draw_new_string(font: Font, pos: Vector2 = Vector2.ZERO, text: String = "",
 	queue_redraw()
 	return get_entities_back_index()
 
+func _draw_new_texture_rect(texture: Texture2D, rect: Rect2, tile: bool, modulate: Color = Color.WHITE, transpose: bool = false) -> int:
+	drawn_entities.append({&"texture": [texture, rect, tile, modulate, transpose]})
+	queue_redraw()
+	return get_entities_back_index()
+
 func draw_new_theme_rect(rect2: Rect2, custom_color: Color = IS.color_accent) -> void:
 	draw_new_rect(rect2, Color(custom_color, .4), true, -1, false)
 	draw_new_rect(rect2, custom_color, false, 5.0, false)
 
-func draw_new_selection_box_rect(rect: Rect2, color: Color = IS.color_accent) -> void:
+func draw_new_dashed_theme_rect(rect: Rect2, color: Color = IS.color_accent) -> void:
 	var start_pos:= rect.position
 	var end_pos:= start_pos + rect.size
 	var to_x_pos:= Vector2(end_pos.x, start_pos.y)
@@ -74,6 +80,7 @@ func draw_new_selection_box_rect(rect: Rect2, color: Color = IS.color_accent) ->
 func draw_new_cursor(pos: Vector2, color: Color = Color.WHITE) -> void:
 	draw_new_line(pos + Vector2(10., .0), pos - Vector2(10., .0), color, 1., false)
 	draw_new_line(pos + Vector2(.0, 10.), pos - Vector2(.0, 10.), color, 1., false)
+
 
 func clear_drawn_entities() -> void:
 	drawn_entities.clear()

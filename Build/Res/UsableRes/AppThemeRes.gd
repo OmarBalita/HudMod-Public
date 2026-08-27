@@ -57,7 +57,7 @@ static var presets: Dictionary[ColorPreset, Array] = {
 func _init() -> void:
 	_update_local_colors()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var is_custom: Callable = func() -> bool: return get(&"color_preset") == ColorPreset.CUSTOM
 	var is_custom_cond: Array = [is_custom, [true]]
 	return {

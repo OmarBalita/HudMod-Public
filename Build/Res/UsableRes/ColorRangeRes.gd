@@ -52,7 +52,7 @@ static func preset_constant() -> ColorRangeRes:
 	crr.interpolation_mode = 0
 	return crr
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var colorrange_ctrlr: ColorRangeControl = IS.create_color_range_control(self, {})
 	return {&"self_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [colorrange_ctrlr])}
 

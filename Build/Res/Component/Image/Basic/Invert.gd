@@ -13,7 +13,7 @@ class_name CompInvert extends SnippetShaderComponentRes
 @export var invert_blue: bool = true
 @export var invert_alpha: bool
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"invert_red": export(bool_args(invert_red)),
 		&"invert_green": export(bool_args(invert_green)),

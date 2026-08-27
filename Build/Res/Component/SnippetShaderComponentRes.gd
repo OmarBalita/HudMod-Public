@@ -26,4 +26,4 @@ func _get_shader_global_params_snip() -> String: return ""
 func _get_shader_fragment_snip() -> String: return ""
 func _get_shader_vertex_snip() -> String: return ""
 
-func get_color_correction_exported_props() -> Dictionary[StringName, ExportInfo]: return {}
+func get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]: return {}

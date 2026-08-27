@@ -12,7 +12,7 @@ class_name CompDistortionBulge extends PassShaderComponentRes
 @export var force: float = .5
 @export var radius: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"center": export(vec2_args(center)),
 		&"force": export(float_args(force, -1., 1., .001)),

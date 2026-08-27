@@ -33,7 +33,7 @@ class_name AppEditRes extends UsableRes
 
 var default_clip_duration_frame: int
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"replay": export(bool_args(replay)),
 		

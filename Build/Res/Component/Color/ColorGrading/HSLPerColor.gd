@@ -40,7 +40,7 @@ class_name CompHSLPerColor extends SnippetShaderComponentRes
 @export var hue_purple: float = .0
 @export var hue_magenta: float = .0
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"smoothness": export(float_args(smoothness, .1, 1., .001)),
 		

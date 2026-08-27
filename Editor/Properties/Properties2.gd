@@ -33,7 +33,11 @@ signal property_changed()
 @export var texture_custom_edit: Texture2D
 
 var curr_clip_ress: Array[MediaClipRes]
-var curr_focused_media_res: MediaClipRes
+var curr_focused_media_res: MediaClipRes:
+	set(val):
+		if curr_focused_media_res: curr_focused_media_res.res_changed.disconnect(property_changed.emit)
+		if val: val.res_changed.connect(property_changed.emit)
+		curr_focused_media_res = val
 
 var curr_shown_section: StringName
 
@@ -333,6 +337,10 @@ func _update_displayed_components() -> Dictionary[StringName, Variant]:
 	var layers_body: TimeLine2.LayersSelectContainer = EditorServer.time_line2.layers_body
 	var selected_clips: Dictionary[int, Dictionary] = layers_body.selected
 	
+	for section_key: StringName in curr_displayed_components:
+		var comps_infos: Array = curr_displayed_components[section_key]
+		for comp_info: ComponentInfo in comps_infos:
+			comp_info.component_res_owner.res_changed.disconnect(property_changed.emit)
 	curr_displayed_components.clear()
 	
 	if selected_clips.is_empty() or not layers_body.is_focused_exists():
@@ -591,7 +599,7 @@ func _on_component_specific_edit_button_pressed(comp_info: ComponentInfo) -> voi
 	
 	if editor_cont == null: return
 	if not editor_cont.is_visible_in_tree(): editor_cont.header_panel.to_window(null, false)
-	editor_cont.set_focus_component(comp_info)
+	editor_cont.curr_focused_comp_info = comp_info
 
 func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_clip_res: MediaClipRes, edit_cont: EditContainer) -> void:
 	var update_usable_ress_func: Callable = _get_update_usable_ress_controller_method(usable_res, owner_as_clip_res)

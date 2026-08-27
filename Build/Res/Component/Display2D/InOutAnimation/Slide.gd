@@ -11,7 +11,7 @@ class_name CompSlide extends InOutComponentRes
 @export var slide_dist: float = 50.
 @export var direction: float = .0
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"slide_dist": export(float_args(slide_dist)),
 		&"direction": export(float_args(direction, -INF, INF, .01, 1.))

@@ -30,7 +30,9 @@ signal render_process_finished()
 @export var position: int:
 	set(val):
 		position = val
-		process_root(ProjectServer2.project_res.root_clip_res)
+		var project_res: ProjectRes = ProjectServer2.project_res
+		if not project_res: return
+		process_root(project_res.root_clip_res)
 		position_changed.emit(val)
 
 var start_time: float

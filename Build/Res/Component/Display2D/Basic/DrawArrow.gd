@@ -25,7 +25,7 @@ class_name CompDrawArrow extends DrawShapeComponentRes
 @export var arrow_length: float = 40.:
 	set(val): arrow_length = val; max_dirty()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"width": export(float_args(width)),
 		&"from": export(vec2_args(from)),

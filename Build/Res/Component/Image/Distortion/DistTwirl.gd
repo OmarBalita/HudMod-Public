@@ -12,7 +12,7 @@ class_name CompDistortionTwirl extends PassShaderComponentRes
 @export var rotation: float = 3.
 @export var radius: float = .5
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"center": export(vec2_args(center)),
 		&"rotation": export(float_args(rotation, -10., 10., .001)),

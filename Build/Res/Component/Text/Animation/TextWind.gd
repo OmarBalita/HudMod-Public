@@ -13,7 +13,7 @@ class_name CompTextWind extends Text2DComponentRes
 @export var speed: float = 5.
 @export var phase_shift: float = 5.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"offset": export(float_args(offset)),
 		&"force": export(float_args(force)),

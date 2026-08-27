@@ -47,7 +47,7 @@ signal timemarker_moved(from_frame: int, to_frame: int, timemarker: TimeMarkerRe
 var aspect_ratio: Vector2
 var delta: float = 1. / fps
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"project_name": export(string_args(project_name)),
 		&"resolution": export(vec2_args(resolution, true)),

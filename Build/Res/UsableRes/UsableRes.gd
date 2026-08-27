@@ -86,9 +86,7 @@ func loop_props(method: Callable) -> void:
 		method.call(property_name, property_val)
 
 
-
-
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {}
 
 func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
@@ -103,7 +101,7 @@ const TYPES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Co
 static func is_support_custom_exported_props() -> bool:
 	return false
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null, register_controllers: bool = true, horizontal: bool = false, custom_exported_props: Dictionary[StringName, ExportInfo] = {}) -> EditContainer:
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null, register_controllers: bool = true, horizontal: bool = false, custom_exported_props: Dictionary[StringName, Dictionary] = {}) -> EditContainer:
 	
 	var usable_res_script: Script = usable_res.get_script()
 	
@@ -113,7 +111,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	var usable_res_classname: StringName = usable_res_script.get_global_name()
 	var usable_res_inh: Array[StringName] = ClassServer.classname_get_inh(usable_res_classname)
 	
-	var exported_props: Dictionary[StringName, ExportInfo] = usable_res._get_exported_props() if custom_exported_props.is_empty() else custom_exported_props
+	var exported_props: Dictionary[StringName, Dictionary] = usable_res._get_exported_props() if custom_exported_props.is_empty() else custom_exported_props
 	
 	var edits_box_container: BoxContainer = IS.create_box_container(8, not horizontal)
 	var categories_entered: Array[Category]
@@ -148,15 +146,15 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 		return StringHelper.fuzzy_search(search_line_edit.text.to_lower(), prop_name) or ctrl is Category
 	
 	for key: StringName in exported_props:
-		var ctrlr_info: ExportInfo = exported_props[key]
-		var ctrlr_args: Array = ctrlr_info.get_args()
-		var ui_cond: Array = ctrlr_info.get_ui_cond()
+		var ctrlr_info: Dictionary = exported_props[key]
+		var ctrlr_args: Array = ctrlr_info.args
+		var ui_cond: Array = ctrlr_info.ui_cond
 		
 		var control: Control
 		
-		if ctrlr_info is ExportMethodInfo:
+		if ctrlr_info.has(&"method_type"):
 			
-			match ctrlr_info.get_method_type():
+			match ctrlr_info.method_type:
 				
 				ExportMethodType.METHOD_ENTER_CATEGORY:
 					var cat_color: Color = ctrlr_args[0] if ctrlr_args.size() else Color.TRANSPARENT
@@ -306,20 +304,20 @@ func get_classname() -> StringName:
 	return get_script().get_global_name()
 
 
-class ExportInfo extends RefCounted:
-	
-	@export var args: Array
-	@export var ui_cond: Array
-	@export var keyframable: bool
-	
-	func _init(_args: Array, _ui_cond: Array = []) -> void:
-		args = _args
-		ui_cond = _ui_cond
-	
-	func get_args() -> Array: return args
-	func set_args(new_val: Array) -> void: args = new_val
-	func get_ui_cond() -> Array: return ui_cond
-	func set_ui_cond(new_val: Array) -> void: ui_cond = new_val
+#class ExportInfo extends RefCounted:
+	#
+	#@export var args: Array
+	#@export var ui_cond: Array
+	#@export var keyframable: bool
+	#
+	#func _init(_args: Array, _ui_cond: Array = []) -> void:
+		#args = _args
+		#ui_cond = _ui_cond
+	#
+	#func get_args() -> Array: return args
+	#func set_args(new_val: Array) -> void: args = new_val
+	#func get_ui_cond() -> Array: return ui_cond
+	#func set_ui_cond(new_val: Array) -> void: ui_cond = new_val
 
 enum ExportMethodType {
 	METHOD_ENTER_CATEGORY,
@@ -328,24 +326,30 @@ enum ExportMethodType {
 	METHOD_CUSTOM_EXPORT,
 }
 
-class ExportMethodInfo extends ExportInfo:
-	@export var method_type: ExportMethodType
-	
-	func _init(_args: Array, _ui_cond: Array = [], _method_type: ExportMethodType = 0) -> void:
-		super(_args, _ui_cond)
-		method_type = _method_type
-	
-	func get_method_type() -> ExportMethodType: return method_type
-	func set_method_type(new_val: ExportMethodType) -> void: method_type = new_val
+#class ExportMethodInfo extends ExportInfo:
+	#@export var method_type: ExportMethodType
+	#
+	#func _init(_args: Array, _ui_cond: Array = [], _method_type: ExportMethodType = 0) -> void:
+		#super(_args, _ui_cond)
+		#method_type = _method_type
+	#
+	#func get_method_type() -> ExportMethodType: return method_type
+	#func set_method_type(new_val: ExportMethodType) -> void: method_type = new_val
 
 
-static func export(args: Array, ui_cond: Array = [], keyframable: bool = true) -> ExportInfo:
-	var export_info:= ExportInfo.new(args, ui_cond)
-	export_info.keyframable = keyframable
-	return export_info
+static func export(args: Array, ui_cond: Array = [], keyframable: bool = true) -> Dictionary[StringName, Variant]:
+	return {
+		&"args": args,
+		&"ui_cond": ui_cond,
+		&"keyframable": keyframable
+	}
 
-static func export_method(method_type: ExportMethodType, args: Array = [], ui_cond: Array = []) -> ExportMethodInfo:
-	return ExportMethodInfo.new(args, ui_cond, method_type)
+static func export_method(method_type: ExportMethodType, args: Array = [], ui_cond: Array = []) -> Dictionary:
+	return {
+		&"method_type": method_type,
+		&"args": args,
+		&"ui_cond": ui_cond
+	}
 
 static func bool_args(val: bool) -> Array: return [val]
 static func string_args(val: String, controller_type: IS.StringControllerType = 0, filter: Array[String] = [], placeholder: String = "", editable: bool = true) -> Array: return [val, placeholder, controller_type, filter, editable]

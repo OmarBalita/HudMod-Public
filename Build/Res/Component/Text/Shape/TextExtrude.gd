@@ -62,7 +62,7 @@ func set_owner(new_owner: MediaClipRes) -> void:
 	generate_component = ComponentPath.new()
 	gradient = ColorRangeRes.new()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"generate_component": export([generate_component]),
 		
@@ -178,7 +178,7 @@ func _get_drop_offset() -> Vector2:
 
 func _on_generate_component_path_changed(new_comp: ComponentRes) -> void:
 	is_dirty = true
-	_update_parent_here()
+	update_parent()
 
 
 

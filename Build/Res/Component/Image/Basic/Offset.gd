@@ -12,7 +12,7 @@ class_name CompOffset extends ComponentRes
 @export var flip_h: bool = false
 @export var flip_v: bool = false
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"offset": export(vec2_args(offset)),
 		&"flip_h": export(bool_args(flip_h)),

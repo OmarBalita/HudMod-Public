@@ -15,7 +15,7 @@ class_name CompDrawStar extends DrawShapeComponentRes
 @export var inner_length: float = 50.:
 	set(val): inner_length = val; max_dirty()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"heads": export(int_args(heads, 2, 1024)),
 		&"length": export(float_args(length, 0, INF, .01, .5)),

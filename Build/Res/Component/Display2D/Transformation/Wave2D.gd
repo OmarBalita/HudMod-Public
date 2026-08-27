@@ -20,7 +20,7 @@ enum WaveMethod {
 @export var speed: float = 10.
 @export var domain: float = 100.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var enabled_cond: Array = [
 		func() -> bool:
 			return self.enable_x or self.enable_y,

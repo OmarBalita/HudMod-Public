@@ -14,7 +14,7 @@ class_name CompTextRainbow extends Text2DComponentRes
 @export_range(.0, 1.) var saturation: float = 1.
 @export_range(.0, 1.) var value: float = 1.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"offset": export(float_args(offset)),
 		&"distance": export(float_args(distance)),

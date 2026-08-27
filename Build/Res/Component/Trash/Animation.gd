@@ -25,7 +25,7 @@ class_name CompAnimation extends ComponentRes
 			image_frame_edit.set_curr_value(image_frame)
 			#image_frame_edit.set_controller_val_manually(image_frame)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"hframes": export(int_args(hframes, 1, INF)),
 		&"vframes": export(int_args(vframes, 1, INF)),

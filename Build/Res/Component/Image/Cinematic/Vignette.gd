@@ -21,7 +21,7 @@ class_name CompVignette extends PassShaderComponentRes
 
 var texture: Texture2D
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"intensity": export(float_args(intensity, .0, 5., .001)),
 		&"smoothness": export(float_args(smoothness, .0, 1., .001)),

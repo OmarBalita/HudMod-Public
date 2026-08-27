@@ -12,7 +12,7 @@ class_name CompSharpen extends PassShaderComponentRes
 @export var radius: float = 2.
 @export var threshold: float = .05
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"amount": export(float_args(amount, .0, 5.)),
 		&"radius": export(float_args(radius, .1, 3.)),

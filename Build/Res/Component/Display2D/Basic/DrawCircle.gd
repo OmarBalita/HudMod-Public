@@ -23,7 +23,7 @@ class_name CompDrawCircle extends DrawShapeComponentRes
 @export_range(.001, .4, .001) var step: float = .1:
 	set(val): step = val; max_dirty()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"from": export(float_args(from, -INF, INF, .01, .01, PI / 4.)),
 		&"to": export(float_args(to, -INF, INF, .01, .01, PI / 4.)),

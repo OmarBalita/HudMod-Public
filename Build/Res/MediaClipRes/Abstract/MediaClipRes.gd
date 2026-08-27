@@ -1,10 +1,10 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 @abstract class_name MediaClipRes extends UsableRes
 
@@ -34,7 +34,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			from = maxf(get_min_from(), val)
 			from = minf(from, get_max_length() - length)
-			update()
+			if curr_node: process_here()
 		else:
 			from = val
 
@@ -42,7 +42,7 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 	set(val):
 		if ProjectServer2.is_project_loaded and not disable_limit_minmax:
 			length = clampf(val, 1., get_max_length() - from)
-			update()
+			if curr_node: process_here()
 		else:
 			length = val
 
@@ -103,7 +103,7 @@ func _init_clip_res() -> void:
 	pass
 
 func emit_clip_res_changed() -> void:
-	update()
+	if curr_node: process_here()
 	clip_res_changed.emit()
 
 func is_frame_exists(frame: Variant = null) -> bool:
@@ -450,7 +450,7 @@ func return_custom_stacked_values_at(frame: int) -> Dictionary[StringName, Array
 	return custom_dict
 
 func update() -> void:
-	if curr_node: process_here()
+	PlaybackServer.seek_here()
 
 
 func enter_component(component: ComponentRes) -> void:

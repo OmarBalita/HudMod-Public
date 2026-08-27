@@ -18,7 +18,7 @@ class_name CompTextInOutType extends InOutText2DComponentRes
 var text_length: float
 var caret_pos: Vector2
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return super().merged({
 		&"Caret": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"show_caret": export(bool_args(show_caret)),

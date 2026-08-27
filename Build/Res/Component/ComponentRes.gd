@@ -28,7 +28,7 @@ func until_ready() -> void:
 
 func emit_res_changed() -> void:
 	super()
-	_update_parent_here()
+	update_parent()
 
 func get_owner() -> MediaClipRes:
 	return owner
@@ -95,7 +95,7 @@ func _exit() -> void:
 func _delete() -> void:
 	_exit()
 
-func _update_parent_here() -> void:
+func update_parent() -> void:
 	if owner: owner.update()
 
 func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:

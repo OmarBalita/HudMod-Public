@@ -55,7 +55,7 @@ func set_cond_func(new_val: Callable) -> void: cond_func = new_val
 func _init() -> void:
 	clip.media_res_changed.connect(_on_clip_media_res_val_changed)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	
 	var search_box: BoxContainer = IS.create_box_container(12)
 	var line: LineEdit = IS.create_line_edit("[Empty]")

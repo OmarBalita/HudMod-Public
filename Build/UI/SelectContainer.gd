@@ -413,7 +413,7 @@ func _gui_input(event: InputEvent) -> void:
 			var rect_pos:= selectbox_rect.position
 			var rect_size:= selectbox_rect.size
 			
-			drawable_rect.draw_new_selection_box_rect(
+			drawable_rect.draw_new_dashed_theme_rect(
 				Rect2(
 					global_position + rect_pos,
 					Vector2(

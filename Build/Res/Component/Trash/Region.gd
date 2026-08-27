@@ -28,7 +28,7 @@ func update_region_rect() -> void:
 		size
 	)
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var ui_cond: Array = [get.bind(&"enable_region"), [true]]
 	return {
 		&"enable_region": export(bool_args(enable_region)),

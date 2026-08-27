@@ -67,6 +67,7 @@ class ObjectCard extends MediaBox.MediaCard:
 	func get_media_ress() -> Array[MediaClipRes]:
 		var clip_res: MediaClipRes = clip_res_script.new()
 		clip_res.length = EditorServer.editor_settings.edit.default_clip_duration_frame
+		clip_res._init_clip_res()
 		return [clip_res]
 
 

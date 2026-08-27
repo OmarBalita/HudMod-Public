@@ -18,7 +18,7 @@ class_name CompTextBounce extends Text2DComponentRes
 
 const MOVE_PERIOD: float = 180.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"jump_height": export(float_args(jump_height)),
 		&"speed": export(float_args(speed)),

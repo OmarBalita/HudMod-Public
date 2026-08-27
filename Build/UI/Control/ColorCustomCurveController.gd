@@ -16,8 +16,6 @@ var histogram_opts: MenuButton = null
 
 var is_locked: bool = false
 
-var bound_clip_res: MediaClipRes = null
-
 var histogram_state: HistogramState = HistogramState.OUTPUT
 
 var color_scope_editor: ColorScopeEditor
@@ -26,11 +24,11 @@ func _init() -> void:
 	top_bar = HBoxContainer.new()
 	IS.set_base_container_settings(top_bar)
 	top_bar.add_theme_constant_override(&"separation", 6)
-
-	curve_ctrlr = ColorCurveController.new_look_curve()
+	
+	curve_ctrlr = ColorCurveController.new_color_curve()
 	IS.expand(curve_ctrlr, true, true)
 	curve_ctrlr.resized.connect(curve_ctrlr.queue_redraw)
-
+	
 	lock_button = IS.create_texture_button(
 		unlocked_icon,
 		unlocked_icon,
@@ -40,11 +38,11 @@ func _init() -> void:
 		{custom_minimum_size = Vector2(20.0, 20.0)}
 	)
 	lock_button.toggled.connect(_on_lock_toggled)
-
+	
 	var channels_hbox: HBoxContainer = HBoxContainer.new()
 	channels_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	channels_hbox.add_theme_constant_override(&"separation", 2)
-
+	
 	var r_btn: Button = IS.create_button("R", null, "", false, true, false, {toggle_mode = true, custom_minimum_size = Vector2(20., .0)})
 	var g_btn: Button = IS.create_button("G", null, "", false, true, false, {toggle_mode = true, custom_minimum_size = Vector2(20., .0)})
 	var b_btn: Button = IS.create_button("B", null, "", false, true, false, {toggle_mode = true, custom_minimum_size = Vector2(20., .0)})
@@ -54,7 +52,7 @@ func _init() -> void:
 	b_btn.toggled.connect(func(_pressed: bool) -> void: curve_ctrlr.change_channel_visibility(3))
 	lum_btn.toggled.connect(func(_pressed: bool) -> void: curve_ctrlr.change_channel_visibility(0))
 	IS.add_children(channels_hbox, [r_btn, g_btn, b_btn, lum_btn])
-
+	
 	histogram_opts = IS.create_menu_button("histogram", [
 		{text = "Off"},
 		{text = "Output"},
@@ -62,22 +60,21 @@ func _init() -> void:
 	])
 	histogram_opts.text = "Histogram: " + HistogramState.find_key(histogram_state).capitalize()
 	histogram_opts.get_popup().id_pressed.connect(_on_histogram_mode_selected)
-
+	
 	var reset_button = IS.create_texture_button(reset_icon)
 	reset_button.pressed.connect(_on_reset_pressed)
-
+	
 	var spacer: Control = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
+	
 	var top_bar_margin: MarginContainer = IS.create_margin_container(4, 4, 4, 4)
 	top_bar_margin.add_child(top_bar)
-
+	
 	IS.add_children(top_bar, [lock_button, IS.create_v_line_panel(2), channels_hbox, spacer, histogram_opts, reset_button])
 	IS.add_children(self, [top_bar_margin, curve_ctrlr])
 
 func _ready():
-	color_scope_editor = EditorServer.color_scope_editor
-
+	_bind_to_playback()
 
 func set_histogram_data(data: PackedVector4Array) -> void:
 	curve_ctrlr.histogram_data = data
@@ -86,20 +83,17 @@ func set_histogram_data(data: PackedVector4Array) -> void:
 func get_curves_profiles() -> Array[CurveProfile]:
 	return curve_ctrlr.curves_profiles
 
-func bind_to_clip(clip_res: MediaClipRes) -> void:
-	unbind_clip()
-
-	bound_clip_res = clip_res
-	if bound_clip_res:
-		# PlaybackServer.position_changed.connect(_on_playback_position_changed)
-		call_deferred(&"_request_histogram")
-
+func _bind_to_playback() -> void:
+	_unbind_playback()
+	color_scope_editor = EditorServer.color_scope_editor
+	PlaybackServer.position_changed.connect(_on_playback_position_changed)
+	call_deferred(&"_request_histogram")
 	if not tree_exited.is_connected(_on_tree_exited):
 		tree_exited.connect(_on_tree_exited)
 
-func unbind_clip() -> void:
-	# PlaybackServer.position_changed.disconnect(_on_playback_position_changed)
-	bound_clip_res = null
+func _unbind_playback() -> void:
+	if PlaybackServer.position_changed.is_connected(_on_playback_position_changed):
+		PlaybackServer.position_changed.disconnect(_on_playback_position_changed)
 
 func _request_histogram() -> void:
 	if not color_scope_editor or histogram_state == HistogramState.OFF:
@@ -107,21 +101,21 @@ func _request_histogram() -> void:
 	
 	if not color_scope_editor.calculation_finished.is_connected(_on_color_scope_editor_calculation_finished):
 		color_scope_editor.calculation_finished.connect(_on_color_scope_editor_calculation_finished, CONNECT_ONE_SHOT)
-
-	color_scope_editor.request_calculate(histogram_state == HistogramState.OUTPUT)
+	
+	color_scope_editor.request_calculate(histogram_state == HistogramState.OUTPUT, true)
 
 func _use_histogram_data() -> void:
 	var histogram_sub_editor: ColorScopeEditor.ColorScopeSubEditor = \
 		color_scope_editor.color_scope_sub_editors.get(&"histogram")
 	if not histogram_sub_editor or not histogram_sub_editor.color_scope_viewer:
 		return
-
+	
 	var histogram_viewer: ColorScopeEditor.HistogramViewer = histogram_sub_editor.color_scope_viewer
 	set_histogram_data(histogram_viewer.histogram_data)
 
 func _update_lock_icon() -> void:
 	var target_icon: Texture2D = locked_icon if is_locked else unlocked_icon
-
+	
 	lock_button.texture_normal = target_icon
 	lock_button.texture_hover = target_icon
 	lock_button.texture_pressed = target_icon
@@ -129,9 +123,9 @@ func _update_lock_icon() -> void:
 func _merge_curves_profiles(profiles: Array[CurveProfile]) -> void:
 	if profiles.size() < 2:
 		return
-
+	
 	var master_keys: Dictionary[int, CurveKey] = profiles[0].keys
-
+	
 	for port_idx: int in range(1, profiles.size()):
 		var old_keys: Dictionary[int, CurveKey] = profiles[port_idx].keys
 		for x: int in old_keys:
@@ -141,15 +135,15 @@ func _merge_curves_profiles(profiles: Array[CurveProfile]) -> void:
 
 		for x: int in master_keys:
 			curve_ctrlr.add_selectable_val(port_idx, x, master_keys[x])
-
+	
 	curve_ctrlr.update_curve_profiles_keys()
 
 func _unmerge_curves_profiles(profiles: Array[CurveProfile]) -> void:
 	if profiles.size() < 2:
 		return
-
+	
 	var master_profile: CurveProfile = profiles[0]
-
+	
 	for port_idx: int in range(1, profiles.size()):
 		var old_keys: Dictionary[int, CurveKey] = profiles[port_idx].keys
 		for x: int in old_keys:
@@ -160,28 +154,26 @@ func _unmerge_curves_profiles(profiles: Array[CurveProfile]) -> void:
 
 		for x: int in independent_keys:
 			curve_ctrlr.add_selectable_val(port_idx, x, independent_keys[x])
-
+	
 	curve_ctrlr.update_curve_profiles_keys()
 
 
 func _on_lock_toggled(toggled_on: bool) -> void:
 	is_locked = toggled_on
 	_update_lock_icon()
-
+	
 	curve_ctrlr.selected.clear()
 	curve_ctrlr.focused_keys_index = -1
 	curve_ctrlr.is_locked = is_locked
-
-	if is_locked:
-		_merge_curves_profiles(curve_ctrlr.curves_profiles)
-	else:
-		_unmerge_curves_profiles(curve_ctrlr.curves_profiles)
-
+	
+	if is_locked: _merge_curves_profiles(curve_ctrlr.curves_profiles)
+	else: _unmerge_curves_profiles(curve_ctrlr.curves_profiles)
+	
 	curve_ctrlr.queue_redraw()
 
 func _on_reset_pressed() -> void:
 	var linear: CurveProfile = CurveProfile.preset_linear(.0, 1.0, .001, .0, 255.0, 1.0)
-
+	
 	if is_locked:
 		var shared_keys: Dictionary[int, CurveKey] = linear.duplicate_keys()
 		for profile: CurveProfile in curve_ctrlr.curves_profiles:
@@ -189,7 +181,7 @@ func _on_reset_pressed() -> void:
 	else:
 		for profile: CurveProfile in curve_ctrlr.curves_profiles:
 			profile.keys = linear.duplicate_keys()
-
+	
 	curve_ctrlr.queue_redraw()
 
 func _on_playback_position_changed(_position: int) -> void:
@@ -203,20 +195,17 @@ func _on_color_scope_editor_calculation_finished() -> void:
 func _on_histogram_mode_selected(id: int) -> void:
 	histogram_state = id as HistogramState
 	histogram_opts.text = "Histogram: " + HistogramState.keys()[id].capitalize()
-
+	
 	match histogram_state:
 		HistogramState.OFF:
 			curve_ctrlr.draw_histogram = false
 			set_histogram_data(PackedVector4Array())
-		HistogramState.OUTPUT:
-			curve_ctrlr.draw_histogram = true
-			_request_histogram()
-		HistogramState.INPUT:
+		HistogramState.OUTPUT, HistogramState.INPUT:
 			curve_ctrlr.draw_histogram = true
 			_request_histogram()
 
 func _on_tree_exited() -> void:
-	unbind_clip()
+	_unbind_playback()
 
 
 class ColorCurveController extends CurveController:
@@ -236,7 +225,7 @@ class ColorCurveController extends CurveController:
 
 		set_keys_colors([Color.WHITE, Color.RED, Color.GREEN, Color.CORNFLOWER_BLUE])
 
-	static func new_look_curve() -> ColorCurveController:
+	static func new_color_curve() -> ColorCurveController:
 		var ctrlr:= ColorCurveController.new()
 		ctrlr.curves_profiles = [
 			CurveProfile.preset_linear(.0, 1.0, .001, .0, 255.0, 1.0), # Luminance

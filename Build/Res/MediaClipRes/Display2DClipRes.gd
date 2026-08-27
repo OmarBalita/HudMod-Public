@@ -124,6 +124,7 @@ func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> 
 				process_here()
 				
 				for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+					if clip_res is not Display2DClipRes: continue
 					clip_res.update_controllers(clip_res.get_canvas_item_comp(), curr_frame)
 			
 			else:
@@ -249,12 +250,11 @@ func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2,
 		var pos_delta: Vector2 = target_local - info.pos_initial
 		var poss_initial: Array = info.poss_initial
 		
-		EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
-			func(idx: int, clip_res: Display2DClipRes) -> Variant:
-				clip_res.get_canvas_item_comp().set_prop_and_emit(&"position", poss_initial[idx] + pos_delta)
-				return null
-		)
+		var idx: int
+		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+			if not MediaClipResPath.node2d_cond(clip_res): continue
+			clip_res.get_canvas_item_comp().set_prop_and_emit(&"position", poss_initial[idx] + pos_delta)
+			idx += 1
 
 func _apply_rotation(canvas_item: CompCanvasItem, world_pos: Vector2, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
 	
@@ -277,12 +277,11 @@ func _apply_rotation(canvas_item: CompCanvasItem, world_pos: Vector2, event: Inp
 		var rotation_delta: float = rot_deg - rotation_initial
 		var rots_initial: Array = info.rotations_initial
 		
-		EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
-			func(idx: int, clip_res: Display2DClipRes) -> Variant:
-				clip_res.get_canvas_item_comp().set_prop_and_emit(&"rotation_degrees", rots_initial[idx] + rotation_delta)
-				return null
-		)
+		var idx: int
+		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+			if not MediaClipResPath.node2d_cond(clip_res): continue
+			clip_res.get_canvas_item_comp().set_prop_and_emit(&"rotation_degrees", rots_initial[idx] + rotation_delta)
+			idx += 1
 
 func _apply_corner_scale(canvas_item: CompCanvasItem, world_pos: Vector2, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
 	var local_now: Vector2 = _to_local_unrotated(world_pos, info)
@@ -305,13 +304,13 @@ func _apply_corner_scale(canvas_item: CompCanvasItem, world_pos: Vector2, event:
 	
 	if EditorServer.time_line2.is_edit_multiple():
 		var scales_initial: Array = info.scales_initial
-		EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
-			func(idx: int, clip_res: Display2DClipRes) -> Variant:
-				var s0: Vector2 = scales_initial[idx]
-				clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", Vector2(s0.x * scale_ratio.x, s0.y * scale_ratio.y))
-				return null
-		)
+		
+		var idx: int
+		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+			if not MediaClipResPath.node2d_cond(clip_res): continue
+			var s0: Vector2 = scales_initial[idx]
+			clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", Vector2(s0.x * scale_ratio.x, s0.y * scale_ratio.y))
+			idx += 1
 
 func _apply_axis_scale(canvas_item: CompCanvasItem, world_pos: Vector2, is_x_axis: bool, event: InputEventMouseMotion, info: Dictionary[StringName, Variant]) -> void:
 	var local_now: Vector2 = _to_local_unrotated(world_pos, info)
@@ -337,18 +336,15 @@ func _apply_axis_scale(canvas_item: CompCanvasItem, world_pos: Vector2, is_x_axi
 		
 		var scales_initial: Array = info.scales_initial
 		
-		EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
-			func(idx: int, clip_res: Display2DClipRes) -> Variant:
-				var s0: Vector2 = scales_initial[idx]
-				var new_scale: Vector2 = s0
-				if is_x_axis:
-					new_scale.x = s0.x * axis_ratio
-				else:
-					new_scale.y = s0.y * axis_ratio
-				clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", new_scale)
-				return null
-		)
+		var idx: int
+		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
+			if not MediaClipResPath.node2d_cond(clip_res): continue
+			var s0: Vector2 = scales_initial[idx]
+			var new_scale: Vector2 = s0
+			if is_x_axis: new_scale.x = s0.x * axis_ratio
+			else: new_scale.y = s0.y * axis_ratio
+			clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", new_scale)
+			idx += 1
 
 func _to_local_unrotated(world_pos: Vector2, info: Dictionary[StringName, Variant]) -> Vector2:
 	var center: Vector2 = info.get(&"center_at_scale_start")

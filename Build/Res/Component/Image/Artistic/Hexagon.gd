@@ -10,7 +10,7 @@ class_name CompHexagon extends PassShaderComponentRes
 
 @export var size: float = 16.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {&"size": export(float_args(size))}
 
 static func _shader() -> Shader:

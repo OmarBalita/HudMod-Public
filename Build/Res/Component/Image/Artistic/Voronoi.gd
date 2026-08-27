@@ -11,7 +11,7 @@ class_name CompVoronoi extends PassShaderComponentRes
 @export var size: float = 32.
 @export var randomness: float = 1.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"size": export(float_args(size)),
 		&"randomness": export(float_args(randomness))

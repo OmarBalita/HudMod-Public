@@ -104,7 +104,7 @@ static func new_profile_with_ctrlr_sett(min_val: float = .0, max_val: float = 1.
 	})
 	return curve_profile
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var curve_ctrlr:= CurveController.new()
 	curve_ctrlr.curves_profiles = [self]
 	

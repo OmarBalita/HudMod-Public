@@ -34,9 +34,10 @@ var scale_factor: float
 
 
 func _update_and_draw() -> void:
-	var view_size: Vector2i = Scene2.viewport.size
-	var tex_size: Vector2 = texture.get_size()
-	scale_factor = minf(view_size.x / tex_size.x, view_size.y / tex_size.y)
+	if texture:
+		var view_size: Vector2i = Scene2.viewport.size
+		var tex_size: Vector2 = texture.get_size()
+		scale_factor = minf(view_size.x / tex_size.x, view_size.y / tex_size.y)
 	queue_redraw()
 
 func _draw() -> void:

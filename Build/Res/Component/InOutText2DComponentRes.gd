@@ -42,7 +42,7 @@ func emit_res_changed() -> void:
 	_update_inout_durs_f()
 	super()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"In": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"apply_in": export(bool_args(apply_in)),

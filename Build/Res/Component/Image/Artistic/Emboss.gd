@@ -13,7 +13,7 @@ class_name CompEmboss extends PassShaderComponentRes
 @export var highlight_color: Color = Color.WHITE
 @export var shadow_color: Color = Color.BLACK
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"light_dir": export(vec2_args(light_dir)),
 		&"intensity": export(float_args(intensity, .0, .02, .001, .0001)),

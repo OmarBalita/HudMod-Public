@@ -11,7 +11,7 @@ class_name CompClarity extends PassShaderComponentRes
 @export var clarity_amount: float = 2.
 @export var detail_radius: float = 1.
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"clarity_amount": export(float_args(clarity_amount, .0, 4., .001)),
 		&"detail_radius": export(float_args(detail_radius, .1, 5., .001))

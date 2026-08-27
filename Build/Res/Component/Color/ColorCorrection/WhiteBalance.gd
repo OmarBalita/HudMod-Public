@@ -16,7 +16,7 @@ class_name CompWhiteBalance extends SnippetShaderComponentRes
 @export var blue_curve:= CurveProfile.preset_linear()
 @export var rgb_curve:= CurveProfile.preset_linear()
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"temp": export(float_args(temp, -1., 1., .001)),
 		&"tint": export(float_args(tint, -1., 1., .001)),
@@ -29,10 +29,9 @@ func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
 		&"_Curves": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
 
-func get_color_correction_exported_props() -> Dictionary[StringName, ExportInfo]:
+func get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]:
 	var curve_ctrlr := ColorCustomCurveController.new()
 	curve_ctrlr.curve_ctrlr.curves_profiles = [rgb_curve, red_curve, green_curve, blue_curve]
-	curve_ctrlr.bind_to_clip(owner)
 	
 	return {
 		&"White Balance Curves": export_method(

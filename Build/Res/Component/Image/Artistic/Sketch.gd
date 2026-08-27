@@ -14,7 +14,7 @@ class_name CompSketch extends PassShaderComponentRes
 @export var ink_color: Color = Color.BLACK
 @export var paper_color: Color = Color.GRAY
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"line_strength": export(float_args(line_strength, .0, 5.)),
 		&"hatch_strength": export(float_args(hatch_strength, .0, 1.)),

@@ -104,6 +104,7 @@ var edges_nav_horizontal: bool = false:
 var edges_nav_vertical: bool = false:
 	set(val): edges_nav_vertical = val; _update_process_enabling()
 var edges_nav_velocity: Vector2
+var edges_nav_while_mouse_entered: bool
 
 var frame_start: int
 var frame_end: int
@@ -341,6 +342,9 @@ func update_edges_navs_velocity() -> void:
 
 func apply_edges_navs(delta: float) -> void:
 	var is_dirty: bool
+	
+	if edges_nav_while_mouse_entered and not get_global_rect().has_point(get_global_mouse_position()):
+		return
 	
 	if edges_nav_horizontal and edges_nav_velocity.x:
 		center += edges_nav_velocity.x * zoom_factor * edges_speed_factor_h * ProjectServer2.project_res.fps * delta
@@ -1341,17 +1345,19 @@ func spawn_layer(layer_idx: int, layer_res: LayerRes) -> Layer2:
 	layer.layer_idx = layer_idx
 	layers_cont.add_child(layer)
 	layers[layer_res] = layer
+	EditorServer.player.gizmos_drawer.add_new_layer(layer_res)
 	return layer
 
 func free_layer(layer_res: LayerRes) -> void:
 	layers[layer_res].queue_free()
 	layers.erase(layer_res)
+	EditorServer.player.gizmos_drawer.free_layer(layer_res)
 	sort_layers()
 
 func is_layer_hidden(layer: Layer2) -> bool:
 	return not get_global_rect().intersects(layer.get_global_rect())
 
-func find_first_layer_contain_point(global_point: Vector2) -> Layer2:
+func find_first_layer_contains_point(global_point: Vector2) -> Layer2:
 	
 	for layer_res: LayerRes in layers:
 		var layer: Layer2 = layers[layer_res]

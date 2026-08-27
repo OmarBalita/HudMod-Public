@@ -68,7 +68,7 @@ enum TextureRepeat {
 
 func has_method_type() -> bool: return false
 
-func _get_exported_props() -> Dictionary[StringName, ExportInfo]:
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"Transform": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"position": export(vec2_args(position, false, false, 1)),
