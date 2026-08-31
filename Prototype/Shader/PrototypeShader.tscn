@@ -30,6 +30,7 @@
 [ext_resource type="Shader" uid="uid://caq44k16gu510" path="res://Build/Shader/Image/DistTwirl.gdshader" id="34_aao0d"]
 [ext_resource type="Shader" uid="uid://7hk2ut8e3m0c" path="res://Build/Shader/Image/DistBulge.gdshader" id="35_r4gls"]
 [ext_resource type="Shader" uid="uid://bnlxsft5hbeih" path="res://Build/Shader/Image/DistHeat.gdshader" id="36_xoael"]
+[ext_resource type="Texture2D" uid="uid://d0rn3nnyru2is" path="res://Asset/Images/banner-high-alpha-2.jpg" id="37_efobh"]
 [ext_resource type="Shader" uid="uid://conk05dq2hyjy" path="res://Build/Shader/Image/DirectionalChromaticAberration.gdshader" id="38_aao0d"]
 [ext_resource type="Shader" uid="uid://boa3xujp576ew" path="res://Build/Shader/Image/Glow.gdshader" id="38_hxy6b"]
 [ext_resource type="Shader" uid="uid://c2jf6mi7fyg06" path="res://Build/Shader/Image/Rays.gdshader" id="38_lg5mm"]
@@ -551,7 +552,7 @@ shader_parameter/transparancy = true
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7ke4e"]
 shader = ExtResource("13_8pbat")
 shader_parameter/dir = Vector2(1, 0)
-shader_parameter/power = 0.05
+shader_parameter/blur_amount = 0.05
 shader_parameter/quality = 4
 shader_parameter/clip_border = false
 shader_parameter/transparancy = true
@@ -930,6 +931,52 @@ shader_parameter/hue_purple = 0.0
 shader_parameter/hue_magenta = 0.0
 shader_parameter/smoothness = 0.3
 
+[sub_resource type="Shader" id="Shader_13qdw"]
+code = "shader_type canvas_item;
+#include \"res://Build/Shader/Global.gdshaderinc\"
+
+uniform sampler2D hue_vs_hue_curve: hint_default_white; // 1. Hue vs Hue
+uniform sampler2D hue_vs_sat_curve: hint_default_white; // 2. Hue vs Sat
+uniform sampler2D hue_vs_lum_curve: hint_default_white; // 3. Hue vs Lum
+uniform sampler2D lum_vs_sat_curve: hint_default_white; // 4. Lum vs Sat
+uniform sampler2D sat_vs_sat_curve: hint_default_white; // 5. Sat vs Sat
+uniform sampler2D sat_vs_lum_curve: hint_default_white; // 6. Sat vs Lum
+
+void fragment() {
+	vec4 tex_color = texture(TEXTURE, UV);
+	vec3 color = tex_color.rgb;
+	
+	vec3 hsv = rgb2hsv(color);
+	float lum = get_luminance(color);
+	
+	float h_h_shift = texture(hue_vs_hue_curve, vec2(hsv.x, 0.5)).r - 0.5;
+	hsv.x = fract(hsv.x + h_h_shift);
+	
+	float h_s_scale = texture(hue_vs_sat_curve, vec2(hsv.x, 0.5)).r * 2.0;
+	hsv.y *= h_s_scale;
+	
+	float h_l_scale = texture(hue_vs_lum_curve, vec2(hsv.x, 0.5)).r * 2.0;
+	hsv.z *= h_l_scale;
+	
+	lum = get_luminance(hsv2rgb(hsv));
+	float l_s_scale = texture(lum_vs_sat_curve, vec2(lum, 0.5)).r * 2.0;
+	hsv.y *= l_s_scale;
+	
+	float s_s_scale = texture(sat_vs_sat_curve, vec2(clamp(hsv.y, 0.0, 1.0), 0.5)).r * 2.0;
+	hsv.y *= s_s_scale;
+	
+	float s_l_scale = texture(sat_vs_lum_curve, vec2(clamp(hsv.y, 0.0, 1.0), 0.5)).r * 2.0;
+	hsv.z *= s_l_scale;
+	
+	hsv.y = clamp(hsv.y, 0.0, 1.0);
+	hsv.z = clamp(hsv.z, 0.0, 1.0);
+	
+	COLOR = vec4(hsv2rgb(hsv), tex_color.a);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xrivr"]
+shader = SubResource("Shader_13qdw")
+
 [node name="PrototypeShader" type="Node2D" unique_id=1695768259]
 
 [node name="Display2D" type="Node2D" parent="." unique_id=673526309]
@@ -947,6 +994,7 @@ material = SubResource("ShaderMaterial_3k21i")
 texture = ExtResource("8_n0gsr")
 
 [node name="Image" type="Node2D" parent="." unique_id=1971762683]
+visible = false
 
 [node name="Basic" type="Node2D" parent="Image" unique_id=1693723572]
 
@@ -1148,10 +1196,8 @@ visible = false
 material = SubResource("ShaderMaterial_838q0")
 
 [node name="Color" type="Node2D" parent="." unique_id=272918997]
-visible = false
 
 [node name="ColorCorrection" type="Node2D" parent="Color" unique_id=1343180974]
-visible = false
 
 [node name="WhiteBalance" type="Sprite2D" parent="Color/ColorCorrection" unique_id=644170137]
 visible = false
@@ -1176,6 +1222,11 @@ scale = Vector2(0.5, 0.5)
 visible = false
 material = SubResource("ShaderMaterial_l6s8s")
 scale = Vector2(0.5, 0.5)
+
+[node name="Color" type="Sprite2D" parent="Color/ColorCorrection" unique_id=1181846639]
+material = SubResource("ShaderMaterial_xrivr")
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("37_efobh")
 
 [node name="ColorGrading" type="Node2D" parent="Color" unique_id=783011805]
 

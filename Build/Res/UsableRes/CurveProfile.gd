@@ -90,7 +90,7 @@ static func preset_linear(min_val: float = .0, max_val: float = 1., val_step: fl
 	return profile
 
 static func new_profile_with_ctrlr_sett(min_val: float = .0, max_val: float = 1., val_step: float = .01, min_domain: float = .0, max_domain: float = 256., domain_step: float = 1.,
-	zoom_min: float = .5, zoom_max: float = 5., val_snap_step: Vector2 = Vector2(.1, .2), domain_snap_step: Vector2 = Vector2(1., 8.)) -> CurveProfile:
+	zoom_min: float = .5, zoom_max: float = 5., val_snap_step: Vector2 = Vector2(.1, .2), domain_snap_step: Vector2 = Vector2(1., 10.)) -> CurveProfile:
 	
 	var curve_profile:= CurveProfile.new()
 	ObjectServer.describe(curve_profile, {
@@ -104,7 +104,7 @@ static func new_profile_with_ctrlr_sett(min_val: float = .0, max_val: float = 1.
 	})
 	return curve_profile
 
-func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+func _create_curve_controller() -> CurveController:
 	var curve_ctrlr:= CurveController.new()
 	curve_ctrlr.curves_profiles = [self]
 	
@@ -117,15 +117,18 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		draw_x_small_step = ctrlr_domain_snap_step.x, draw_x_big_step = ctrlr_domain_snap_step.y,
 		draw_y_small_step = ctrlr_val_snap_step.x, draw_y_big_step = ctrlr_val_snap_step.y
 	})
-	
+	return curve_ctrlr
+
+func _get_exported_props() -> Dictionary[StringName, Dictionary]:
+	var curve_ctrlr: CurveController = _create_curve_controller()
 	curve_ctrlr.custom_minimum_size.y = 220.
 	
 	return {
 		&"curve_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [curve_ctrlr]),
 	}
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controllers: Dictionary[StringName, Control]) -> void:
-	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
+func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
+	var ress_shared: Array[UsableRes] = EditorServer.usable_ress_editors_get_shared_ress_with_idx(self, 0).duplicate()
 	ress_shared.erase(self)
 	self.res_changed.connect(
 		func() -> void:
@@ -358,13 +361,19 @@ func update_profile() -> void:
 	
 	emit_res_changed()
 
-# works only when keys start from .0 and ended to ctrlr_max_domain.
-func create_image_texture() -> ImageTexture:
-	var image: Image = Image.create_empty(ctrlr_max_domain, 1, false, Image.FORMAT_L8)
-	for x: int in ctrlr_max_domain:
-		var y: float = sample_func.call(x)
-		image.set_pixel(x, 0, Color(y, y, y))
+
+func create_image_texture(texture_width: int = 512) -> ImageTexture:
+	var image: Image = Image.create_empty(texture_width, 1, false, Image.FORMAT_RF)
+	var domain_length: float = ctrlr_max_domain - ctrlr_min_domain
+	var max_idx: float = texture_width - 1
+	
+	for i: int in texture_width:
+		var sample_x: float = ctrlr_min_domain + (float(i) / max_idx) * domain_length
+		var y: float = sample(sample_x)
+		image.set_pixel(i, 0, Color(y, y, y))
+	
 	return ImageTexture.create_from_image(image)
+
 
 func duplicate_profile() -> CurveProfile:
 	var new_keys: Dictionary[int, CurveKey] = duplicate_keys()

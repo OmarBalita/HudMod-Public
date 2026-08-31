@@ -28,7 +28,7 @@ func until_ready() -> void:
 
 func emit_res_changed() -> void:
 	super()
-	update_parent()
+	PlaybackServer.seek_here()
 
 func get_owner() -> MediaClipRes:
 	return owner
@@ -95,9 +95,6 @@ func _exit() -> void:
 func _delete() -> void:
 	_exit()
 
-func update_parent() -> void:
-	if owner: owner.update()
-
 func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	super(property_key, property_val)
 	if not owner.has_animation(self, property_key): return
@@ -149,9 +146,19 @@ func submit_stacked_values(stacked_values: Dictionary[StringName, Variant]) -> v
 	for key: StringName in stacked_values:
 		owner.add_stacked_value(key, stacked_values[key], method_type)
 
-func owner_update_my_controller(frame: int) -> void:
-	owner.update_specific_controllers_by_animations(self, frame)
-
 func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true) -> void:
 	owner.request_animation_keyframe(usable_res, property_key, property_val, frame, can_remove)
+
+
+#static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], custom_exported_props: Dictionary[StringName, Dictionary] = {}, search_line_edit: LineEdit = null) -> EditContainer:
+	#var custom_edit: EditContainer = super(name, usable_res, usable_ress, custom_exported_props, search_line_edit)
+	#var update_edit_cont_method: Callable = update_custom_edit.bind(usable_res, custom_edit.idx)
+	#PlaybackServer.position_changed.connect(update_edit_cont_method)
+	#return custom_edit
+#
+#static func update_custom_edit(usable_res: UsableRes, idx: int) -> void:
+	#pass
+
+
+
 

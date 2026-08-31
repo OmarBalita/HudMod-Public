@@ -121,11 +121,6 @@ func _gizmos_input(event: InputEvent, info: Dictionary[StringName, Variant]) -> 
 			
 			if info.get(&"is_dragging", false):
 				_apply_edit_mode(canvas_item, edit_mode, event, info)
-				process_here()
-				
-				for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
-					if clip_res is not Display2DClipRes: continue
-					clip_res.update_controllers(clip_res.get_canvas_item_comp(), curr_frame)
 			
 			else:
 				var event_pos_delta: Vector2 = event.position - button_event.position
@@ -288,12 +283,15 @@ func _apply_corner_scale(canvas_item: CompCanvasItem, world_pos: Vector2, event:
 	var size_half_initial: Vector2 = info.get(&"size_half_initial")
 	var scale_initial: Vector2 = info.get(&"scale_initial")
 	
-	var target_scale_x: float = scale_initial.x * (absf(local_now.x) / maxf(absf(size_half_initial.x), .001))
-	var target_scale_y: float = scale_initial.y * (absf(local_now.y) / maxf(absf(size_half_initial.y), .001))
+	var factor_x: float = absf(local_now.x) / maxf(absf(size_half_initial.x), .001)
+	var factor_y: float = absf(local_now.y) / maxf(absf(size_half_initial.y), .001)
 	var target_scale: Vector2
 	
-	if event.shift_pressed: target_scale = Vector2(target_scale_x, target_scale_y)
-	else: target_scale = Vector2.ONE * maxf(target_scale_x, target_scale_y)
+	if event.shift_pressed:
+		target_scale = Vector2(scale_initial.x * factor_x, scale_initial.y * factor_y)
+	else:
+		var factor: float = maxf(factor_x, factor_y)
+		target_scale = scale_initial * factor
 	
 	var scale_ratio: Vector2 = Vector2(
 		target_scale.x / maxf(absf(scale_initial.x), .001) * sign(scale_initial.x if scale_initial.x != 0 else 1.0),
@@ -517,9 +515,6 @@ func enter(node: Node) -> void:
 	curr_node.material = post_shader_material
 	if ppsm: ppr = RenderFarm.pingpong_renderer_init(self)
 	super(node)
-
-func _process_comps(frame: int) -> void:
-	super(frame)
 
 func _after_process_comps(frame: int) -> void:
 	await process_material(frame)

@@ -84,7 +84,8 @@ var drawable_rect: DrawableRect
 var global_controls: Dictionary[Window, Control]
 
 var full_screen_requested: Array[int] # instance ids
-var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
+#var usable_ress_controllers: Dictionary[UsableRes, Dictionary]
+var usable_ress_editors: Dictionary[UsableRes, Array]
 var media_clips_focused: Array[MediaServer.ClipPanel]
 var graph_editors_focused: Array[CurveController]
 
@@ -129,6 +130,8 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	
 	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
 	ProjectServer2.project_launched.connect(_on_project_server2_project_launched)
+	
+	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
 	
 	var launch_args: PackedStringArray = OS.get_cmdline_user_args()
 	var launch_project_path: String = launch_args[0].simplify_path() if launch_args.size() > 0 else ""
@@ -241,58 +244,145 @@ func layers_body_shortcut_node_cond_func() -> bool:
 # Controllers Handling
 # ---------------------------------------------------
 
-func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_cont: EditContainer, properties_containers: Dictionary[StringName, Control], ui_profile: UIProfile) -> void:
-	usable_ress_controllers[usable_res] = {
-		&"usable_ress": usable_ress,
+func usable_ress_editors_make_port_absolute(usable_res_as_port_key: UsableRes) -> Array[Dictionary]:
+	return usable_ress_editors.get_or_add(usable_res_as_port_key, [] as Array[Dictionary])
+
+func usable_ress_editors_register_editor(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_cont: EditContainer, props_edits_conts: Dictionary[StringName, Control], ui_profile: UIProfile) -> int:
+	var port: Array[Dictionary] = usable_ress_editors_make_port_absolute(usable_res)
+	
+	var idx: int = port.size()
+	
+	var editor_info: Dictionary[StringName, Variant] = {
+		&"shared_ress": usable_ress,
 		&"edit_cont": edit_cont,
-		&"properties_boxes_containers": properties_containers,
+		&"props_edits_conts": props_edits_conts,
 		&"ui_profile": ui_profile
 	}
+	port.append(editor_info)
+	
+	edit_cont.tree_exited.connect(_usable_ress_editors_deregister_editor_by_editor_info.bind(usable_res, editor_info))
+	
+	usable_res._custom_editor_spawned(edit_cont, props_edits_conts)
+	
+	return idx
 
-func has_usable_res_controllers(usable_res: UsableRes) -> bool:
-	if usable_ress_controllers.has(usable_res):
-		if usable_ress_controllers[usable_res].edit_cont:
-			return true
-		usable_ress_controllers.erase(usable_res)
-	return false
+func _usable_ress_editors_deregister_editor_by_editor_info(usable_res: UsableRes, editor_info: Dictionary[StringName, Variant]) -> void:
+	
+	var port: Array[Dictionary] = usable_ress_editors_get_editors(usable_res)
+	
+	var idx: int = port.find_custom(
+		func(element: Dictionary[StringName, Variant]) -> bool:
+			return is_same(element, editor_info)
+	)
+	
+	if idx == -1: return
+	port.remove_at(idx)
+	if port.is_empty():
+		usable_ress_editors.erase(usable_res)
 
-func clear_usable_res_controllers(usable_res: UsableRes) -> void:
-	usable_ress_controllers.erase(usable_res)
+func _usable_ress_editors_clear_previously_freed_instances(usable_res: UsableRes) -> void:
+	var indices_for_delete: PackedInt32Array
+	var editors: Array[Dictionary] = usable_ress_editors_get_editors(usable_res)
+	for idx: int in editors.size():
+		if not is_instance_valid(editors[idx].edit_cont):
+			indices_for_delete.append(idx)
+	indices_for_delete.reverse()
+	for idx: int in indices_for_delete:
+		editors.remove_at(idx)
 
-func get_usable_res_shared_ress(usable_res: UsableRes) -> Array[UsableRes]:
-	return usable_ress_controllers[usable_res].usable_ress
+func usable_ress_editors_has_port(usable_res_as_port_key: UsableRes) -> bool:
+	return usable_ress_editors.has(usable_res_as_port_key)
 
-func get_usable_res_main_edit(usable_res: UsableRes) -> EditContainer:
-	return usable_ress_controllers[usable_res].edit_cont
+func usable_ress_editors_has_editor_with_idx(usable_res: UsableRes, idx: int) -> bool:
+	return usable_ress_editors.has(usable_res) and usable_ress_editors[usable_res].size() > idx
 
-func get_usable_res_controllers(usable_res: UsableRes) -> Dictionary[StringName, Control]:
-	return usable_ress_controllers[usable_res].properties_boxes_containers
+func usable_ress_editors_get_editors(usable_res: UsableRes) -> Array[Dictionary]:
+	return usable_ress_editors[usable_res]
 
-func get_usable_res_ui_profile(usable_res: UsableRes) -> UIProfile:
-	return usable_ress_controllers[usable_res].ui_profile
+func usable_ress_editors_get_editor_info_with_idx(usable_res: UsableRes, idx: int) -> Dictionary:
+	return usable_ress_editors_get_editors(usable_res)[idx]
 
-func update_usable_res_ui_profile(usable_res: UsableRes) -> void:
-	get_usable_res_ui_profile(usable_res).update()
+func usable_ress_editors_get_shared_ress_with_idx(usable_res: UsableRes, idx: int) -> Array[UsableRes]:
+	return usable_ress_editors_get_editor_info_with_idx(usable_res, idx).shared_ress
 
-func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> Control:
-	if usable_ress_controllers.has(usable_res):
-		var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
-		var property_container: Variant = curr_properties_containers.get(property_key)
-		if not is_instance_valid(property_container):
-			return null
-		return property_container
-	return null
+func usable_ress_editors_get_edit_cont_with_idx(usable_res: UsableRes, idx: int) -> EditContainer:
+	var edit_cont: Variant = usable_ress_editors_get_editor_info_with_idx(usable_res, idx).edit_cont
+	if not is_instance_valid(edit_cont): return null
+	return edit_cont
 
-func update_usable_res_property_controller(usable_res: UsableRes, property_key: StringName, new_val: Variant, has_keyframe: bool) -> void:
-	var property_container: EditContainer = get_usable_res_property_controller(usable_res, property_key)
-	if property_container:
-		property_container.set_curr_value_manually(new_val)
-		property_container.set_controller_curr_value_manually(new_val)
-		property_container.set_keyframe_method(int(has_keyframe))
+func usable_ress_editors_get_props_edits_conts(usable_res: UsableRes, idx: int) -> Dictionary[StringName, Control]:
+	return usable_ress_editors_get_editor_info_with_idx(usable_res, idx).props_edits_conts
 
-func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, property_key: StringName, has_keyframe: bool) -> void:
-	var property_container:= get_usable_res_property_controller(usable_res, property_key)
-	if property_container: property_container.set_keyframe_method(int(has_keyframe))
+func usable_ress_editors_get_ui_profile(usable_res: UsableRes, idx) -> UIProfile:
+	return usable_ress_editors_get_editor_info_with_idx(usable_res, idx).ui_profile
+
+func usable_ress_editors_get_prop_edit_cont(usable_res: UsableRes, idx: int, prop_key: StringName) -> Control:
+	return usable_ress_editors_get_props_edits_conts(usable_res, idx).get(prop_key)
+
+func usable_ress_editors_update_prop_edits_conts(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, prop_keyframe_method: EditContainer.KeyframeMethod) -> void:
+	for prop_info: Dictionary in usable_ress_editors_get_editors(usable_res):
+		var prop_edit_cont: Variant = prop_info.props_edits_conts.get(prop_key)
+		if prop_edit_cont == null or not is_instance_valid(prop_edit_cont): continue
+		prop_edit_cont = prop_edit_cont as EditContainer
+		prop_edit_cont.set_curr_value_manually(prop_val)
+		prop_edit_cont.set_controller_curr_value_manually(prop_val)
+		prop_edit_cont.set_keyframe_method(prop_keyframe_method)
+
+
+#func set_usable_res_controllers(usable_res: UsableRes, usable_ress: Array[UsableRes], edit_cont: EditContainer, properties_containers: Dictionary[StringName, Control], ui_profile: UIProfile) -> void:
+	#usable_ress_controllers[usable_res] = {
+		#&"usable_ress": usable_ress,
+		#&"edit_cont": edit_cont,
+		#&"properties_boxes_containers": properties_containers,
+		#&"ui_profile": ui_profile
+	#}
+#
+#func has_usable_res_controllers(usable_res: UsableRes) -> bool:
+	#if usable_ress_controllers.has(usable_res):
+		#if usable_ress_controllers[usable_res].edit_cont:
+			#return true
+		#usable_ress_controllers.erase(usable_res)
+	#return false
+#
+#func clear_usable_res_controllers(usable_res: UsableRes) -> void:
+	#usable_ress_controllers.erase(usable_res)
+#
+#func get_usable_res_shared_ress(usable_res: UsableRes) -> Array[UsableRes]:
+	#return usable_ress_controllers[usable_res].usable_ress
+#
+#func get_usable_res_main_edit(usable_res: UsableRes) -> EditContainer:
+	#return usable_ress_controllers[usable_res].edit_cont
+#
+#func get_usable_res_controllers(usable_res: UsableRes) -> Dictionary[StringName, Control]:
+	#return usable_ress_controllers[usable_res].properties_boxes_containers
+#
+#func get_usable_res_ui_profile(usable_res: UsableRes) -> UIProfile:
+	#return usable_ress_controllers[usable_res].ui_profile
+#
+#func update_usable_res_ui_profile(usable_res: UsableRes) -> void:
+	#get_usable_res_ui_profile(usable_res).update()
+#
+#func get_usable_res_property_controller(usable_res: UsableRes, property_key: StringName) -> Control:
+	#if usable_ress_controllers.has(usable_res):
+		#var curr_properties_containers: Dictionary = usable_ress_controllers[usable_res].properties_boxes_containers
+		#var property_container: Variant = curr_properties_containers.get(property_key)
+		#if not is_instance_valid(property_container):
+			#return null
+		#return property_container
+	#return null
+#
+#func update_usable_res_property_controller(usable_res: UsableRes, property_key: StringName, new_val: Variant, has_keyframe: bool) -> void:
+	#var property_container: EditContainer = get_usable_res_property_controller(usable_res, property_key)
+	#if property_container:
+		#property_container.set_curr_value_manually(new_val)
+		#property_container.set_controller_curr_value_manually(new_val)
+		#property_container.set_keyframe_method(int(has_keyframe))
+#
+#func set_usable_res_property_controller_keyframe_method(usable_res: UsableRes, property_key: StringName, has_keyframe: bool) -> void:
+	#var property_container:= get_usable_res_property_controller(usable_res, property_key)
+	#if property_container: property_container.set_keyframe_method(int(has_keyframe))
+
+
 
 
 func toggle_fullscreen() -> void:
@@ -378,6 +468,7 @@ func create_presets(presets: Array[MediaClipRes], global: bool = false) -> Packe
 	for preset_media_res: MediaClipRes in presets:
 		var id: String = StringHelper.generate_new_id(used_ids, 12)
 		var save_path: String = str(target_path, id, ".res")
+		ResourceSaver.save(preset_media_res, save_path)
 		used_ids.append(id)
 		save_paths.append(save_path)
 	return save_paths
@@ -979,7 +1070,7 @@ func popup_editor_settings() -> void:
 		var sett_split_cont: SplitContainer = IS.create_split_container(2, true)
 		var search_line: LineEdit = IS.create_line_edit("Filter Settings", "", IS.TEXTURE_SEARCH)
 		var scroll_cont: ScrollContainer = IS.create_scroll_container()
-		var idx_settings_edit: EditContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], search_line)
+		var idx_settings_edit: EditContainer = UsableRes.create_custom_edit(settings_options[idx].text, idx_settings, [], {}, search_line)
 		idx_settings_edit.show()
 		
 		sett_split_cont.add_child(search_line)
@@ -989,18 +1080,19 @@ func popup_editor_settings() -> void:
 		
 		right_margin.add_child(sett_split_cont)
 		
-		IS.expand(idx_settings_edit, true, true)
+		IS.expand(idx_settings_edit, true)
 		
 		arr_of_editors.append(idx_settings_edit)
 	
 	var app_shortcut_res_edit: EditContainer = arr_of_editors[2]
 	var shortcuts_cont: BoxContainer = app_shortcut_res_edit.controller
-	var shortcut_ctrlr: AppShortcutsRes.ShortcutsCommandsContainer = get_usable_res_property_controller(settings.shortcuts, &"Shortcuts")
+	
 	var commands_search_line: LineEdit = IS.create_line_edit("Filter Shortcuts", "", null)
 	
 	shortcuts_cont.add_child(commands_search_line)
 	shortcuts_cont.move_child(commands_search_line, 0)
 	
+	var shortcut_ctrlr: AppShortcutsRes.ShortcutsCommandsContainer = usable_ress_editors_get_prop_edit_cont(settings.shortcuts, 0, &"Shortcuts")
 	commands_search_line.text_changed.connect(shortcut_ctrlr.filter)
 	
 	left_menu.buttons_container.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -1129,7 +1221,7 @@ func update_from_edit_settings() -> void:
 		auto_save(auto_save_id)
 
 func update_from_performance_settings() -> void:
-	Scene2.update_viewport()
+	Scene2.update_viewport(render_properties.video_render_profile.resolution)
 	RenderFarm.update_pprs()
 	MediaCache.video_contexts_clear_video_decoders()
 	MediaCache.video_contexts_clear_frames()
@@ -1167,6 +1259,15 @@ func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 func _on_project_server2_project_launched(project_path: String) -> void:
 	if version_window: version_window.close_requested.emit()
 
+func _on_playback_server_position_changed(position: int) -> void:
+	
+	for usable_res: UsableRes in usable_ress_editors:
+		if usable_res is not MediaClipRes: continue
+		usable_res = usable_res as MediaClipRes
+		usable_res.update_editors(position - usable_res.clip_pos)
+
+
+
 func _on_popup_menu_recent_id_pressed(id: int) -> void:
 	popup_save_option_or_save(
 		func() -> void:
@@ -1200,13 +1301,15 @@ func _on_window_focus_entered() -> void:
 	
 	_try_scan_media_existent()
 	
+	const TEX_CONTENT = preload("uid://2uh4eukf86ou")
+	
 	while DisplayServer.mouse_get_button_state():
 		drawable_rect.clear_drawn_entities()
 		
 		var rect_size: Vector2 = Vector2(200., 200.)
 		var rect: Rect2 = Rect2(get_window().get_mouse_position() - rect_size / 2., rect_size)
 		drawable_rect.draw_new_dashed_theme_rect(rect, Color.GRAY)
-		drawable_rect._draw_new_texture_rect(preload("uid://01m8qtkgd28i"), rect, false)
+		drawable_rect._draw_new_texture_rect(TEX_CONTENT, rect, false)
 		
 		await get_tree().process_frame
 	
@@ -1219,3 +1322,11 @@ func _try_scan_media_existent() -> void:
 
 func _on_window_files_dropped(files_pathes: Array[String]) -> void:
 	if not ProjectServer2.is_project_loaded: return
+	media_explorer.import_box.load_files(files_pathes)
+
+
+
+
+
+
+

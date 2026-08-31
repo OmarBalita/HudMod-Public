@@ -40,6 +40,8 @@ signal hidden_changed(to: bool)
 		
 		if displayed_clip_res and displayed_clip_res is Display2DClipRes:
 			(displayed_clip_res.curr_node as CanvasItem).visible = not hidden
+		
+		PlaybackServer.seek_here()
 
 @export_group("Customization", "custom")
 @export var custom_name: StringName

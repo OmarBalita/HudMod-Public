@@ -10,6 +10,12 @@ vec3 rgb2hsv(vec3 tex) {
 	return vec3(abs(q.z + (q.w - q.y) / (6. * d + e)), d / (q.x + e), q.x);
 }
 
+vec3 hsv2rgb(vec3 c) {
+	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - 3.0);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 vec3 apply_lum_desaturation(vec3 color, float factor,float factor2)
 {
 	float w = color.x+color.y+color.z;

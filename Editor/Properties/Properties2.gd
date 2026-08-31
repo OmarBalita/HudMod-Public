@@ -234,10 +234,10 @@ func set_component_enabled(comp_info: ComponentInfo) -> void:
 	ProjectServer2.commit_action("set_component_enabled", do_method, undo_method)
 
 func _update_comp_editor_header_ui(comp_res: ComponentRes) -> void:
-	if not EditorServer.has_usable_res_controllers(comp_res):
-		return
 	
-	var edit_cont: EditContainer = EditorServer.get_usable_res_main_edit(comp_res)
+	var edit_cont: EditContainer = EditorServer.usable_ress_editors_get_edit_cont_with_idx(comp_res, 0)
+	if edit_cont == null: return
+	
 	var header_ctrlrs: Dictionary[StringName, Control] = edit_cont.get_meta(&"header_ctrlrs")
 	
 	if header_ctrlrs.has(&"method_type"):
@@ -524,9 +524,9 @@ func _display_section_components(section_key: StringName, free_latest_display: b
 	
 	var usable_ress: Array[UsableRes]
 	for media_res: MediaClipRes in curr_clip_ress: usable_ress.append(media_res)
-	var mediares_edit_cont: EditContainer = curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, search_line_edit)
+	var mediares_edit_cont: EditContainer = curr_focused_media_res.create_custom_edit(main_classname, curr_focused_media_res, usable_ress, {}, search_line_edit)
 	
-	_connect_and_update_usable_ress_controller(curr_focused_media_res, curr_focused_media_res, mediares_edit_cont)
+	#_connect_and_update_usable_ress_controller(curr_focused_media_res, curr_focused_media_res, mediares_edit_cont)
 	
 	header_cont.add_child(mediares_edit_cont)
 
@@ -537,12 +537,11 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	if not comp_res_owner.res_changed.is_connected(property_changed.emit):
 		comp_res_owner.res_changed.connect(property_changed.emit)
 	
-	var comp_editor: EditContainer = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, curr_section_controls.search_line)
+	var comp_editor: EditContainer = ComponentRes.create_custom_edit(comp_info.component_res_id, comp_res_owner, comp_info.components_ress, {}, curr_section_controls.search_line)
 	var editor_header: BoxContainer = comp_editor.header_cont
 	
 	comp_editor.set_meta(&"component_res", comp_res_owner)
 	comp_editor.keyframable = false
-	
 	
 	if not comp_res_owner.get_forced():
 		
@@ -560,13 +559,14 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 				update_component_method(section_key, comp_info, id))
 			editor_header.add_child(method_controller)
 			header_ctrlrs[&"method_type"] = method_controller
-
-		if comp_res_owner.is_support_custom_exported_props():
-			var specific_edit_button: IS.CustomTextureButton = IS.create_texture_button(texture_custom_edit, null, null, "Open specific editor")
-			specific_edit_button.pressed.connect(_on_component_specific_edit_button_pressed.bind(comp_info))
-			editor_header.add_child(specific_edit_button)
-			editor_header.add_child(IS.create_v_line_panel())
-			header_ctrlrs[&"specific_edit"] = specific_edit_button
+		
+		if comp_res_owner is ShaderComponentRes:
+			if comp_res_owner.has_color_correction_editor():
+				var specific_edit_button: IS.CustomTextureButton = IS.create_texture_button(texture_custom_edit, null, null, "Open specific editor")
+				specific_edit_button.pressed.connect(_on_component_specific_edit_button_pressed.bind(comp_info))
+				editor_header.add_child(specific_edit_button)
+				editor_header.add_child(IS.create_v_line_panel())
+				header_ctrlrs[&"specific_edit"] = specific_edit_button
 		
 		var enable_button: IS.CustomTextureButton = IS.create_texture_button(texture_enable, null, texture_disable, "Enable / Disable", true)
 		enable_button.button_pressed = not comp_res_owner.enabled
@@ -590,27 +590,28 @@ func _spawn_component_controller(section_key: StringName, comp_info: ComponentIn
 	
 	curr_section_controls.box.add_child(comp_editor)
 	
-	_connect_and_update_usable_ress_controller(comp_res_owner, comp_res_owner.get_owner(), comp_editor)
+	#_connect_and_update_usable_ress_controller(comp_res_owner, comp_res_owner.get_owner(), comp_editor)
 
 func _on_component_specific_edit_button_pressed(comp_info: ComponentInfo) -> void:
-	var editor_cont: EditorControl
 	if comp_info.component_res_owner is SnippetShaderComponentRes:
-		editor_cont = EditorServer.color_correction_editor
-	
-	if editor_cont == null: return
-	if not editor_cont.is_visible_in_tree(): editor_cont.header_panel.to_window(null, false)
-	editor_cont.curr_focused_comp_info = comp_info
+		var color_corr_editor: ColorCorrectionEditor = EditorServer.color_correction_editor
+		
+		if not color_corr_editor.is_visible_in_tree():
+			color_corr_editor.header_panel.to_window(null, false)
+		
+		var header_menu: Menu = color_corr_editor.header_menu
+		header_menu.set_focus_index(color_corr_editor.curr_color_comps_info.find(comp_info))
 
-func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_clip_res: MediaClipRes, edit_cont: EditContainer) -> void:
-	var update_usable_ress_func: Callable = _get_update_usable_ress_controller_method(usable_res, owner_as_clip_res)
-	update_usable_ress_func.call(PlaybackServer.position)
-	PlaybackServer.position_changed.connect(update_usable_ress_func)
-	edit_cont.tree_exited.connect(func() -> void: PlaybackServer.position_changed.disconnect(update_usable_ress_func))
-
-func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
-	return func(new_frame: int) -> void:
-		var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
-		owner_as_clip_res.update_specific_controllers_by_animations(usable_res, new_frame)
+#func _connect_and_update_usable_ress_controller(usable_res: UsableRes, owner_as_clip_res: MediaClipRes, edit_cont: EditContainer) -> void:
+	#var update_usable_ress_func: Callable = _get_update_usable_ress_controller_method(usable_res, owner_as_clip_res)
+	#update_usable_ress_func.call(PlaybackServer.position)
+	#PlaybackServer.position_changed.connect(update_usable_ress_func)
+	#edit_cont.tree_exited.connect(PlaybackServer.position_changed.disconnect.bind(update_usable_ress_func))
+#
+#func _get_update_usable_ress_controller_method(usable_res: UsableRes, owner_as_clip_res: MediaClipRes) -> Callable:
+	#return func(new_frame: int) -> void:
+		#var new_local_frame: int = clampi(new_frame - owner_as_clip_res.clip_pos, 0, owner_as_clip_res.length)
+		#owner_as_clip_res.update_specific_editors_by_animations(usable_res, new_frame)
 
 
 func _update_notification_label() -> String:

@@ -756,12 +756,15 @@ func create_float_controller(curr_val: float, min_val: float, max_val: float, st
 	ObjectServer.describe(float_controller, more)
 	return float_controller
 
-func create_vec2_controller(curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0, more: Dictionary = {}) -> Vector2Controller:
+func create_vec2_controller(curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0, xminmax:= Vector2(-INF, INF), yminmax:= Vector2(-INF, INF), more: Dictionary = {}) -> Vector2Controller:
 	var vec2_controller:= Vector2Controller.new()
 	vec2_controller.curr_val = curr_val
 	vec2_controller.has_lock_button = has_lock_button
 	vec2_controller.x_edit.is_int = is_int
 	vec2_controller.y_edit.is_int = is_int
+	vec2_controller.x_edit.min_val = xminmax.x; vec2_controller.x_edit.max_val = xminmax.y
+	vec2_controller.y_edit.min_val = yminmax.x; vec2_controller.y_edit.max_val = yminmax.y
+	vec2_controller.y_edit
 	if is_int:
 		vec2_controller.x_edit.step = 1; vec2_controller.x_edit.spin_scale = 10
 		vec2_controller.y_edit.step = 1; vec2_controller.y_edit.spin_scale = 10
@@ -769,9 +772,12 @@ func create_vec2_controller(curr_val: Vector2, is_int: int, has_lock_button: boo
 	ObjectServer.describe(vec2_controller, more)
 	return vec2_controller
 
-func create_vec3_controller(curr_val: Vector3, suffix: FloatController.SuffixType = 0) -> Vector3Controller:
+func create_vec3_controller(curr_val: Vector3, suffix: FloatController.SuffixType = 0, xminmax:= Vector2(-INF, INF), yminmax:= Vector2(-INF, INF), zminmax:= Vector2(-INF, INF)) -> Vector3Controller:
 	var vec3_controller:= Vector3Controller.new()
 	vec3_controller.curr_val = curr_val
+	vec3_controller.x_edit.min_val = xminmax.x; vec3_controller.x_edit.max_val = xminmax.y
+	vec3_controller.y_edit.min_val = yminmax.x; vec3_controller.y_edit.max_val = yminmax.y
+	vec3_controller.z_edit.min_val = zminmax.x; vec3_controller.z_edit.max_val = zminmax.y
 	vec3_controller.set_suffix(suffix)
 	return vec3_controller
 
@@ -875,6 +881,7 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 		
 		edit_cont.controller = text_edit
 		edit_cont.method_set = text_edit.set_text
+		edit_cont.method_set_manually = text_edit.set_text_manually
 		
 		text_edit.editable = editable
 		
@@ -887,6 +894,9 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 		
 		edit_cont.controller = line_edit
 		edit_cont.method_set = line_edit.set_text
+		edit_cont.method_set_manually = func(new_text: String) -> void:
+			if line_edit.has_focus(): return
+			line_edit.set_text(new_text)
 		
 		line_edit.text_changed.connect(edit_cont.set_curr_value)
 		
@@ -979,9 +989,9 @@ func create_float_edit(name: String, val: float, min: float = -INF, max: float =
 	
 	return edit_cont
 
-func create_vec2_edit(name: String, curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0) -> EditContainer:
+func create_vec2_edit(name: String, curr_val: Vector2, is_int: int, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0, xminmax:= Vector2(-INF, INF), yminmax:= Vector2(-INF, INF)) -> EditContainer:
 	var edit_cont: EditContainer = create_edit_cont(name, false)
-	var vec2_controller: Vector2Controller = create_vec2_controller(curr_val, is_int, has_lock_button, suffix)
+	var vec2_controller: Vector2Controller = create_vec2_controller(curr_val, is_int, has_lock_button, suffix, xminmax, yminmax, {})
 	edit_cont.add_child(vec2_controller)
 	expand(vec2_controller)
 	
@@ -993,9 +1003,9 @@ func create_vec2_edit(name: String, curr_val: Vector2, is_int: int, has_lock_but
 	
 	return edit_cont
 
-func create_vec3_edit(name: String, curr_val: Vector3, suffix: FloatController.SuffixType = 0) -> EditContainer:
+func create_vec3_edit(name: String, curr_val: Vector3, suffix: FloatController.SuffixType = 0, xminmax:= Vector2(-INF, INF), yminmax:= Vector2(-INF, INF), zminmax:= Vector2(-INF, INF)) -> EditContainer:
 	var edit_cont: EditContainer = create_edit_cont(name, false)
-	var vec3_controller: Vector3Controller = create_vec3_controller(curr_val, suffix)
+	var vec3_controller: Vector3Controller = create_vec3_controller(curr_val, suffix, xminmax, yminmax, zminmax)
 	edit_cont.add_child(vec3_controller)
 	expand(vec3_controller)
 	

@@ -72,7 +72,7 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	}
 
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+func _custom_editor_spawned(edit_cont: EditContainer, props_edits: Dictionary[StringName, Control]) -> void:
 	_try_update_editor()
 
 func _on_clip_media_res_val_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
@@ -155,7 +155,7 @@ func _on_component_search_button_pressed() -> void:
 
 func _on_component_selected(comp: ComponentRes) -> void:
 	
-	var shared_ress: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self)
+	var shared_ress: Array[UsableRes] = EditorServer.usable_ress_editors_get_shared_ress_with_idx(self, 0)
 	
 	for res: ComponentPath in shared_ress:
 		res.clip.media_res = clip.media_res
@@ -165,12 +165,12 @@ func _on_component_selected(comp: ComponentRes) -> void:
 
 func _try_update_editor() -> void:
 	
-	if not EditorServer.has_usable_res_controllers(self):
+	if not EditorServer.usable_ress_editors_has_editor_with_idx(self, 0):
 		return
 	
-	EditorServer.update_usable_res_ui_profile(self)
+	EditorServer.usable_ress_editors_get_ui_profile(self, 0).update()
 	
-	var comp_control: BoxContainer = EditorServer.get_usable_res_property_controller(self, &"Component")
+	var comp_control: BoxContainer = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"Component")
 	var line: LineEdit = comp_control.get_child(0)
 	
 	if component:

@@ -39,8 +39,8 @@ var curr_val: Vector2:
 			x_edit.set_curr_val_manually(val.x)
 			y_edit.set_curr_val_manually(val.y)
 
-var is_locked: bool = false
-var aspact_retio: float = 1.
+var is_locked: bool
+
 
 func _ready() -> void:
 	IS.describe_box_container(self, 6, true)
@@ -52,11 +52,11 @@ func _ready() -> void:
 	if has_lock_button:
 		is_locked = true
 		lock_button = IS.create_texture_button(
-			locked_icon, 
-			locked_icon, 
-			locked_icon, 
-			"Lock X and Y values", 
-			true, 
+			locked_icon,
+			locked_icon,
+			locked_icon,
+			"Lock X and Y values",
+			true,
 			{custom_minimum_size = Vector2(32.0, 32.0)}
 		)
 		lock_button.button_pressed = true
@@ -89,22 +89,23 @@ func set_suffix(type: FloatController.SuffixType, color: Color = Color(IS.color_
 	y_edit.set_suffix_by_type(type, color)
 
 func _on_x_edit_val_changed(new_val: float) -> void:
-	if is_locked: set_curr_val(Vector2(new_val, new_val / aspact_retio))
+	if is_locked:
+		var aspect_ratio: float = curr_val.x / curr_val.y
+		set_curr_val(Vector2(new_val, new_val / aspect_ratio))
 	else: set_curr_val(Vector2(new_val, y_edit.curr_val))
 
 func _on_y_edit_val_changed(new_val: float) -> void:
-	if is_locked: set_curr_val(Vector2(new_val * aspact_retio, new_val))
+	if is_locked:
+		var aspect_ratio: float = curr_val.x / curr_val.y
+		set_curr_val(Vector2(new_val * aspect_ratio, new_val))
 	else: set_curr_val(Vector2(x_edit.curr_val, new_val))
 
 func _on_lock_toggled(toggled_on: bool) -> void:
 	is_locked = toggled_on
 	var target_icon: Texture2D = locked_icon if is_locked else unlocked_icon
-
+	
 	lock_button.texture_normal = target_icon
 	lock_button.texture_hover = target_icon
-	
-	if is_locked:
-		aspact_retio = curr_val.x / curr_val.y
 
 func set_curr_val(new_val: Vector2) -> void:
 	curr_val = new_val

@@ -36,3 +36,9 @@ func line_col_to_index(line: int, col: int) -> int:
 	for line_index: int in line:
 		index += get_line(line_index).length() + 1
 	return index + col
+
+func set_text_manually(new_text: String) -> void:
+	if has_focus(): return
+	set_text(new_text)
+
+

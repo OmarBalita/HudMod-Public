@@ -45,14 +45,14 @@ static var presets: Dictionary[ColorPreset, Array] = {
 	set(val):
 		color_preset = val
 		_update_local_colors()
-		update_colors()
+		update_colors.call_deferred()
 
 @export var base_color: Color:
-	set(val): base_color = val; update_colors()
+	set(val): base_color = val; update_colors.call_deferred()
 @export var accent_color: Color:
-	set(val): accent_color = val; update_colors()
+	set(val): accent_color = val; update_colors.call_deferred()
 @export_range(-1., 1.) var contrast: float = .2:
-	set(val): contrast = val; update_colors()
+	set(val): contrast = val; update_colors.call_deferred()
 
 func _init() -> void:
 	_update_local_colors()
@@ -68,13 +68,13 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"contrast": export(float_args(contrast, -1., 1., .05, .01, .1), is_custom_cond)
 	}
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
-	props_controls.base_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
-	props_controls.accent_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
+func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
+	props_editors.base_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
+	props_editors.accent_color.controller.color_controller_popup_type = ColorButton.PopupType.POPUP_TYPE_WINDOWED
 
 func _try_update_ctrlrs() -> void:
-	if EditorServer and EditorServer.has_usable_res_controllers(self):
-		var controllers: Dictionary[StringName, Control] = EditorServer.get_usable_res_controllers(self)
+	if EditorServer and EditorServer.usable_ress_editors_has_editor_with_idx(self, 0):
+		var controllers: Dictionary[StringName, Control] = EditorServer.usable_ress_editors_get_props_edits_conts(self, 0)
 		controllers.base_color.set_curr_value(base_color)
 		controllers.accent_color.set_curr_value(accent_color)
 		controllers.contrast.set_curr_value(contrast)

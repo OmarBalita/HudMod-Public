@@ -34,10 +34,8 @@ var focus_index: int:
 		
 		if buttons_container:
 			var new_focus_button = buttons_container.get_child(val)
-			if focus_button:
-				IS.set_font_from_label_settings(focus_button, IS.label_settings_main)
-			if new_focus_button:
-				IS.set_font_from_label_settings(new_focus_button, IS.label_settings_header)
+			if focus_button: IS.set_font_from_label_settings(focus_button, IS.label_settings_main)
+			if new_focus_button: IS.set_font_from_label_settings(new_focus_button, IS.label_settings_header)
 			focus_button = new_focus_button
 			focus_button.button_pressed = true
 			

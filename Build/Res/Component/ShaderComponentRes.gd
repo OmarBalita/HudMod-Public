@@ -95,3 +95,9 @@ func set_shader_prop(prop_key: StringName, prop_val: Variant) -> void:
 func set_shader_props(props: Dictionary[StringName, Variant]) -> void:
 	for prop_key: StringName in props:
 		set_shader_prop(prop_key, props[prop_key])
+
+func has_color_correction_editor() -> bool: return false
+func _get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]: return {}
+
+
+

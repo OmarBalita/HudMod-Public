@@ -72,15 +72,15 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"path_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, method_custom_args(path_box)),
 	}
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
 	#var panel_container: PanelContainer = main_edit.get_child(0)
 	#panel_container.add_theme_stylebox_override(&"panel", IS.style_box_empty)
 	_try_update_editor()
 
 func _try_update_editor() -> void:
 	
-	if EditorServer.has_usable_res_controllers(self):
-		var path_edit: BoxContainer = EditorServer.get_usable_res_property_controller(self, &"path_ctrlr")
+	if EditorServer.usable_ress_editors_has_editor_with_idx(self, 0):
+		var path_edit: BoxContainer = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"path_ctrlr")
 		var path_line: LineEdit = path_edit.get_child(0)
 		
 		if media_res:
@@ -119,7 +119,7 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 		if media_clips_focused.size():
 			var target_res: MediaClipRes = media_clips_focused[0].clip_res
 			if cond_func.is_null() or cond_func.call(target_res):
-				for res: MediaClipResPath in EditorServer.get_usable_res_shared_ress(self):
+				for res: MediaClipResPath in EditorServer.usable_ress_editors_get_shared_ress_with_idx(self, 0):
 					res.media_res = target_res
 		
 		drawable_rect.clear_drawn_entities()

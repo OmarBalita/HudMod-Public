@@ -20,10 +20,9 @@ class_name CompAnimation extends ComponentRes
 	set(val):
 		image_frame = clamp(val, 0, hframes * vframes - 1)
 		
-		if EditorServer.has_usable_res_controllers(self):
-			var image_frame_edit: EditContainer = EditorServer.get_usable_res_property_controller(self, &"image_frame")
+		if EditorServer.usable_ress_editors_has_editor_with_idx(self, 0):
+			var image_frame_edit: EditContainer = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"image_frame")
 			image_frame_edit.set_curr_value(image_frame)
-			#image_frame_edit.set_controller_val_manually(image_frame)
 
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {

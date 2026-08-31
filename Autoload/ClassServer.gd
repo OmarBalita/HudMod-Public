@@ -190,7 +190,7 @@ func create_prop_editor(prop_name: StringName, prop_val: Variant, controller_arg
 			var nested_usable_ress: Array[UsableRes]
 			for usable_res: UsableRes in usable_ress:
 				nested_usable_ress.append(usable_res.get_prop(prop_name))
-			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress, search_line_edit)
+			return prop_val.create_custom_edit(prop_name, prop_val, nested_usable_ress, {} as Dictionary[StringName, Dictionary], search_line_edit)
 		return null
 	
 	else:

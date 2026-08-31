@@ -40,10 +40,8 @@ var curr_media_box: int:
 		curr_media_box = val
 		for index: int in body.get_child_count():
 			var control = body.get_child(index)
-			if index != curr_media_box:
-				control.hide()
-				continue
-			control.show()
+			control.visible = index == curr_media_box
+
 
 static var focused_cards: Array[MediaBox.MediaCard]
 

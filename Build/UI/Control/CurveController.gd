@@ -54,29 +54,29 @@ const CONTROL_KEY_SIZE_HALF := CONTROL_KEY_SIZE / 2.0
 		_init_curves_profiles()
 
 @export_group("Range")
-@export var min_val:	  float = -200.0
-@export var max_val:	  float =  200.0
-@export var val_step:	  float = .01
-@export var min_domain:   float = -100.0
-@export var max_domain:   float =  100.0
-@export var domain_step:  float = 1.0
+@export var min_val: float = -200.
+@export var max_val: float = 200.
+@export var val_step: float = .01
+@export var min_domain: float = -100.
+@export var max_domain: float = 100.
+@export var domain_step: float = 1.
 
 @export_group("Draw", "draw")
-@export var draw_cursor:	   bool  = false
-@export var draw_val_step:	   int	 = 1
-@export var draw_domain_step:  int	 = 1
+@export var draw_cursor: bool = false
+@export var draw_val_step: int = 1
+@export var draw_domain_step: int = 1
 @export var draw_select_color: Color = Color.ORANGE
 
 @export_group("Theme")
 @export_subgroup("Texture")
 @export var keyframe_texture: Texture2D = preload("res://Asset/Icons/keyframe.png")
-@export var lock_texture:	  Texture2D = preload("res://Asset/Icons/padlock.png")
-@export var unlock_texture:   Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
+@export var lock_texture: Texture2D = preload("res://Asset/Icons/padlock.png")
+@export var unlock_texture: Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
 @export_subgroup("Constant")
-@export var navigate_dist:	float = -10.0
+@export var navigate_dist: float = -10.0
 @export var navigate_speed: float = 100.0
-@export var zoom_min:		float = .5
-@export var zoom_max:		float = 5.
+@export var zoom_min: float = .5
+@export var zoom_max: float = 5.
 
 @export_group("Font")
 @export var font: Font = preload("res://Asset/Fonts/Cascadia.ttf")
@@ -94,9 +94,7 @@ var _keys_colors: Array[Color] = [
 
 var cursor_pos: float
 
-var keys_info: Array[Dictionary] = [
-	{v=true}, {v=true}, {v=true}, {v=true}
-]
+var keys_info: Array[Dictionary] = [{v=true}, {v=true}, {v=true}, {v=true}]
 
 var focused_keys_index: int = -1:
 	set(val):
@@ -770,10 +768,10 @@ func _draw() -> void:
 
 
 func _draw_grid() -> void:
-	var val_size:	 float = max_val - min_val
+	var val_size: float = max_val - min_val
 	var domain_size: float = max_domain - min_domain
 	
-	var y_offset:	   float = min_val - float(int(min_val) % draw_val_step)
+	var y_offset: float = min_val - float(int(min_val) % draw_val_step)
 	var y_displacement: float = y_offset - int(y_offset)
 	
 	if is_snapped:

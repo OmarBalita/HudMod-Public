@@ -89,7 +89,7 @@ func loop_props(method: Callable) -> void:
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {}
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
+func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
 	pass
 
 
@@ -98,10 +98,7 @@ func _exported_props_controllers_created(main_edit: EditContainer, props_control
 const TYPES_UNANIMATABLES: Array[int] = [TYPE_ARRAY, TYPE_OBJECT]
 const TYPES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
 
-static func is_support_custom_exported_props() -> bool:
-	return false
-
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], search_line_edit: LineEdit = null, register_controllers: bool = true, horizontal: bool = false, custom_exported_props: Dictionary[StringName, Dictionary] = {}) -> EditContainer:
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], custom_exported_props: Dictionary[StringName, Dictionary] = {}, search_line_edit: LineEdit = null, is_vertical: bool = true) -> EditContainer:
 	
 	var usable_res_script: Script = usable_res.get_script()
 	
@@ -113,13 +110,13 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	
 	var exported_props: Dictionary[StringName, Dictionary] = usable_res._get_exported_props() if custom_exported_props.is_empty() else custom_exported_props
 	
-	var edits_box_container: BoxContainer = IS.create_box_container(8, not horizontal)
-	var categories_entered: Array[Category]
-	var curr_box_container: BoxContainer = edits_box_container
-	
 	var edit_cont: EditContainer = IS.create_edit_cont(name, true, false, false, false)
 	var body_panel: PanelContainer = IS.create_panel_container()
 	var body_margin: MarginContainer = IS.create_margin_container(8, 8, 8, 8)
+	
+	var edits_box_container: BoxContainer = IS.create_box_container(8, is_vertical)
+	var curr_box_container: BoxContainer = edits_box_container
+	var categories_entered: Array[Category]
 	
 	edits_box_container.alignment = BoxContainer.ALIGNMENT_BEGIN
 	
@@ -128,14 +125,15 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	body_margin.add_child(edits_box_container)
 	
 	edit_cont.controller = edits_box_container
-	edits_box_container.set_meta(&"owner", edit_cont)
+	#edits_box_container.set_meta(&"owner", edit_cont)
 	
 	var ui_profile: UIProfile = UIProfile.new()
 	var ui_conds_keys: Array
 	var ui_conds_vals: Array
 	
 	var properties_controls: Dictionary[StringName, Control] = {}
-	if register_controllers: EditorServer.set_usable_res_controllers(usable_res, usable_ress, edit_cont, properties_controls, ui_profile)
+	
+	edit_cont.tree_entered.connect(EditorServer.usable_ress_editors_register_editor.bind(usable_res, usable_ress, edit_cont, properties_controls, ui_profile))
 	
 	const UI_COND_RESULT: Array = [true]
 	
@@ -215,6 +213,7 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				prop_edit_cont.val_changed.connect(
 					func(new_value: Variant) -> void:
 						_handle_prop_value_changed(key, new_value, usable_res, usable_ress)
+						ui_profile.update()
 				)
 				
 				if keyframable:
@@ -245,8 +244,6 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				ui_conds_keys.append([ui_method2.bind(key, control), UI_COND_RESULT])
 				ui_conds_vals.append([control])
 	
-	usable_res._exported_props_controllers_created(edit_cont, properties_controls)
-	
 	ui_profile.set_ui_conditions(ui_conds_keys, ui_conds_vals)
 	ui_profile.update()
 	
@@ -266,21 +263,13 @@ static func _handle_prop_value_changed(property_key: StringName, new_value: Vari
 	new_values.resize(usable_ress.size())
 	new_values.fill(new_value)
 	
-	var method_set_all: Callable = func(target_values: Array, update_ctrlr: bool) -> void:
+	var method_set_all: Callable = func(target_values: Array) -> void:
 		
 		for idx: int in usable_ress.size():
 			var _usable_res: UsableRes = usable_ress[idx]
 			_usable_res.set_prop_and_emit(property_key, target_values[idx])
-		
-		if EditorServer.has_usable_res_controllers(usable_res):
-			var owner_target_val: Variant = target_values[owner_usable_res_idx]
-			var prop_edit_cont_for_update: EditContainer = EditorServer.get_usable_res_property_controller(usable_res, property_key)
-			if prop_edit_cont_for_update:
-				prop_edit_cont_for_update.set_curr_value_manually(owner_target_val)
-				if update_ctrlr: prop_edit_cont_for_update.set_controller_curr_value_manually(owner_target_val)
-			EditorServer.update_usable_res_ui_profile(usable_res)
 	
-	method_set_all.call(new_values, false)
+	method_set_all.call(new_values)
 	
 	if not usable_res.has_meta(UNDO_REDO_COMMIT_SET_PROP):
 		if ClassServer.value_get_classname(new_value) in TYPES_HAVE_SCROLL_CONTROLLERS:
@@ -288,36 +277,17 @@ static func _handle_prop_value_changed(property_key: StringName, new_value: Vari
 		
 		ProjectServer2.commit_action(
 			"set_{prop_key}".format({"prop_key": property_key}),
-			method_set_all.bind(new_values, true),
-			method_set_all.bind(old_values, true),
+			method_set_all.bind(new_values),
+			method_set_all.bind(old_values),
 			false
 		)
 		
 		await Engine.get_main_loop().create_timer(.4).timeout
 		usable_res.remove_meta(UNDO_REDO_COMMIT_SET_PROP)
 
-
-static func _is_method_key(key: StringName) -> bool:
-	return key.begins_with("[") and key.ends_with("]")
-
 func get_classname() -> StringName:
 	return get_script().get_global_name()
 
-
-#class ExportInfo extends RefCounted:
-	#
-	#@export var args: Array
-	#@export var ui_cond: Array
-	#@export var keyframable: bool
-	#
-	#func _init(_args: Array, _ui_cond: Array = []) -> void:
-		#args = _args
-		#ui_cond = _ui_cond
-	#
-	#func get_args() -> Array: return args
-	#func set_args(new_val: Array) -> void: args = new_val
-	#func get_ui_cond() -> Array: return ui_cond
-	#func set_ui_cond(new_val: Array) -> void: ui_cond = new_val
 
 enum ExportMethodType {
 	METHOD_ENTER_CATEGORY,
@@ -325,16 +295,6 @@ enum ExportMethodType {
 	METHOD_CALLABLE,
 	METHOD_CUSTOM_EXPORT,
 }
-
-#class ExportMethodInfo extends ExportInfo:
-	#@export var method_type: ExportMethodType
-	#
-	#func _init(_args: Array, _ui_cond: Array = [], _method_type: ExportMethodType = 0) -> void:
-		#super(_args, _ui_cond)
-		#method_type = _method_type
-	#
-	#func get_method_type() -> ExportMethodType: return method_type
-	#func set_method_type(new_val: ExportMethodType) -> void: method_type = new_val
 
 
 static func export(args: Array, ui_cond: Array = [], keyframable: bool = true) -> Dictionary[StringName, Variant]:
@@ -355,9 +315,9 @@ static func bool_args(val: bool) -> Array: return [val]
 static func string_args(val: String, controller_type: IS.StringControllerType = 0, filter: Array[String] = [], placeholder: String = "", editable: bool = true) -> Array: return [val, placeholder, controller_type, filter, editable]
 static func int_args(val: int, min: float = -INF, max: float = INF, step: int = 1, spin_scale: int = 1, magnet_step: int = 5, controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, true, controller_type]
 static func options_args(val: int, options: Dictionary) -> Array: return [val, -INF, INF, 1, 1, 1, true, IS.FloatControllerType.TYPE_OPTIONS, options]
-static func float_args(val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, magnet_step: float = 5., controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, false, controller_type]
-static func vec2_args(val: Vector2, is_int: bool = false, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0) -> Array: return [val, is_int, has_lock_button, suffix]
-static func vec3_args(val: Vector3, suffix: FloatController.SuffixType = 0) -> Array: return [val, suffix]
+static func float_args(val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .1, magnet_step: float = 5., controller_type: IS.FloatControllerType = 0) -> Array: return [val, min, max, step, spin_scale, magnet_step, false, controller_type]
+static func vec2_args(val: Vector2, is_int: bool = false, has_lock_button: bool = false, suffix: FloatController.SuffixType = 0, xminmax: Vector2 = Vector2(-INF, INF), yminmax: Vector2 = Vector2(-INF, INF)) -> Array: return [val, is_int, has_lock_button, suffix, xminmax, yminmax]
+static func vec3_args(val: Vector3, suffix: FloatController.SuffixType = 0, xminmax: Vector2 = Vector2(-INF, INF), yminmax: Vector2 = Vector2(-INF, INF), zminmax: Vector2 = Vector2(-INF, INF)) -> Array: return [val, suffix, xminmax, yminmax, zminmax]
 static func color_args(val: Color, min_size: Vector2 = IS.EDIT_BOX_MIN_SIZE, name_alignment: int = 0, controller_type: IS.ColorControllerType = 0) -> Array: return [val, min_size, name_alignment, controller_type]
 static func list_args(val: Array, list_classname: StringName, can_add_element: bool = true, can_remove_element: bool = true,
 	can_duplicate_element: bool = true, can_change_element_priority: bool = true, min_elements_count: int = 0) -> Array:

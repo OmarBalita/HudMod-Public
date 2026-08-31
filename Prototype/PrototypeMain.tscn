@@ -237,7 +237,7 @@ script = ExtResource("37_t8vbk")
 metadata/_custom_type_script = "uid://uupil02s5ia4"
 
 [node name="TimeLine2" type="Control" parent="EditorsFolder" unique_id=1222751837]
-custom_minimum_size = Vector2(1300, 300)
+custom_minimum_size = Vector2(1150, 300)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

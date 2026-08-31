@@ -124,15 +124,15 @@ func update() -> void:
 	viewport_cont.queue_redraw()
 	update_transform_label()
 	
-	if Renderer.is_working:
-		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-		return
+	#if Renderer.is_working:
+		#viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		#return
 	
 	if is_visible_in_tree():
-		Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		#Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	elif Scene2.viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
-		Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	#elif Scene2.viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
+		#Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 
 func update_transform_label() -> void:
 	transform_label.text = "Position: %s, Zoom %s, Mouse Position %s" % [camera.position.snappedf(.1), snappedf(camera.zoom.x * 100., .1), Vector2i(render_sprite.get_local_mouse_position())]

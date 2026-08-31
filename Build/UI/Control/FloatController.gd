@@ -23,10 +23,10 @@ signal grab_started()
 signal grab_finished()
 signal val_changed(new_val: Variant)
 
-@export var min_val: float = 0.0
-@export var max_val: float = 100.0
+@export var min_val: float = .0
+@export var max_val: float = 100.
 @export var step: float = 0.5
-@export var curr_val: Variant = 100.0
+@export var curr_val: Variant = 100.
 
 @export var is_int: bool = false:
 	set(v):
@@ -44,14 +44,14 @@ signal val_changed(new_val: Variant)
 
 @export_group("Theme")
 @export var change_value_when_drag: bool = true
-@export var spin_scale: float = 1.0
+@export var spin_scale: float = 1.
 @export var spin_magnet_step: float = 10.
 
-@export var prefix_color: Color = Color(IS.color_label, 0.5):
+@export var prefix_color: Color = Color(IS.color_label, .5):
 	set(value):
 		prefix_color = value
 		queue_redraw()
-@export var suffix_color: Color = Color(IS.color_label, 0.5):
+@export var suffix_color: Color = Color(IS.color_label, .5):
 	set(value):
 		suffix_color = value
 		queue_redraw()
@@ -76,13 +76,13 @@ var _is_grab: bool = false
 var _is_magnet: bool = false
 var _mouse_down: bool = false
 var _drag_start: Vector2
-var _drag_accum: float = 0.0
+var _drag_accum: float = .0
 var _line_edit: LineEdit
 
 var _repeat_timer: Timer
-var _repeat_dir: float = 0.0
-var _initial_delay: float = 0.4
-var _repeat_interval: float = 0.05
+var _repeat_dir: float = .0
+var _initial_delay: float = .4
+var _repeat_interval: float = .05
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP

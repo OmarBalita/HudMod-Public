@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-uniform int radius : hint_range(0, 10) = 3;
+uniform int radius : hint_range(0, 20) = 3;
 
 void fragment() {
 	vec2 tex_size = vec2(textureSize(TEXTURE, 0));

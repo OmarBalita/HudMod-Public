@@ -46,7 +46,7 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	var subviewport:= SubViewport.new()
-	subviewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	subviewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	subviewport.add_child(Camera2D.new())
 	return subviewport
 
@@ -54,16 +54,9 @@ func enter(node: Node) -> void:
 	super(node)
 	_update_viewport_props()
 
-func process(frame: int) -> void:
-	curr_node.render_target_update_mode = SubViewport.UPDATE_ONCE
-	await RenderingServer.frame_post_draw
-	super(frame)
-
-
 func _update_viewport_props() -> void:
+	curr_node = curr_node as SubViewport
 	curr_node.size = size
 	curr_node.transparent_bg = transparent_background
 	curr_node.audio_listener_enable_2d = enable_audio
-	await RenderingServer.frame_post_draw
-	curr_node.render_target_update_mode = SubViewport.UPDATE_ONCE
 	viewport_props_updated.emit()

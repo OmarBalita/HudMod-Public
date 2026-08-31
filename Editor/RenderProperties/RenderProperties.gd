@@ -56,6 +56,9 @@ func _ready_editor() -> void:
 	
 	video_render_profile.renderer_created_successfully.connect(_on_video_render_profile_renderer_created_successfully)
 	video_render_profile.renderer_creation_failed.connect(_on_video_render_profile_renderer_creation_failed)
+	video_render_profile.res_changed.connect(_on_video_render_profile_res_changed)
+	
+	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
 	
 	Renderer.render_started.connect(_on_renderer_render_started)
 	Renderer.render_paused.connect(_on_renderer_render_paused)
@@ -67,8 +70,7 @@ func _ready_editor() -> void:
 	_on_renderer_render_stopped()
 
 func update_render_profile_edit() -> void:
-	if render_profile_edit:
-		render_profile_edit.queue_free()
+	if render_profile_edit: render_profile_edit.queue_free()
 	render_profile_edit = UsableRes.create_custom_edit(&"render_profile", video_render_profile)
 	body_box_cont.add_child(render_profile_edit)
 
@@ -81,11 +83,27 @@ func _on_video_render_profile_renderer_created_successfully(output_path: String,
 func _on_video_render_profile_renderer_creation_failed(error: String) -> void:
 	EditorServer.push_message(error)
 
+func _on_video_render_profile_res_changed() -> void:
+	
+	var resolution: Vector2i = Vector2i(video_render_profile.resolution)
+	
+	if Scene2.viewport.size != resolution:
+		Scene2.viewport.size = resolution
+		PlaybackServer.clear(ProjectServer2.project_res.root_clip_res)
+		PlaybackServer.seek_here()
+
 func _on_pause_btn_pressed() -> void:
 	Renderer.pause_resume()
 
 func _on_cancel_btn_pressed() -> void:
 	Renderer.cancel()
+
+func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
+	var project_resolution: Vector2 = Vector2(project_res.resolution)
+	var resolution_edit: EditContainer = EditorServer.usable_ress_editors_get_prop_edit_cont(video_render_profile, 0, &"resolution")
+	resolution_edit.default_val = project_resolution
+	resolution_edit.set_curr_value(project_resolution)
+	resolution_edit.set_controller_curr_value_manually(project_resolution)
 
 func _on_renderer_render_started() -> void:
 	pause_btn.text = "Pause"
@@ -94,7 +112,6 @@ func _on_renderer_render_started() -> void:
 	pause_btn.show()
 	cancel_btn.show()
 	EditorServer.push_message("The rendering process has begun.", EditorServer.MessageMode.MESSAGE_MODE_IDLE)
-
 
 func _on_renderer_render_paused() -> void:
 	pause_btn.text = "Resume"

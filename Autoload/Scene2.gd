@@ -35,7 +35,7 @@ var cameras: Array[Camera2DClipRes]
 
 
 func _ready_scene() -> void:
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	viewport.audio_listener_enable_2d = true
 	viewport.transparent_bg = false
 	ProjectServer2.project_opened.connect(_on_project_server_project_opened)
@@ -45,7 +45,8 @@ func _ready_scene() -> void:
 func start_scene() -> void:
 	root = Node.new()
 	
-	var root_clip_res: RootClipRes = ProjectServer2.project_res.root_clip_res
+	var project_res: ProjectRes = ProjectServer2.project_res
+	var root_clip_res: RootClipRes = project_res.root_clip_res
 	root_clip_res.curr_node = root
 	curr_nodes.append(root_clip_res)
 	
@@ -54,11 +55,11 @@ func start_scene() -> void:
 	viewport.add_child(root)
 	add_child(viewport)
 	
-	update_viewport()
+	update_viewport(project_res.resolution)
 
 
-func update_viewport() -> void:
-	viewport.size = ProjectServer2.project_res.resolution
+func update_viewport(resolution: Vector2) -> void:
+	viewport.size = resolution
 	viewport.use_debanding = Renderer.is_working
 	viewport.use_hdr_2d = false
 

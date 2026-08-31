@@ -264,8 +264,7 @@ func _ready() -> void:
 	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
 	ProjectServer2.opened_clip_res_changed.connect(_on_project_server2_opened_clip_res_changed)
 	EditorServer.time_line2.layers_body.selected_changed.connect(_on_timeline_layers_body_selected_changed)
-	EditorServer.properties.property_changed.connect(_on_properties_property_changed)
-	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
+	PlaybackServer.render_process_finished.connect(_on_playback_server_render_process_finished)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -451,14 +450,7 @@ func _on_timeline_layers_body_selected_changed() -> void:
 	_update_selectables_at(EditorServer.time_line2.opened_clip_res)
 	_update_all_gizmos()
 
-func _on_properties_property_changed() -> void:
-	#await RenderingServer.frame_post_draw
-	#update_viewport_canvas_transformation_props()
-	#update_main_snapping_points()
-	#_update_all_gizmos()
-	pass
-
-func _on_playback_server_position_changed(position: int) -> void:
+func _on_playback_server_render_process_finished() -> void:
 	update_viewport_canvas_transformation_props()
 	update_main_snapping_points()
 	_update_selectables_at(EditorServer.time_line2.opened_clip_res)

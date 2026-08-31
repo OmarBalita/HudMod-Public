@@ -182,7 +182,7 @@ func get_font() -> FontVariation: return font
 
 
 func _update_viewer_label_name() -> void:
-	EditorServer.get_usable_res_property_controller(self, &"Font Viewer").text = get_font_name()
+	EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"Font Viewer").text = get_font_name()
 
 func _on_font_button_pressed(usable_ress: Array[UsableRes]) -> void:
 	
@@ -204,7 +204,7 @@ func _on_font_button_pressed(usable_ress: Array[UsableRes]) -> void:
 		menu_option.function = _on_menu_option_pressed.bind(font_name)
 		options.append(menu_option)
 	
-	IS.popup_menu(options, EditorServer.get_usable_res_controllers(self).get(&"Choose Font"))
+	IS.popup_menu(options, EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"Choose Font"))
 
 func _on_menu_option_pressed(font_name: StringName) -> void:
 	set_prop(&"system_font_name", font_name)

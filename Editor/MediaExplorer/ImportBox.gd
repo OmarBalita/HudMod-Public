@@ -89,12 +89,14 @@ func load_files(pathes: PackedStringArray) -> void:
 	IS.set_base_settings(progress_list)
 	IS.expand(progress_list, true, true)
 	
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
 	var display_path: Array = curr_display_path.duplicate()
 	latest_success_pathes = PackedStringArray()
 	var success_pathes: PackedStringArray = latest_success_pathes
 	
-	var task_id: int = WorkerThreadPool.add_task(_create_files.bind(file_system, display_path, pathes, _worker_thread_create_files))
-	WorkerThreadPool.wait_for_task_completion(task_id)
+	_create_files(file_system, display_path, pathes, _worker_thread_create_files)
 	
 	ProjectServer2.commit_action(
 		"load_files",
@@ -110,6 +112,7 @@ func _create_files(file_sys: FileSystem, display_path: Array, pathes: PackedStri
 	for start_idx: int in range(0, pathes_size, GROUP_SIZE):
 		var curr_group_size: int = mini(GROUP_SIZE, pathes_size - start_idx)
 		await method_create_files.call(start_idx, curr_group_size, file_sys, display_path, pathes)
+		await get_tree().process_frame
 	update()
 	if progress_window:
 		progress_window.queue_free()

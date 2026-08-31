@@ -23,7 +23,6 @@ extends Node
 
 var pingpong_renderers: Dictionary[Display2DClipRes, PingPongRenderer]
 
-
 func _ready() -> void:
 	pingpong_renderers_root.name = &"PingPongRendererRoot"
 	add_child(pingpong_renderers_root)
@@ -57,9 +56,8 @@ func update_pprs() -> void:
 	for clip_res: Display2DClipRes in pingpong_renderers:
 		pingpong_renderer_update(clip_res, high_quality)
 
-func until_pprs_to_finish() -> void:
+func until_pprs_finished() -> void:
 	for clip_res: Display2DClipRes in pingpong_renderers:
 		var ppr: PingPongRenderer = pingpong_renderers[clip_res]
-		if ppr.is_in_process:
-			await ppr.process_finished
+		if ppr.is_in_process: await ppr.process_finished
 

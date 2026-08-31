@@ -8,10 +8,10 @@
 #############################################################################
 class_name CompKawahara extends PassShaderComponentRes
 
-@export_range(0, 10) var radius: int = 3
+@export_range(0, 20) var radius: int = 3
 
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
-	return {&"radius": export(int_args(radius, 0, 10))}
+	return {&"radius": export(int_args(radius, 0, 20))}
 
 static func _shader() -> Shader:
 	return preload("res://Build/Shader/Image/Kawahara.gdshader")

@@ -17,18 +17,13 @@ class_name VideoClipRes extends Display2DClipRes
 		video = val
 		
 		if can_open:
-			
 			video_ctx = MediaCache.get_video_context(video)
 			audio_data_res = MediaCache.get_audio_data(video)
-			fps = video_ctx.fps
 		else:
 			video_ctx = null
 			audio_data_res = MediaCache.default_audio_f32_data
 		
 		is_opening = can_open
-		emit_res_changed()
-
-#@export var scale_factor: float = 1.
 
 var stream_player: CustomAudioStreamPlayer
 
@@ -36,9 +31,6 @@ var is_opening: bool
 var video_ctx: MediaCache.VideoContext
 var video_decoder: VideoDecoder
 var audio_data_res: MediaCache.AudioF32Data = MediaCache.default_audio_f32_data
-var fps: float
-
-var latest_scale_factor: float
 
 var texture_y: ImageTexture
 var texture_u: ImageTexture
@@ -60,6 +52,7 @@ func get_max_length() -> float:
 	else: return +INF
 
 func get_self_main_texture() -> Texture2D: return texture_y
+
 func get_size(scale: Vector2) -> Vector2:
 	var tex: Texture2D = get_self_texture()
 	return tex.get_size() * curr_node.scale_factor * scale if tex else Vector2.ZERO
@@ -82,18 +75,23 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 	return _init_node2d(root_layer_idx, layer_idx, layer_res, frame, video_viewer)
 
 func enter(node: Node) -> void:
-	super(node)
+	await super(node)
+	
 	if video_ctx:
 		video_decoder = video_ctx.request_video_decoder()
 		_init_video_shader_params()
 		seek_frame_smart(0)
+	
+	if ppr:
+		await process_passes_materials(1.)
+	
 	node.texture = get_self_texture()
 	Scene2.add_video_player(self)
 
 func _process_comps(frame: int) -> void:
 	
 	if is_opening:
-		var new_video_frame: int = (frame + from) / float(ProjectServer2.fps) * fps
+		var new_video_frame: int = (frame + from) / float(ProjectServer2.fps) * video_ctx.fps
 		
 		if new_video_frame != video_decoder.get_curr_frame():
 			seek_frame_smart(new_video_frame)
@@ -176,11 +174,10 @@ static func convert_buffer_to_image(res: Vector2i, format: Image.Format, data: P
 
 func build_shader_pipeline() -> void:
 	await super()
-	if video_decoder:
-		_init_video_shader_params()
-	if curr_node:
-		curr_node.texture = get_self_texture()
-		process_here()
+	if video_decoder: _init_video_shader_params()
+	if ppr: await process_passes_materials(1.)
+	if curr_node: curr_node.texture = get_self_texture()
+	update()
 
 static func _shader_is_post() -> bool: return false
 

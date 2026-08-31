@@ -109,11 +109,11 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
-			is_moving = false
+	#if event is InputEventMouseButton:
+		#if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
+			#is_moving = false
 	
-	elif event is InputEventMouseMotion:
+	if event is InputEventMouseMotion:
 		_input_move_selected_cards()
 
 func _input_move_selected_cards() -> void:
@@ -417,6 +417,9 @@ class MediaCard extends PanelContainer:
 					MOUSE_BUTTON_RIGHT:
 						_select(event.alt_pressed, false)
 						popup_context_menu()
+				
+				await get_tree().process_frame
+				media_box.is_moving = false
 			
 			button_event = event
 		
@@ -475,6 +478,8 @@ class MediaCard extends PanelContainer:
 	
 	func _on_add_button_pressed() -> void:
 		add_media_ress(0, PlaybackServer.position)
+		await get_tree().process_frame
+		media_box.is_moving = false
 	
 	func _on_context_menu_id_pressed(id: int) -> void:
 		pass

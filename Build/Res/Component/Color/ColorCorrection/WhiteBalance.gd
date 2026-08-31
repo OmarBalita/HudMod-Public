@@ -29,19 +29,6 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"_Curves": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
 
-func get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]:
-	var curve_ctrlr := ColorCustomCurveController.new()
-	curve_ctrlr.curve_ctrlr.curves_profiles = [rgb_curve, red_curve, green_curve, blue_curve]
-	
-	return {
-		&"White Balance Curves": export_method(
-			ExportMethodType.METHOD_CUSTOM_EXPORT,
-			[curve_ctrlr],
-		)
-	}
-
-static func is_support_custom_exported_props() -> bool: return true
-
 func _process(frame: int) -> void:
 	super(frame)
 	set_shader_prop(&"temp", temp)

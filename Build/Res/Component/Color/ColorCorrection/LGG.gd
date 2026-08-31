@@ -21,14 +21,13 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"offset": export(float_args(offset, -1., 1., .001))
 	}
 
-func get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]:
+func has_color_correction_editor() -> bool: return true
+func _get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"lift": export(color_args(lift, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
 		&"gamma": export(color_args(gamma, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
 		&"gain": export(color_args(gain, IS.EDIT_BOX_MIN_SIZE, 0, 1)),
 	}
-
-static func is_support_custom_exported_props() -> bool: return true
 
 func _process(frame: int) -> void:
 	set_shader_prop(&"lift", (lift - Color(0.5, 0.5, 0.5)) * 2.0)

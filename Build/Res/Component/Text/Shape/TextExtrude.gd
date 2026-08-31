@@ -178,7 +178,7 @@ func _get_drop_offset() -> Vector2:
 
 func _on_generate_component_path_changed(new_comp: ComponentRes) -> void:
 	is_dirty = true
-	update_parent()
+	PlaybackServer.seek_here()
 
 
 

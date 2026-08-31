@@ -56,8 +56,8 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var colorrange_ctrlr: ColorRangeControl = IS.create_color_range_control(self, {})
 	return {&"self_ctrlr": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [colorrange_ctrlr])}
 
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
-	var ress_shared: Array[UsableRes] = EditorServer.get_usable_res_shared_ress(self).duplicate()
+func _custom_editor_spawned(edit_cont: EditContainer, props_edits: Dictionary[StringName, Control]) -> void:
+	var ress_shared: Array[UsableRes] = EditorServer.usable_ress_editors_get_shared_ress_with_idx(self, 0).duplicate()
 	ress_shared.erase(self)
 	self.res_changed.connect(func() -> void:
 		for res: ColorRangeRes in ress_shared:

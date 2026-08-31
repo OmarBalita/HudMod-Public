@@ -259,3 +259,4 @@ func _create_tree_item(tree: Tree, parent_item: TreeItem, text: String, icon: Te
 	tree_item.set_icon(0, icon)
 	tree_item.set_metadata(0, display_path)
 	return tree_item
+

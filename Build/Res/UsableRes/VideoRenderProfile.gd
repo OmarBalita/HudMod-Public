@@ -94,6 +94,8 @@ enum AudioCodec {
 @export var file_path: String
 @export var file_name: String
 
+@export var resolution: Vector2 = Vector2.ONE
+
 @export var video_format: VideoFormat = VideoFormat.MP4
 @export var video_codec: int
 @export var pixel_format: int
@@ -125,6 +127,7 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		
 		&"Video": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		
+		&"resolution": export(vec2_args(resolution, true, true, FloatController.SuffixType.TYPE_PIXEL, Vector2(48, 7680), Vector2(48, 4320))),
 		&"Format": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"video_format": export(options_args(video_format, VideoFormat)),
 		&"video_codec": export(options_args(video_codec, VideoCodec)),
@@ -147,12 +150,6 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"audio_codec": export(options_args(audio_codec, AudioCodec)),
 		&"_Audio": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
-
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
-	super(main_edit, props_controls)
-	await Engine.get_main_loop().process_frame
-	_update_options()
-	_try_to_update_ui()
 
 func emit_res_changed() -> void:
 	super()
@@ -189,12 +186,10 @@ func _update_options() -> void:
 
 
 func _try_to_update_ui() -> void:
+	if not EditorServer.usable_ress_editors_has_editor_with_idx(self, 0): return
 	
-	if not EditorServer.has_usable_res_controllers(self):
-		return
-	
-	var codec_ctrlr: OptionController = EditorServer.get_usable_res_property_controller(self, &"video_codec").get_child(1)
-	var pxl_format_ctrlr: OptionController = EditorServer.get_usable_res_property_controller(self, &"pixel_format").get_child(1)
+	var codec_ctrlr: OptionController = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"video_codec").get_child(1)
+	var pxl_format_ctrlr: OptionController = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"pixel_format").get_child(1)
 	
 	if not codec_ctrlr:
 		return
@@ -261,6 +256,8 @@ func create_renderer_from_profile() -> void:
 	full_path = full_path.simplify_path()
 	
 	var video_renderer:= VideoRenderer.new()
+	video_renderer.set_width(resolution.x)
+	video_renderer.set_height(resolution.y)
 	video_renderer.set_container_name(format_info.internal_name)
 	video_renderer.set_encoder_name(video_codecs_info[video_codec].encoder_internal_name)
 	video_renderer.set_pixel_format(pixel_formats_options.find_key(pixel_format))

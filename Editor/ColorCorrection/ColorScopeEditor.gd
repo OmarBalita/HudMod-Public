@@ -97,7 +97,7 @@ func _ready_editor() -> void:
 	header.add_child(header_scroll_container)
 	body.add_child(sub_editors_container)
 	
-	PlaybackServer.position_changed.connect(_on_playback_server_position_changed)
+	PlaybackServer.render_process_finished.connect(_on_playback_server_render_process_finished)
 	PlaybackServer.played.connect(_on_playback_server_played)
 	PlaybackServer.stopped.connect(_on_playback_server_stopped)
 	EditorServer.properties.property_changed.connect(_on_properties_property_changed)
@@ -110,15 +110,18 @@ func _ready_editor() -> void:
 func request_calculate(force: bool = false, ignore_visibility: bool = false) -> void:
 	if not ignore_visibility and (not is_visible_in_tree() or not color_scope_sub_editors_visib.has(true)):
 		return
-	await RenderingServer.frame_post_draw
+	if not force and is_calculating:
+		return
+	
 	curr_image = Scene2.viewport.get_texture().get_image()
-	curr_image.shrink_x2()
+	if not curr_image:
+		return
+	
 	var new_image_data: PackedByteArray = curr_image.get_data()
 	if not force and curr_image_data == new_image_data:
 		return
+	
 	curr_image_data = new_image_data
-	if not curr_image or is_calculating:
-		return
 	
 	WorkerThreadPool.add_task(calculate, true)
 	is_calculating = true
@@ -445,19 +448,18 @@ class VectorScopeViewer extends ColorScopeViewer:
 		draw_circle(center_pos, circle_radius, Color.DIM_GRAY, false, 2.)
 		draw_circle(center_pos, 5., Color.WHITE, true, -1., true)
 
-func _on_playback_server_position_changed(position: int) -> void:
-	if not PlaybackServer.is_render_process_finished:
-		await PlaybackServer.render_process_finished
+func _on_playback_server_render_process_finished() -> void:
+	await RenderingServer.frame_post_draw
 	request_calculate()
 
 func _on_playback_server_played(at: int) -> void:
 	curr_samples_down_scale = inplay_samples_down_scale
 
 func _on_playback_server_stopped(at: int) -> void:
+	await RenderingServer.frame_post_draw
 	curr_samples_down_scale = samples_down_scale
 
 func _on_properties_property_changed() -> void:
-	#request_calculate()
 	pass
 
 func _on_visibility_changed() -> void:

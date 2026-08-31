@@ -44,14 +44,9 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 	_try_update_texture_from_render_pass()
 	return fixed_viewer
 
-func enter(node: Node) -> void:
-	super(node)
-	node.texture = get_self_texture()
-
-func process(frame: int) -> void:
-	super(frame)
-	await RenderingServer.frame_post_draw
-	curr_node.queue_redraw()
+func _after_process_comps(frame: int) -> void:
+	loop_stacked_values(curr_node.set)
+	processed.emit()
 
 func exit(node: Node) -> void:
 	super(node)
@@ -63,9 +58,8 @@ func get_size(scale: Vector2) -> Vector2:
 
 func build_shader_pipeline() -> void:
 	await super()
-	if curr_node:
-		curr_node.texture = get_self_texture()
-		process_here()
+	_try_update_curr_node_texture()
+	update()
 
 
 func _try_update_texture_from_render_pass() -> void:
@@ -77,7 +71,6 @@ func _try_update_texture_from_render_pass() -> void:
 
 func _try_update_curr_node_texture() -> void:
 	if curr_node: curr_node.texture = get_self_texture()
-
 
 func _init_render_pass_clip() -> void:
 	_try_update_texture_from_render_pass()

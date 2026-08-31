@@ -52,11 +52,11 @@ static func new_sys_path(_import_type: int = 0, _sys_is_global: bool = false, _s
 
 func update_disk_path() -> void:
 	disk_path = sys_path.back() if is_valid_file() else ""
-	if EditorServer.has_usable_res_controllers(self):
-		var ctrlrs: Dictionary[StringName, Control] = EditorServer.get_usable_res_controllers(self)
+	if EditorServer.usable_ress_editors_has_editor_with_idx(self, 0):
+		var ctrlrs: Dictionary[StringName, Control] = EditorServer.usable_ress_editors_get_props_edits_conts(self, 0)
 		ctrlrs[&"disk_path"].set_curr_val(disk_path, true)
 		ctrlrs[&"thumbnail"].texture = get_file_thumb()
-		EditorServer.update_usable_res_ui_profile(self)
+		EditorServer.usable_ress_editors_get_ui_profile(self, 0).update()
 
 func get_file_sys() -> FileSystem:
 	return EditorServer.get_import_file_system(sys_is_global)

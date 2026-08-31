@@ -39,13 +39,14 @@ func _process(frame: int) -> void:
 	submit_stacked_value(&"position", get_wave_result_at(frame, enable_x, enable_y, wave_method, x_offset, speed, domain))
 
 func _apply_custom_stacked_values(frame: int, dict: Dictionary[StringName, Array]) -> void:
-	apply_stacked_value(dict, &"position", get_wave_result_at(frame,
-		owner.sample_or_get(self, &"enable_x", frame),
-		owner.sample_or_get(self, &"enable_y", frame),
-		owner.sample_or_get(self, &"wave_method", frame),
-		owner.sample_or_get(self, &"x_offset", frame),
-		owner.sample_or_get(self, &"speed", frame),
-		owner.sample_or_get(self, &"domain", frame)
+	var abs_frame: int = frame + owner.from
+	apply_stacked_value(dict, &"position", get_wave_result_at(abs_frame,
+		owner.sample_or_get(self, &"enable_x", abs_frame),
+		owner.sample_or_get(self, &"enable_y", abs_frame),
+		owner.sample_or_get(self, &"wave_method", abs_frame),
+		owner.sample_or_get(self, &"x_offset", abs_frame),
+		owner.sample_or_get(self, &"speed", abs_frame),
+		owner.sample_or_get(self, &"domain", abs_frame)
 	))
 
 func get_wave_result_at(frame: int, enable_x: bool, enable_y: bool, wave_method: WaveMethod, x_offset: float, speed: float, domain: float) -> Vector2:

@@ -50,15 +50,9 @@ var delta: float = 1. / fps
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"project_name": export(string_args(project_name)),
-		&"resolution": export(vec2_args(resolution, true)),
+		&"resolution": export(vec2_args(resolution, true, false, FloatController.SuffixType.TYPE_PIXEL, Vector2(480, 7680), Vector2(240, 4320))),
 		&"fps": export(int_args(fps, 6, 120))
 	}
-
-func _exported_props_controllers_created(main_edit: EditContainer, props_controls: Dictionary[StringName, Control]) -> void:
-	var resolution_edit: EditContainer = props_controls.resolution
-	var vec2_ctrlr: Vector2Controller = resolution_edit.controller
-	vec2_ctrlr.x_edit.min_val = 480; vec2_ctrlr.x_edit.max_val = 7680
-	vec2_ctrlr.y_edit.min_val = 240; vec2_ctrlr.y_edit.max_val = 4320
 
 func get_project_name() -> StringName: return project_name
 func set_project_name(new_val: StringName) -> void: project_name = new_val

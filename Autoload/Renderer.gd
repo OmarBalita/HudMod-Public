@@ -39,6 +39,7 @@ var audio_renderer: AudioRenderer
 
 var latest_image: Image
 
+
 func start(_output_path: String, _video_renderer: VideoRenderer, _audio_renderer: AudioRenderer) -> void:
 	
 	is_working = true
@@ -53,9 +54,9 @@ func start(_output_path: String, _video_renderer: VideoRenderer, _audio_renderer
 	video_renderer = _video_renderer
 	audio_renderer = _audio_renderer
 	
-	var resolution: Vector2i = ProjectServer2.project_res.resolution
-	video_renderer.set_width(resolution.x)
-	video_renderer.set_height(resolution.y)
+	#var resolution: Vector2i = ProjectServer2.project_res.resolution
+	#video_renderer.set_width(resolution.x)
+	#video_renderer.set_height(resolution.y)
 	video_renderer.set_fps(ProjectServer2.project_res.fps)
 	
 	if not video_renderer.start(output_path):
@@ -82,7 +83,7 @@ func send_frame() -> void:
 	if is_paused:
 		return
 	
-	if not PlaybackServer.is_render_process_finished:
+	if not PlaybackServer._is_render_process_finished:
 		await PlaybackServer.render_process_finished
 	
 	Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

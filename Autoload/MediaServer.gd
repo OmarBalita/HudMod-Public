@@ -447,6 +447,7 @@ class ClipPanel extends Panel:
 			
 			if _is_left_press_event(button_event):
 				clip_res.from = get_meta(&"start_from", 0) - (event.position.x - button_event.position.x) / timeline.displ_frame_size
+				PlaybackServer.seek_here()
 				select_panel.update_spacial_frames()
 				_update_ui()
 			

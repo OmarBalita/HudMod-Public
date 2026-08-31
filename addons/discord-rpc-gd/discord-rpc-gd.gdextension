@@ -5,16 +5,16 @@ compatibility_minimum = 4.1
 
 [libraries]
 
-macos.debug = "res://addons/discord-rpc-gd/bin/macos/libdiscord_game_sdk_binding_debug.dylib"
-macos.release = "res://addons/discord-rpc-gd/bin/macos/libdiscord_game_sdk_binding.dylib"
-windows.debug.x86_64 = "res://addons/discord-rpc-gd/bin/windows/discord_game_sdk_binding_debug.dll"
-windows.release.x86_64 = "res://addons/discord-rpc-gd/bin/windows/discord_game_sdk_binding.dll"
-linux.debug.x86_64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding_debug.so"
-linux.release.x86_64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding.so"
-linux.debug.arm64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding_debug.so"
-linux.release.arm64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding.so"
-linux.debug.rv64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding_debug.so"
-linux.release.rv64 = "res://addons/discord-rpc-gd/bin/linux/libdiscord_game_sdk_binding.so"
+macos.debug = "macos/libdiscord_game_sdk_binding_debug.dylib"
+macos.release = "macos/libdiscord_game_sdk_binding.dylib"
+windows.debug.x86_64 = "windows/discord_game_sdk_binding_debug.dll"
+windows.release.x86_64 = "windows/discord_game_sdk_binding.dll"
+linux.debug.x86_64 = "linux/libdiscord_game_sdk_binding_debug.so"
+linux.release.x86_64 = "linux/libdiscord_game_sdk_binding.so"
+linux.debug.arm64 = "linux/libdiscord_game_sdk_binding_debug.so"
+linux.release.arm64 = "linux/libdiscord_game_sdk_binding.so"
+linux.debug.rv64 = "linux/libdiscord_game_sdk_binding_debug.so"
+linux.release.rv64 = "linux/libdiscord_game_sdk_binding.so"
 
 [dependencies]
 

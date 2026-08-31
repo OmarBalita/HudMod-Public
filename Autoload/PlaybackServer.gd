@@ -23,9 +23,10 @@ signal position_changed(position: int)
 signal played(at: int)
 signal stopped(at: int)
 
+signal render_process_started()
 signal render_process_finished()
 
-@export var playing: bool
+@export var _is_playing: bool
 
 @export var position: int:
 	set(val):
@@ -36,10 +37,26 @@ signal render_process_finished()
 		position_changed.emit(val)
 
 var start_time: float
-var is_render_process_finished: bool = true
+var _is_render_process_finished: bool = true:
+	set(val):
+		_is_render_process_finished = val
+		
+		if val:
+			
+			await RenderingServer.frame_post_draw
+			
+			for clip_res: MediaClipRes in Scene2.curr_nodes:
+				if clip_res is RenderViewerClipRes:
+					if clip_res.ppr: await clip_res.process_material(position)
+					clip_res.curr_node.texture = clip_res.get_self_texture()
+			
+			Scene2.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+			render_process_finished.emit()
+		
+		else: render_process_started.emit()
 
 func is_playing() -> bool:
-	return playing
+	return _is_playing
 
 func play(emit_played: bool = true) -> void:
 	var opened_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path.back()
@@ -50,17 +67,16 @@ func play(emit_played: bool = true) -> void:
 	var curr_time: float = Time.get_ticks_msec() / 1000.
 	start_time = curr_time - position * ProjectServer2.delta
 	
-	playing = true
-	if emit_played:
-		played.emit(position)
+	_is_playing = true
+	if emit_played: played.emit(position)
 	
 	await get_tree().process_frame
 	step()
 
 func stop() -> void:
-	if playing:
+	if _is_playing:
 		stopped.emit(position)
-		playing = false
+		_is_playing = false
 
 func step() -> void:
 	
@@ -115,24 +131,34 @@ func set_position(new_val: int) -> void:
 	position = new_val
 
 
+func clear(parent_clip_res: MediaClipRes) -> void:
+	for layer: LayerRes in parent_clip_res.layers:
+		clear_layer(layer)
+
+func clear_layer(layer: LayerRes) -> void:
+	var clip_res: MediaClipRes = layer.displayed_clip_res
+	if clip_res:
+		clear(clip_res)
+		free_clip(clip_res)
+		layer.displayed_clip_res = null
+
+
 func process_root(root_clip_res: RootClipRes) -> void:
+	_is_render_process_finished = false
+	
 	var layers: Array[LayerRes] = root_clip_res.layers
 	for layer_idx: int in layers.size():
 		var layer: LayerRes = layers[layer_idx]
 		process_layer(layer_idx, layer_idx, root_clip_res, layer)
 	
-	is_render_process_finished = false
-	await RenderFarm.until_pprs_to_finish()
-	render_process_finished.emit()
-	is_render_process_finished = true
-
+	await RenderFarm.until_pprs_finished()
+	_is_render_process_finished = true
 
 func process(parent_clip_res: MediaClipRes, root_layer_idx: int) -> void:
 	var layers: Array[LayerRes] = parent_clip_res.layers
 	for layer_idx: int in layers.size():
 		var layer: LayerRes = layers[layer_idx]
 		process_layer(root_layer_idx, layer_idx, parent_clip_res, layer)
-
 
 func process_layer(root_layer_idx: int, layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes) -> void:
 	

@@ -52,10 +52,10 @@ signal clips_updated(coords: Array[Vector2i], split_pos: int)
 	set(val):
 		animations = val
 		loop_animations(0,
-		func(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
-			for profile: CurveProfile in anim_res.get_profiles():
-				profile.res_changed.connect(update)
-				profile.res_changed.connect(update_controllers_by_animations_here)
+			func(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
+				for profile: CurveProfile in anim_res.get_profiles():
+					profile.res_changed.connect(update)
+					profile.res_changed.connect(update_editors_by_animations_here)
 		)
 
 var stacked_values: Dictionary[StringName, Array]
@@ -203,23 +203,25 @@ func _component_enter(component: ComponentRes, forced: bool) -> void:
 	
 	if curr_node:
 		component._enter()
-		process_here()
+		update()
 
 func erase_component(section_key: String, component: ComponentRes) -> void:
 	get_section_comps_absolute(section_key).erase(component)
 	emit_clip_res_changed()
+	animations.erase(component)
 	if curr_node:
 		component._delete()
-		process_here()
+		update()
 
 func remove_at_component(section_key: String, at: int) -> void:
 	var section_comps: Array = get_section_comps_absolute(section_key)
 	var comp_res: ComponentRes = section_comps[at]
 	section_comps.remove_at(at)
+	animations.erase(comp_res)
 	emit_clip_res_changed()
 	if curr_node:
 		comp_res._delete()
-		process_here()
+		update()
 
 func remove_component(section_key: String, component_id: StringName) -> void:
 	for component: ComponentRes in get_section_comps_absolute(section_key):
@@ -241,7 +243,7 @@ func move_component(section_key: String, index_from: int, index_to: int) -> void
 	section.insert(index_to, component)
 	
 	emit_clip_res_changed()
-	process(curr_frame)
+	update()
 
 func loop_components(method: Callable, args: Array = []) -> void:
 	for section_key: String in components:
@@ -256,7 +258,7 @@ func loop_animations(frame: float, method: Callable) -> void:
 		var usable_res_section: Dictionary = animations.get(usable_res)
 		for prop_key: StringName in usable_res_section:
 			var anim_res: AnimationRes = usable_res_section.get(prop_key)
-			method.call(usable_res, prop_key, anim_res, frame)
+			method.call(usable_res, prop_key, anim_res, abs_frame)
 
 func loop_animations_keyframes(info: Dictionary[StringName, Variant], method: Callable) -> Dictionary[StringName, Variant]:
 	
@@ -276,47 +278,14 @@ func loop_animations_keyframes(info: Dictionary[StringName, Variant], method: Ca
 	
 	return info
 
-
 func push_animations_result(frame: float) -> void:
 	loop_animations(frame, _push_animation_result_method)
 
-func sample_or_get(usable_res: UsableRes, prop_key: StringName, frame: int) -> Variant:
-	return get_animation(usable_res, prop_key).sample_func.call(frame + from) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
+func _push_animation_result_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, abs_frame: int) -> void:
+	usable_res.set_prop(prop_key, anim_res.sample_func.call(abs_frame))
 
-func update_controllers_by_animations(frame: int) -> void:
-	loop_animations(frame, _update_controller_by_animation_method)
-
-func update_controllers_by_animations_here() -> void:
-	update_controllers_by_animations(curr_frame)
-
-func update_specific_controllers_by_animations(usable_res: UsableRes, frame: int) -> void:
-	var section: Dictionary = animations.get(usable_res, {})
-	for prop_key: StringName in section:
-		_update_controller_by_animation_method(usable_res, prop_key, section[prop_key], frame)
-
-func update_specific_prop_controller(usable_res: UsableRes, prop_key: StringName, frame: int) -> void:
-	var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
-	if not EditorServer.has_usable_res_controllers(self): return
-	var prop_edit_cont: EditContainer = EditorServer.get_usable_res_property_controller(self, prop_key)
-	prop_edit_cont.set_curr_value_manually(prop_val)
-	prop_edit_cont.set_controller_curr_value_manually(prop_val)
-
-func update_controllers(usable_res: UsableRes, frame: int) -> void:
-	if not EditorServer.has_usable_res_controllers(usable_res): return
-	var props_editors: Dictionary[StringName, Control] = EditorServer.get_usable_res_controllers(usable_res)
-	for prop_key: StringName in props_editors:
-		var editor: Control = props_editors[prop_key]
-		if editor is EditContainer:
-			var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
-			var prop_val: Variant = sample_or_get(usable_res, prop_key, frame)
-			EditorServer.update_usable_res_property_controller(usable_res, prop_key, prop_val, prop_has_keyframe)
-
-func _update_controller_by_animation_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
-	var prop_has_keyframe: bool = has_animation_keyframe(usable_res, prop_key, frame)
-	EditorServer.update_usable_res_property_controller(usable_res, prop_key, anim_res.sample(frame + from), prop_has_keyframe)
-
-func _push_animation_result_method(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, frame: int) -> void:
-	usable_res.set_prop(prop_key, anim_res.sample_func.call(frame))
+func sample_or_get(usable_res: UsableRes, prop_key: StringName, abs_frame: int) -> Variant:
+	return get_animation(usable_res, prop_key).sample_func.call(abs_frame) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
 
 func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
 	return animations[usable_res][property_key]
@@ -340,7 +309,7 @@ func make_animation_absolute(usable_res: UsableRes, property_key: StringName, pr
 		
 		for profile: CurveProfile in anim_res.profiles:
 			profile.res_changed.connect(update)
-			profile.res_changed.connect(update_controllers_by_animations_here)
+			profile.res_changed.connect(update_editors_by_animations_here)
 		
 		animation_res_added.emit(usable_res, property_key, anim_res)
 		shared_data_clear()
@@ -362,7 +331,7 @@ func request_animation_keyframe(usable_res: UsableRes, property_key: StringName,
 	var is_remove_request: bool = can_remove and anim_res.has_key(frame)
 	if is_remove_request: remove_animation_keyframe(usable_res, property_key, frame, undoredo)
 	else: add_animation_keyframe(usable_res, property_key, property_val, frame, undoredo)
-	EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
+	#EditorServer.set_usable_res_property_controller_keyframe_method(usable_res, property_key, not is_remove_request)
 
 func add_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: int, undoredo: bool = true) -> void:
 	var do_method: Callable = _add_animation_keyframe.bind(usable_res, property_key, property_val, frame)
@@ -399,6 +368,62 @@ func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	super(property_key, property_val)
 	if not has_animation(self, property_key): return
 	request_animation_keyframe(self, property_key, property_val, null, false)
+
+
+func update_editors_by_animations(frame: int) -> void:
+	var abs_frame: int = frame + from
+	for usable_res: UsableRes in animations:
+		update_specific_editors_by_animations(usable_res, abs_frame)
+
+func update_editors_by_animations_here() -> void:
+	update_editors_by_animations(curr_frame)
+
+func update_specific_editors_by_animations(usable_res: UsableRes, abs_frame: int) -> void:
+	if not EditorServer.usable_ress_editors_has_port(usable_res): return
+	
+	var section: Dictionary = animations.get(usable_res, {})
+	for prop_key: StringName in section:
+		update_prop_editors_by_animation(usable_res, prop_key, section[prop_key], abs_frame)
+
+func update_prop_editors_by_animation(usable_res: UsableRes, prop_key: StringName, anim_res: AnimationRes, abs_frame: int) -> void:
+	var prop_keyframe_method: EditContainer.KeyframeMethod = int(anim_res.has_key(abs_frame))
+	EditorServer.usable_ress_editors_update_prop_edits_conts(usable_res, prop_key, anim_res.sample(abs_frame), prop_keyframe_method)
+
+func update_editors(frame: int) -> void:
+	
+	var abs_frame: int = frame + from
+	
+	update_specific_editors(self, frame)
+	
+	for section_key: StringName in components:
+		var section_comps: Array = components[section_key]
+		for comp_res: ComponentRes in section_comps:
+			update_specific_editors(comp_res, abs_frame)
+
+func update_editors_here() -> void:
+	update_editors(curr_frame)
+
+func update_specific_editors(usable_res: UsableRes, abs_frame: int) -> void:
+	if not EditorServer.usable_ress_editors_has_port(usable_res): return
+	var editors: Array[Dictionary] = EditorServer.usable_ress_editors_get_editors(usable_res)
+	
+	var props_keys: Array[StringName]
+	
+	for editor_info: Dictionary[StringName, Variant] in editors:
+		var props_editors: Dictionary[StringName, Control] = editor_info.props_edits_conts
+		for prop_key: StringName in props_editors:
+			var editor: Control = props_editors[prop_key]
+			if not is_instance_valid(editor): continue
+			if editor is not EditContainer: continue
+			if props_keys.has(prop_key): continue
+			props_keys.append(prop_key)
+	
+	for prop_key: StringName in props_keys:
+		update_prop_editors(usable_res, prop_key, abs_frame)
+
+func update_prop_editors(usable_res: UsableRes, prop_key: StringName, abs_frame: int) -> void:
+	var prop_keyframe_method: EditContainer.KeyframeMethod = int(has_animation_keyframe(usable_res, prop_key, abs_frame))
+	EditorServer.usable_ress_editors_update_prop_edits_conts(usable_res, prop_key, sample_or_get(usable_res, prop_key, abs_frame), prop_keyframe_method)
 
 
 

@@ -184,10 +184,13 @@ func open_project(_project_path: String) -> bool:
 			clip_res.parent = parent_clip_res
 			clip_res.layer_index = layer_idx
 			clip_res.clip_pos = frame
-			clip_res.loop_components(
-				func(comp: ComponentRes) -> void:
+			
+			var comps: Dictionary[StringName, Array] = clip_res.components
+			for section_key: String in comps:
+				var section_comps: Array = comps[section_key]
+				for comp: ComponentRes in section_comps:
 					comp.set_owner_from_loader(clip_res)
-			)
+			
 			clip_res.loop_animations(frame,
 				func(usable_res: UsableRes, prop_key: StringName, anim_res, frame: int) -> void:
 					anim_res.update_funcs()
