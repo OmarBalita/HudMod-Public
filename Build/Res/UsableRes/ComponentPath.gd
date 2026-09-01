@@ -21,7 +21,7 @@ class_name ComponentPath extends UsableRes
 
 signal component_path_changed(new_comp: ComponentRes)
 
-@export var clip: MediaClipResPath = MediaClipResPath.new():
+@export var clip: MediaClipResPath = MediaClipResPath.new_mediares_path():
 	set(val):
 		if val: val.media_res_changed.connect(_on_clip_media_res_val_changed)
 		clip = val
@@ -31,12 +31,6 @@ signal component_path_changed(new_comp: ComponentRes)
 		component = val
 		component_path_changed.emit(val)
 
-var owner: ComponentRes:
-	set(val):
-		clip.owner = val.owner
-		owner = val
-
-var cond_func: Callable
 var comps_ignored: Array[ComponentRes]
 
 func get_clip() -> MediaClipResPath: return clip
@@ -44,12 +38,6 @@ func set_clip(new_val: MediaClipResPath) -> void: clip = new_val
 
 func get_component() -> ComponentRes: return component
 func set_component(new_val: ComponentRes) -> void: component = new_val
-
-func get_owner() -> ComponentRes: return owner
-func set_owner(new_val: ComponentRes) -> void: owner = new_val
-
-func get_cond_func() -> Callable: return cond_func
-func set_cond_func(new_val: Callable) -> void: cond_func = new_val
 
 
 func _init() -> void:
@@ -68,7 +56,7 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	
 	return {
 		&"clip": export([clip]),
-		&"Component": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [search_box], [func() -> bool: return clip.media_res != null, [true]])
+		&"Component": export_method(ExportMethodType.METHOD_CUSTOM_EXPORT, [search_box])
 	}
 
 
@@ -76,9 +64,8 @@ func _custom_editor_spawned(edit_cont: EditContainer, props_edits: Dictionary[St
 	_try_update_editor()
 
 func _on_clip_media_res_val_changed(old_one: MediaClipRes, new_one: MediaClipRes) -> void:
-	await EditorServer.get_tree().process_frame
-	if component and clip.media_res != component.owner:
-		component = null
+	await Engine.get_main_loop().process_frame
+	if component and clip.media_res != component.owner: component = null
 	_try_update_editor()
 
 var target_comp: ComponentRes
@@ -135,14 +122,13 @@ func _on_component_search_button_pressed() -> void:
 	
 	media_res.loop_components(
 		func(comp: ComponentRes) -> void:
-			if (cond_func.is_null() or cond_func.call(comp)) and not comps_ignored.has(comp):
-				var comp_classname: StringName = comp.get_classname()
-				var btn: Button = IS.create_button(comp_classname, ClassServer.classname_get_icon(comp_classname), String(comp_classname), false)
-				btn.toggle_mode = true
-				btn.button_group = button_group
-				btn.set_meta(&"comp", comp)
-				btn.pressed.connect(set_target_comp.bind(comp))
-				comp_btns_box.add_child(btn)
+			var comp_classname: StringName = comp.get_classname()
+			var btn: Button = IS.create_button(comp_classname, ClassServer.classname_get_icon(comp_classname), String(comp_classname), false)
+			btn.toggle_mode = true
+			btn.button_group = button_group
+			btn.set_meta(&"comp", comp)
+			btn.pressed.connect(set_target_comp.bind(comp))
+			comp_btns_box.add_child(btn)
 	)
 	
 	search_line.grab_focus()

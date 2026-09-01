@@ -16,10 +16,8 @@ enum DrawMode {
 @export var generate_component: ComponentPath:
 	set(val):
 		await until_ready()
-		val.owner = self
-		val.comps_ignored.append(self)
-		val.component_path_changed.connect(_on_generate_component_path_changed)
 		generate_component = val
+		val.component_path_changed.connect(_on_generate_component_path_changed)
 		is_dirty = true
 
 @export var direction: float = .0:
@@ -178,7 +176,6 @@ func _get_drop_offset() -> Vector2:
 
 func _on_generate_component_path_changed(new_comp: ComponentRes) -> void:
 	is_dirty = true
-	PlaybackServer.seek_here()
 
 
 

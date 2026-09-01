@@ -280,7 +280,11 @@ func _usable_ress_editors_deregister_editor_by_editor_info(usable_res: UsableRes
 	if port.is_empty():
 		usable_ress_editors.erase(usable_res)
 
-func _usable_ress_editors_clear_previously_freed_instances(usable_res: UsableRes) -> void:
+func usable_ress_editors_clear_previously_freed_instances() -> void:
+	for usable_res: UsableRes in usable_ress_editors:
+		_usable_ress_editors_clear_port_previously_freed_instances(usable_res)
+
+func _usable_ress_editors_clear_port_previously_freed_instances(usable_res: UsableRes) -> void:
 	var indices_for_delete: PackedInt32Array
 	var editors: Array[Dictionary] = usable_ress_editors_get_editors(usable_res)
 	for idx: int in editors.size():

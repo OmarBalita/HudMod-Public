@@ -8,14 +8,7 @@
 #############################################################################
 class_name CompFollow extends ComponentRes
 
-@export var target: MediaClipResPath:
-	set(val):
-		if val:
-			await until_ready()
-			val.owner = owner
-			val.cond_func = MediaClipResPath.node2d_cond
-			val.res_changed.connect(emit_res_changed)
-		target = val
+@export var target: MediaClipResPath = MediaClipResPath.new_mediares_path(null, &"display2d_cond")
 
 @export_group("Enabling", "enable")
 @export var enable_pos: bool = true
@@ -29,9 +22,6 @@ class_name CompFollow extends ComponentRes
 func _init() -> void:
 	method_type = MethodType.SET
 
-func set_owner(new_owner: MediaClipRes) -> void:
-	super(new_owner)
-	target = MediaClipResPath.new()
 
 func emit_res_changed() -> void:
 	super(); if owner: owner.shared_data_clear()

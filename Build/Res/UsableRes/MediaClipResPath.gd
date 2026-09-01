@@ -21,36 +21,17 @@ class_name MediaClipResPath extends UsableRes
 
 signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 
+@export var cond_method_name: StringName
 @export var media_res: MediaClipRes:
 	set(val):
-		
-		var tmp_old_val: MediaClipRes = media_res
 		media_res = val
-		
-		if val: retarget_id = val.id
-		else: retarget_id = &""
-		
-		if tmp_old_val != val:
-			media_res_changed.emit(tmp_old_val, val)
-		
 		emit_res_changed()
 		_try_update_editor()
 
-@export var retarget_id: StringName
-
-var owner: MediaClipRes:
-	set(val):
-		owner = val
-		if owner and owner.id == retarget_id:
-			media_res = owner
-
-var cond_func: Callable = any_cond
-
-static func new_mediares_path(_cond_func: Callable = any_cond, _media_res: MediaClipRes = null, owner: MediaClipRes = null) -> MediaClipResPath:
+static func new_mediares_path(_media_res: MediaClipRes = null, _cond_method_name: StringName = &"any_cond") -> MediaClipResPath:
 	var new_one:= MediaClipResPath.new()
-	new_one.cond_func = _cond_func
 	new_one.media_res = _media_res
-	new_one.owner = owner
+	new_one.cond_method_name = _cond_method_name
 	return new_one
 
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
@@ -83,10 +64,8 @@ func _try_update_editor() -> void:
 		var path_edit: BoxContainer = EditorServer.usable_ress_editors_get_prop_edit_cont(self, 0, &"path_ctrlr")
 		var path_line: LineEdit = path_edit.get_child(0)
 		
-		if media_res:
-			path_line.text = ("(Self) " if media_res == owner else "") + media_res.get_display_name()
-		else:
-			path_line.clear()
+		if media_res: path_line.text = media_res.get_display_name()
+		else: path_line.clear()
 		
 		path_edit.get_child(1).visible = media_res == null
 		path_edit.get_child(2).visible = media_res != null
@@ -118,7 +97,7 @@ func _on_media_res_picker_button_pressed(media_res_picker_button: IS.CustomTextu
 		
 		if media_clips_focused.size():
 			var target_res: MediaClipRes = media_clips_focused[0].clip_res
-			if cond_func.is_null() or cond_func.call(target_res):
+			if has_method(cond_method_name) and call(cond_method_name, target_res) == true:
 				for res: MediaClipResPath in EditorServer.usable_ress_editors_get_shared_ress_with_idx(self, 0):
 					res.media_res = target_res
 		
@@ -142,7 +121,7 @@ func is_empty() -> bool: return media_res == null or media_res.curr_node == null
 func is_valid() -> bool: return media_res != null and media_res.curr_node != null
 
 static func any_cond(media_res: MediaClipRes) -> bool: return true
-static func node2d_cond(media_res: MediaClipRes) -> bool: return media_res is Display2DClipRes
+static func display2d_cond(media_res: MediaClipRes) -> bool: return media_res is Display2DClipRes
 static func renderpass_cond(media_res: MediaClipRes) -> bool: return media_res is RenderPassClipRes
 
 

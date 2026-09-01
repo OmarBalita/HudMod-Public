@@ -149,7 +149,7 @@ func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dict
 		
 		info.set(&"pos_initial", canvas_item.position)
 		info.set(&"poss_initial", EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
+			MediaClipResPath.display2d_cond,
 			func(idx: int, clip_res: Display2DClipRes) -> Vector2: return clip_res.get_canvas_item_comp().position
 		))
 		
@@ -164,7 +164,7 @@ func _pick_edit_mode(canvas_item: CompCanvasItem, mouse_pos: Vector2, info: Dict
 		info.set(&"global_pos_at_rotation_start", global_pos)
 		
 		info.set(&"rotations_initial", EditorServer.properties.curr_clips_ress_map(
-			MediaClipResPath.node2d_cond,
+			MediaClipResPath.display2d_cond,
 			func(idx: int, clip_res: Display2DClipRes) -> float: return clip_res.get_canvas_item_comp().rotation_degrees
 		))
 		
@@ -189,7 +189,7 @@ func _begin_scale_drag(canvas_item: CompCanvasItem, info: Dictionary[StringName,
 	info.set(&"size_half_initial", get_size(canvas_item.scale) / 2.)
 	
 	info.set(&"scales_initial", EditorServer.properties.curr_clips_ress_map(
-		MediaClipResPath.node2d_cond,
+		MediaClipResPath.display2d_cond,
 		func(idx: int, clip_res: Display2DClipRes) -> Vector2:
 			return clip_res.get_canvas_item_comp().scale
 	))
@@ -247,7 +247,7 @@ func _apply_translation(canvas_item: CompCanvasItem, snapped_world_pos: Vector2,
 		
 		var idx: int
 		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
-			if not MediaClipResPath.node2d_cond(clip_res): continue
+			if not MediaClipResPath.display2d_cond(clip_res): continue
 			clip_res.get_canvas_item_comp().set_prop_and_emit(&"position", poss_initial[idx] + pos_delta)
 			idx += 1
 
@@ -274,7 +274,7 @@ func _apply_rotation(canvas_item: CompCanvasItem, world_pos: Vector2, event: Inp
 		
 		var idx: int
 		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
-			if not MediaClipResPath.node2d_cond(clip_res): continue
+			if not MediaClipResPath.display2d_cond(clip_res): continue
 			clip_res.get_canvas_item_comp().set_prop_and_emit(&"rotation_degrees", rots_initial[idx] + rotation_delta)
 			idx += 1
 
@@ -305,7 +305,7 @@ func _apply_corner_scale(canvas_item: CompCanvasItem, world_pos: Vector2, event:
 		
 		var idx: int
 		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
-			if not MediaClipResPath.node2d_cond(clip_res): continue
+			if not MediaClipResPath.display2d_cond(clip_res): continue
 			var s0: Vector2 = scales_initial[idx]
 			clip_res.get_canvas_item_comp().set_prop_and_emit(&"scale", Vector2(s0.x * scale_ratio.x, s0.y * scale_ratio.y))
 			idx += 1
@@ -336,7 +336,7 @@ func _apply_axis_scale(canvas_item: CompCanvasItem, world_pos: Vector2, is_x_axi
 		
 		var idx: int
 		for clip_res: MediaClipRes in EditorServer.properties.curr_clip_ress:
-			if not MediaClipResPath.node2d_cond(clip_res): continue
+			if not MediaClipResPath.display2d_cond(clip_res): continue
 			var s0: Vector2 = scales_initial[idx]
 			var new_scale: Vector2 = s0
 			if is_x_axis: new_scale.x = s0.x * axis_ratio
@@ -551,7 +551,7 @@ func get_self_main_texture() -> Texture2D: return null
 func get_self_texture() -> Texture2D: return ppr.get_output_texture() if ppr else get_self_main_texture()
 func get_size(scale: Vector2) -> Vector2: return Vector2.ZERO
 
-func build_shader_pipeline() -> void:
+func build_shader_pipeline(from_loader: bool = false) -> void:
 	
 	ppsm.clear()
 	

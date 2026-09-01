@@ -9,10 +9,7 @@
 @icon("res://Asset/Icons/Objects/render-viewer.png")
 class_name RenderViewerClipRes extends Display2DClipRes
 
-@export var render_pass_clip: MediaClipResPath = MediaClipResPath.new_mediares_path(MediaClipResPath.renderpass_cond):
-	set(val):
-		render_pass_clip = val
-		_init_render_pass_clip()
+@export var render_pass_clip: MediaClipResPath = MediaClipResPath.new_mediares_path(null, &"renderpass_cond")
 
 var texture: ViewportTexture
 
@@ -56,10 +53,10 @@ func get_size(scale: Vector2) -> Vector2:
 	var tex: Texture2D = get_self_texture()
 	return tex.get_size() * scale if tex else Vector2.ZERO
 
-func build_shader_pipeline() -> void:
+func build_shader_pipeline(from_loader: bool = false) -> void:
 	await super()
 	_try_update_curr_node_texture()
-	update()
+	if from_loader: update()
 
 
 func _try_update_texture_from_render_pass() -> void:

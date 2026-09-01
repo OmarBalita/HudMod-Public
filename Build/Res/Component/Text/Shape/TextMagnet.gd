@@ -15,13 +15,7 @@ enum EffectType {
 
 @export var use_clip_as_magnet: bool = false
 @export var magnet_pos: Vector2
-@export var magnet_clip: MediaClipResPath:
-	set(val):
-		if val:
-			await until_ready()
-			val.owner = owner
-			val.cond_func = MediaClipResPath.node2d_cond
-		magnet_clip = val
+@export var magnet_clip: MediaClipResPath = MediaClipResPath.new_mediares_path(null, &"display2d_cond")
 
 @export_group(&"Effect Settings")
 @export var effect_type: EffectType = EffectType.TYPE_1
@@ -39,10 +33,6 @@ var _magnet_pos: Vector2
 func _init() -> void:
 	effect_curve.res_changed.connect(emit_res_changed)
 
-func set_owner(new_owner: MediaClipRes) -> void:
-	super(new_owner)
-	magnet_clip = MediaClipResPath.new()
-
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	var use_clip_func: Callable = get.bind(&"use_clip_as_magnet")
 	return {
@@ -58,17 +48,13 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 		&"_Effect Settings": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),
 	}
 
-func emit_res_changed() -> void:
-	super()
-	if magnet_clip and magnet_clip.is_valid():
-		magnet_clip.media_res.process_here()
-
 func _process(frame: int) -> void:
-	if magnet_clip.media_res:
-		var target_frame: int = await owner.wait_until_media_res_processed(magnet_clip.media_res)
 	
 	if use_clip_as_magnet and magnet_clip.is_valid():
-		_magnet_pos = magnet_clip.get_media_res().get_stacked_values_key_result(&"position")
+		var target_clip_res: Display2DClipRes = magnet_clip.get_media_res()
+		var clip_pos: Vector2 = target_clip_res.get_stacked_values_key_result(&"position")
+		var pos: Vector2 = owner.get_stacked_values_key_result(&"position")
+		_magnet_pos = clip_pos + clip_pos - pos
 	else:
 		_magnet_pos = magnet_pos
 	
@@ -79,7 +65,7 @@ func _process_char_fx(line_idx: int, line_data: Text2DClipRes.LineData, idx: int
 	var dist: float = char.offset.distance_to(_magnet_pos if effect_type else magnet_pos)
 	if dist < effect_min_distance:
 		var t: float = 1. - dist / effect_min_distance
-		var weight: float = effect_curve.sample_func.call(t * 128.) * effect_force
+		var weight: float = effect_curve.sample.call(t * 128.) * effect_force
 		var scale_time: float = effect_scale * weight
 		char.offset = char.offset.lerp(_magnet_pos, weight)
 		char.transform.x.x += scale_time

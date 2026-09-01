@@ -172,12 +172,12 @@ static func convert_buffer_to_image(res: Vector2i, format: Image.Format, data: P
 	return Image.create_from_data(res.x, res.y, false, format, data)
 
 
-func build_shader_pipeline() -> void:
+func build_shader_pipeline(from_loader: bool = false) -> void:
 	await super()
 	if video_decoder: _init_video_shader_params()
 	if ppr: await process_passes_materials(1.)
 	if curr_node: curr_node.texture = get_self_texture()
-	update()
+	if not from_loader: update()
 
 static func _shader_is_post() -> bool: return false
 

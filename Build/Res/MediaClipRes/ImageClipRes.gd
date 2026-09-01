@@ -41,11 +41,11 @@ func get_size(scale: Vector2) -> Vector2:
 	var tex: Texture2D = get_self_texture()
 	return tex.get_size() * curr_node.scale_factor * scale if tex else Vector2.ZERO
 
-func build_shader_pipeline() -> void:
+func build_shader_pipeline(from_loader: bool = false) -> void:
 	await super()
 	if ppr: await process_passes_materials(1.)
 	if curr_node: curr_node.texture = get_self_texture()
-	update()
+	if from_loader: update()
 
 func check_for_paths(paths_for_check: PackedStringArray) -> PackedStringArray:
 	return [] if paths_for_check.has(image) else [image]

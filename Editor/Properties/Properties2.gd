@@ -432,6 +432,8 @@ func _clear_controls() -> void:
 	
 	if media_properties_panel_container:
 		media_properties_panel_container.queue_free()
+	
+	EditorServer.usable_ress_editors_clear_previously_freed_instances()
 
 func _display_components_by_sections() -> void:
 	_clear_controls()

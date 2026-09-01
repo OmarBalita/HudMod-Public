@@ -196,7 +196,7 @@ func open_project(_project_path: String) -> bool:
 					anim_res.update_funcs()
 			)
 			if clip_res is Display2DClipRes:
-				clip_res.build_shader_pipeline()
+				clip_res.build_shader_pipeline(true)
 	)
 	
 	EditorServer.editor_settings.update_internal_props_base_on_project()

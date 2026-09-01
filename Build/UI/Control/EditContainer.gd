@@ -117,6 +117,11 @@ func set_controller_curr_value_manually(value: Variant) -> void:
 	if method_set_manually.is_valid(): method_set_manually.call(value)
 	elif method_set: method_set.call(value)
 
+func set_curr_value_and_update_controller(value: Variant) -> void:
+	set_curr_value(value)
+	set_controller_curr_value_manually(value)
+
+
 func set_keyframe_method(_keyframe_method: KeyframeMethod) -> void:
 	keyframe_method = _keyframe_method
 
