@@ -176,5 +176,3 @@ class ColorWheelShape extends Control:
 		sat = clamp(dist / radius, .0, 1.)
 		
 		queue_redraw()
-
-

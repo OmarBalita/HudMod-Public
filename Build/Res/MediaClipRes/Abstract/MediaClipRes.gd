@@ -122,6 +122,13 @@ func has_clips() -> bool:
 func get_components() -> Dictionary[StringName, Array]: return components
 func set_components(_components: Dictionary[StringName, Array]) -> void: components = _components
 
+func try_get_component(comp_type: Variant) -> ComponentRes:
+	for comps: Array in components.values():
+		for comp: ComponentRes in comps:
+			if is_instance_of(comp, comp_type):
+				return comp
+	return null
+
 func get_animations() -> Dictionary[UsableRes, Dictionary]: return animations
 func set_animations(new_val: Dictionary[UsableRes, Dictionary]) -> void: animations = new_val
 
@@ -136,6 +143,12 @@ func call_node_method_if(method_name: StringName, args: Array = []) -> void:
 
 func duplicate_media_res() -> MediaClipRes:
 	var duplicated: MediaClipRes = duplicate()
+	
+	duplicated.curr_node = null
+	duplicated.curr_frame = -1
+	duplicated.parent = null
+	duplicated.shared_data = {}
+	duplicated.stacked_values = {}
 	
 	var ress_peers: Dictionary[UsableRes, UsableRes] = {self: duplicated}
 	

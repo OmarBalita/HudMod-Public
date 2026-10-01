@@ -86,15 +86,3 @@ func open_curve_profile(curve_key: StringName) -> void:
 
 func _on_curve_btn_pressed(curve_key: StringName) -> void:
 	open_curve_profile(curve_key)
-
-
-
-
-
-
-
-
-
-
-
-

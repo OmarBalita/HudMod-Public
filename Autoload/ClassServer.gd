@@ -40,7 +40,7 @@ var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
 	&"Image": CompsSectionInfo.new(null, "", [&"Basic", &"Enhance", &"Cinematic", &"Retro", &"Artistic", &"Blur", &"Distortion", &"PostProcessing"]),
 	&"Color": CompsSectionInfo.new(null, "", [&"ColorCorrection", &"ColorGrading"]),
 	&"Transition": CompsSectionInfo.new(null, "", [&"Basic"]),
-	&"Sound": CompsSectionInfo.new(null, "", [&"Basic"]),
+	&"Sound": CompsSectionInfo.new(null, "", [&"Basic", &"Delay", &"Distortion", &"Dynamics", &"Filter", &"Reverb"]),
 	&"Layout": CompsSectionInfo.new(null, "", [&"Layout"]),
 	&"Text": CompsSectionInfo.new(null, "", [&"Basic", &"Shape", &"Color", &"Animation", &"InOutAnimation", &"Generate"]),
 	#&"Draw": CompsSectionInfo.new(null, "", []),
@@ -231,4 +231,3 @@ class ObjectClassInfo extends BaseClassInfo:
 	
 	static func get_default_icon() -> Texture2D: return default_icon
 	static func set_default_icon(new_val: Texture2D) -> void: default_icon = new_val
-

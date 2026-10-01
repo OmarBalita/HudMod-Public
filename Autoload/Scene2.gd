@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -148,11 +148,12 @@ func stop_stream_players(at: int) -> void:
 
 func play_stream_player(clip_res: MediaClipRes, at: int, fps_f: float) -> void:
 	var target_frame: int = PlaybackServer.position - clip_res.clip_pos + clip_res.from
-	clip_res.curr_node.play(target_frame / fps_f)
+	clip_res.curr_node.play(target_frame / fps_f, clip_res.get_section_comps_absolute(&"Sound"))
 
 func play_video_stream_player(video_clip_res: VideoClipRes, at: int, fps_f: float) -> void:
+	if video_clip_res.disable_audio: return
 	var target_frame: int = PlaybackServer.position - video_clip_res.clip_pos + video_clip_res.from
-	video_clip_res.stream_player.play(target_frame / fps_f)
+	video_clip_res.stream_player.play(target_frame / fps_f, video_clip_res.get_section_comps_absolute(&"Sound"))
 
 
 

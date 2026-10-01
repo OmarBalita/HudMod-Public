@@ -371,6 +371,3 @@ func add_polygon_postdraw(points: PackedVector2Array, colors: PackedColorArray, 
 
 func remove_postdraw(idx: int) -> void:
 	postdraw.erase(idx)
-
-
-

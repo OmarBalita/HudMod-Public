@@ -413,7 +413,7 @@ class MediaCard extends PanelContainer:
 				
 				match event.button_index:
 					MOUSE_BUTTON_LEFT:
-						_select(event.alt_pressed, not event.ctrl_pressed)
+						_select(event.alt_pressed, not event.ctrl_pressed, event.shift_pressed)
 					MOUSE_BUTTON_RIGHT:
 						_select(event.alt_pressed, false)
 						popup_context_menu()
@@ -434,8 +434,9 @@ class MediaCard extends PanelContainer:
 					button_event = null
 					media_box.is_moving = true
 	
-	func _select(delete: bool, preclear: bool) -> void:
-		media_box.media_select_cont.manage_val(selection_port, get_index(), delete, preclear)
+	func _select(delete: bool, preclear: bool, shift: bool = false) -> void:
+		if shift: media_box.media_select_cont.select_range(selection_port, get_index(), preclear)
+		else: media_box.media_select_cont.manage_val(selection_port, get_index(), delete, preclear)
 		media_box.media_select_cont.emit_selected_changed()
 	
 	func _activate() -> void:
@@ -495,8 +496,3 @@ class MediaCard extends PanelContainer:
 			IS.set_base_panel_settings(self, STYLE_SELECTED)
 			modulate.a = .7
 			visible = false
-
-
-
-
-

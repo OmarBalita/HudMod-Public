@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -49,6 +49,7 @@ func start(_output_path: String, _video_renderer: VideoRenderer, _audio_renderer
 	
 	PlaybackServer.stop()
 	PlaybackServer.seek(0)
+	_reset_all_clip_effects(ProjectServer2.project_res.root_clip_res)
 	
 	output_path = _output_path
 	video_renderer = _video_renderer
@@ -186,8 +187,25 @@ func _extract_layer_samples_at(layer_res: LayerRes, position: int) -> Array[Pack
 	if curr_clip_res is VideoClipRes or curr_clip_res is AudioClipRes:
 		if curr_clip_res.audio_data_res:
 			var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer_res.displayed_frame + curr_clip_res.from)
+			var effects: Array = curr_clip_res.get_section_comps_absolute(&"Sound")
+			if not effects.is_empty():
+				var vec_buf: PackedVector2Array = AudioMixer.bytes_to_vector2(samples)
+				vec_buf = AudioMixer.run_effect_chain(vec_buf, effects, MediaCache.AudioF32Data.SAMPLE_RATE)
+				samples = AudioMixer.vector2_to_bytes(vec_buf)
 			result.append(samples)
 	
 	result.append_array(_extract_clip_samples_at(curr_clip_res, position))
 	
 	return result
+
+func _reset_all_clip_effects(root_clip_res: RootClipRes) -> void:
+	for root_layer: RootLayerRes in root_clip_res.layers:
+		_reset_layer_effects(root_layer)
+
+func _reset_layer_effects(layer_res: LayerRes) -> void:
+	var clip_res: MediaClipRes = layer_res.displayed_clip_res
+	if not clip_res:
+		return
+	AudioMixer.reset_effect_chain(clip_res.get_section_comps_absolute(&"Sound"))
+	for layer: LayerRes in clip_res.layers:
+		_reset_layer_effects(layer)

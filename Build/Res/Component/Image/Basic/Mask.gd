@@ -110,4 +110,3 @@ func _get_shader_fragment_snip() -> String:
 	if ({reverse}) {mask} = 1. - {mask};
 	alpha *= {mask};
 "
-

@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name SelectContainer extends PanelContainer
 
@@ -44,6 +44,7 @@ var selectables: Dictionary[int, Dictionary]
 
 var selected: Dictionary[int, Dictionary]
 var focused: Vector2i: set = _set_focused
+var select_anchor: Vector2i
 
 var ignored_ports_to_select: PackedInt32Array
 
@@ -146,6 +147,7 @@ func select_val(port_idx: int, idx: int) -> void:
 		selected[port_idx][idx] = val
 	
 	focused = Vector2i(port_idx, idx)
+	select_anchor = Vector2i(port_idx, idx)
 
 func deselect_val(port_idx: int, idx: int, update_focus: bool = false) -> void:
 	if is_val_selected(port_idx, idx):
@@ -176,6 +178,19 @@ func select_vals(coords: Dictionary[int, PackedInt32Array], preclear: bool) -> v
 			port[idx] = get_selectable_val(port_idx, idx)
 	
 	update_focused()
+
+func select_range(port_idx: int, idx: int, preclear: bool = true) -> void:
+	
+	var min_port: int = mini(select_anchor.x, port_idx)
+	var max_port: int = maxi(select_anchor.x, port_idx)
+	var min_idx: int = mini(select_anchor.y, idx)
+	var max_idx: int = maxi(select_anchor.y, idx)
+	
+	select_vals_by_method(
+		func(p_idx: int, port_obj: Object, i: int, metadata: Dictionary) -> bool:
+			return p_idx >= min_port and p_idx <= max_port and i >= min_idx and i <= max_idx,
+		preclear
+	)
 
 func deselect_vals(coords: Dictionary[int, PackedInt32Array]) -> void:
 	

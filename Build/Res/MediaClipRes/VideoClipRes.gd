@@ -1,13 +1,15 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+## GPLv3																   ##
 #############################################################################
 @icon("res://Asset/Icons/Objects/video.png")
 class_name VideoClipRes extends Display2DClipRes
+
+signal disable_audio_changed(new_val: bool)
 
 @export var video: String:
 	set(val):
@@ -24,6 +26,11 @@ class_name VideoClipRes extends Display2DClipRes
 			audio_data_res = MediaCache.default_audio_f32_data
 		
 		is_opening = can_open
+
+@export var disable_audio: bool = false:
+	set(val):
+		disable_audio = val
+		_update_disable_audio_state()
 
 var stream_player: CustomAudioStreamPlayer
 
@@ -60,6 +67,7 @@ func get_size(scale: Vector2) -> Vector2:
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"video": export(string_args(video)),
+		&"disable_audio": export(bool_args(disable_audio))
 		#&"scale_factor": export(float_args(scale_factor, .1, 1., .1, .01, .1)),
 	} as Dictionary[StringName, Dictionary].merged(super())
 
@@ -80,7 +88,8 @@ func enter(node: Node) -> void:
 	if video_ctx:
 		video_decoder = video_ctx.request_video_decoder()
 		_init_video_shader_params()
-		seek_frame_smart(0)
+		var start_video_frame: int = (curr_frame + from) / float(ProjectServer2.fps) * video_ctx.fps
+		seek_frame_smart(start_video_frame)
 	
 	if ppr:
 		await process_passes_materials(1.)
@@ -158,7 +167,16 @@ func _update_video_shader_params() -> void:
 	pre_shader_material.set_shader_parameter(&"tex_u", texture_u)
 	pre_shader_material.set_shader_parameter(&"tex_v", texture_v)
 
+func _update_disable_audio_state() -> void:
+	if stream_player:
+		if disable_audio:
+			stream_player.stop()
+		elif PlaybackServer.is_playing():
+			Scene2.play_video_stream_player(self, PlaybackServer.position, float(ProjectServer2.fps))
+	disable_audio_changed.emit(disable_audio)
+
 func _init_video_shader_params() -> void:
+	if not pre_shader_material: return
 	var bit_depth: int = video_decoder.get_bit_depth()
 	pre_shader_material.set_shader_parameter(&"color_matrix", video_decoder.get_color_matrix_idx())
 	pre_shader_material.set_shader_parameter(&"is_full_range", false)
@@ -212,15 +230,15 @@ func _get_shader_fragment_snip() -> String:
 		{u} -= {uv_offset} / {max_val};
 		{v} -= {uv_offset} / {max_val};
 	} else {
-		float {y_min}     = exp2(bit_depth - 4.0);
+		float {y_min}	  = exp2(bit_depth - 4.0);
 		float {y_range}   = exp2(bit_depth - 4.0) * 219.0 / 16.0;
 		float {uv_range}  = exp2(bit_depth - 4.0) * 224.0 / 16.0;
-		{y} = ({y} - {y_min}     / {max_val}) / ({y_range}  / {max_val});
+		{y} = ({y} - {y_min}	 / {max_val}) / ({y_range}	/ {max_val});
 		{u} = ({u} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
 		{v} = ({v} - {uv_offset} / {max_val}) / ({uv_range} / {max_val});
 	}
 	
-	if (color_space == 0) {        // BT.709
+	if (color_space == 0) {		   // BT.709
 		color.r = {y} + 1.5748 * {v};
 		color.g = {y} - 0.1873 * {u} - 0.4681 * {v};
 		color.b = {y} + 1.8556 * {u};
@@ -228,7 +246,7 @@ func _get_shader_fragment_snip() -> String:
 		color.r = {y} + 1.4746 * {v};
 		color.g = {y} - 0.1645 * {u} - 0.5713 * {v};
 		color.b = {y} + 1.8814 * {u};
-	} else {                       // BT.601
+	} else {					   // BT.601
 		color.r = {y} + 1.402 * {v};
 		color.g = {y} - 0.344 * {u} - 0.714 * {v};
 		color.b = {y} + 1.772 * {u};

@@ -98,6 +98,3 @@ func set_shader_props(props: Dictionary[StringName, Variant]) -> void:
 
 func has_color_correction_editor() -> bool: return false
 func _get_color_correction_exported_props() -> Dictionary[StringName, Dictionary]: return {}
-
-
-

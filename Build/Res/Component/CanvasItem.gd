@@ -200,4 +200,3 @@ func _get_shader_fragment_snip() -> String:
 		color.rgb = mix({base}, clamp({result}, .0, 1.), {final_alpha});
 	}
 "
-

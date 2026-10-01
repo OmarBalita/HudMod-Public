@@ -158,7 +158,3 @@ func request_animation_keyframe(usable_res: UsableRes, property_key: StringName,
 #
 #static func update_custom_edit(usable_res: UsableRes, idx: int) -> void:
 	#pass
-
-
-
-

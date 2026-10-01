@@ -341,6 +341,9 @@ class ClipPanel extends Panel:
 	var has_clips: bool
 	
 	var button_event: InputEventMouseButton
+
+	var sound_gain_comp: CompSoundGain
+	var sound_gain_dragging: bool
 	
 	
 	func _init(_clip_res: MediaClipRes) -> void:
@@ -355,6 +358,27 @@ class ClipPanel extends Panel:
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_ready_ui()
 		_update_ui()
+		
+		_update_sound_gain_comp()
+		clip_res.clip_res_changed.connect(_update_sound_gain_comp)
+	
+	
+	func _is_sound_gain_enabled() -> bool:
+		return sound_gain_comp != null and sound_gain_comp.enabled
+	
+	func _update_sound_gain_comp() -> void:
+		sound_gain_comp = clip_res.try_get_component(CompSoundGain) as CompSoundGain
+		if sound_gain_comp:
+			sound_gain_comp.res_changed.connect(_on_sound_gain_res_changed)
+		_update_waveform_size()
+		queue_redraw()
+	
+	func _update_waveform_size() -> void:
+		var waveform: Control = _get_waveform_container()
+		if not is_instance_valid(waveform): return
+		waveform.scale.y = db_to_linear(sound_gain_comp.volume_db) if (_is_sound_gain_enabled()) else 1.
+		waveform.pivot_offset.y = size.y / 2.0 - waveform.position.y
+	
 	
 	func _gui_input(event: InputEvent) -> void:
 		
@@ -373,6 +397,10 @@ class ClipPanel extends Panel:
 				size, size - Vector2(30.0, .0), size - Vector2(.0, 30.0),
 			]), PackedColorArray([Color(.0,.0,.0,.6)]))
 		
+		if _is_sound_gain_enabled():
+			var y: float = _sound_db_to_y(sound_gain_comp.volume_db)
+			draw_line(Vector2(0., y), Vector2(size.x, y), Color(1., 1., 1., .9), 2.)
+		
 		if get_global_rect().has_point(get_global_mouse_position()):
 			
 			var target_frame: int = timeline.get_snapped_frame_from_mouse_pos()
@@ -390,9 +418,42 @@ class ClipPanel extends Panel:
 						Vector2(xpos, size_h.y + 10.)
 					]), [Color.DODGER_BLUE])
 	
+	func _sound_db_to_y(db: float) -> float:
+		var mid: float = size.y / 2.
+		if db >= .0: return mid - db / CompSoundGain.MAX_DB * mid
+		return mid + db / CompSoundGain.MIN_DB * mid
+
+	func y_to_sound_db(y: float) -> float:
+		var mid: float = size.y / 2.
+		var t: float = clampf((mid - y) / mid, -1., 1.)
+		return t * CompSoundGain.MAX_DB if t >= .0 else -t * CompSoundGain.MIN_DB
+	
+	func _gui_input_sound_gain(event: InputEvent) -> bool:
+		if not _is_sound_gain_enabled():
+			return false
+		
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			if event.is_pressed() and absf(event.position.y - _sound_db_to_y(sound_gain_comp.volume_db)) <= 6.:
+				sound_gain_dragging = true
+				return true
+			if not event.is_pressed() and sound_gain_dragging:
+				sound_gain_dragging = false
+				return true
+		
+		elif event is InputEventMouseMotion and sound_gain_dragging:
+			sound_gain_comp.volume_db = clampf(snappedf(y_to_sound_db(event.position.y), .1), CompSoundGain.MIN_DB, CompSoundGain.MAX_DB)
+			sound_gain_comp.emit_res_changed() 
+			queue_redraw()
+			return true
+		
+		return false
+
 	func _gui_input_select_mode(event: InputEvent) -> void:
 		
 		if select_panel.mouse_default_cursor_shape == CursorShape.CURSOR_HSIZE:
+			return
+		
+		if _gui_input_sound_gain(event):
 			return
 		
 		if event is InputEventMouseButton:
@@ -408,7 +469,7 @@ class ClipPanel extends Panel:
 					
 					MOUSE_BUTTON_LEFT:
 						
-						_select(event.alt_pressed, not event.ctrl_pressed and not timeline.layers_body.is_moving_clips())
+						_select(event.alt_pressed, not event.ctrl_pressed and not timeline.layers_body.is_moving_clips(), event.shift_pressed)
 						_try_release()
 					
 					MOUSE_BUTTON_RIGHT:
@@ -453,8 +514,9 @@ class ClipPanel extends Panel:
 			
 			queue_redraw()
 	
-	func _select(delete: bool, preclear: bool) -> void:
-		timeline.layers_body.manage_val(layer_idx, frame, delete, preclear)
+	func _select(delete: bool, preclear: bool, shift: bool = false) -> void:
+		if shift: timeline.layers_body.select_range(layer_idx, frame, preclear)
+		else: timeline.layers_body.manage_val(layer_idx, frame, delete, preclear)
 		timeline.layers_body.emit_selected_changed()
 	
 	func _try_drag(event: InputEventMouseMotion) -> void:
@@ -550,6 +612,9 @@ class ClipPanel extends Panel:
 	
 	func _get_ui_thumbnail() -> Texture2D:
 		return clip_res.get_thumbnail()
+
+	func _get_waveform_container() -> Control:
+		return null
 	
 	func update_spacial_frames() -> void:
 		select_panel.update_spacial_frames()
@@ -644,6 +709,10 @@ class ClipPanel extends Panel:
 	
 	func _on_comp_keyframe_added(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void: update_spacial_frames_and_update_timeline()
 	func _on_comp_keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_spacial_frames_and_update_timeline()
+	
+	func _on_sound_gain_res_changed() -> void:
+		_update_waveform_size()
+		queue_redraw()
 	
 	func _on_mouse_entered() -> void:
 		EditorServer.media_clips_focused.append(self)
@@ -1064,14 +1133,20 @@ class VideoClipPanel extends ClipPanel:
 		add_theme_stylebox_override(&"panel", preload("uid://bnc4n8cvuae5s"))
 	
 	func _ready_ui() -> void:
-		if (clip_res as VideoClipRes).audio_data_res:
-			waveform_box_container = WaveformBoxContainer.new()
-			add_child(waveform_box_container)
-			update_method = __update_ui
-			update_transform_method = __update_ui_transform
+		var video_clip_res: VideoClipRes = clip_res as VideoClipRes
+		if video_clip_res.audio_data_res and !video_clip_res.disable_audio:
+			_spawn_waveform()
 		super()
 		thumbnail_rect.modulate.a = .8
+		video_clip_res.disable_audio_changed.connect(_on_disable_audio_changed)
 	
+	func _spawn_waveform() -> void:
+		waveform_box_container = WaveformBoxContainer.new()
+		add_child(waveform_box_container)
+		update_method = __update_ui
+		update_transform_method = __update_ui_transform
+		_update_waveform_size()
+
 	func _update_ui() -> void:
 		update_method.call()
 		update_transform_method.call()
@@ -1088,6 +1163,9 @@ class VideoClipPanel extends ClipPanel:
 		waveform_box_container.position.x = waveform_transform.x
 		waveform_box_container.size.x = waveform_transform.y
 	
+	func _get_waveform_container() -> Control:
+		return waveform_box_container
+
 	static func _update_none() -> void:
 		pass
 	
@@ -1098,6 +1176,18 @@ class VideoClipPanel extends ClipPanel:
 	func _on_mouse_exited() -> void:
 		super()
 		thumbnail_rect.modulate.a = .8
+	
+	func _on_disable_audio_changed(disabled: bool) -> void:
+		if disabled:
+			if waveform_box_container:
+				waveform_box_container.queue_free()
+				waveform_box_container = null
+				update_method = _update_none
+				update_transform_method = _update_none
+		else:
+			if not waveform_box_container and (clip_res as VideoClipRes).audio_data_res:
+				_spawn_waveform()
+				_update_ui()
 
 class AudioClipPanel extends ClipPanel:
 	
@@ -1124,6 +1214,9 @@ class AudioClipPanel extends ClipPanel:
 		waveform_box_container.position.x = waveform_transform.x
 		waveform_box_container.size.x = waveform_transform.y
 		super()
+	
+	func _get_waveform_container() -> Control:
+		return waveform_box_container
 
 class ObjectClipPanel extends ClipPanel:
 	

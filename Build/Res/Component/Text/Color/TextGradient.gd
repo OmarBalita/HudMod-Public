@@ -38,5 +38,3 @@ func _process_global_idx(line_idx: int, line_data: Text2DClipRes.LineData, idx: 
 
 func _process_offset_ratio(line_idx: int, line_data: Text2DClipRes.LineData, idx: int, global_idx: int, glyph: Dictionary, char: CharFXTransform) -> void:
 	char.color *= gradient.sample(char.env.offset_ratio)
-
-

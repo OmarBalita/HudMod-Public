@@ -60,5 +60,3 @@ func erase_paths(paths_for_erase: PackedStringArray) -> void:
 
 func update_paths() -> void:
 	stream = stream
-
-

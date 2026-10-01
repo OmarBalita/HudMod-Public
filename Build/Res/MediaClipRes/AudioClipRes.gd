@@ -36,6 +36,9 @@ func get_min_from() -> float: return .0
 func get_max_length() -> float:
 	return audio_data_res.get_length() * ProjectServer2.fps if is_opening else +INF
 
+func _init_clip_res() -> void:
+	add_component(&"Sound", CompSoundGain.new(), true)
+
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {&"stream": export(string_args(stream))}
 

@@ -1327,10 +1327,3 @@ func _try_scan_media_existent() -> void:
 func _on_window_files_dropped(files_pathes: Array[String]) -> void:
 	if not ProjectServer2.is_project_loaded: return
 	media_explorer.import_box.load_files(files_pathes)
-
-
-
-
-
-
-

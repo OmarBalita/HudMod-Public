@@ -126,6 +126,8 @@ var small_step_scaler: int
 var opened_clip_res: MediaClipRes
 var layers: Dictionary[LayerRes, Layer2]
 
+var splited_by_selection: bool = true
+
 var latest_press_event: InputEventKey
 var latest_mouse_event: InputEventMouse
 
@@ -817,7 +819,6 @@ class LayersSelectContainer extends SelectContainer:
 		
 		timeline.opened_clip_res.move_clips(from_coords, to_coords, timeline.overlay_menu.focus_index)
 	
-	
 	func _get_port_obj(port_idx: int) -> Object:
 		return timeline.get_layer_from_idx(port_idx)
 	
@@ -1037,8 +1038,90 @@ class LayersSelectContainer extends SelectContainer:
 		
 		EditorServer.media_explorer.preset_box.create_presets(preset_clips_ress, global)
 	
+	func detach_audio() -> void:
+		
+		var owner_clip_res: MediaClipRes = timeline.opened_clip_res
+		var targets: Array[Dictionary] = []
+		
+		for layer_idx: int in selected:
+			var port: Dictionary = selected[layer_idx]
+			var video_layer_res: LayerRes = owner_clip_res.get_layer(layer_idx)
+			for frame: int in port:
+				var clip_res: MediaClipRes = port[frame]
+				if clip_res is VideoClipRes and not clip_res.disable_audio:
+					targets.append({
+						video_clip_res = clip_res,
+						video_layer_res = video_layer_res,
+						frame = frame,
+					})
+		
+		if targets.is_empty():
+			return
+		
+		var created_layers: Array[LayerRes] = []
+		var added_audio_coords: Dictionary[Vector2i, MediaClipRes] = {}
+		
+		var do_method: Callable = func() -> void:
+			
+			created_layers.clear()
+			added_audio_coords.clear()
+			
+			for target: Dictionary in targets:
+				
+				var video_clip_res: VideoClipRes = target.video_clip_res
+				var frame: int = target.frame
+				
+				var video_layer_idx: int = owner_clip_res.layers.find(target.video_layer_res)
+				var under_layer_idx: int = video_layer_idx - 1
+				
+				var target_layer_idx: int = -1
+				
+				if under_layer_idx >= 0:
+					var under_layer_res: LayerRes = owner_clip_res.get_layer(under_layer_idx)
+					if under_layer_res.is_place_unoccupied(frame, video_clip_res.length):
+						target_layer_idx = under_layer_idx
+				
+				if target_layer_idx == -1:
+					var new_layer: LayerRes = owner_clip_res.add_layer(video_layer_idx, null, false)
+					target_layer_idx = owner_clip_res.layers.find(new_layer)
+					created_layers.append(new_layer)
+				
+				var audio_clip_res: AudioClipRes = AudioClipRes.new()
+				audio_clip_res._init_clip_res()
+				audio_clip_res.stream = video_clip_res.video
+				audio_clip_res.from = video_clip_res.from
+				audio_clip_res.length = video_clip_res.length
+				
+				var placed: Dictionary[Vector2i, MediaClipRes] = owner_clip_res.add_clips_by_coords(
+					{Vector2i(target_layer_idx, frame): audio_clip_res}, -1, true, false
+				)
+				added_audio_coords.merge(placed)
+				
+				video_clip_res.disable_audio = true
+		
+		var undo_method: Callable = func() -> void:
+			
+			for target: Dictionary in targets:
+				(target.video_clip_res as VideoClipRes).disable_audio = false
+			
+			owner_clip_res.remove_clips(added_audio_coords.keys(), true, false)
+			
+			for layer_res: LayerRes in created_layers:
+				var layer_idx: int = owner_clip_res.layers.find(layer_res)
+				if layer_idx != -1:
+					owner_clip_res.remove_layer(layer_idx, false)
+		
+		ProjectServer2.commit_action("detach_audio", do_method, undo_method)
+	
+	func _all_selected_clips_are_videos() -> bool:
+		var vals: Array = selected_to_vals()
+		if vals.is_empty(): return false
+		for clip_res: MediaClipRes in vals:
+			if clip_res is not VideoClipRes: return false
+		return true
+
 	func _get_clips_options() -> Array[Dictionary]:
-		return [
+		var options: Array[Dictionary] = [
 			{as_separator = true},
 			{text = "Enter", shortcut = shortcut_node.get_shortcut(&"enter_clip"), metadata = enter_clip},
 			{text = "Create Parent", shortcut = shortcut_node.get_shortcut(&"create_parent"), metadata = create_parent},
@@ -1052,6 +1135,12 @@ class LayersSelectContainer extends SelectContainer:
 			{text = "Save as Global Preset", shortcut = shortcut_node.get_shortcut(&"save_global_presets"), metadata = save_presets.bind(true)},
 			{text = "Save as Project Preset", shortcut = shortcut_node.get_shortcut(&"save_presets"), metadata = save_presets.bind(false)},
 		]
+		
+		if _all_selected_clips_are_videos():
+			options.append({as_separator = true})
+			options.append({text = "Detach Audio", metadata = detach_audio})
+
+		return options
 	
 	func emit_selected_changed() -> void:
 		super()
@@ -1501,7 +1590,33 @@ func update_clips(clips_coords: Array[Vector2i]) -> void:
 
 
 func split_clips(accept_left: bool, accept_right: bool) -> void:
-	opened_clip_res.split_clips(layers_body.selected_to_coords(), PlaybackServer.position, accept_left, accept_right)
+	var coords: Array[Vector2i] = layers_body.selected_to_coords()
+	splited_by_selection = not coords.is_empty()
+	if coords.is_empty():
+		coords = get_clips_coords_at_frame(PlaybackServer.position)
+	opened_clip_res.split_clips(coords, PlaybackServer.position, accept_left, accept_right)
+
+func get_clips_coords_at_frame(frame: int) -> Array[Vector2i]:
+	var coords: Array[Vector2i] = []
+	var layers_ress: Array[LayerRes] = opened_clip_res.layers
+	
+	for layer_idx: int in layers_ress.size():
+		var layer_res: LayerRes = layers_ress[layer_idx]
+		if layer_res.locked:
+			continue
+		var clip_frame: int = get_clip_frame_at(layer_res, frame)
+		if clip_frame != -1:
+			coords.append(Vector2i(layer_idx, clip_frame))
+	
+	return coords
+
+func get_clip_frame_at(layer_res: LayerRes, frame: int) -> int:
+	var clips: Dictionary[int, MediaClipRes] = layer_res.get_clips()
+	for clip_frame: int in clips:
+		var clip_res: MediaClipRes = clips[clip_frame]
+		if frame >= clip_frame and frame < clip_frame + clip_res.length:
+			return clip_frame
+	return -1
 
 
 func _on_mode_btn_selected_option_changed(id: int, option: MenuOption) -> void:
@@ -1585,7 +1700,8 @@ func _on_clip_res_clips_moved(from_coords: Array[Vector2i], to: Dictionary[Vecto
 
 
 func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[Vector2i], new_clips: Dictionary[Vector2i, MediaClipRes], split_pos: int, accept_left: bool, accept_right: bool) -> void:
-	
+	if not splited_by_selection:
+		return
 	layers_body.select_vals_by_method(
 		func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
 			var coord: Vector2i = Vector2i(port_idx, idx)
