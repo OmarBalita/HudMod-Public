@@ -1,10 +1,10 @@
 #############################################################################
-##	This file is part of: HudMod Video Editor							   ##
-##	https://omar-top.itch.io/hudmod-video-editor						   ##
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##	Copyright © 2026 Omar Mohammed Balita.								   ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3																   ##
+##  GPLv3                                                                  ##
 #############################################################################
 @abstract class_name MediaClipRes extends UsableRes
 
@@ -137,6 +137,22 @@ func set_curr_node(new_node: Node) -> void: curr_node = new_node
 
 func get_curr_frame() -> int: return curr_frame
 func set_curr_frame(new_frame: int) -> void: curr_frame = new_frame
+
+func is_children_audio_enabled() -> bool: return true
+
+func is_audio_enabled() -> bool:
+	var p: MediaClipRes = parent
+	while p:
+		if not p.is_children_audio_enabled(): return false
+		p = p.parent
+	return true
+
+func is_descendant_of(clip_res: MediaClipRes) -> bool:
+	var p: MediaClipRes = parent
+	while p:
+		if p == clip_res: return true
+		p = p.parent
+	return false
 
 func call_node_method_if(method_name: StringName, args: Array = []) -> void:
 	if curr_node: curr_node.callv(method_name, args)

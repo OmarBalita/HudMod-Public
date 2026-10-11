@@ -1,21 +1,21 @@
 #############################################################################
-##	This file is part of: HudMod Video Editor							   ##
-##	https://omar-top.itch.io/hudmod-video-editor						   ##
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##	Copyright © 2026 Omar Mohammed Balita.								   ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-##	This program is free software: you can redistribute it and/or modify   ##
-##	it under the terms of the GNU General Public License as published by   ##
-##	the Free Software Foundation, either version 3 of the License, or	   ##
-##	(at your option) any later version.									   ##
-##																		   ##
-##	This program is distributed in the hope that it will be useful,		   ##
-##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
-##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
-##	GNU General Public License for more details.						   ##
-##																		   ##
-##	You should have received a copy of the GNU General Public License	   ##
-##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name AppThemeRes extends UsableRes
 
@@ -167,6 +167,12 @@ func update_font() -> void:
 	
 	var project_theme: Theme = ThemeDB.get_project_theme()
 	if project_theme: project_theme.default_font = font
+	
+	var tree := Engine.get_main_loop() as SceneTree 
+	if tree == null: return
+	var root: Window = tree.root
+	if root.theme == null: root.theme = Theme.new()
+	root.theme.default_font = font
 
 
 func get_window_factor(window_size: Vector2i) -> float:

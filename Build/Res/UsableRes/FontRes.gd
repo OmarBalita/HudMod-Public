@@ -148,16 +148,25 @@ static func get_builtin_font(name: StringName) -> SystemFont:
 
 
 static func load_custom_font(path: StringName) -> FontFile:
-	if custom_fonts.has(path):
-		return custom_fonts[path]
+	if custom_fonts.has(path): return custom_fonts[path]
+	
+	var path_str: String = String(path)
+	if path_str.is_empty(): return null
+	
+	var custom_font: FontFile
+	if path_str.begins_with("res://"):
+		if not ResourceLoader.exists(path_str): return null
+		custom_font = load(path_str) as FontFile
 	else:
-		var custom_font: FontFile = FontFile.new()
-		var data: PackedByteArray = FileAccess.get_file_as_bytes(String(path))
-		if data.is_empty():
-			return
+		var data: PackedByteArray = FileAccess.get_file_as_bytes(path_str)
+		if data.is_empty(): return null
+		custom_font = FontFile.new()
 		custom_font.data = data
-		custom_fonts[path] = custom_font
-		return custom_font
+	
+	if custom_font == null: return null
+	custom_fonts[path] = custom_font
+	
+	return custom_font
 
 func get_font_name() -> String:
 	if get_font().base_font == null: return "Font"

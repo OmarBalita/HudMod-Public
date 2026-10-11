@@ -1,21 +1,21 @@
 #############################################################################
-##	This file is part of: HudMod Video Editor							   ##
-##	https://omar-top.itch.io/hudmod-video-editor						   ##
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##	Copyright © 2026 Omar Mohammed Balita.								   ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-##	This program is free software: you can redistribute it and/or modify   ##
-##	it under the terms of the GNU General Public License as published by   ##
-##	the Free Software Foundation, either version 3 of the License, or	   ##
-##	(at your option) any later version.									   ##
-##																		   ##
-##	This program is distributed in the hope that it will be useful,		   ##
-##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
-##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
-##	GNU General Public License for more details.						   ##
-##																		   ##
-##	You should have received a copy of the GNU General Public License	   ##
-##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -146,12 +146,28 @@ func stop_stream_players(at: int) -> void:
 	for video_clip_res: VideoClipRes in video_players:
 		video_clip_res.stream_player.stop()
 
+func refresh_stream_players_under(parent_clip_res: MediaClipRes) -> void:
+	
+	var is_playing: bool = PlaybackServer.is_playing()
+	var fps_f: float = float(ProjectServer2.fps)
+	
+	for stream_clip_res: MediaClipRes in stream_players:
+		if not stream_clip_res.is_descendant_of(parent_clip_res): continue
+		stream_clip_res.curr_node.stop()
+		if is_playing: play_stream_player(stream_clip_res, PlaybackServer.position, fps_f)
+	
+	for video_clip_res: VideoClipRes in video_players:
+		if not video_clip_res.is_descendant_of(parent_clip_res): continue
+		video_clip_res.stream_player.stop()
+		if is_playing: play_video_stream_player(video_clip_res, PlaybackServer.position, fps_f)
+
 func play_stream_player(clip_res: MediaClipRes, at: int, fps_f: float) -> void:
+	if not clip_res.is_audio_enabled(): return
 	var target_frame: int = PlaybackServer.position - clip_res.clip_pos + clip_res.from
 	clip_res.curr_node.play(target_frame / fps_f, clip_res.get_section_comps_absolute(&"Sound"))
 
 func play_video_stream_player(video_clip_res: VideoClipRes, at: int, fps_f: float) -> void:
-	if video_clip_res.disable_audio: return
+	if video_clip_res.disable_audio or not video_clip_res.is_audio_enabled(): return
 	var target_frame: int = PlaybackServer.position - video_clip_res.clip_pos + video_clip_res.from
 	video_clip_res.stream_player.play(target_frame / fps_f, video_clip_res.get_section_comps_absolute(&"Sound"))
 

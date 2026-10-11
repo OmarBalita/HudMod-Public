@@ -2,7 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
 ##  it under the terms of the GNU General Public License as published by   ##
@@ -169,4 +169,3 @@ func _try_update_editor() -> void:
 
 
 static func any_cond(comp_res: ComponentRes) -> bool: return true
-

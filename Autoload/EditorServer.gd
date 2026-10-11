@@ -1,21 +1,21 @@
 #############################################################################
-##	This file is part of: HudMod Video Editor							   ##
-##	https://omar-top.itch.io/hudmod-video-editor						   ##
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##	Copyright © 2026 Omar Mohammed Balita.								   ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-##	This program is free software: you can redistribute it and/or modify   ##
-##	it under the terms of the GNU General Public License as published by   ##
-##	the Free Software Foundation, either version 3 of the License, or	   ##
-##	(at your option) any later version.									   ##
-##																		   ##
-##	This program is distributed in the hope that it will be useful,		   ##
-##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
-##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
-##	GNU General Public License for more details.						   ##
-##																		   ##
-##	You should have received a copy of the GNU General Public License	   ##
-##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -719,7 +719,7 @@ func popup_learn() -> void:
 
 
 func popup_about() -> void:
-	var cont: MarginContainer = WindowManager.popup_window_base(get_window(), Vector2i(900, 600), "About HudMod")
+	var cont: MarginContainer = WindowManager.popup_window_base(get_window(), Vector2i(1000, 620), "About HudMod")
 	var box_cont: BoxContainer = IS.create_box_container(6, true)
 	
 	var win: Window = cont.get_window()
@@ -800,7 +800,7 @@ func _section_Q_and_A() -> Control:
 func _section_authors() -> Control:
 	var cont: BoxContainer = IS.create_box_container(8, true, {})
 	IS.add_children(cont, [
-		_create_text_content_with_header("Project Founder", [version_info.project_founder]),
+		_create_text_content_with_header("Project Founder/s", version_info.project_founders),
 		_create_text_content_with_header("Lead Developer", [version_info.lead_developer]),
 		_create_text_content_with_header("Developers", version_info.developers)
 	])

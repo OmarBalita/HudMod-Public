@@ -2,7 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
 ##  it under the terms of the GNU General Public License as published by   ##
@@ -60,4 +60,3 @@ func until_pprs_finished() -> void:
 	for clip_res: Display2DClipRes in pingpong_renderers:
 		var ppr: PingPongRenderer = pingpong_renderers[clip_res]
 		if ppr.is_in_process: await ppr.process_finished
-

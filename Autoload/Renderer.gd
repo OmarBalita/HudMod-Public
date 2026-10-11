@@ -1,21 +1,21 @@
 #############################################################################
-##	This file is part of: HudMod Video Editor							   ##
-##	https://omar-top.itch.io/hudmod-video-editor						   ##
+##  This file is part of: HudMod Video Editor                              ##
+##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##	Copyright © 2026 Omar Mohammed Balita.								   ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-##	This program is free software: you can redistribute it and/or modify   ##
-##	it under the terms of the GNU General Public License as published by   ##
-##	the Free Software Foundation, either version 3 of the License, or	   ##
-##	(at your option) any later version.									   ##
-##																		   ##
-##	This program is distributed in the hope that it will be useful,		   ##
-##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
-##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
-##	GNU General Public License for more details.						   ##
-##																		   ##
-##	You should have received a copy of the GNU General Public License	   ##
-##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##  This program is free software: you can redistribute it and/or modify   ##
+##  it under the terms of the GNU General Public License as published by   ##
+##  the Free Software Foundation, either version 3 of the License, or      ##
+##  (at your option) any later version.                                    ##
+##                                                                         ##
+##  This program is distributed in the hope that it will be useful,        ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
+##  GNU General Public License for more details.                           ##
+##                                                                         ##
+##  You should have received a copy of the GNU General Public License      ##
+##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -194,7 +194,8 @@ func _extract_layer_samples_at(layer_res: LayerRes, position: int) -> Array[Pack
 				samples = AudioMixer.vector2_to_bytes(vec_buf)
 			result.append(samples)
 	
-	result.append_array(_extract_clip_samples_at(curr_clip_res, position))
+	if curr_clip_res.is_children_audio_enabled():
+		result.append_array(_extract_clip_samples_at(curr_clip_res, position))
 	
 	return result
 

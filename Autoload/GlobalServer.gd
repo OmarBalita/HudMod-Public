@@ -2,7 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
 ##  it under the terms of the GNU General Public License as published by   ##
@@ -76,4 +76,3 @@ func make_global_dirs_abs() -> void:
 func until_load() -> void:
 	if not is_global_cache_loaded:
 		await global_cache_loaded
-

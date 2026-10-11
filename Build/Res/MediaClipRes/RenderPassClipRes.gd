@@ -2,9 +2,9 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
-## GPLv3                                                                   ##
+##  GPLv3                                                                  ##
 #############################################################################
 @icon("res://Asset/Icons/Objects/render-pass.png")
 class_name RenderPassClipRes extends MediaClipRes
@@ -24,9 +24,14 @@ func set_transparent_background(new_val: bool) -> void: transparent_background =
 func get_enable_audio() -> bool: return enable_audio
 func set_enable_audio(new_val: bool) -> void: enable_audio = new_val
 
+func is_children_audio_enabled() -> bool: return enable_audio
+
 func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	super(property_key, property_val)
-	if curr_node: _update_viewport_props()
+	if property_key == &"enable_audio": Scene2.refresh_stream_players_under(self)
+	if curr_node:
+		_update_viewport_props()
+		update()
 
 static func get_media_clip_info() -> Dictionary[StringName, String]:
 	return {

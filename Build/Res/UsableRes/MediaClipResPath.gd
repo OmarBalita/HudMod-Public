@@ -2,7 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
 ##  it under the terms of the GNU General Public License as published by   ##
@@ -24,8 +24,10 @@ signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 @export var cond_method_name: StringName
 @export var media_res: MediaClipRes:
 	set(val):
+		var old_one: MediaClipRes = media_res
 		media_res = val
 		emit_res_changed()
+		if old_one != val: media_res_changed.emit(old_one, val)
 		_try_update_editor()
 
 static func new_mediares_path(_media_res: MediaClipRes = null, _cond_method_name: StringName = &"any_cond") -> MediaClipResPath:
