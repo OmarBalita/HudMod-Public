@@ -41,6 +41,7 @@ Scene2="*res://Autoload/Scene2.gd"
 PlaybackServer="*uid://brc2dsofjh0ds"
 Renderer="*uid://dk3fd5yu4aqlo"
 WindowManager="*res://Autoload/WindowManager.gd"
+ChunkServer="*uid://b5qevcl4plecs"
 
 [debug]
 

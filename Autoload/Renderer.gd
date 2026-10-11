@@ -185,7 +185,7 @@ func _extract_layer_samples_at(layer_res: LayerRes, position: int) -> Array[Pack
 		return []
 	
 	if curr_clip_res is VideoClipRes or curr_clip_res is AudioClipRes:
-		if curr_clip_res.audio_data_res:
+		if curr_clip_res.audio_data_res and not curr_clip_res.get("disable_audio"):
 			var samples: PackedByteArray = curr_clip_res.audio_data_res.extract_frame_samples(position - layer_res.displayed_frame + curr_clip_res.from)
 			var effects: Array = curr_clip_res.get_section_comps_absolute(&"Sound")
 			if not effects.is_empty():
@@ -204,8 +204,7 @@ func _reset_all_clip_effects(root_clip_res: RootClipRes) -> void:
 
 func _reset_layer_effects(layer_res: LayerRes) -> void:
 	var clip_res: MediaClipRes = layer_res.displayed_clip_res
-	if not clip_res:
-		return
+	if not clip_res: return
 	AudioMixer.reset_effect_chain(clip_res.get_section_comps_absolute(&"Sound"))
 	for layer: LayerRes in clip_res.layers:
 		_reset_layer_effects(layer)

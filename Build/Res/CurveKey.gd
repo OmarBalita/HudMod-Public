@@ -137,4 +137,3 @@ func get_interpolation_func() -> Callable:
 
 func set_interpolation_func(new_val: Callable) -> void:
 	interpolation_func = new_val
-

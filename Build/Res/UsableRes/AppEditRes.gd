@@ -54,7 +54,3 @@ func set_prop(property_key: StringName, property_val: Variant) -> void:
 
 func update_internal_props_base_on_project() -> void:
 	if ProjectServer2: default_clip_duration_frame = default_clip_duration * ProjectServer2.fps
-
-
-
-

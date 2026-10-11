@@ -111,6 +111,3 @@ func _loop_glyphs(method: Callable) -> void:
 			
 			draw_set_transform_matrix(matrix)
 			method.call(line_index, line_data, glyph, char)
-
-
-

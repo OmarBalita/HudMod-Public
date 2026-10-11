@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -161,39 +161,33 @@ func process(parent_clip_res: MediaClipRes, root_layer_idx: int) -> void:
 		process_layer(root_layer_idx, layer_idx, parent_clip_res, layer)
 
 func process_layer(root_layer_idx: int, layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes) -> void:
-	
 	var displayed_clip_res: MediaClipRes = layer.displayed_clip_res
-	
 	var clips: Dictionary[int, MediaClipRes] = layer.clips
 	
 	for frame: int in clips:
-		
 		var clip_res: MediaClipRes = clips[frame]
 		
 		if is_frame_at_clip_res(frame, clip_res):
 			
-			if clip_res != displayed_clip_res:
-				
+			if clip_res != displayed_clip_res or not _is_node_alive(clip_res):
 				if displayed_clip_res:
-					free_clip(displayed_clip_res)
-				
+					_release_displayed(layer)
 				spawn_clip(parent_clip_res, clip_res, root_layer_idx, layer_idx, layer, frame)
 				layer.displayed_frame = frame
 				layer.displayed_clip_res = clip_res
 			
 			clip_res.process(position - frame)
 			process(clip_res, root_layer_idx)
-			
 			return
 	
 	if displayed_clip_res:
-		free_clip(displayed_clip_res)
-		layer.displayed_clip_res = null
+		_release_displayed(layer)
 
 func is_frame_at_clip_res(frame: int, clip_res: MediaClipRes) -> bool:
 	return position >= frame and position < frame + clip_res.length
 
 func spawn_clip(parent_clip_res: MediaClipRes, clip_res: MediaClipRes, root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> void:
+	if clip_res.curr_node != null: free_clip(clip_res)
 	var node: Node = clip_res.init_node(root_layer_idx, layer_idx, layer_res, frame)
 	Scene2.spawn_node(parent_clip_res, clip_res, node, layer_idx)
 	clip_res.enter(node)
@@ -207,9 +201,21 @@ func free_clip(clip_res: MediaClipRes) -> void:
 			free_clip(layer.displayed_clip_res)
 			layer.displayed_clip_res = null
 	
-	if clip_res.curr_node:
+	if is_instance_valid(clip_res.curr_node):
 		clip_res.exit(clip_res.curr_node)
 		Scene2.free_node(clip_res)
 
 func root_layer_get_bus_unique_name(root_layer_idx: int) -> StringName:
 	return ProjectServer2.project_res.root_clip_res.get_layer(root_layer_idx).get_bus_unique_name()
+
+func _is_node_alive(clip_res: MediaClipRes) -> bool:
+	var node: Node = clip_res.curr_node
+	return is_instance_valid(node) and not node.is_queued_for_deletion() and node.is_inside_tree()
+
+func _release_displayed(layer: LayerRes) -> void:
+	var clip_res: MediaClipRes = layer.displayed_clip_res
+	layer.displayed_clip_res = null
+	if clip_res == null: return
+	var node: Node = clip_res.curr_node
+	if is_instance_valid(node) and node.get_meta(&"owner_layer", layer) != layer: return
+	free_clip(clip_res)

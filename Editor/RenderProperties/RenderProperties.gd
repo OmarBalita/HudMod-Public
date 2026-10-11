@@ -24,7 +24,11 @@ class_name RenderProperties extends EditorControl
 @onready var video_render_btn: Button = IS.create_button("Render Video", preload("res://Asset/Icons/play.png"))
 @onready var pause_btn: Button = IS.create_button("Pause", preload("res://Asset/Icons/pause.png"))
 @onready var cancel_btn: Button = IS.create_button("Cancel", preload("res://Asset/Icons/cancel.png"))
+@onready var preset_box_cont: BoxContainer = IS.create_box_container(8)
+@onready var save_preset_btn: Button = IS.create_button("Save Preset", preload("res://Asset/Icons/save.png"), "Save current settings as a preset")
+@onready var delete_preset_btn: Button = IS.create_button("", preload("res://Asset/Icons/trash-can.png"), "Delete current preset")
 
+@onready var body_main_box_cont: BoxContainer = IS.create_box_container(8, true)
 @onready var scroll_cont: ScrollContainer = IS.create_scroll_container()
 @onready var body_box_cont: BoxContainer = IS.create_box_container(8, true)
 
@@ -45,18 +49,34 @@ func _ready_editor() -> void:
 		cancel_btn
 	])
 	
-	body.add_child(scroll_cont)
+	IS.expand(scroll_cont, true, true)
+	IS.expand(save_preset_btn)
+	
+	body.add_child(body_main_box_cont)
+	IS.add_children(body_main_box_cont, [
+		scroll_cont,
+		preset_box_cont
+	])
 	scroll_cont.add_child(body_box_cont)
+	
+	IS.add_children(preset_box_cont, [
+		save_preset_btn,
+		delete_preset_btn
+	])
 	
 	video_render_btn.pressed.connect(_on_video_render_btn_pressed)
 	pause_btn.pressed.connect(_on_pause_btn_pressed)
 	cancel_btn.pressed.connect(_on_cancel_btn_pressed)
+	save_preset_btn.pressed.connect(_on_save_preset_btn_pressed)
+	delete_preset_btn.pressed.connect(_on_delete_preset_btn_pressed)
 	
 	update_render_profile_edit()
 	
 	video_render_profile.renderer_created_successfully.connect(_on_video_render_profile_renderer_created_successfully)
 	video_render_profile.renderer_creation_failed.connect(_on_video_render_profile_renderer_creation_failed)
 	video_render_profile.res_changed.connect(_on_video_render_profile_res_changed)
+	video_render_profile.preset_applied.connect(_update_delete_preset_btn.unbind(1))
+	video_render_profile.custom_presets_changed.connect(_update_delete_preset_btn)
 	
 	ProjectServer2.project_opened.connect(_on_project_server2_project_opened)
 	
@@ -68,6 +88,7 @@ func _ready_editor() -> void:
 	Renderer.render_stopped.connect(_on_renderer_render_stopped)
 	
 	_on_renderer_render_stopped()
+	_update_delete_preset_btn()
 
 func update_render_profile_edit() -> void:
 	if render_profile_edit: render_profile_edit.queue_free()
@@ -97,6 +118,40 @@ func _on_pause_btn_pressed() -> void:
 
 func _on_cancel_btn_pressed() -> void:
 	Renderer.cancel()
+
+func _update_delete_preset_btn() -> void:
+	delete_preset_btn.visible = video_render_profile.is_curr_preset_custom()
+
+func _on_save_preset_btn_pressed() -> void:
+	var default_name: String = video_render_profile.curr_preset if video_render_profile.is_curr_preset_custom() else "Custom Preset"
+	var preset_name_edit: EditContainer = IS.create_string_edit(&"Preset Name", default_name, &"Custom Preset")
+	var preset_name_ctrlr: LineEdit = preset_name_edit.controller
+	
+	var accept_func: Callable = func() -> void:
+		var preset_name: String = preset_name_ctrlr.text.strip_edges()
+		if preset_name.is_empty():
+			preset_name = "Custom Preset"
+		if video_render_profile.save_as_custom_preset(preset_name):
+			EditorServer.push_message("Preset '%s' saved." % preset_name, EditorServer.MessageMode.MESSAGE_MODE_IDLE)
+		else:
+			EditorServer.push_message("'%s' is a built-in preset name, choose another one." % preset_name)
+	
+	var box: BoxContainer = WindowManager.popup_accept_window(get_window(), Vector2(400., 150.), &"Save Render Preset", accept_func)
+	box.add_child(preset_name_ctrlr.get_parent())
+	
+	preset_name_ctrlr.grab_focus()
+	preset_name_ctrlr.select_all()
+	
+	preset_name_ctrlr.text_submitted.connect(func(_text: String) -> void:
+		accept_func.call()
+		box.get_window().queue_free()
+	)
+
+func _on_delete_preset_btn_pressed() -> void:
+	var preset_name: StringName = video_render_profile.curr_preset
+	if not video_render_profile.is_curr_preset_custom(): return
+	video_render_profile.delete_custom_preset(preset_name)
+	EditorServer.push_message("Preset '%s' deleted." % preset_name, EditorServer.MessageMode.MESSAGE_MODE_IDLE)
 
 func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	var project_resolution: Vector2 = Vector2(project_res.resolution)

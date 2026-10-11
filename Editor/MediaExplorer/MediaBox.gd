@@ -114,6 +114,9 @@ func _input(event: InputEvent) -> void:
 			#is_moving = false
 	
 	if event is InputEventMouseMotion:
+		if is_moving and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			is_moving = false
+			return
 		_input_move_selected_cards()
 
 func _input_move_selected_cards() -> void:

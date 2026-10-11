@@ -51,6 +51,3 @@ func update_internal_props() -> void:
 
 func update_internal_props_base_on_project() -> void:
 	edit.update_internal_props_base_on_project()
-
-
-

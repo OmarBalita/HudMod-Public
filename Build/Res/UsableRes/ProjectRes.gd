@@ -1,21 +1,21 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Copyright © 2026 Omar Mohammed Balita.                                 ##
+##	Copyright © 2026 Omar Mohammed Balita.								   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 class_name ProjectRes extends UsableRes
 
@@ -53,11 +53,13 @@ const PRESET_OPTIONS: Dictionary[StringName, Dictionary] = {
 
 @export var resolution: Vector2 = Vector2(1920, 1080):
 	set(val):
+		if resolution == val: return
 		resolution = val
 		resolution_changed.emit(resolution)
 
 @export var fps: int = 30:
 	set(val):
+		if fps == val: return
 		fps = val
 		delta = 1.0 / fps
 		fps_changed.emit(fps)
@@ -89,7 +91,7 @@ func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[
 func get_project_name() -> StringName: return project_name
 func set_project_name(new_val: StringName) -> void: project_name = new_val
 
-func get_resolution() -> Vector2i: return Vector2i(1024, 720)
+func get_resolution() -> Vector2i: return resolution
 func get_fps() -> int: return fps
 func get_root_clip_res() -> RootClipRes: return root_clip_res
 

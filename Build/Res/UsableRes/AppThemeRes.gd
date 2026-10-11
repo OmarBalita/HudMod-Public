@@ -27,8 +27,29 @@ enum ColorPreset {
 	PINK,
 	CUSTOM
 }
+
+enum FontPreset {
+	OPEN_SANS,
+	ROBOTO,
+	NOTO_SANS,
+	SOURCE_SANS_3,
+	IBM_PLEX_SANS,
+	CUSTOM
+}
+
 const DEFAULT_ACCENT_COLOR: Color = Color(.2, .388, .671, 1.)
 const DEFAULT_ACCENT_HIGH_COLOR: Color = Color(0.362, 0.563, 0.868)
+
+const MAX_UI_SCALE: float = 3.
+const FONT_EXTENSIONS: Array[String] = [".ttf", ".otf", ".woff", ".woff2", ".ttc", ".otc"]
+
+const FONT_PATHS: Dictionary[FontPreset, String] = {
+	FontPreset.OPEN_SANS: "res://Asset/Fonts/OpenSans-Medium.ttf",
+	FontPreset.ROBOTO: "res://Asset/Fonts/Roboto-Medium.ttf",
+	FontPreset.NOTO_SANS: "res://Asset/Fonts/NotoSans-Medium.ttf",
+	FontPreset.SOURCE_SANS_3: "res://Asset/Fonts/SourceSans3-Medium.ttf",
+	FontPreset.IBM_PLEX_SANS: "res://Asset/Fonts/IBMPlexSans-Medium.ttf",
+}
 
 static var presets: Dictionary[ColorPreset, Array] = {
 	ColorPreset.DEFAULT: [Color(.15, .15, .15), DEFAULT_ACCENT_COLOR, .15],
@@ -40,6 +61,28 @@ static var presets: Dictionary[ColorPreset, Array] = {
 
 @export var content_scale: float = 1.:
 	set(val): content_scale = clampf(val, .5, 1.5)
+
+@export var auto_scale: bool = false
+@export var auto_scale_reference_width: float = 1920.
+@export var auto_scale_reference_height: float = 1080.
+@export var auto_scale_min: float = .5
+@export var auto_scale_max: float = 2.
+
+@export var font_preset: FontPreset = FontPreset.IBM_PLEX_SANS:
+	set(val):
+		font_preset = val
+		update_font.call_deferred()
+ 
+@export var custom_font_path: String = "":
+	set(val):
+		custom_font_path = val
+		if font_preset == FontPreset.CUSTOM:
+			update_font.call_deferred()
+ 
+@export_range(0., 1.) var font_embolden: float = 0.:
+	set(val):
+		font_embolden = clampf(val, 0., 1.)
+		update_font.call_deferred()
 
 @export var color_preset: ColorPreset = ColorPreset.DEFAULT:
 	set(val):
@@ -58,14 +101,26 @@ func _init() -> void:
 	_update_local_colors()
 
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
-	var is_custom: Callable = func() -> bool: return get(&"color_preset") == ColorPreset.CUSTOM
-	var is_custom_cond: Array = [is_custom, [true]]
+	var is_auto: Callable = func() -> bool: return get(&"auto_scale")
+	var is_auto_cond: Array = [is_auto, [true]]
+	var is_custom_font: Callable = func() -> bool: return get(&"font_preset") == FontPreset.CUSTOM
+	var is_custom_font_cond: Array = [is_custom_font, [true]]
+	var is_custom_color: Callable = func() -> bool: return get(&"color_preset") == ColorPreset.CUSTOM
+	var is_custom_color_cond: Array = [is_custom_color, [true]]
 	return {
 		&"content_scale": export(float_args(content_scale, .5, 1.5, .05)),
+		&"auto_scale": export(bool_args(auto_scale)),
+		&"auto_scale_reference_width": export(float_args(auto_scale_reference_width, 640., 7680., 10.), is_auto_cond),
+		&"auto_scale_reference_height": export(float_args(auto_scale_reference_height, 360., 4320., 10.), is_auto_cond),
+		&"auto_scale_min": export(float_args(auto_scale_min, .25, 1., .05), is_auto_cond),
+		&"auto_scale_max": export(float_args(auto_scale_max, 1., 3., .05), is_auto_cond),
+		&"font_preset": export(options_args(font_preset, FontPreset)),
+		&"custom_font_path": export(string_args(custom_font_path, IS.StringControllerType.TYPE_OPEN_FILE, FONT_EXTENSIONS), is_custom_font_cond),
+		&"font_embolden": export(float_args(font_embolden, 0., 1., .05, .01, .1)),
 		&"color_preset": export(options_args(color_preset, ColorPreset)),
-		&"base_color": export(color_args(base_color), is_custom_cond),
-		&"accent_color": export(color_args(accent_color), is_custom_cond),
-		&"contrast": export(float_args(contrast, -1., 1., .05, .01, .1), is_custom_cond)
+		&"base_color": export(color_args(base_color), is_custom_color_cond),
+		&"accent_color": export(color_args(accent_color), is_custom_color_cond),
+		&"contrast": export(float_args(contrast, -1., 1., .05, .01, .1), is_custom_color_cond)
 	}
 
 func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
@@ -91,4 +146,37 @@ func update_colors() -> void:
 	IS.update_colors(base_color, accent_color, contrast)
 
 
+func get_ui_font() -> Font:
+	var path: String = custom_font_path if font_preset == FontPreset.CUSTOM else FONT_PATHS[font_preset]
+	if path.is_empty(): return null
+	
+	var base_font: FontFile = FontRes.load_custom_font(path)
+	if base_font == null: return null
+	
+	var variation: FontVariation = FontVariation.new()
+	variation.base_font = base_font
+	variation.variation_embolden = font_embolden
+	return variation
+ 
+func update_font() -> void:
+	var font: Font = get_ui_font()
+	if font == null: return
+	
+	ThemeDB.fallback_font = font
+	ThemeDB.get_default_theme().default_font = font
+	
+	var project_theme: Theme = ThemeDB.get_project_theme()
+	if project_theme: project_theme.default_font = font
 
+
+func get_window_factor(window_size: Vector2i) -> float:
+	if not auto_scale:
+		return 1.
+	var ratio: float = minf(
+		window_size.x / maxf(auto_scale_reference_width, 1.),
+		window_size.y / maxf(auto_scale_reference_height, 1.)
+	)
+	return clampf(ratio, auto_scale_min, maxf(auto_scale_max, auto_scale_min))
+
+func get_ui_scale(window_size: Vector2i) -> float:
+	return clampf(content_scale * get_window_factor(window_size), .25, MAX_UI_SCALE)

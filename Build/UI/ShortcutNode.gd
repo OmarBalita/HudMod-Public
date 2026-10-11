@@ -87,8 +87,3 @@ func _input(event: InputEvent) -> void:
 				
 				shortcut_performed.emit(shortcut_key)
 				return
-
-
-
-
-

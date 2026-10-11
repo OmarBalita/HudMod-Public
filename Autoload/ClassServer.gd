@@ -40,7 +40,7 @@ var comps_sections_infos: Dictionary[StringName, CompsSectionInfo] = {
 	&"Image": CompsSectionInfo.new(null, "", [&"Basic", &"Enhance", &"Cinematic", &"Retro", &"Artistic", &"Blur", &"Distortion", &"PostProcessing"]),
 	&"Color": CompsSectionInfo.new(null, "", [&"ColorCorrection", &"ColorGrading"]),
 	&"Transition": CompsSectionInfo.new(null, "", [&"Basic"]),
-	&"Sound": CompsSectionInfo.new(null, "", [&"Basic", &"Delay", &"Distortion", &"Dynamics", &"Filter", &"Reverb"]),
+	&"Sound": CompsSectionInfo.new(null, "", [&"Basic", &"Delay", &"Distortion", &"Dynamics", &"Filter", &"Modulation", &"Reverb", &"Stereo"]),
 	&"Layout": CompsSectionInfo.new(null, "", [&"Layout"]),
 	&"Text": CompsSectionInfo.new(null, "", [&"Basic", &"Shape", &"Color", &"Animation", &"InOutAnimation", &"Generate"]),
 	#&"Draw": CompsSectionInfo.new(null, "", []),

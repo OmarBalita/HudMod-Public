@@ -72,6 +72,8 @@ static var _default_timeline_shortcuts: Dictionary[StringName, Array] = _default
 	
 	&"save_presets": [ShortcutNode.new_shortcut(Key.KEY_S, false, false, true), &"save_presets", [false]],
 	&"save_global_presets": [ShortcutNode.new_shortcut(Key.KEY_S, false, true, true), &"save_presets", [true]],
+
+	&"detach_audio": [ShortcutNode.new_shortcut(Key.KEY_D, true, true), &"detach_audio"],
 	
 	&"split_l": [ShortcutNode.new_shortcut(Key.KEY_Z), &"split_clips", [true, false]],
 	&"split": [ShortcutNode.new_shortcut(Key.KEY_X), &"split_clips", [true, true]],

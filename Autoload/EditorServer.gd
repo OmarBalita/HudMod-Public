@@ -153,6 +153,7 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	
 	get_window().focus_entered.connect(_on_window_focus_entered)
 	get_window().files_dropped.connect(_on_window_files_dropped)
+	get_window().size_changed.connect(_on_main_window_size_changed)
 	
 	is_editor_server_ready = true
 	editor_server_ready.emit()
@@ -1230,11 +1231,18 @@ func update_from_performance_settings() -> void:
 	MediaCache.video_contexts_clear_video_decoders()
 	MediaCache.video_contexts_clear_frames()
 
+func get_ui_scale() -> float:
+	return editor_settings.theme.get_ui_scale(get_window().size)
+
 func update_from_theme_settings() -> void:
-	var content_scale: float = editor_settings.theme.content_scale
-	get_window().content_scale_factor = content_scale
+	var ui_scale: float = get_ui_scale()
+	get_window().content_scale_factor = ui_scale
 	for window: Window in WindowManager.popuped_windows:
-		window.content_scale_factor = content_scale
+		window.content_scale_factor = ui_scale
+
+func _on_main_window_size_changed() -> void:
+	if editor_settings.theme.auto_scale:
+		update_from_theme_settings()
 
 func _on_project_server2_project_opened(project_res: ProjectRes) -> void:
 	

@@ -126,8 +126,6 @@ var small_step_scaler: int
 var opened_clip_res: MediaClipRes
 var layers: Dictionary[LayerRes, Layer2]
 
-var splited_by_selection: bool = true
-
 var latest_press_event: InputEventKey
 var latest_mouse_event: InputEventMouse
 
@@ -626,11 +624,13 @@ class LayersSelectContainer extends SelectContainer:
 	var timeline: TimeLine2
 	
 	var clips_fordelete: Array[Vector2i]
+	var moving_clips: Array[Dictionary]
 	
 	var min_selected_layer: int
 	var max_selected_layer: int
 	
 	var clips_moving: bool
+	var drag_duplicate: bool = false
 	var move_start_coords: Vector2i
 	var move_layer_delta: int
 	var move_frame_delta: int
@@ -687,7 +687,14 @@ class LayersSelectContainer extends SelectContainer:
 		for port_idx: int in empty_ports:
 			selected.erase(port_idx)
 		
-		_set_selected_clips_modulate(Color.TRANSPARENT)
+		moving_clips.clear()
+		for layer_idx: int in selected:
+			var port: Dictionary = selected[layer_idx]
+			for frame: int in port:
+				moving_clips.append({coord = Vector2i(layer_idx, frame), res = port[frame]})
+		
+		drag_duplicate = Input.is_key_pressed(KEY_ALT)
+		_set_moving_clips_modulate(Color.WHITE if drag_duplicate else Color.TRANSPARENT)
 		
 		clips_moving = true
 		move_start_coords = Vector2i(start_layer_idx, start_frame)
@@ -703,6 +710,11 @@ class LayersSelectContainer extends SelectContainer:
 	
 	func move_clips(target_layer_idx: int, insert_dir: int, target_frame: int) -> void:
 		
+		var alt_now: bool = Input.is_key_pressed(KEY_ALT)
+		if alt_now != drag_duplicate:
+			drag_duplicate = alt_now
+			_set_moving_clips_modulate(Color.WHITE if alt_now else Color.TRANSPARENT)
+
 		if target_layer_idx != -1:
 			var selectables_keys: Array[int] = selectables.keys()
 			move_layer_delta = target_layer_idx - move_start_coords.x
@@ -782,15 +794,21 @@ class LayersSelectContainer extends SelectContainer:
 	
 	func end_clips_moving(cancel: bool) -> void:
 		
+		var duplicate_now: bool = drag_duplicate or Input.is_key_pressed(KEY_ALT)
+		
 		EditorServer.drawable_rect.clear_drawn_entities()
-		_set_selected_clips_modulate(Color.WHITE)
+		_set_moving_clips_modulate(Color.WHITE)
 		
 		if cancel:
 			timeline.update_clips_spacial_frames()
 			timeline.update_spacial_frames()
+		elif duplicate_now:
+			duplicate_clips_now()
 		else:
 			move_clips_now()
 		
+		moving_clips.clear()
+		drag_duplicate = false
 		clips_moving = false
 		
 		timeline.edges_nav_horizontal = false
@@ -818,6 +836,24 @@ class LayersSelectContainer extends SelectContainer:
 			to_coords.append(coord + Vector2i(move_layer_delta + insert_offset, move_frame_delta))
 		
 		timeline.opened_clip_res.move_clips(from_coords, to_coords, timeline.overlay_menu.focus_index)
+	
+	func duplicate_clips_now() -> void:
+		if moving_clips.is_empty() or (not move_insert_dir and move_layer_delta == 0 and move_frame_delta == 0):
+			return
+		
+		var new_layer_idx: int = move_start_coords.x + move_layer_delta + maxi(0, move_insert_dir)
+		var clips_forplace: Dictionary[Vector2i, MediaClipRes] = {}
+		
+		for item: Dictionary in moving_clips:
+			var coord: Vector2i = item.coord
+			var copy: MediaClipRes = item.res.duplicate_media_res()
+			copy.move_layers_clips_deep(move_frame_delta)
+			clips_forplace[Vector2i(new_layer_idx if move_insert_dir else coord.x + move_layer_delta, coord.y + move_frame_delta)] = copy
+		
+		if move_insert_dir:
+			timeline.opened_clip_res.add_layer(new_layer_idx)
+		
+		timeline.opened_clip_res.add_clips_by_coords(clips_forplace, timeline.overlay_menu.focus_index)
 	
 	func _get_port_obj(port_idx: int) -> Object:
 		return timeline.get_layer_from_idx(port_idx)
@@ -1138,7 +1174,7 @@ class LayersSelectContainer extends SelectContainer:
 		
 		if _all_selected_clips_are_videos():
 			options.append({as_separator = true})
-			options.append({text = "Detach Audio", metadata = detach_audio})
+			options.append({text = "Detach Audio", shortcut = shortcut_node.get_shortcut(&"detach_audio"), metadata = detach_audio})
 
 		return options
 	
@@ -1175,6 +1211,15 @@ class LayersSelectContainer extends SelectContainer:
 			var layer: Layer2 = timeline.get_layer_from_idx(layer_idx)
 			for frame: int in port:
 				layer.get_clip(frame).modulate = to
+	
+	func _set_moving_clips_modulate(to: Color) -> void:
+		for item: Dictionary in moving_clips:
+			var coord: Vector2i = item.coord
+			if not timeline.has_layer_from_idx(coord.x):
+				continue
+			var layer: Layer2 = timeline.get_layer_from_idx(coord.x)
+			if layer.has_clip(coord.y):
+				layer.get_clip(coord.y).modulate = to
 	
 	func _get_min_indices(dict: Dictionary[int, Dictionary]) -> Vector2i:
 		
@@ -1591,9 +1636,7 @@ func update_clips(clips_coords: Array[Vector2i]) -> void:
 
 func split_clips(accept_left: bool, accept_right: bool) -> void:
 	var coords: Array[Vector2i] = layers_body.selected_to_coords()
-	splited_by_selection = not coords.is_empty()
-	if coords.is_empty():
-		coords = get_clips_coords_at_frame(PlaybackServer.position)
+	if coords.is_empty(): coords = get_clips_coords_at_frame(PlaybackServer.position)
 	opened_clip_res.split_clips(coords, PlaybackServer.position, accept_left, accept_right)
 
 func get_clips_coords_at_frame(frame: int) -> Array[Vector2i]:
@@ -1615,6 +1658,13 @@ func get_clip_frame_at(layer_res: LayerRes, frame: int) -> int:
 	for clip_frame: int in clips:
 		var clip_res: MediaClipRes = clips[clip_frame]
 		if frame >= clip_frame and frame < clip_frame + clip_res.length:
+			return clip_frame
+	return -1
+
+func get_clip_frame_ending_at(layer_res: LayerRes, frame: int) -> int:
+	var clips: Dictionary[int, MediaClipRes] = layer_res.get_clips()
+	for clip_frame: int in clips:
+		if clip_frame + clips[clip_frame].length == frame:
 			return clip_frame
 	return -1
 
@@ -1700,13 +1750,12 @@ func _on_clip_res_clips_moved(from_coords: Array[Vector2i], to: Dictionary[Vecto
 
 
 func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[Vector2i], new_clips: Dictionary[Vector2i, MediaClipRes], split_pos: int, accept_left: bool, accept_right: bool) -> void:
-	if not splited_by_selection:
-		return
-	layers_body.select_vals_by_method(
-		func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
-			var coord: Vector2i = Vector2i(port_idx, idx)
-			return coords.has(coord) or new_clips.has(coord), false
-	)
+	#layers_body.select_vals_by_method(
+	#	func(port_idx: int, port_obj: Object, idx: int, metadata: Dictionary) -> bool:
+	#		var coord: Vector2i = Vector2i(port_idx, idx)
+	#		return coords.has(coord) or new_clips.has(coord), false
+	#)
+	pass
 
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
 	update_clips(coords)

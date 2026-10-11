@@ -121,7 +121,8 @@ func _init() -> void:
 func clear_media_server() -> void:
 	thumbnails.clear()
 	timeline_video_textures.clear()
-	timeline_waveform_textures.clear()
+	#timeline_waveform_textures.clear()
+	ChunkServer.clear_all()
 
 
 func server_register_image(path: String, image: Image, ids_exists: PackedStringArray, id: String, thumbnail_path: String) -> void:
@@ -135,31 +136,36 @@ func server_register_video(path: String, video_decoder: VideoDecoder, audio_data
 	else:
 		create_thumbnail_from_video(path, video_decoder, thumbnail_path, id)
 	
-	if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
-		load_waveform(path, waveform_path, id)
-	else:
-		if not audio_data_res:
-			return
-		var data_id: int = audio_data_res.get_instance_id()
-		MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
-		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
-		MediaHelper.free_audio_data(data_id)
+	if audio_data_res:
+		ChunkServer.waveform.register_media(path, id, audio_data_res.get_data())
+	
+	#if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
+		#load_waveform(path, waveform_path, id)
+	#else:
+		#if not audio_data_res:
+			#return
+		#var data_id: int = audio_data_res.get_instance_id()
+		#MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
+		#create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
+		#MediaHelper.free_audio_data(data_id)
 
 func server_register_audio(path: String, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	var data_id: int = audio_data_res.get_instance_id()
-	MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
+	#var data_id: int = audio_data_res.get_instance_id()
+	#MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
 	
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
 	else:
 		create_thumbnail_from_audio(path, audio_data_res, thumbnail_path, id)
 	
-	if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
-		load_waveform(path, waveform_path, id)
-	else:
-		create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
+	#if DirAccess.dir_exists_absolute(waveform_path + "/" + id):
+		#load_waveform(path, waveform_path, id)
+	#else:
+		#create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
 	
-	MediaHelper.free_audio_data(data_id)
+	#MediaHelper.free_audio_data(data_id)
+	
+	ChunkServer.waveform.register_media(path, id, audio_data_res.get_data())
 
 func server_replace_media_path(from: String, to: String) -> void:
 	if thumbnails.has(from):
@@ -170,9 +176,10 @@ func server_replace_media_path(from: String, to: String) -> void:
 		timeline_video_textures[to] = timeline_video_textures[from]
 		timeline_video_textures.erase(from)
 	
-	if timeline_waveform_textures.has(from):
-		timeline_waveform_textures[to] = timeline_waveform_textures[from]
-		timeline_waveform_textures.erase(from)
+	#if timeline_waveform_textures.has(from):
+		#timeline_waveform_textures[to] = timeline_waveform_textures[from]
+		#timeline_waveform_textures.erase(from)
+	ChunkServer.waveform.rename_media(from, to)
 
 
 func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
@@ -181,13 +188,15 @@ func server_deregister_image(path: String, id: String, thumbnail_path: String) -
 
 func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
-	timeline_waveform_textures.erase(path)
+	#timeline_waveform_textures.erase(path)
+	ChunkServer.waveform.unregister_media(path)
 	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
 	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
 func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
-	timeline_waveform_textures.erase(path)
+	#timeline_waveform_textures.erase(path)
+	ChunkServer.waveform.unregister_media(path)
 	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
 	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
@@ -196,28 +205,28 @@ func load_thumbnail(media_path: String, thumbnail_path: String, id: String) -> v
 	var thumb_texture: ImageTexture = ImageTexture.create_from_image(thumb_image)
 	thumbnails[StringName(media_path)] = {&"image": thumb_image, &"texture": thumb_texture}
 
-func load_waveform(media_path: String, thumbnail_path: String, id: String) -> void:
-	var waveform_port_path: String = thumbnail_path + id
-	
-	var waveform_images: Array[Image]
-	var waveform_textures: Array[ImageTexture]
-	var total_width: int
-	
-	var imgs_files: Array = DirAccess.get_files_at(waveform_port_path)
-	imgs_files.sort_custom(
-		func(a: String, b: String) -> bool:
-			return a.get_basename().to_int() < b.get_basename().to_int()
-	)
-	
-	for file_name: String in imgs_files:
-		var waveform_image: Image = Image.load_from_file(waveform_port_path.path_join(file_name))
-		if waveform_image == null: continue
-		waveform_image.generate_mipmaps()
-		waveform_images.append(waveform_image)
-		waveform_textures.append(ImageTexture.create_from_image(waveform_image))
-		total_width += waveform_image.get_width()
-	
-	timeline_waveform_textures[StringName(media_path)] = {&"textures": waveform_textures, &"total_width": total_width}
+#func load_waveform(media_path: String, thumbnail_path: String, id: String) -> void:
+	#var waveform_port_path: String = thumbnail_path + id
+	#
+	#var waveform_images: Array[Image]
+	#var waveform_textures: Array[ImageTexture]
+	#var total_width: int
+	#
+	#var imgs_files: Array = DirAccess.get_files_at(waveform_port_path)
+	#imgs_files.sort_custom(
+		#func(a: String, b: String) -> bool:
+			#return a.get_basename().to_int() < b.get_basename().to_int()
+	#)
+	#
+	#for file_name: String in imgs_files:
+		#var waveform_image: Image = Image.load_from_file(waveform_port_path.path_join(file_name))
+		#if waveform_image == null: continue
+		#waveform_image.generate_mipmaps()
+		#waveform_images.append(waveform_image)
+		#waveform_textures.append(ImageTexture.create_from_image(waveform_image))
+		#total_width += waveform_image.get_width()
+	#
+	#timeline_waveform_textures[StringName(media_path)] = {&"textures": waveform_textures, &"total_width": total_width}
 
 func get_thumbnail(key_as_path: StringName) -> Dictionary:
 	return thumbnails[key_as_path] if thumbnails.has(key_as_path) else THUMBNAIL_DISCARD
@@ -249,7 +258,7 @@ func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDe
 	return create_thumbnail_from_image(key_as_path, image, thumbnail_path, id)
 
 func create_thumbnail_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, thumbnail_path: String, id: String) -> Dictionary:
-	var thumbnail_image: Image = MediaHelper.generate_waveform_image(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
+	var thumbnail_image: Image = ChunkServer.waveform.render_thumbnail(audio_data_res.get_data(), audio_data_res.get_length(), THUMBNAIL_TARGET_WIDTH)
 	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
 	return thumbnails[key_as_path]
 
@@ -262,63 +271,63 @@ func get_timeline_video_textures() -> Array[Image]:
 func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Array[int]:
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
-func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> Array[Image]:
-	var waveform_images: Array[Image] = await generate_waveform_images(audio_data_res, 1, ProjectServer2.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
-	var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
-	var total_width: int
-	var waveform_port_path: String = str(waveform_path, id, "/")
-	
-	for index: int in waveform_images.size():
-		var image: Image = waveform_images[index]
-		var image_path: String = str(waveform_port_path, index, ".png")
-		#not_saved_yet[image_path] = image
-		total_width += image.get_width()
-	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
-	
-	return waveform_images
-
-func get_timeline_waveform_textures(key_as_path: StringName) -> Dictionary:
-	return timeline_waveform_textures[key_as_path]
-
-func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
-	return Vector2i(
-		frame_in / TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
-		frame_in % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH
-	)
-
-
-func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
-	
-	var audio_id: int = audio_data_res.get_instance_id()
-	
-	var length: float = audio_data_res.get_length()
-	var pixels_per_length: int = length * pixels_per_second
-	var images_count: int = pixels_per_length / float(width)
-	var chunk_length: float = width / float(pixels_per_second)
-	
-	var images: Array[Image]
-	images.resize(images_count)
-	
-	var pixels_remained: int = pixels_per_length % width
-	
-	const GROUP_SIZE: int = 4
-	
-	for start_idx: int in range(0, images_count, GROUP_SIZE):
-		var curr_group_size: int = mini(GROUP_SIZE, images_count - start_idx)
-		var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
-		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
-	
-	if pixels_remained > 0:
-		var length_remained: float = pixels_remained / float(pixels_per_second)
-		images.append(MediaHelper.generate_waveform_image(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
-	
-	return images
-
-func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], audio_id: int, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
-	idx += start_idx
-	var second_from: float = idx * chunk_length
-	var second_to: float = second_from + chunk_length
-	images[idx] = MediaHelper.generate_waveform_image(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
+#func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> Array[Image]:
+	#var waveform_images: Array[Image] = await generate_waveform_images(audio_data_res, 1, ProjectServer2.fps, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, 64, 0, 1, Color.TRANSPARENT)
+	#var waveform_textures: Array = waveform_images.map(func(image: Image) -> ImageTexture: return ImageTexture.create_from_image(image))
+	#var total_width: int
+	#var waveform_port_path: String = str(waveform_path, id, "/")
+	#
+	#for index: int in waveform_images.size():
+		#var image: Image = waveform_images[index]
+		#var image_path: String = str(waveform_port_path, index, ".png")
+		##not_saved_yet[image_path] = image
+		#total_width += image.get_width()
+	#timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width}
+	#
+	#return waveform_images
+#
+#func get_timeline_waveform_textures(key_as_path: StringName) -> Dictionary:
+	#return timeline_waveform_textures[key_as_path]
+#
+#func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
+	#return Vector2i(
+		#frame_in / TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH,
+		#frame_in % TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH
+	#)
+#
+#
+#func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
+	#
+	#var audio_id: int = audio_data_res.get_instance_id()
+	#
+	#var length: float = audio_data_res.get_length()
+	#var pixels_per_length: int = length * pixels_per_second
+	#var images_count: int = pixels_per_length / float(width)
+	#var chunk_length: float = width / float(pixels_per_second)
+	#
+	#var images: Array[Image]
+	#images.resize(images_count)
+	#
+	#var pixels_remained: int = pixels_per_length % width
+	#
+	#const GROUP_SIZE: int = 4
+	#
+	#for start_idx: int in range(0, images_count, GROUP_SIZE):
+		#var curr_group_size: int = mini(GROUP_SIZE, images_count - start_idx)
+		#var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
+		#WorkerThreadPool.wait_for_group_task_completion(group_task_id)
+	#
+	#if pixels_remained > 0:
+		#var length_remained: float = pixels_remained / float(pixels_per_second)
+		#images.append(MediaHelper.generate_waveform_image(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
+	#
+	#return images
+#
+#func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], audio_id: int, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
+	#idx += start_idx
+	#var second_from: float = idx * chunk_length
+	#var second_to: float = second_from + chunk_length
+	#images[idx] = MediaHelper.generate_waveform_image(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
 
 
 class ClipPanel extends Panel:
@@ -666,6 +675,8 @@ class ClipPanel extends Panel:
 				graph_editor.draw_y_small_step = graph_editor.draw_val_step
 				graph_editor.draw_y_big_step = graph_editor.draw_y_small_step * 2
 				
+				graph_editor.set_linked(anim_res.profiles.size() > 1)
+				
 				graph_editor.mouse_entered.connect(_on_graph_editor_mouse_entered.bind(graph_editor))
 				graph_editor.mouse_exited.connect(_on_graph_editor_mouse_exited.bind(graph_editor))
 				graph_editor.keys_editing.connect(_on_graph_editor_keys_editing)
@@ -685,6 +696,9 @@ class ClipPanel extends Panel:
 				usable_res_port[prop_key] = graph_category
 				
 				index += 1
+		
+		if index == 0:
+			return
 		
 		select_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
@@ -1255,85 +1269,67 @@ class Audio2DClipPanel extends ObjectClipPanel:
 
 class WaveformBoxContainer extends BoxContainer:
 	
+	const CHUNK_WIDTH: int = ChunkServer.WaveformProducer.CHUNK_WIDTH
+	const NO_SIGNATURE: Vector4i = Vector4i(-2, -2, -2, -2)
+	
 	static var shader_material: ShaderMaterial = _init_shader_material()
-	
-	static func _init_shader_material() -> ShaderMaterial:
-		var sm:= ShaderMaterial.new()
-		sm.shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
-		return sm
-	
-	static func set_pixelate_scale(scale: float = .0) -> void:
-		shader_material.set_shader_parameter(&"pixelate_scale", scale)
 	
 	var texture_rects: Dictionary[int, TextureRect]
 	
 	var curr_waveform_textures_total_width: float
 	var curr_waveform_start_index: Vector2i
-	var curr_waveform_end_index: Vector2i
+	
+	var source_id: StringName
+	var pixels_per_second: int
+	var total_pixels: int
+	var media_from: int
+	var clip_length: int
+	var first_chunk: int
+	var last_chunk: int = -1
+	
+	var wanted: Dictionary[int, bool]
+	var demand_signature: Vector4i = NO_SIGNATURE
+	
 	
 	func _init() -> void:
 		material = shader_material
 		IS.describe_box_container(self, 0, false)
 	
+	func _enter_tree() -> void:
+		if not ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
+			ChunkServer.chunk_ready.connect(_on_chunk_ready)
+		if not ChunkServer.source_ready.is_connected(_on_source_ready):
+			ChunkServer.source_ready.connect(_on_source_ready)
+		_try_connect_timeline()
+	
+	func _exit_tree() -> void:
+		if ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
+			ChunkServer.chunk_ready.disconnect(_on_chunk_ready)
+		if ChunkServer.source_ready.is_connected(_on_source_ready):
+			ChunkServer.source_ready.disconnect(_on_source_ready)
+		var timeline: TimeLine2 = ClipPanel.timeline
+		if is_instance_valid(timeline) and timeline.timeline_view_updated.is_connected(_refresh_demand):
+			timeline.timeline_view_updated.disconnect(_refresh_demand)
+		ChunkServer.clear_demand(_get_demander_id())
+		demand_signature = NO_SIGNATURE
+	
+	
+	static func set_pixelate_scale(scale: float = .0) -> void:
+		shader_material.set_shader_parameter(&"pixelate_scale", scale)
+	
 	func update_ui(audio_key_as_path: String, frame_in: int, length: int) -> void:
-		
-		if not MediaServer.timeline_waveform_textures.has(audio_key_as_path):
+		var new_source_id: StringName = ChunkServer.waveform.get_source_id(StringName(audio_key_as_path))
+		if new_source_id.is_empty():
 			return
 		
-		var waveform_start_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in)
-		var waveform_end_index: Vector2i = MediaServer.get_timeline_waveform_texture_index(frame_in + length)
+		source_id = new_source_id
+		media_from = maxi(frame_in, 0)
+		clip_length = length
 		
-		var waveform_textures_info: Dictionary = MediaServer.get_timeline_waveform_textures(audio_key_as_path)
-		var waveform_textures: Array = waveform_textures_info.textures
-		
-		if waveform_textures.is_empty():
-			return
-		
-		var ranged_waveform_textures: Array = waveform_textures.slice(waveform_start_index.x, waveform_end_index.x)
-		
-		for index: int in texture_rects.keys():
-			if index < waveform_start_index.x or index > waveform_end_index.x:
-				texture_rects[index].queue_free()
-				texture_rects.erase(index)
-		
-		var curr_total_width: float
-		
-		for texture: ImageTexture in ranged_waveform_textures:
-			curr_total_width += texture.get_width()
-		
-		if waveform_end_index.y:
-			var last_texture_index: int = waveform_start_index.x + ranged_waveform_textures.size()
-			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
-			curr_total_width += last_waveform_texture.get_width()
-		
-		var texture_ratio: float = TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH / curr_total_width
-		for index: int in range(waveform_start_index.x, waveform_end_index.x):
-			var texture: ImageTexture = waveform_textures[index]
-			if not texture_rects.has(index):
-				texture_rects[index] = _push_waveform_texture_rect(texture)
-			texture_rects[index].size_flags_stretch_ratio = texture_ratio
-		
-		if waveform_end_index.y:
-			var last_texture_index: int = waveform_start_index.x + ranged_waveform_textures.size()
-			var last_waveform_texture: ImageTexture = waveform_textures.get(last_texture_index)
-			var last_texture_ratio: float = last_waveform_texture.get_width() / curr_total_width
-			
-			if not texture_rects.has(last_texture_index):
-				texture_rects[last_texture_index] = _push_waveform_texture_rect(last_waveform_texture)
-			
-			texture_rects[last_texture_index].size_flags_stretch_ratio = last_texture_ratio
-		
-		texture_rects.sort()
-		
-		for time: int in texture_rects.size():
-			var index: int = texture_rects.keys()[time]
-			var texture_rect: TextureRect = texture_rects[index]
-			texture_rect.use_parent_material = true
-			move_child(texture_rect, time)
-		
-		curr_waveform_textures_total_width = curr_total_width
-		curr_waveform_start_index = waveform_start_index
-		curr_waveform_end_index = waveform_end_index
+		# The timeline may not have existed yet when we entered the tree.
+		_try_connect_timeline()
+		_layout()
+		_refresh_demand()
 	
 	func calculate_transform(size: Vector2, curr_length: int) -> Vector2:
 		var length_ratio: float = size.x / curr_length
@@ -1345,13 +1341,135 @@ class WaveformBoxContainer extends BoxContainer:
 			textures_total_size
 		)
 	
-	func _push_waveform_texture_rect(texture: ImageTexture) -> Control:
-		var texture_rect: TextureRect = IS.create_texture_rect(texture, {})
+	
+	static func _init_shader_material() -> ShaderMaterial:
+		var sm:= ShaderMaterial.new()
+		sm.shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
+		return sm
+	
+	func _get_demander_id() -> StringName:
+		return StringName("waveform_%d" % get_instance_id())
+	
+	func _try_connect_timeline() -> void:
+		if not is_inside_tree():
+			return
+		var timeline: TimeLine2 = ClipPanel.timeline
+		if is_instance_valid(timeline) and not timeline.timeline_view_updated.is_connected(_refresh_demand):
+			timeline.timeline_view_updated.connect(_refresh_demand)
+	
+	func _layout() -> void:
+		pixels_per_second = ProjectServer2.fps
+		total_pixels = ChunkServer.waveform.get_total_pixels(source_id, pixels_per_second)
+		
+		var chunk_count: int = ChunkServer.WaveformProducer.get_chunk_count(total_pixels)
+		first_chunk = media_from / CHUNK_WIDTH
+		last_chunk = mini((media_from + clip_length - 1) / CHUNK_WIDTH, chunk_count - 1) if clip_length > 0 else -1
+		demand_signature = NO_SIGNATURE
+		
+		for index: int in texture_rects.keys():
+			if index < first_chunk or index > last_chunk:
+				texture_rects[index].queue_free()
+				texture_rects.erase(index)
+		
+		if last_chunk < first_chunk:
+			curr_waveform_textures_total_width = .0
+			curr_waveform_start_index = Vector2i.ZERO
+			wanted.clear()
+			ChunkServer.clear_demand(_get_demander_id())
+			return
+		
+		var span_pixels: int = mini(total_pixels, (last_chunk + 1) * CHUNK_WIDTH) - first_chunk * CHUNK_WIDTH
+		
+		for index: int in range(first_chunk, last_chunk + 1):
+			var texture_rect: TextureRect = texture_rects.get(index, null)
+			if texture_rect == null:
+				texture_rect = _push_waveform_texture_rect()
+				texture_rects[index] = texture_rect
+			texture_rect.size_flags_stretch_ratio = ChunkServer.WaveformProducer.get_chunk_width(total_pixels, index) / float(span_pixels)
+			move_child(texture_rect, index - first_chunk)
+		
+		curr_waveform_textures_total_width = span_pixels
+		curr_waveform_start_index = Vector2i(first_chunk, media_from - first_chunk * CHUNK_WIDTH)
+	
+	func _refresh_demand() -> void:
+		if source_id.is_empty() or last_chunk < first_chunk:
+			return
+		
+		var visible_range: Vector2i = _get_visible_range()
+		var playhead_chunk: int = _get_playhead_chunk()
+		
+		var signature:= Vector4i(visible_range.x, visible_range.y, playhead_chunk, pixels_per_second)
+		if signature == demand_signature:
+			return
+		demand_signature = signature
+		
+		var plan: Dictionary[int, int] = ChunkServer.WaveformProducer.plan(first_chunk, last_chunk, visible_range, playhead_chunk)
+		var requests: Array[ChunkServer.ChunkRequest] = []
+		wanted.clear()
+		for index: int in plan:
+			wanted[index] = true
+			requests.append(ChunkServer.ChunkRequest.new(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index), plan[index]))
+		
+		ChunkServer.set_demand(_get_demander_id(), requests)
+		_apply_textures()
+	
+	func _get_visible_range() -> Vector2i:
+		var timeline: TimeLine2 = ClipPanel.timeline
+		var clip_panel: ClipPanel = get_parent() as ClipPanel
+		if not is_instance_valid(timeline) or clip_panel == null:
+			return Vector2i(0, -1)
+		
+		var from_frame: int = maxi(timeline.get_frame_from_display_pos(.0), clip_panel.frame)
+		var to_frame: int = mini(timeline.get_frame_from_display_pos(timeline.timemark_panel.size.x), clip_panel.frame + clip_length)
+		if to_frame <= from_frame:
+			return Vector2i(0, -1)
+		
+		var visible_from: int = media_from + (from_frame - clip_panel.frame)
+		var visible_to: int = media_from + (to_frame - clip_panel.frame)
+		return Vector2i(
+			clampi(visible_from / CHUNK_WIDTH, first_chunk, last_chunk),
+			clampi((visible_to - 1) / CHUNK_WIDTH, first_chunk, last_chunk)
+		)
+	
+	func _get_playhead_chunk() -> int:
+		var clip_panel: ClipPanel = get_parent() as ClipPanel
+		if clip_panel == null:
+			return -1
+		var playhead: int = PlaybackServer.position
+		if playhead < clip_panel.frame or playhead >= clip_panel.frame + clip_length:
+			return -1
+		return clampi((media_from + playhead - clip_panel.frame) / CHUNK_WIDTH, first_chunk, last_chunk)
+	
+	func _apply_textures() -> void:
+		for index: int in texture_rects:
+			var texture: Variant = null
+			if wanted.has(index):
+				texture = ChunkServer.get_cached(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index))
+			texture_rects[index].texture = texture
+	
+	func _push_waveform_texture_rect() -> TextureRect:
+		var texture_rect: TextureRect = IS.create_texture_rect(null, {})
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		texture_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		texture_rect.use_parent_material = true
 		add_child(texture_rect)
 		return texture_rect
+	
+	func _on_chunk_ready(key: ChunkServer.ChunkKey) -> void:
+		if key.source_id != source_id or key.kind != ChunkServer.Kind.WAVEFORM or key.variant != pixels_per_second:
+			return
+		if texture_rects.has(key.index) and wanted.has(key.index):
+			texture_rects[key.index].texture = ChunkServer.get_cached(key)
+	
+	func _on_source_ready(_source_id: StringName) -> void:
+		if _source_id != source_id:
+			return
+		_layout()
+		_refresh_demand()
+		var clip_panel: ClipPanel = get_parent() as ClipPanel
+		if clip_panel:
+			clip_panel._update_ui_transform()
 
 
 
