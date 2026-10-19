@@ -46,6 +46,8 @@ signal val_changed(new_val: Variant)
 @export var change_value_when_drag: bool = true
 @export var spin_scale: float = 1.
 @export var spin_magnet_step: float = 10.
+@export var spin_speed: float = 10.
+@export var spin_precision_scale: float = .1
 
 @export var prefix_color: Color = Color(IS.color_label, .5):
 	set(value):
@@ -168,7 +170,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		if _is_grab:
 			_is_magnet = event.ctrl_pressed
-			_drag_accum += event.relative.x * spin_scale
+			var speed:= spin_speed * (spin_precision_scale if event.shift_pressed else 1.0)
+			_drag_accum += event.relative.x * spin_scale * speed
 			var snp:= spin_magnet_step if _is_magnet else step
 			if absf(_drag_accum) >= snp:
 				var steps:= int(_drag_accum / snp)

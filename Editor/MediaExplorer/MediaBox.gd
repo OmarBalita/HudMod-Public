@@ -416,7 +416,8 @@ class MediaCard extends PanelContainer:
 				
 				match event.button_index:
 					MOUSE_BUTTON_LEFT:
-						_select(event.alt_pressed, not event.ctrl_pressed, event.shift_pressed)
+						if not media_box.is_moving:
+							_select(event.alt_pressed, not event.ctrl_pressed, event.shift_pressed)
 					MOUSE_BUTTON_RIGHT:
 						_select(event.alt_pressed, false)
 						popup_context_menu()
@@ -433,7 +434,8 @@ class MediaCard extends PanelContainer:
 			
 			if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT and button_event.is_pressed():
 				if button_event.position.distance_to(event.position) > 10.:
-					_select(false, false)
+					var is_selected: bool = media_box.media_select_cont.is_val_selected(selection_port, get_index())
+					_select(false, not is_selected and not button_event.ctrl_pressed)
 					button_event = null
 					media_box.is_moving = true
 	

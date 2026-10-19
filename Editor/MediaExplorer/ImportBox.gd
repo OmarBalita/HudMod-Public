@@ -49,7 +49,11 @@ func _init_card(key: String, info: Dictionary) -> CreatedCard:
 	
 	import_card.display_name = key.get_file()
 	import_card.display_texture = MediaServer.get_thumbnail(key).texture
-	import_card.created_card_type = CreatedCard.CreatedCardType.CARD_TYPE_PRESET
+	match media_type:
+		MediaServer.MediaType.IMAGE: import_card.created_card_type = CreatedCard.CreatedCardType.CARD_TYPE_IMAGE
+		MediaServer.MediaType.VIDEO: import_card.created_card_type = CreatedCard.CreatedCardType.CARD_TYPE_VIDEO
+		MediaServer.MediaType.AUDIO: import_card.created_card_type = CreatedCard.CreatedCardType.CARD_TYPE_AUDIO
+		_: import_card.created_card_type = CreatedCard.CreatedCardType.CARD_TYPE_PRESET
 	import_card.type = media_type
 	import_card.path_or_name = key
 	import_card.disabled = info.has(&"discard")
@@ -161,7 +165,7 @@ func _get_filter_options() -> Array[Dictionary]:
 
 func _get_filter_func() -> Callable:
 	return func(card: MediaCard) -> bool:
-		return not curr_filter or card.created_card_type == curr_filter or card.created_card_type == -1
+		return not curr_filter or card.created_card_type == curr_filter - 1 or card.created_card_type == CreatedCard.CreatedCardType.CARD_TYPE_FOLDER
 
 func _get_created_box_category() -> Category:
 	return import_category
@@ -223,6 +227,3 @@ class ImportCard extends CreatedBox.CreatedCard:
 			3: popup_replace_paths_window()
 			5: open_in_external_program()
 			6: show_in_file_manager()
-
-
-

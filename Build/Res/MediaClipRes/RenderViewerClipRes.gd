@@ -28,6 +28,11 @@ func set_texture(new_val: ViewportTexture) -> void: texture = new_val
 func _init() -> void:
 	_connect_render_pass_clip(render_pass_clip)
 
+func duplicate_media_res() -> MediaClipRes:
+	var duplicated: RenderViewerClipRes = super()
+	duplicated.render_pass_clip = MediaClipResPath.new_mediares_path(render_pass_clip.media_res, render_pass_clip.cond_method_name)
+	return duplicated
+
 static func get_media_clip_info() -> Dictionary[StringName, String]:
 	return {
 	&"title": "RenderViewer",
@@ -47,6 +52,11 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 	_try_update_texture_from_render_pass()
 	return fixed_viewer
 
+func enter(node: Node) -> void:
+	super(node)
+	_try_update_texture_from_render_pass()
+	_try_update_curr_node_texture()
+
 func _after_process_comps(frame: int) -> void:
 	loop_stacked_values(curr_node.set)
 	processed.emit()
@@ -55,6 +65,7 @@ func exit(node: Node) -> void:
 	super(node)
 
 func get_self_main_texture() -> Texture2D: return texture
+func get_self_texture() -> Texture2D: return super() if texture else null
 func get_size(scale: Vector2) -> Vector2:
 	var tex: Texture2D = get_self_texture()
 	return tex.get_size() * scale if tex else Vector2.ZERO
@@ -103,5 +114,3 @@ func _on_render_pass_clip_media_res_changed(old_one: MediaClipRes, new_one: Medi
 func _on_media_res_viewport_props_updated() -> void:
 	_try_update_texture_from_render_pass()
 	_try_update_curr_node_texture()
-
-

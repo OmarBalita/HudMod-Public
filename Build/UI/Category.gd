@@ -120,4 +120,3 @@ func remove_all_contents() -> void:
 
 func on_header_button_pressed() -> void:
 	is_expanded = not is_expanded
-

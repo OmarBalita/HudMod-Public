@@ -926,15 +926,30 @@ class LayersSelectContainer extends SelectContainer:
 		ProjectServer2.try_exit_clip_res()
 	
 	func create_parent() -> void:
-		var target_frame: int = PlaybackServer.position
-		
+		if selected.is_empty():
+			return
+
+		var min_indices: Vector2i = _get_min_indices(selected)
+		var target_layer: int = min_indices.x
+		var target_frame: int = min_indices.y
+
+		var frame_end: int = target_frame
+		for port_idx: int in selected:
+			var port: Dictionary = selected[port_idx]
+			for idx: int in port:
+				frame_end = max(frame_end, idx + port[idx].length)
+
 		var owner_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res:= Display2DClipRes.new()
 		parent_clip_res._init_clip_res()
-		parent_clip_res.length = 500
-		
-		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
-		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, target_frame, _get_min_indices(selected))
+		parent_clip_res.length = frame_end - target_frame
+
+		var old_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
+		var new_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO, old_peers)
+		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, target_frame, min_indices, new_peers)
+		var do_refs_map: Dictionary[MediaClipRes, MediaClipRes] = _build_refs_map(new_peers, old_peers)
+		var undo_refs_map: Dictionary[MediaClipRes, MediaClipRes] = _build_refs_map(old_peers, new_peers)
 		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
 		var parent_clip_arr: Array[Vector2i] = [Vector2i.ZERO]
 		
@@ -946,13 +961,15 @@ class LayersSelectContainer extends SelectContainer:
 			
 			owner_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
 			
-			var place_result: Dictionary[Vector2i, MediaClipRes] = owner_clip_res.add_clips(0, target_frame, [parent_clip_res], timeline.overlay_menu.focus_index, true, false)
+			var place_result: Dictionary[Vector2i, MediaClipRes] = owner_clip_res.add_clips(target_layer, target_frame, [parent_clip_res], timeline.overlay_menu.focus_index, true, false)
 			parent_clip_arr[0] = place_result.keys()[0]
+			_remap_project_clip_refs(do_refs_map)
 		
 		var undo_method: Callable = func() -> void:
 			owner_clip_res.remove_clips(parent_clip_arr, true, false)
 			owner_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
 			parent_clip_res.remove_clips(placed_children_by_coords.keys(), true, false)
+			_remap_project_clip_refs(undo_refs_map)
 		
 		ProjectServer2.commit_action("create_parent", do_method, undo_method)
 	
@@ -966,8 +983,12 @@ class LayersSelectContainer extends SelectContainer:
 		
 		selected[focused.x].erase(focused.y)
 		
-		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
-		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, PlaybackServer.position, _get_min_indices(selected))
+		var old_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
+		var new_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO, old_peers)
+		var new_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, PlaybackServer.position, _get_min_indices(selected), new_peers)
+		var do_refs_map: Dictionary[MediaClipRes, MediaClipRes] = _build_refs_map(new_peers, old_peers)
+		var undo_refs_map: Dictionary[MediaClipRes, MediaClipRes] = _build_refs_map(old_peers, new_peers)
 		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
 		
 		var update_parent_clip_panel: Callable = func() -> void:
@@ -982,11 +1003,13 @@ class LayersSelectContainer extends SelectContainer:
 			var tmp_placed_ress: Dictionary[Vector2i, MediaClipRes] = parent_clip_res.add_clips_by_coords(new_children_by_coords, 0, true, false)
 			for coords: Vector2i in tmp_placed_ress: placed_children_by_coords[coords] = tmp_placed_ress[coords]
 			owner_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
+			_remap_project_clip_refs(do_refs_map)
 			update_parent_clip_panel.call()
 		
 		var undo_method: Callable = func() -> void:
 			owner_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
 			parent_clip_res.remove_clips(placed_children_by_coords.keys(), true, false)
+			_remap_project_clip_refs(undo_refs_map)
 			update_parent_clip_panel.call()
 		
 		ProjectServer2.commit_action("reparent", do_method, undo_method)
@@ -999,7 +1022,8 @@ class LayersSelectContainer extends SelectContainer:
 		var main_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res: MediaClipRes = ProjectServer2.opened_clip_res_path[-times - 1]
 		
-		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO)
+		var old_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
+		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO, old_peers)
 		var placed_children_by_coords: Dictionary[Vector2i, MediaClipRes] = {}
 		
 		var do_method: Callable = func() -> void:
@@ -1007,6 +1031,7 @@ class LayersSelectContainer extends SelectContainer:
 			var tmp_placed_ress: Dictionary[Vector2i, MediaClipRes] = parent_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
 			for coords: Vector2i in tmp_placed_ress: placed_children_by_coords[coords] = tmp_placed_ress[coords]
 			main_clip_res.remove_clips(old_children_by_coords.keys(), true, false)
+			_remap_project_clip_refs(old_peers)
 		
 		var undo_method: Callable = func() -> void:
 			main_clip_res.add_clips_by_coords(old_children_by_coords, 0, true, false)
@@ -1235,7 +1260,7 @@ class LayersSelectContainer extends SelectContainer:
 		
 		return Vector2i(min_port_idx, min_idx)
 	
-	func _dictintint_to_dictvec2i(dict: Dictionary[int, Dictionary], layer_start: int, frame_start: int, min_indices: Vector2i) -> Dictionary[Vector2i, MediaClipRes]:
+	func _dictintint_to_dictvec2i(dict: Dictionary[int, Dictionary], layer_start: int, frame_start: int, min_indices: Vector2i, peers: Variant = null) -> Dictionary[Vector2i, MediaClipRes]:
 		var new_dict: Dictionary[Vector2i, MediaClipRes]
 		
 		var min_layer: int = min_indices.x
@@ -1246,9 +1271,22 @@ class LayersSelectContainer extends SelectContainer:
 			var target_layer: int = port_idx - min_layer + layer_start
 			for idx: int in port:
 				var target_frame: int = idx - min_frame + frame_start
-				new_dict[Vector2i(target_layer, target_frame)] = port[idx].duplicate_media_res()
+				var dupl: MediaClipRes = port[idx].duplicate_media_res()
+				if peers != null: port[idx].collect_duplicate_peers(dupl, peers)
+				new_dict[Vector2i(target_layer, target_frame)] = dupl
 		
 		return new_dict
+	
+	# Maps the originals and their other copies (from other_peers) to the copies in target_peers.
+	func _build_refs_map(target_peers: Dictionary[MediaClipRes, MediaClipRes], other_peers: Dictionary[MediaClipRes, MediaClipRes]) -> Dictionary[MediaClipRes, MediaClipRes]:
+		var refs_map: Dictionary[MediaClipRes, MediaClipRes] = {}
+		for orig: MediaClipRes in target_peers:
+			refs_map[orig] = target_peers[orig]
+			if other_peers.has(orig): refs_map[other_peers[orig]] = target_peers[orig]
+		return refs_map
+	
+	func _remap_project_clip_refs(refs_map: Dictionary[MediaClipRes, MediaClipRes]) -> void:
+		MediaClipResPath.remap_refs(refs_map)
 
 
 func update_clips_spacial_frames(ignored_clips: Array = []) -> void:

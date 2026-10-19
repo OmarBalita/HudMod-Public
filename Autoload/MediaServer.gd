@@ -350,8 +350,10 @@ class ClipPanel extends Panel:
 	var has_clips: bool
 	
 	var button_event: InputEventMouseButton
-
+	
+	# Sound Gain Component
 	var sound_gain_comp: CompSoundGain
+	var sound_gain_anim: AnimationRes
 	var sound_gain_dragging: bool
 	
 	
@@ -371,22 +373,41 @@ class ClipPanel extends Panel:
 		_update_sound_gain_comp()
 		clip_res.clip_res_changed.connect(_update_sound_gain_comp)
 	
-	
 	func _is_sound_gain_enabled() -> bool:
 		return sound_gain_comp != null and sound_gain_comp.enabled
 	
 	func _update_sound_gain_comp() -> void:
 		sound_gain_comp = clip_res.try_get_component(CompSoundGain) as CompSoundGain
-		if sound_gain_comp:
+		if sound_gain_comp and not sound_gain_comp.res_changed.is_connected(_on_sound_gain_res_changed):
 			sound_gain_comp.res_changed.connect(_on_sound_gain_res_changed)
-		_update_waveform_size()
+		_update_sound_gain_anim()
+	
+	func _update_sound_gain_anim() -> void:
+		var anim: AnimationRes = null
+		if sound_gain_comp and clip_res.has_animation(sound_gain_comp, &"volume_db"):
+			anim = clip_res.get_animation(sound_gain_comp, &"volume_db")
+		
+		if anim != sound_gain_anim:
+			if sound_gain_anim:
+				for profile: CurveProfile in sound_gain_anim.profiles:
+					if profile.res_changed.is_connected(_on_sound_gain_res_changed):
+						profile.res_changed.disconnect(_on_sound_gain_res_changed)
+			if anim:
+				for profile: CurveProfile in anim.profiles:
+					profile.res_changed.connect(_on_sound_gain_res_changed)
+			sound_gain_anim = anim
+		
+		_update_waveform_gain()
 		queue_redraw()
 	
-	func _update_waveform_size() -> void:
-		var waveform: Control = _get_waveform_container()
+	func _update_waveform_gain() -> void:
+		var waveform: WaveformBoxContainer = _get_waveform_container()
 		if not is_instance_valid(waveform): return
-		waveform.scale.y = db_to_linear(sound_gain_comp.volume_db) if (_is_sound_gain_enabled()) else 1.
-		waveform.pivot_offset.y = size.y / 2.0 - waveform.position.y
+		var enabled: bool = _is_sound_gain_enabled()
+		waveform.set_gain(enabled, sound_gain_comp.volume_db if enabled else .0, sound_gain_anim if enabled else null)
+	
+	func _get_sound_gain_db_at(abs_frame: int) -> float:
+		return sound_gain_anim.sample_func.call(abs_frame) if sound_gain_anim else sound_gain_comp.volume_db
 	
 	
 	func _gui_input(event: InputEvent) -> void:
@@ -407,8 +428,11 @@ class ClipPanel extends Panel:
 			]), PackedColorArray([Color(.0,.0,.0,.6)]))
 		
 		if _is_sound_gain_enabled():
-			var y: float = _sound_db_to_y(sound_gain_comp.volume_db)
-			draw_line(Vector2(0., y), Vector2(size.x, y), Color(1., 1., 1., .9), 2.)
+			if sound_gain_anim:
+				_draw_sound_gain_curve()
+			else:
+				var y: float = _sound_db_to_y(sound_gain_comp.volume_db)
+				draw_line(Vector2(0., y), Vector2(size.x, y), Color(1., 1., 1., .9), 2.)
 		
 		if get_global_rect().has_point(get_global_mouse_position()):
 			
@@ -427,18 +451,40 @@ class ClipPanel extends Panel:
 						Vector2(xpos, size_h.y + 10.)
 					]), [Color.DODGER_BLUE])
 	
+	func _draw_sound_gain_curve() -> void:
+		if size.x <= .0 or clip_res.length <= 0:
+			return
+		
+		var view_rect: Rect2 = timeline.timemark_panel.get_global_rect()
+		var x_from: float = maxf(.0, view_rect.position.x - global_position.x)
+		var x_to: float = minf(size.x, view_rect.end.x - global_position.x)
+		if x_to <= x_from:
+			return
+		
+		var frames_per_px: float = clip_res.length / size.x
+		var step: float = maxf(2., 1. / frames_per_px)
+		var points: PackedVector2Array
+		var x: float = x_from
+		while true:
+			var abs_frame: int = clip_res.from + mini(int(x * frames_per_px), clip_res.length - 1)
+			points.append(Vector2(x, _sound_db_to_y(_get_sound_gain_db_at(abs_frame))))
+			if x >= x_to: break
+			x = minf(x + step, x_to)
+		
+		draw_polyline(points, Color(1., 1., 1., .9), 2.)
+	
 	func _sound_db_to_y(db: float) -> float:
 		var mid: float = size.y / 2.
 		if db >= .0: return mid - db / CompSoundGain.MAX_DB * mid
 		return mid + db / CompSoundGain.MIN_DB * mid
-
+	
 	func y_to_sound_db(y: float) -> float:
 		var mid: float = size.y / 2.
 		var t: float = clampf((mid - y) / mid, -1., 1.)
 		return t * CompSoundGain.MAX_DB if t >= .0 else -t * CompSoundGain.MIN_DB
 	
 	func _gui_input_sound_gain(event: InputEvent) -> bool:
-		if not _is_sound_gain_enabled():
+		if not _is_sound_gain_enabled() or sound_gain_anim:
 			return false
 		
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -456,7 +502,7 @@ class ClipPanel extends Panel:
 			return true
 		
 		return false
-
+	
 	func _gui_input_select_mode(event: InputEvent) -> void:
 		
 		if select_panel.mouse_default_cursor_shape == CursorShape.CURSOR_HSIZE:
@@ -621,8 +667,8 @@ class ClipPanel extends Panel:
 	
 	func _get_ui_thumbnail() -> Texture2D:
 		return clip_res.get_thumbnail()
-
-	func _get_waveform_container() -> Control:
+	
+	func _get_waveform_container() -> WaveformBoxContainer:
 		return null
 	
 	func update_spacial_frames() -> void:
@@ -676,6 +722,7 @@ class ClipPanel extends Panel:
 				graph_editor.draw_y_big_step = graph_editor.draw_y_small_step * 2
 				
 				graph_editor.set_linked(anim_res.profiles.size() > 1)
+				graph_editor.full_range_getter = _get_graph_editor_full_range
 				
 				graph_editor.mouse_entered.connect(_on_graph_editor_mouse_entered.bind(graph_editor))
 				graph_editor.mouse_exited.connect(_on_graph_editor_mouse_exited.bind(graph_editor))
@@ -721,11 +768,16 @@ class ClipPanel extends Panel:
 		
 		PlaybackServer.position_changed.disconnect(_on_playback_server_position_changed)
 	
-	func _on_comp_keyframe_added(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void: update_spacial_frames_and_update_timeline()
-	func _on_comp_keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int) -> void: update_spacial_frames_and_update_timeline()
+	func _on_comp_keyframe_added(usable_res: UsableRes, prop_key: StringName, prop_val: Variant, frame: int) -> void:
+		update_spacial_frames_and_update_timeline()
+		if usable_res == sound_gain_comp: _update_sound_gain_anim()
+	
+	func _on_comp_keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int) -> void:
+		update_spacial_frames_and_update_timeline()
+		if usable_res == sound_gain_comp: _update_sound_gain_anim()
 	
 	func _on_sound_gain_res_changed() -> void:
-		_update_waveform_size()
+		_update_waveform_gain()
 		queue_redraw()
 	
 	func _on_mouse_entered() -> void:
@@ -751,6 +803,12 @@ class ClipPanel extends Panel:
 		await get_tree().process_frame
 		layer.update_size()
 		layer.update_clips_transform()
+	
+	func _get_graph_editor_full_range(graph_editor: CurveController) -> Vector2:
+		var displ_frame_size: float = maxf(timeline.displ_frame_size, .0001)
+		var offset_x: float = graph_editor.global_position.x - global_position.x
+		var from: float = clip_res.from + offset_x / displ_frame_size
+		return Vector2(from, from + graph_editor.size.x / displ_frame_size)
 	
 	func _on_graph_editor_keys_editing() -> void: update_spacial_frames_and_update_timeline()
 	
@@ -858,7 +916,7 @@ class ClipPanel extends Panel:
 			var ypos: float = owner_as_clip.info_container.size.y / 2. - 10.
 			
 			for frame: int in spacial_frames:
-				var xpos: float = frame * displ_frame_size - 14.
+				var xpos: float = frame * displ_frame_size - KEYFRAME_SIZE.x / 2.
 				var pos: Vector2 = Vector2(xpos, ypos)
 				draw_texture_rect(keyframe_tex, Rect2(pos, KEYFRAME_SIZE), false)
 		
@@ -1159,7 +1217,7 @@ class VideoClipPanel extends ClipPanel:
 		add_child(waveform_box_container)
 		update_method = __update_ui
 		update_transform_method = __update_ui_transform
-		_update_waveform_size()
+		_update_waveform_gain()
 
 	func _update_ui() -> void:
 		update_method.call()
@@ -1177,7 +1235,7 @@ class VideoClipPanel extends ClipPanel:
 		waveform_box_container.position.x = waveform_transform.x
 		waveform_box_container.size.x = waveform_transform.y
 	
-	func _get_waveform_container() -> Control:
+	func _get_waveform_container() -> WaveformBoxContainer:
 		return waveform_box_container
 
 	static func _update_none() -> void:
@@ -1229,7 +1287,7 @@ class AudioClipPanel extends ClipPanel:
 		waveform_box_container.size.x = waveform_transform.y
 		super()
 	
-	func _get_waveform_container() -> Control:
+	func _get_waveform_container() -> WaveformBoxContainer:
 		return waveform_box_container
 
 class ObjectClipPanel extends ClipPanel:
@@ -1272,7 +1330,10 @@ class WaveformBoxContainer extends BoxContainer:
 	const CHUNK_WIDTH: int = ChunkServer.WaveformProducer.CHUNK_WIDTH
 	const NO_SIGNATURE: Vector4i = Vector4i(-2, -2, -2, -2)
 	
-	static var shader_material: ShaderMaterial = _init_shader_material()
+	const SHADER: Shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
+	
+	static var pixelate_scale: float = 1.
+	static var instances: Array[WaveformBoxContainer]
 	
 	var texture_rects: Dictionary[int, TextureRect]
 	
@@ -1290,12 +1351,18 @@ class WaveformBoxContainer extends BoxContainer:
 	var wanted: Dictionary[int, bool]
 	var demand_signature: Vector4i = NO_SIGNATURE
 	
+	# Sound Gain Component
+	var gain_enabled: bool
+	var gain_db: float
+	var gain_anim: AnimationRes
+	var gain_version: int
+	
 	
 	func _init() -> void:
-		material = shader_material
 		IS.describe_box_container(self, 0, false)
 	
 	func _enter_tree() -> void:
+		instances.append(self)
 		if not ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
 			ChunkServer.chunk_ready.connect(_on_chunk_ready)
 		if not ChunkServer.source_ready.is_connected(_on_source_ready):
@@ -1303,6 +1370,7 @@ class WaveformBoxContainer extends BoxContainer:
 		_try_connect_timeline()
 	
 	func _exit_tree() -> void:
+		instances.erase(self)
 		if ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
 			ChunkServer.chunk_ready.disconnect(_on_chunk_ready)
 		if ChunkServer.source_ready.is_connected(_on_source_ready):
@@ -1315,7 +1383,19 @@ class WaveformBoxContainer extends BoxContainer:
 	
 	
 	static func set_pixelate_scale(scale: float = .0) -> void:
-		shader_material.set_shader_parameter(&"pixelate_scale", scale)
+		pixelate_scale = scale
+		for instance: WaveformBoxContainer in instances:
+			for texture_rect: TextureRect in instance.texture_rects.values():
+				(texture_rect.material as ShaderMaterial).set_shader_parameter(&"pixelate_scale", scale)
+	
+	func set_gain(enabled: bool, db: float, anim: AnimationRes) -> void:
+		gain_enabled = enabled
+		gain_db = db
+		gain_anim = anim
+		gain_version += 1
+		for index: int in texture_rects:
+			if wanted.has(index):
+				_apply_gain(index)
 	
 	func update_ui(audio_key_as_path: String, frame_in: int, length: int) -> void:
 		var new_source_id: StringName = ChunkServer.waveform.get_source_id(StringName(audio_key_as_path))
@@ -1326,7 +1406,6 @@ class WaveformBoxContainer extends BoxContainer:
 		media_from = maxi(frame_in, 0)
 		clip_length = length
 		
-		# The timeline may not have existed yet when we entered the tree.
 		_try_connect_timeline()
 		_layout()
 		_refresh_demand()
@@ -1342,11 +1421,6 @@ class WaveformBoxContainer extends BoxContainer:
 		)
 	
 	
-	static func _init_shader_material() -> ShaderMaterial:
-		var sm:= ShaderMaterial.new()
-		sm.shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
-		return sm
-	
 	func _get_demander_id() -> StringName:
 		return StringName("waveform_%d" % get_instance_id())
 	
@@ -1360,6 +1434,7 @@ class WaveformBoxContainer extends BoxContainer:
 	func _layout() -> void:
 		pixels_per_second = ProjectServer2.fps
 		total_pixels = ChunkServer.waveform.get_total_pixels(source_id, pixels_per_second)
+		gain_version += 1
 		
 		var chunk_count: int = ChunkServer.WaveformProducer.get_chunk_count(total_pixels)
 		first_chunk = media_from / CHUNK_WIDTH
@@ -1445,14 +1520,44 @@ class WaveformBoxContainer extends BoxContainer:
 			var texture: Variant = null
 			if wanted.has(index):
 				texture = ChunkServer.get_cached(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index))
+				_apply_gain(index)
 			texture_rects[index].texture = texture
+	
+	func _apply_gain(index: int) -> void:
+		var texture_rect: TextureRect = texture_rects[index]
+		if texture_rect.get_meta(&"gain_version", -1) == gain_version:
+			return
+		texture_rect.set_meta(&"gain_version", gain_version)
+		
+		var gain_material: ShaderMaterial = texture_rect.material
+		var width: int = ChunkServer.WaveformProducer.get_chunk_width(total_pixels, index)
+		if not gain_enabled or width < 1 or (gain_anim == null and is_zero_approx(gain_db)):
+			gain_material.set_shader_parameter(&"gain_tex", null)
+			return
+		
+		var image: Image = Image.create_empty(width, 1, false, Image.FORMAT_RF)
+		if gain_anim == null:
+			image.fill(Color(db_to_linear(gain_db), 0., 0.))
+		else:
+			var pixel_from: int = index * CHUNK_WIDTH
+			for x: int in width:
+				image.set_pixel(x, 0, Color(db_to_linear(gain_anim.sample_func.call(pixel_from + x)), 0., 0.))
+		
+		var gain_texture: ImageTexture = gain_material.get_shader_parameter(&"gain_tex") as ImageTexture
+		if gain_texture and Vector2i(gain_texture.get_size()) == image.get_size():
+			gain_texture.update(image)
+		else:
+			gain_material.set_shader_parameter(&"gain_tex", ImageTexture.create_from_image(image))
 	
 	func _push_waveform_texture_rect() -> TextureRect:
 		var texture_rect: TextureRect = IS.create_texture_rect(null, {})
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		texture_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		texture_rect.use_parent_material = true
+		var rect_material:= ShaderMaterial.new()
+		rect_material.shader = SHADER
+		rect_material.set_shader_parameter(&"pixelate_scale", pixelate_scale)
+		texture_rect.material = rect_material
 		add_child(texture_rect)
 		return texture_rect
 	
@@ -1460,6 +1565,7 @@ class WaveformBoxContainer extends BoxContainer:
 		if key.source_id != source_id or key.kind != ChunkServer.Kind.WAVEFORM or key.variant != pixels_per_second:
 			return
 		if texture_rects.has(key.index) and wanted.has(key.index):
+			_apply_gain(key.index)
 			texture_rects[key.index].texture = ChunkServer.get_cached(key)
 	
 	func _on_source_ready(_source_id: StringName) -> void:

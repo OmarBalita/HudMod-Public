@@ -68,7 +68,9 @@ var import_file_system: FileSystem
 var preset_file_system: FileSystem
 
 var undo_redo: UndoRedo = UndoRedo.new()
+var is_undo_redo_enabled: bool = true
 var saved_version: int
+var untracked_version: int
 
 var fps: int
 var delta: float
@@ -171,7 +173,7 @@ func open_project(_project_path: String) -> bool:
 	
 	project_res = _project_res
 	
-	saved_version = undo_redo.get_version()
+	saved_version = get_version()
 	
 	MediaCache.load_media_cache_from_file_system(import_file_system)
 	MediaCache.load_media_cache_from_file_system(preset_file_system)
@@ -232,7 +234,7 @@ func save() -> void:
 	
 	GlobalServer.save_global()
 	
-	saved_version = undo_redo.get_version()
+	saved_version = get_version()
 	
 	EditorServer.update_title()
 	EditorServer.push_message("Saved", EditorServer.MessageMode.MESSAGE_MODE_IDLE)
@@ -262,7 +264,17 @@ func save_as(dir_path: String) -> void:
 	EditorServer.push_message("Saved as", EditorServer.MessageMode.MESSAGE_MODE_IDLE)
 
 
+func set_undo_redo_enabled(enabled: bool) -> void:
+	is_undo_redo_enabled = enabled
+	if not enabled: undo_redo.clear_history(false)
+
+func get_version() -> int:
+	return undo_redo.get_version() + untracked_version
+
 func undo() -> void:
+	if not is_undo_redo_enabled:
+		EditorServer.push_message("Undo/Redo is disabled.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
+		return
 	if not undo_redo.has_undo(): return
 	var action_name: String = undo_redo.get_current_action_name().capitalize()
 	undo_redo.undo()
@@ -270,12 +282,20 @@ func undo() -> void:
 	EditorServer.push_message("Undo %s" % action_name, EditorServer.MessageMode.MESSAGE_MODE_IDLE)
 
 func redo() -> void:
+	if not is_undo_redo_enabled:
+		EditorServer.push_message("Undo/Redo is disabled.", EditorServer.MessageMode.MESSAGE_MODE_WARNING)
+		return
 	if not undo_redo.has_redo(): return
 	undo_redo.redo()
 	EditorServer.update_title()
 	EditorServer.push_message("Redo %s" % undo_redo.get_current_action_name().capitalize(), EditorServer.MessageMode.MESSAGE_MODE_IDLE)
 
 func commit_action(action_name: String, do_method: Callable, undo_method: Callable, execute: bool = true) -> void:
+	if not is_undo_redo_enabled:
+		if execute: do_method.call()
+		untracked_version += 1
+		EditorServer.update_title()
+		return
 	undo_redo.create_action(action_name)
 	undo_redo.add_do_method(do_method)
 	undo_redo.add_undo_method(undo_method)

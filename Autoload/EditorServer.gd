@@ -103,7 +103,8 @@ func _notification(what: int) -> void:
 func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> void:
 	
 	editor_settings.theme.update_colors()
-	
+	editor_settings.theme.update_font()
+
 	DirAccess.make_dir_absolute(app_data_dir)
 	
 	main = get_tree().get_current_scene()
@@ -137,11 +138,11 @@ func _ready_editor_server(editors: Dictionary[StringName, EditorControl]) -> voi
 	var launch_project_path: String = launch_args[0].simplify_path() if launch_args.size() > 0 else ""
 	var launch_project_res_path: String = launch_project_path.path_join("project.res")
 	
-	if launch_project_path.is_empty():
-		popup_version_panel()
-	elif FileAccess.file_exists(launch_project_res_path):
-		if ProjectServer2.open_project(launch_project_path): pass
-		else: popup_version_panel()
+	var is_version_panel_needed: bool = launch_project_path.is_empty()
+	if not is_version_panel_needed and FileAccess.file_exists(launch_project_res_path):
+		is_version_panel_needed = not ProjectServer2.open_project(launch_project_path)
+	
+	popup_undo_redo_warning(popup_version_panel if is_version_panel_needed else Callable())
 	
 	popup_menu_recent.id_pressed.connect(_on_popup_menu_recent_id_pressed)
 	popup_menu_layout.id_pressed.connect(_on_popup_menu_layout_id_pressed)
@@ -214,7 +215,7 @@ func update_popup_menu_docks_items_checked(editors: Dictionary[StringName, Edito
 
 func update_title() -> void:
 	var title:= "HudMod (%s)" % ProjectServer2.project_path
-	if ProjectServer2.saved_version != ProjectServer2.undo_redo.get_version():
+	if ProjectServer2.saved_version != ProjectServer2.get_version():
 		title += " *"
 	get_window().title = title
 
@@ -577,6 +578,19 @@ func get_preset_file_system(global: bool) -> FileSystem: return GlobalServer.pre
 
 # Popup Windows
 # ---------------------------------------------------
+
+func popup_undo_redo_warning(on_closed: Callable = Callable()) -> void:
+	ProjectServer2.set_undo_redo_enabled(false)
+	var text: String = "Undo/Redo in this version (%s) is not fully stable and may break or corrupt your project.\nIt has been disabled." % version_info.version_name
+	var box: BoxContainer = WindowManager.popup_warning_window(get_window(), text, WindowManager.WarningSeverity.WARNING_SEVERITY_HIGH, Vector2(565., 255.), "Undo/Redo Warning")
+	if box == null:
+		if on_closed.is_valid(): on_closed.call_deferred()
+		return
+	var win: WindowManager.AcceptWindow = box.get_window()
+	win.accept_button.text = "OK"
+	win.cancel_button.hide()
+	if on_closed.is_valid():
+		win.tree_exited.connect(on_closed, CONNECT_DEFERRED)
 
 var version_window: Window
 
@@ -1139,7 +1153,7 @@ func popup_save_option_or_save(method: Callable, accept_text: String = "Save & Q
 		method.call()
 		return
 	
-	if ProjectServer2.saved_version == ProjectServer2.undo_redo.get_version():
+	if ProjectServer2.saved_version == ProjectServer2.get_version():
 		method.call()
 		return
 	

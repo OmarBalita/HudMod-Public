@@ -97,6 +97,8 @@ static var presets: Dictionary[ColorPreset, Array] = {
 @export_range(-1., 1.) var contrast: float = .2:
 	set(val): contrast = val; update_colors.call_deferred()
 
+var _ui_font: FontVariation = FontVariation.new()
+
 func _init() -> void:
 	_update_local_colors()
 
@@ -153,15 +155,18 @@ func get_ui_font() -> Font:
 	var base_font: FontFile = FontRes.load_custom_font(path)
 	if base_font == null: return null
 	
-	var variation: FontVariation = FontVariation.new()
-	variation.base_font = base_font
-	variation.variation_embolden = font_embolden
-	return variation
- 
+	# Reused so controls already holding it (theme overrides, draw code) follow font changes.
+	_ui_font.base_font = base_font
+	_ui_font.variation_embolden = font_embolden
+	return _ui_font
+
 func update_font() -> void:
 	var font: Font = get_ui_font()
 	if font == null: return
-	
+
+	for label_settings: LabelSettings in [IS.label_settings_main, IS.label_settings_header, IS.label_settings_bold]:
+		label_settings.font = font
+
 	ThemeDB.fallback_font = font
 	ThemeDB.get_default_theme().default_font = font
 	

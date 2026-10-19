@@ -48,23 +48,39 @@ func update(_path: Array) -> void:
 		
 		var undo_times: int = path.size() - time - 1
 		
-		button.mouse_entered.connect(change_button_text.bind(button, underline_text(folder_name)))
-		button.mouse_exited.connect(change_button_text.bind(button, folder_name))
+		button.mouse_entered.connect(button.queue_redraw)
+		button.mouse_exited.connect(button.queue_redraw)
+		button.draw.connect(draw_button_underline.bind(button))
 		button.pressed.connect(on_button_pressed.bind(undo_times))
 		
 		button.text = folder_name
 		add_child(button)
 		add_child(IS.create_label("/"))
 
-func underline_text(text: String) -> String:
-	var result: String = ""
-	var underline_char: String = "\u0332"
-	for c: String in text:
-		result += c + underline_char
-	return result
-
-func change_button_text(button: Button, new_text: String) -> void:
-	button.set_text(new_text)
+func draw_button_underline(button: Button) -> void:
+	
+	if not button.is_hovered() or button.disabled:
+		return
+	
+	var font: Font = button.get_theme_font(&"font")
+	var font_size: int = button.get_theme_font_size(&"font_size")
+	var text_width: float = font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	
+	var style: StyleBox = button.get_theme_stylebox(&"normal")
+	var content_rect: Rect2 = Rect2(Vector2(style.get_margin(SIDE_LEFT), style.get_margin(SIDE_TOP)), button.size - style.get_minimum_size())
+	
+	var start_x: float
+	match button.alignment:
+		HORIZONTAL_ALIGNMENT_LEFT: start_x = content_rect.position.x
+		HORIZONTAL_ALIGNMENT_RIGHT: start_x = content_rect.end.x - text_width
+		_: start_x = content_rect.position.x + (content_rect.size.x - text_width) / 2.
+	
+	var baseline: float = content_rect.position.y + (content_rect.size.y - font.get_height(font_size)) / 2. + font.get_ascent(font_size)
+	var thickness: float = maxf(font.get_underline_thickness(font_size), 1.)
+	var y: float = baseline + font.get_underline_position(font_size) + thickness / 2.
+	
+	var color: Color = button.get_theme_color(&"font_pressed_color" if button.button_pressed else &"font_hover_color")
+	button.draw_line(Vector2(start_x, y), Vector2(start_x + text_width, y), color, thickness)
 
 func on_button_pressed(undo_times: int) -> void:
 	
@@ -78,4 +94,3 @@ func on_button_pressed(undo_times: int) -> void:
 
 func open_root_menu() -> void:
 	pass
-

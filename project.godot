@@ -108,6 +108,10 @@ left_btn={
 ]
 }
 
+[internationalization]
+
+rendering/root_node_layout_direction=1
+
 [rendering]
 
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

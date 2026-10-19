@@ -26,12 +26,9 @@ func set_enable_audio(new_val: bool) -> void: enable_audio = new_val
 
 func is_children_audio_enabled() -> bool: return enable_audio
 
-func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
-	super(property_key, property_val)
+func _prop_changed(property_key: StringName) -> void:
 	if property_key == &"enable_audio": Scene2.refresh_stream_players_under(self)
-	if curr_node:
-		_update_viewport_props()
-		update()
+	if curr_node: _update_viewport_props()
 
 static func get_media_clip_info() -> Dictionary[StringName, String]:
 	return {
@@ -44,7 +41,7 @@ static func get_icon() -> Texture2D: return preload("res://Asset/Icons/Objects/r
 
 func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
-		&"size": export(vec2_args(size, true), [], false),
+		&"size": export(vec2_args(size, true, true, 1), [], false),
 		&"transparent_background": export(bool_args(transparent_background), [], false),
 		&"enable_audio": export(bool_args(enable_audio))
 	}
@@ -58,6 +55,10 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 func enter(node: Node) -> void:
 	super(node)
 	_update_viewport_props()
+
+func exit(node: Node) -> void:
+	super(node)
+	viewport_props_updated.emit.call_deferred()
 
 func _update_viewport_props() -> void:
 	curr_node = curr_node as SubViewport

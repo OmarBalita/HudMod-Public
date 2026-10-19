@@ -58,6 +58,13 @@ const CURVE_HIT_DIST: float = 6.0
 const MOVE_THRESHOLD: float = 3.0
 const CURSOR_FONT_SIZE: int = 16
 
+const FIT_MARGIN_LEFT: float = 48.0
+const FIT_MARGIN_RIGHT: float = 24.0
+const FIT_MARGIN_TOP: float = 40.0
+const FIT_MARGIN_BOTTOM: float = 24.0
+
+const HATCH_SPACING: float = 10.0
+
 
 # ==============================================================================
 # EXPORTS
@@ -72,14 +79,19 @@ const CURSOR_FONT_SIZE: int = 16
 @export var min_val: float = -200.
 @export var max_val: float = 200.
 @export var val_step: float = .01
-@export var min_domain: float = -100.
-@export var max_domain: float = 100.
+@export var min_domain: float = -100.:
+	set(val):
+		min_domain = val
+		queue_redraw()
+@export var max_domain: float = 100.:
+	set(val):
+		max_domain = val
+		queue_redraw()
 @export var domain_step: float = 1.
 
 @export_group("Draw", "draw")
 @export var draw_cursor: bool = false
 @export var draw_val_step: int = 1
-@export var draw_domain_step: int = 1
 @export var draw_select_color: Color = Color.ORANGE
 
 @export_group("Theme")
@@ -87,6 +99,7 @@ const CURSOR_FONT_SIZE: int = 16
 @export var keyframe_texture: Texture2D = preload("res://Asset/Icons/keyframe.png")
 @export var lock_texture: Texture2D = preload("res://Asset/Icons/padlock.png")
 @export var unlock_texture: Texture2D = preload("res://Asset/Icons/padlock-unlock.png")
+@export var fit_view_texture: Texture2D = preload("res://Asset/Icons/world-origin.png")
 @export_subgroup("Constant")
 @export var navigate_dist: float = -10.0
 @export var navigate_speed: float = 100.0
@@ -110,6 +123,13 @@ var _keys_colors: Array[Color] = [
 
 var cursor_pos: float
 
+var view_min_domain: float = -100.
+var view_max_domain: float = 100.
+
+## Returns the domain (Vector2(from, to)) this controller's width spans, e.g. aligned with the clip panel.
+## When invalid, the x-axis spans [member min_domain]..[member max_domain]. The x-axis is never user controlled.
+var full_range_getter: Callable
+
 var keys_info: Array[Dictionary] = [{v=true}, {v=true}, {v=true}, {v=true}]
 
 var focused_keys_index: int = -1:
@@ -128,7 +148,6 @@ var is_control_focused: bool
 
 var latest_mouse_pos: Vector2
 
-## True when the curves are linked together (only meaningful with 2+ curves).
 var linked: bool = false
 
 # --- interaction ---
@@ -143,7 +162,7 @@ var _nav_offset: float = .0
 var _hover_key: Dictionary = {&"keys_index": -1, &"coord": null, &"dist": INF}
 var _hover_control: Dictionary = {}
 
-# --- pending click on a key (resolved on release when the mouse did not move) ---
+# --- pending click ---
 var _pending_click: Vector2i = Vector2i(-1, -1)
 var _pending_click_was_selected: bool = false
 
@@ -164,12 +183,16 @@ var _move_grab_v0: float = .0
 var _move_last_dx: int = 0
 var _move_last_dy: float = .0
 
-# --- profile signal connections (so re-assigning curves_profiles never leaks) ---
+# --- profile signal connections ---
 var _profile_connections: Dictionary = {}
 
 # --- undo / redo ---
 var _edit_before: Dictionary = {}
 var _edit_name: String = "move_curve_keys"
+
+# --- fit view button ---
+var _fit_button: IS.CustomTextureButton
+var _fit_button_press: bool = false
 
 
 # ==============================================================================
@@ -191,6 +214,8 @@ func _ready() -> void:
 	
 	set_process(false)
 	zoom_value(20.)
+	
+	_create_overlay()
 
 
 func _process(delta: float) -> void:
@@ -234,7 +259,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 # ==============================================================================
 
 func _init_curves_profiles() -> void:
-	# Disconnect everything from the previous profiles first.
 	for profile: CurveProfile in _profile_connections:
 		if not is_instance_valid(profile): continue
 		var calls: Array = _profile_connections[profile]
@@ -276,6 +300,34 @@ func _selected_count() -> int:
 	return count
 
 
+func _create_overlay() -> void:
+	var overlay:= Control.new()
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(overlay)
+
+	var overlay_box:= HBoxContainer.new()
+	overlay_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_box.alignment = BoxContainer.ALIGNMENT_END
+	overlay_box.anchor_left = 1.
+	overlay_box.anchor_right = 1.
+	overlay_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	overlay_box.offset_top = 4.
+	overlay_box.offset_bottom = 4.
+	overlay_box.offset_right = -4.
+	overlay_box.offset_left = -4.
+	overlay.add_child(overlay_box)
+
+	_fit_button = IS.create_texture_button(fit_view_texture, null, null, "Fit View to Curve (F)")
+	_fit_button.modulate.a = .7
+	_fit_button.pressed.connect(frame_all)
+	overlay_box.add_child(_fit_button)
+
+
+func _is_over_fit_button() -> bool:
+	return _fit_button != null and _fit_button.is_visible_in_tree() \
+			and _fit_button.get_global_rect().has_point(get_global_mouse_position())
+
+
 # ==============================================================================
 # LINK
 # ==============================================================================
@@ -284,7 +336,6 @@ func is_linked() -> bool:
 	return linked
 
 
-## Raw setter (no undo record). Use toggle_linked() for user actions.
 func set_linked(value: bool) -> void:
 	if value and curves_profiles.size() < 2: value = false
 	if linked == value: return
@@ -296,7 +347,6 @@ func set_linked(value: bool) -> void:
 	linked_changed.emit(linked)
 
 
-## User-level toggle, recorded as one undo action.
 func toggle_linked() -> void:
 	if curves_profiles.size() < 2: return
 	_begin_edit()
@@ -328,7 +378,6 @@ func _ensure_linked_columns() -> void:
 		keys_editing.emit()
 
 
-## In linked mode: any selected key selects the whole column.
 func _sync_linked_selection() -> void:
 	if not linked: return
 	
@@ -348,6 +397,24 @@ func _deselect_column(x: int) -> void:
 	for port: int in curves_profiles.size():
 		if is_val_selected(port, x):
 			deselect_val(port, x)
+
+
+# ==============================================================================
+# VIEW DOMAIN
+# ==============================================================================
+
+## The x-axis is not user controlled: it follows [member full_range_getter] when valid,
+## otherwise it fits [member min_domain]..[member max_domain].
+func _update_view_domain() -> void:
+	var domain: Vector2
+	if full_range_getter.is_valid():
+		domain = full_range_getter.call(self)
+	elif size.x > 1.:
+		domain = _fit_axis(min_domain, max_domain, size.x, FIT_MARGIN_LEFT, FIT_MARGIN_RIGHT)
+	else:
+		domain = Vector2(min_domain, max_domain)
+	view_min_domain = domain.x
+	view_max_domain = maxf(domain.y, domain.x + .0001)
 
 
 # ==============================================================================
@@ -407,9 +474,6 @@ func _begin_edit() -> void:
 	_edit_before = _make_snapshot()
 
 
-## Compares with the snapshot taken by _begin_edit() and, if anything changed,
-## records ONE undo action. The change is already applied, so it is committed
-## with execute = false.
 func _commit_edit(action_name: String) -> void:
 	if _edit_before.is_empty(): return
 	
@@ -418,8 +482,6 @@ func _commit_edit(action_name: String) -> void:
 	var after: Dictionary = _make_snapshot()
 	if _snapshots_equal(before, after): return
 	
-	# Weak reference: the clip panel (and this controller) can be freed while the
-	# action still sits in the history; it must never keep us alive or crash.
 	var ref: WeakRef = weakref(self)
 	ProjectServer2.commit_action(
 		action_name,
@@ -435,7 +497,6 @@ static func _run_snapshot(ref: WeakRef, snap: Dictionary) -> void:
 		controller._restore_snapshot(snap)
 		return
 	
-	# Controller is gone: still restore the data.
 	var profiles: Array = snap.profiles
 	for index: int in profiles.size():
 		profiles[index].keys = _clone_keys(snap.keys_list[index])
@@ -455,7 +516,6 @@ func _restore_snapshot(snap: Dictionary) -> void:
 	_move_fixed.clear()
 	_pending_click = Vector2i(-1, -1)
 	
-	# Clear selection and the selectable registry of the current keys.
 	for port: int in selected.keys():
 		for x: int in selected[port].keys():
 			deselect_val(port, x)
@@ -463,14 +523,12 @@ func _restore_snapshot(snap: Dictionary) -> void:
 		for x: int in curves_profiles[port].keys:
 			delete_selectable_val(port, x)
 	
-	# Restore data (fresh clones so the snapshot itself is never mutated).
 	var keys_list: Array = snap.keys_list
 	for port: int in curves_profiles.size():
 		curves_profiles[port].keys = _clone_keys(keys_list[port])
 		for x: int in curves_profiles[port].keys:
 			add_selectable_val(port, x, curves_profiles[port].keys[x])
 	
-	# Restore selection.
 	var selection: Dictionary = snap.selection
 	for port: int in selection:
 		if port >= curves_profiles.size(): continue
@@ -521,7 +579,7 @@ func get_domain_from_display_pos(pos: float) -> float:
 
 
 func get_display_pos_from_domain(d: float) -> float:
-	return (d - min_domain) * (size.x / (max_domain - min_domain))
+	return (d - view_min_domain) * (size.x / (view_max_domain - view_min_domain))
 
 
 func format_x(x: int) -> int:
@@ -533,7 +591,7 @@ func _raw_val_at(y: float) -> float:
 
 
 func _raw_domain_at(x: float) -> float:
-	return min_domain + x * (max_domain - min_domain) / maxf(size.x, 1.)
+	return view_min_domain + x * (view_max_domain - view_min_domain) / maxf(size.x, 1.)
 
 
 # ==============================================================================
@@ -564,7 +622,6 @@ func zoom_value(scale: float) -> void:
 	max_val += scale
 
 
-## Zoom that keeps the value under `y` (display position) fixed.
 func zoom_value_at(scale: float, y: float) -> void:
 	var val_size := max_val - min_val
 	var zoom_sign := signf(scale)
@@ -577,32 +634,59 @@ func zoom_value_at(scale: float, y: float) -> void:
 	max_val = min_val + new_size
 
 
-## Fits the view around every visible key.
 func frame_all() -> void:
+	_fit_values_to_curves(int(min_domain), int(max_domain))
+	queue_redraw()
+
+
+func _fit_values_to_curves(sample_from: int, sample_to: int) -> void:
+	const MAX_SAMPLES: int = 256
+	
 	var lo: float = INF
 	var hi: float = -INF
 	for index: int in curves_profiles.size():
 		if not _is_channel_visible(index): continue
-		var profile_keys: Dictionary[int, CurveKey] = curves_profiles[index].keys
+		var profile: CurveProfile = curves_profiles[index]
+		var profile_keys: Dictionary[int, CurveKey] = profile.keys
+		if profile_keys.is_empty(): continue
+		
 		for x: int in profile_keys:
+			if x < sample_from or x > sample_to: continue
 			var v: float = profile_keys[x].value
 			lo = minf(lo, v)
 			hi = maxf(hi, v)
+		
+		var step: int = maxi(1, ceili(float(sample_to - sample_from) / MAX_SAMPLES))
+		for x: int in range(sample_from, sample_to + 1, step):
+			var v: float = profile.sample(x)
+			lo = minf(lo, v)
+			hi = maxf(hi, v)
+		var v_end: float = profile.sample(sample_to)
+		lo = minf(lo, v_end)
+		hi = maxf(hi, v_end)
 	
 	if lo == INF:
 		lo = -1.
 		hi = 1.
 	
-	var span: float = hi - lo
-	if span < .001:
+	if hi - lo < .001:
 		lo -= 1.
 		hi += 1.
-		span = 2.
 	
-	var pad: float = span * .2
-	min_val = lo - pad
-	max_val = hi + pad
-	queue_redraw()
+	var y_range: Vector2 = _fit_axis(lo, hi, size.y, FIT_MARGIN_TOP, FIT_MARGIN_BOTTOM)
+	min_val = y_range.x
+	max_val = y_range.y
+
+
+static func _fit_axis(lo: float, hi: float, length: float, margin_start: float, margin_end: float) -> Vector2:
+	length = maxf(length, 1.)
+	var usable: float = maxf(length - margin_start - margin_end, length * .5)
+	var margins_scale: float = (length - usable) / (margin_start + margin_end)
+	var units_per_px: float = (hi - lo) / usable
+	return Vector2(
+		lo - margin_start * margins_scale * units_per_px,
+		hi + margin_end * margins_scale * units_per_px
+	)
 
 
 func update_navigation_offset(mouse_pos: Vector2) -> void:
@@ -704,7 +788,7 @@ func curve_key_move_control_mode(keys_index: int, key: int) -> void:
 
 
 # ==============================================================================
-# KEYS — SELECTION OVERRIDES (each one is a single undo action)
+# KEYS — SELECTION OVERRIDES
 # ==============================================================================
 
 func delete_selected_vals() -> void:
@@ -769,7 +853,6 @@ func set_keys_transition_mode(mode: CurveKey.InterpolationMode) -> void:
 # SEARCH / HIT TESTING
 # ==============================================================================
 
-## Closest visible key within the hit radius (or keys_index = -1).
 func find_key(mouse_pos: Vector2) -> Dictionary:
 	var result: Dictionary = {&"keys_index": -1, &"coord": null, &"dist": INF}
 	var best_dist: float = maxf(control_close_dist, KEY_HIT_RADIUS)
@@ -830,7 +913,6 @@ func _test_control(port: int, key: int, mouse_pos: Vector2, info: Dictionary) ->
 	return false
 
 
-## Handles are grabbable on selected keys AND on the key under the mouse.
 func find_control(mouse_pos: Vector2, disabled: bool) -> Dictionary[StringName, Variant]:
 	var default_result: Dictionary[StringName, Variant] = {
 		&"curve_key":	  null,
@@ -880,7 +962,6 @@ func _reset_hover() -> void:
 
 
 func _update_hover(mouse_pos: Vector2) -> void:
-	# While dragging, hover is frozen so nothing flickers under the pointer.
 	if _motion_mode != MotionMode.NONE:
 		return
 	
@@ -890,7 +971,6 @@ func _update_hover(mouse_pos: Vector2) -> void:
 	var has_control: bool = _hover_control.curve_key != null
 	var has_key: bool = _hover_key.keys_index != -1
 	
-	# The closest of (key, handle) wins when they overlap.
 	if has_control and has_key and _hover_key.dist <= _hover_control.mouse_dist_to:
 		has_control = false
 		_hover_control = {}
@@ -912,6 +992,17 @@ func _update_hover(mouse_pos: Vector2) -> void:
 # ==============================================================================
 
 func _gui_input(event: InputEvent) -> void:
+	# Clicks that start on the fit button bubble up here (its filter is PASS):
+	# swallow them so they never select, drag or open the menu.
+	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+		if event.pressed: _fit_button_press = _motion_mode == MotionMode.NONE and _is_over_fit_button()
+		if _fit_button_press:
+			if not event.pressed: _fit_button_press = false
+			accept_event()
+			return
+	
+	_update_view_domain()
+	
 	if event is InputEventMouse:
 		_update_hover(event.position)
 	
@@ -976,11 +1067,9 @@ func _on_mouse_button(event: InputEventMouseButton) -> void:
 func _left_press(event: InputEventMouseButton, mouse_pos: Vector2) -> void:
 	_pending_click = Vector2i(-1, -1)
 	
-	# Snapshot for undo; unchanged gestures (clicks, box select) record nothing.
 	_begin_edit()
 	_edit_name = "move_curve_keys"
 	
-	# 1. Bezier handle
 	if is_control_focused:
 		_edit_name = "edit_curve_handles"
 		_ctrl_curve_key = _hover_control.curve_key
@@ -990,20 +1079,17 @@ func _left_press(event: InputEventMouseButton, mouse_pos: Vector2) -> void:
 		_begin_motion(MotionMode.CONTROL, mouse_pos)
 		return
 	
-	# 2. Key
 	if _hover_key.keys_index != -1:
 		var hover_coord: Vector2 = _hover_key.coord
 		_press_on_key(_hover_key.keys_index, int(hover_coord.x), event, mouse_pos)
 		return
 	
-	# 3. Timeline cursor
 	if is_cursor_focused:
 		_begin_motion(MotionMode.CURSOR, mouse_pos)
 		cursor_pos = get_coord_from_display_pos(mouse_pos).x
 		queue_redraw()
 		return
 	
-	# 4. Curve itself -> add a key
 	if focused_keys_index > -1:
 		var coord: Vector2 = get_coord_from_display_pos(mouse_pos)
 		var x: int = format_x(roundi(coord.x))
@@ -1021,7 +1107,6 @@ func _left_press(event: InputEventMouseButton, mouse_pos: Vector2) -> void:
 		_press_on_key(port, x, event, mouse_pos)
 		return
 	
-	# 5. Empty space: box selection is handled by SelectContainer.
 
 
 func _press_on_key(port: int, x: int, event: InputEventMouseButton, mouse_pos: Vector2) -> void:
@@ -1029,7 +1114,6 @@ func _press_on_key(port: int, x: int, event: InputEventMouseButton, mouse_pos: V
 	_pending_click = Vector2i(port, x)
 	_pending_click_was_selected = was_selected
 	
-	# Alt = deselect on release, never drags.
 	if event.alt_pressed:
 		_press_pos = mouse_pos
 		_mouse_moved = false
@@ -1056,10 +1140,8 @@ func _left_release(event: InputEventMouseButton, mouse_pos: Vector2) -> void:
 	if click.x >= 0 and not moved:
 		_resolve_key_click(click, click_was_selected, event)
 	elif mode == MotionMode.NONE:
-		# Box selection finished (or plain click on empty space).
 		_sync_linked_selection()
 	
-	# One undo action for the whole gesture (no-op if nothing changed).
 	_commit_edit(_edit_name)
 	
 	_end_motion(mouse_pos)
@@ -1089,8 +1171,6 @@ func _right_press(_event: InputEventMouseButton, mouse_pos: Vector2) -> void:
 		queue_redraw()
 		return
 	
-	# Right clicking an unselected key selects it so the menu acts on it.
-	# (Right clicking a selected key or empty space keeps the current selection.)
 	if _hover_key.keys_index != -1:
 		var hover_coord: Vector2 = _hover_key.coord
 		var port: int = _hover_key.keys_index
@@ -1181,7 +1261,6 @@ func _begin_move(grab_port: int, grab_x: int) -> void:
 			_move_min_x = mini(_move_min_x, x)
 			_move_max_x = maxi(_move_max_x, x)
 	
-	# Keys that are not moving: moved keys are never allowed to land on them.
 	for port: int in curves_profiles.size():
 		var fixed: Dictionary = {}
 		for x: int in keys_get(port):
@@ -1203,7 +1282,6 @@ func _update_move(mouse_pos: Vector2) -> void:
 	var raw_dx: float = _raw_domain_at(mouse_pos.x) - _press_domain
 	var raw_dy: float = _raw_val_at(mouse_pos.y) - _press_value
 	
-	# Shift locks movement to the dominant axis.
 	if Input.is_key_pressed(KEY_SHIFT):
 		var dd: Vector2 = mouse_pos - _press_pos
 		if absf(dd.x) >= absf(dd.y): raw_dy = .0
@@ -1226,7 +1304,6 @@ func _update_move(mouse_pos: Vector2) -> void:
 	if dx == _move_last_dx and is_equal_approx(dy, _move_last_dy):
 		return
 	
-	# Collision with non-moving keys: keep the last valid position.
 	for item: Dictionary in _move_items:
 		if _move_fixed[item.port].has(item.x0 + dx):
 			return
@@ -1234,7 +1311,6 @@ func _update_move(mouse_pos: Vector2) -> void:
 	_move_last_dx = dx
 	_move_last_dy = dy
 	
-	# Take everything out first, then put it back (moved keys may overlap each other).
 	for item: Dictionary in _move_items:
 		var port: int = item.port
 		var cur: int = item.x
@@ -1248,7 +1324,6 @@ func _update_move(mouse_pos: Vector2) -> void:
 		var new_x: int = item.x0 + dx
 		var curve_key: CurveKey = item.ck
 		
-		# Linked: vertical drag only changes the grabbed curve, X moves everything.
 		if not linked or port == _move_grab_port:
 			curve_key.value = item.v0 + dy
 		
@@ -1317,33 +1392,24 @@ func _get_menu_options() -> Array[Dictionary]:
 	control_mode_menu.id_pressed.connect(set_keys_control_mode)
 	interpolation_option_menu.id_pressed.connect(set_keys_transition_mode)
 	
-	# "Link Curves" only shows up when 2+ keys are selected (and curves > 1).
-	# "Unlink Curves" shows whenever the curves are linked.
 	var show_link_item: bool = curves_profiles.size() > 1 and (linked or _selected_count() > 1)
 	
-	var view_menu: PopupMenu
-	if show_link_item:
-		view_menu = IS.create_popup_menu([
-			{text = "Unlink Curves" if linked else "Link Curves"},
-			{text = "Frame All"},
-		])
-		view_menu.id_pressed.connect(
-			func(id: int) -> void:
-				if id == 0: toggle_linked()
-				else: frame_all()
-		)
-	else:
-		view_menu = IS.create_popup_menu([
-			{text = "Frame All"},
-		])
-		view_menu.id_pressed.connect(func(_id: int) -> void: frame_all())
-	
-	return [
+	var options: Array[Dictionary] = [
 		{text = "Control Mode", submenu = control_mode_menu},
 		{text = "Interpolation Option", submenu = interpolation_option_menu},
-		{text = "Curves", submenu = view_menu},
-		{as_separator = true}
-	] as Array[Dictionary] + super()
+	]
+	
+	if show_link_item:
+		var curves_menu: PopupMenu = IS.create_popup_menu([
+			{text = "Unlink Curves" if linked else "Link Curves"},
+		])
+		curves_menu.id_pressed.connect(func(_id: int) -> void: toggle_linked())
+		options.append({text = "Curves", submenu = curves_menu})
+	
+	options.append({text = "Fit View to Curve", icon = fit_view_texture, metadata = frame_all})
+	options.append({as_separator = true})
+	
+	return options + super()
 
 
 func _request_selection_box_select(port_idx: int, _port_object: Object, idx: int) -> bool:
@@ -1365,25 +1431,56 @@ func _request_box_selection() -> bool:
 # ==============================================================================
 
 func _draw() -> void:
+	_update_view_domain()
 	_draw_grid()
+	_draw_out_of_domain()
 	_draw_linked_columns()
 	_draw_curves()
 	if draw_cursor:
 		_draw_cursor_line()
 
 
+func _draw_out_of_domain() -> void:
+	var left: float = get_display_pos_from_domain(min_domain)
+	var right: float = get_display_pos_from_domain(max_domain)
+	if left > .0:
+		_draw_hatch(Rect2(.0, .0, minf(left, size.x), size.y))
+	if right < size.x:
+		var from: float = maxf(right, .0)
+		_draw_hatch(Rect2(from, .0, size.x - from, size.y))
+
+
+func _draw_hatch(rect: Rect2) -> void:
+	if rect.size.x <= .0: return
+	draw_rect(rect, Color(.0, .0, .0, .35))
+	
+	var color := Color(Color.WHITE, .05)
+	var h: float = rect.size.y
+	var x0: float = rect.position.x
+	var x1: float = rect.end.x
+	var s: float = floorf((x0 - h) / HATCH_SPACING) * HATCH_SPACING
+	while s < x1:
+		# Diagonal from (s, bottom) to (s + h, top), clipped to [x0, x1].
+		var t0: float = maxf(.0, x0 - s)
+		var t1: float = minf(h, x1 - s)
+		if t1 > t0:
+			draw_line(Vector2(s + t0, rect.end.y - t0), Vector2(s + t1, rect.end.y - t1), color)
+		s += HATCH_SPACING
+
+
 func _draw_grid() -> void:
 	var val_size: float = max_val - min_val
-	var domain_size: float = max_domain - min_domain
+	var domain_size: float = view_max_domain - view_min_domain
 	
 	var y_offset: float = min_val - float(int(min_val) % draw_val_step)
 	var y_displacement: float = y_offset - int(y_offset)
 	
 	if is_snapped:
 		var snap_grid_color := Color(Color.WHITE, .1)
-		var x_snap_steps_count: int = domain_size / draw_step.x + 1
+		var x_snap_start: float = floorf(view_min_domain / draw_step.x) * draw_step.x
+		var x_snap_steps_count: int = domain_size / draw_step.x + 2
 		for snap_step: int in x_snap_steps_count:
-			var x_pos := get_display_pos_from_domain(min_domain + snap_step * draw_step.x)
+			var x_pos := get_display_pos_from_domain(x_snap_start + snap_step * draw_step.x)
 			draw_line(Vector2(x_pos, .0), Vector2(x_pos, size.y), snap_grid_color)
 		for snap_step: int in range(-50, val_size / draw_step.y + 50):
 			var y_pos := get_display_pos_from_val(y_offset + snap_step * draw_step.y - y_displacement)
@@ -1402,7 +1499,6 @@ func set_keys_colors(colors: Array[Color]) -> void:
 	_keys_colors = colors
 
 
-## Faint vertical guides on every selected column while curves are linked.
 func _draw_linked_columns() -> void:
 	if not linked: return
 	var xs: Dictionary = {}
@@ -1418,7 +1514,6 @@ func _draw_linked_columns() -> void:
 func _draw_curves() -> void:
 	var count: int = curves_profiles.size()
 	
-	# Draw the focused curve last so it sits on top.
 	var order: Array[int] = []
 	for index: int in count:
 		if index != focused_keys_index: order.append(index)
@@ -1446,8 +1541,7 @@ func _draw_curve_line(profile: CurveProfile, keys_color: Color) -> void:
 		draw_line(Vector2(.0, y0), Vector2(size.x, y0), keys_color, 2.0)
 		return
 	
-	# One sample every ~2px is plenty when zoomed out.
-	var pixels_per_frame: float = size.x / maxf(max_domain - min_domain, 1.)
+	var pixels_per_frame: float = size.x / maxf(view_max_domain - view_min_domain, 1.)
 	var step: int = maxi(1, ceili(2.0 / maxf(pixels_per_frame, .001)))
 	
 	var points := PackedVector2Array()
@@ -1527,7 +1621,6 @@ func _draw_key(
 	var rect: Rect2 = Rect2(display_pos - KEY_SIZE_HALF - grow * .5, KEY_SIZE + grow)
 	var color: Color
 	
-	# Handles are visible for selected keys and for the hovered key.
 	if is_selected or is_hovered:
 		color = draw_select_color if is_selected else Color(Color.WHITE, 1.)
 		var handle_alpha: float = color_alpha if is_selected else color_alpha * .7

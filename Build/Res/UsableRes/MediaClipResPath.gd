@@ -21,14 +21,44 @@ class_name MediaClipResPath extends UsableRes
 
 signal media_res_changed(old_one: MediaClipRes, new_one: MediaClipRes)
 
+# Reverse index: target clip instance id -> WeakRefs of the paths pointing to it.
+static var _refs_index: Dictionary[int, Array] = {}
+
 @export var cond_method_name: StringName
 @export var media_res: MediaClipRes:
 	set(val):
 		var old_one: MediaClipRes = media_res
 		media_res = val
+		if old_one != val:
+			_unregister_ref(old_one)
+			_register_ref(val)
 		emit_res_changed()
 		if old_one != val: media_res_changed.emit(old_one, val)
 		_try_update_editor()
+
+func _register_ref(target: MediaClipRes) -> void:
+	if target == null: return
+	_refs_index.get_or_add(target.get_instance_id(), []).append(weakref(self))
+
+func _unregister_ref(target: MediaClipRes) -> void:
+	if target == null: return
+	var id: int = target.get_instance_id()
+	if not _refs_index.has(id): return
+	var refs: Array = _refs_index[id]
+	for idx: int in range(refs.size() - 1, -1, -1):
+		var path: MediaClipResPath = refs[idx].get_ref()
+		if path == null or path == self: refs.remove_at(idx)
+	if refs.is_empty(): _refs_index.erase(id)
+
+# Repoints every path that targets a key of refs_map to its value. Cost depends only on refs_map size.
+static func remap_refs(refs_map: Dictionary[MediaClipRes, MediaClipRes]) -> void:
+	for old_target: MediaClipRes in refs_map:
+		var id: int = old_target.get_instance_id()
+		if not _refs_index.has(id): continue
+		for ref: WeakRef in _refs_index[id].duplicate():
+			var path: MediaClipResPath = ref.get_ref()
+			if path and path.media_res == old_target:
+				path.media_res = refs_map[old_target]
 
 static func new_mediares_path(_media_res: MediaClipRes = null, _cond_method_name: StringName = &"any_cond") -> MediaClipResPath:
 	var new_one:= MediaClipResPath.new()

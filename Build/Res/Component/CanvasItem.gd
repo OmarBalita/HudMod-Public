@@ -72,7 +72,7 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	return {
 		&"Transform": export_method(ExportMethodType.METHOD_ENTER_CATEGORY),
 		&"position": export(vec2_args(position, false, false, 1)),
-		&"rotation_degrees": export(float_args(rotation_degrees)),
+		&"rotation_degrees": export(float_args(rotation_degrees, -INF, INF, .01, .1, 5., 0, 2)),
 		&"scale": export(vec2_args(scale, false, true, 1)),
 		&"skew": export(float_args(skew)),
 		&"_Transform": export_method(ExportMethodType.METHOD_EXIT_CATEGORY),

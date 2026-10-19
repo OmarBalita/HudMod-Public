@@ -395,8 +395,13 @@ func _remove_animation_keyframe(usable_res: UsableRes, property_key: StringName,
 
 func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	super(property_key, property_val)
-	if not has_animation(self, property_key): return
-	request_animation_keyframe(self, property_key, property_val, null, false)
+	if has_animation(self, property_key):
+		request_animation_keyframe(self, property_key, property_val, null, false)
+	_prop_changed(property_key)
+	update()
+
+func _prop_changed(property_key: StringName) -> void:
+	pass
 
 
 func update_editors_by_animations(frame: int) -> void:
@@ -1161,6 +1166,15 @@ func erase_paths(paths_for_erase: PackedStringArray) -> void:
 
 func update_paths() -> void:
 	pass
+
+
+func collect_duplicate_peers(dupl: MediaClipRes, peers: Dictionary[MediaClipRes, MediaClipRes]) -> void:
+	peers[self] = dupl
+	for layer_idx: int in layers.size():
+		var clips: Dictionary[int, MediaClipRes] = layers[layer_idx].clips
+		var dupl_clips: Dictionary[int, MediaClipRes] = dupl.layers[layer_idx].clips
+		for frame: int in clips:
+			clips[frame].collect_duplicate_peers(dupl_clips[frame], peers)
 
 
 static func _create_place_data_from(coords: Vector2i, edit_data: Dictionary[StringName, Variant]) -> Dictionary[StringName, Variant]:

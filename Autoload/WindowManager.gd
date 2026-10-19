@@ -20,6 +20,16 @@
 # This code needs to be rebuilt from scratch.
 extends Node
 
+enum WarningSeverity {
+	WARNING_SEVERITY_NORMAL,
+	WARNING_SEVERITY_HIGH
+}
+
+const WARNING_SEVERITY_COLORS: Dictionary[WarningSeverity, Color] = {
+	WarningSeverity.WARNING_SEVERITY_NORMAL: Color(1., .8, .15),
+	WarningSeverity.WARNING_SEVERITY_HIGH: Color(1., .25, .25),
+}
+
 @export var editor_windows_folder: Node = Node.new()
 
 var popuped_windows: Array[Window]
@@ -46,6 +56,7 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	var processing_rect: ProcessingControl = create_processing_rect(is_processing_rect_hidden)
 	window.close_requested.connect(on_window_close_request.bind(window, processing_rect))
 	window.tree_exited.connect(processing_rect.queue_free)
+	window.window_input.connect(_on_popuped_window_input.bind(window))
 	processing_node.add_child(processing_rect)
 	
 	var target_process_win: Window = processing_node if processing_node is Window else processing_node.get_window()
@@ -60,6 +71,12 @@ func popup_window_base(processing_node: Node, window_size: Vector2, window_title
 	window.tree_exited.connect(popuped_windows.erase.bind(window))
 	
 	return margin
+
+func _on_popuped_window_input(event: InputEvent, window: Window) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
+		var focus_owner: Control = window.gui_get_focus_owner()
+		if focus_owner and not focus_owner.get_global_rect().has_point(focus_owner.get_global_mouse_position()):
+			window.gui_release_focus()
 
 func popup_window(processing_node: Node, window_size:= Vector2i(400, 200), window_title:= "Window") -> MarginContainer:
 	
@@ -120,6 +137,59 @@ func popup_accept_window(processing_node: Node, window_size:= Vector2(400, 200),
 		window.cancel_button = cancel_button
 	
 	return box2
+
+func popup_warning_window(processing_node: Node, text: String, severity: WarningSeverity = WarningSeverity.WARNING_SEVERITY_NORMAL, window_size:= Vector2(450, 220), window_title:= "Warning", accept_pressed: Callable = Callable(), cancel_pressed: Callable = Callable(), closable: bool = true, warning_id: String = "") -> BoxContainer:
+	
+	if warning_id.is_empty():
+		warning_id = str(window_title, ":", text.hash())
+	
+	var editor_state: EditorStateRes = EditorServer.editor_state
+	if editor_state.dismissed_warnings.has(warning_id):
+		if accept_pressed.is_valid(): accept_pressed.call()
+		return null
+	
+	var box: BoxContainer = popup_accept_window(processing_node, window_size, window_title, accept_pressed)
+	var window: AcceptWindow = box.get_window()
+	window.set_meta(&"closable", closable)
+	
+	if cancel_pressed.is_valid():
+		window.cancel_button.pressed.connect(cancel_pressed)
+	
+	var dont_show_check:= CheckBox.new()
+	IS.set_base_settings(dont_show_check)
+	dont_show_check.text = "Don't show this again"
+	window.accept_button.get_parent().get_parent().add_child(dont_show_check)
+	var accepted: Array[bool] = [false]
+	window.accepted.connect(func() -> void: accepted[0] = true)
+	window.tree_exiting.connect(
+		func() -> void:
+			if not dont_show_check.button_pressed or editor_state.dismissed_warnings.has(warning_id): return
+			if not accepted[0] and cancel_pressed.is_valid(): return
+			editor_state.dismissed_warnings.append(warning_id)
+			ResourceSaver.save(editor_state, EditorServer.editor_state_path)
+	)
+	
+	var split_cont: SplitContainer = IS.create_split_container(8)
+	var icon_rect: TextureRect = IS.create_texture_rect(preload("res://Asset/Icons/warning-128px.png"), {
+		modulate = WARNING_SEVERITY_COLORS[severity],
+		custom_minimum_size = Vector2(78., 78.),
+		expand_mode = TextureRect.EXPAND_IGNORE_SIZE,
+		stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	})
+	var label: Label = IS.create_label(text, "", IS.label_settings_main, {
+		horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT,
+		vertical_alignment = VERTICAL_ALIGNMENT_CENTER,
+		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	})
+	
+	IS.expand(split_cont, true, true)
+	IS.expand(label, true, true)
+	
+	split_cont.add_child(icon_rect)
+	split_cont.add_child(label)
+	box.add_child(split_cont)
+	
+	return box
 
 func popup_color_controller_window(processing_node: Node, main_color: Color, on_color_changed: Callable = Callable()) -> PopupedColorController:
 	var window_container: MarginContainer = WindowManager.popup_window_base(processing_node, Vector2i(350.0, 650.0), "Pick a Color", true)
@@ -206,3 +276,4 @@ class AcceptWindow extends Window:
 	func emit_cancel() -> void:
 		canceled.emit()
 		close_requested.emit()
+		queue_free()

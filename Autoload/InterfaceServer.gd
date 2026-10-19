@@ -276,7 +276,7 @@ func set_base_label_settings(label: Label, label_settings: LabelSettings) -> voi
 	label.label_settings = label_settings
 
 func set_font_from_label_settings(control: Control, label_settings: LabelSettings) -> void:
-	control.add_theme_font_override(&"font", label_settings.font)
+	if label_settings.font: control.add_theme_font_override(&"font", label_settings.font)
 	control.add_theme_font_size_override(&"font_size", label_settings.font_size)
 	control.add_theme_color_override("font_color", label_settings.font_color)
 	control.add_theme_constant_override(&"outline_size", label_settings.outline_size)
@@ -953,7 +953,7 @@ func create_string_edit(name: String, text: String = "", placeholder: String = "
 	
 	return edit_cont
 
-func create_float_edit(name: String, val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, controller_type: FloatControllerType = FloatControllerType.TYPE_SPINBOX, options: Dictionary = {}) -> EditContainer:
+func create_float_edit(name: String, val: float, min: float = -INF, max: float = INF, step: float = .01, spin_scale: float = .01, spin_magnet_step: float = 10.0, is_int: bool = false, controller_type: FloatControllerType = FloatControllerType.TYPE_SPINBOX, options: Dictionary = {}, suffix: FloatController.SuffixType = 0, prefix: String = "") -> EditContainer:
 	var edit_cont: EditContainer = create_edit_cont(name, controller_type == 1)
 	var controller: Control
 	
@@ -962,7 +962,7 @@ func create_float_edit(name: String, val: float, min: float = -INF, max: float =
 	match controller_type:
 		
 		FloatControllerType.TYPE_SPINBOX:
-			controller = create_float_controller(val, min, max, step, spin_scale, spin_magnet_step, is_int)
+			controller = create_float_controller(val, min, max, step, spin_scale, spin_magnet_step, is_int, suffix, prefix)
 			controller.val_changed.connect(edit_cont.set_curr_value)
 			edit_cont.method_set = controller.set_curr_val
 			edit_cont.method_set_manually = controller.set_curr_val_manually
