@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -30,7 +31,8 @@ class_name VersionInfo extends Resource
 @export_subgroup("Q & A")
 @export_multiline() var questions_and_answers: String
 @export_subgroup("Authors")
-@export var project_founders: Array[String]
+@export var project_founder: StringName
+@export var project_co_founder: StringName
 @export var lead_developer: StringName
 @export var developers: Array[String]
 @export_subgroup("License")

@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -1152,6 +1153,37 @@ class LayersSelectContainer extends SelectContainer:
 				audio_clip_res.stream = video_clip_res.video
 				audio_clip_res.from = video_clip_res.from
 				audio_clip_res.length = video_clip_res.length
+				
+				# Duplicate Components
+				var curr_section_comps: Array = video_clip_res.get_components().get(&"Sound", [])
+				var new_section_comps: Array[ComponentRes]
+				var ress_peers: Dictionary[UsableRes, UsableRes]
+				
+				for curr_component: ComponentRes in curr_section_comps:
+					var new_component: ComponentRes = curr_component.duplicate(true)
+					new_component.set_owner(audio_clip_res)
+					new_component.properties = new_component.properties.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
+					new_section_comps.append(new_component)
+					ress_peers.set(curr_component, new_component)
+				
+				var sound_gain_comp: ComponentRes = ress_peers.get(video_clip_res.try_get_component(CompSoundGain))
+				if sound_gain_comp:
+					new_section_comps.erase(sound_gain_comp)
+					sound_gain_comp.set_forced(true)
+				else:
+					sound_gain_comp = audio_clip_res.try_get_component(CompSoundGain) # Created by _init_clip_res()
+				
+				new_section_comps.push_front(sound_gain_comp)
+				audio_clip_res.get_components()[&"Sound"] = new_section_comps
+				
+				# Duplicate Components Animations
+				var video_anims: Dictionary[UsableRes, Dictionary] = video_clip_res.get_animations()
+				for res: UsableRes in ress_peers:
+					if not video_anims.has(res): continue
+					var new_res_anims: Dictionary
+					for anim_key: StringName in video_anims[res]:
+						new_res_anims[anim_key] = (video_anims[res][anim_key] as AnimationRes).duplicate_anim_res()
+					audio_clip_res.get_animations()[ress_peers[res]] = new_res_anims
 				
 				var placed: Dictionary[Vector2i, MediaClipRes] = owner_clip_res.add_clips_by_coords(
 					{Vector2i(target_layer_idx, frame): audio_clip_res}, -1, true, false

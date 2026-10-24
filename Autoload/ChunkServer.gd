@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -26,40 +27,51 @@ signal source_failed(source_id: StringName)
 
 enum Kind {
 	NONE = -1,
-	WAVEFORM,
+	WAVEFORM
 }
+
+const DEFAULT_STORE_BUDGET: int = 64 * 1024 * 1024 # 64 MB
 
 @export var max_in_flight: int = get_default_max_in_flight()
 
-var waveform: WaveformProducer
-var store: ChunkStore = ChunkStore.new()
+@export var producers: Dictionary[Kind, ChunkProducer]
+@export var sources: Dictionary[StringName, ChunkSource]
+@export var epochs: Dictionary[StringName, int]
+@export var demands: Dictionary[StringName, Array] # {demander = Array[ChunkRequest]}
+@export var queue: Array[ChunkRequest]
+@export var in_flight: Dictionary[StringName, bool]
+@export var failed: Dictionary[StringName, bool]
 
-var producers: Dictionary[Kind, ChunkProducer] = {}
-var sources: Dictionary[StringName, ChunkSource] = {}
-var epochs: Dictionary[StringName, int] = {}
-var demands: Dictionary[StringName, Array] = {}
-var queue: Array[ChunkRequest] = []
-var in_flight: Dictionary[StringName, bool] = {}
-var failed: Dictionary[StringName, bool] = {}
+var store: ChunkStore = ChunkStore.new(DEFAULT_STORE_BUDGET)
+var waveform: WaveformProducer = WaveformProducer.new()
 
 
 func _init() -> void:
-	waveform = WaveformProducer.new(self)
 	register_producer(waveform)
 
 
 static func get_default_max_in_flight() -> int:
 	var threads: int = int(ProjectSettings.get_setting("threading/worker_pool/max_threads", -1))
-	if threads < 1:
-		threads = OS.get_processor_count()
-	var ratio: float = float(ProjectSettings.get_setting("threading/worker_pool/low_priority_thread_ratio", 0.3))
+	if threads < 1: threads = OS.get_processor_count()
+	var ratio: float = float(ProjectSettings.get_setting("threading/worker_pool/low_priority_thread_ratio", .3))
 	return maxi(1, int(threads * ratio))
 
+func producers_has(kind: Kind) -> bool: return producers.has(kind)
+func sources_has(id: StringName) -> bool: return sources.has(id)
+
+func get_producers() -> Dictionary[Kind, ChunkProducer]: return producers
+func get_sources() -> Dictionary[StringName, ChunkSource]: return sources
+func get_store() -> ChunkStore: return store
+
+func get_producer(kind: Kind) -> ChunkProducer: return producers.get(kind)
+func get_source(id: StringName) -> ChunkSource: return sources.get(id)
+
+func get_max_in_flight() -> int: return max_in_flight
+func set_max_in_flight(new_val: int) -> void: max_in_flight = maxi(1, new_val); _pump()
 
 func register_producer(producer: ChunkProducer) -> void:
 	var kind: Kind = producer.get_kind()
 	if kind == Kind.NONE:
-		push_error("ChunkServer: producer has no kind.")
 		return
 	producers[kind] = producer
 
@@ -76,30 +88,17 @@ func register_source_async(id: StringName, prepare: Callable) -> ChunkSource:
 	WorkerThreadPool.add_task(_run_prepare.bind(id, source.epoch, prepare), false, "ChunkServer prepare")
 	return source
 
-func unregister_source(id: StringName) -> void:
-	if not sources.has(id):
+func deregister_source(id: StringName) -> void:
+	if not sources_has(id):
 		return
 	sources.erase(id)
 	store.remove_source(id)
 	_erase_failed_of_source(id)
 	_rebuild_queue()
 
-func get_source(id: StringName) -> ChunkSource:
-	return sources.get(id, null)
-
-func clear_all() -> void:
-	for id: StringName in sources.keys():
-		unregister_source(id)
-	demands.clear()
-	queue.clear()
-	failed.clear()
-	store.clear()
-
 func set_demand(demander: StringName, requests: Array[ChunkRequest]) -> void:
-	if requests.is_empty():
-		demands.erase(demander)
-	else:
-		demands[demander] = requests
+	if requests.is_empty(): demands.erase(demander)
+	else: demands[demander] = requests
 	_rebuild_queue()
 	_pump()
 
@@ -112,14 +111,9 @@ func retry_failed() -> void:
 	_rebuild_queue()
 	_pump()
 
-func get_cached(key: ChunkKey) -> Variant:
-	return store.get_value(key.id)
-
-func is_cached(key: ChunkKey) -> bool:
-	return store.has_value(key.id)
-
-func is_failed(key: ChunkKey) -> bool:
-	return failed.has(key.id)
+func is_cached(key: ChunkKey) -> bool: return store.has_value(key.id)
+func is_failed(key: ChunkKey) -> bool: return failed.has(key.id)
+func get_cached(key: ChunkKey) -> Variant: return store.get_value(key.id)
 
 func get_stats() -> Dictionary:
 	return {
@@ -127,14 +121,23 @@ func get_stats() -> Dictionary:
 		&"in_flight": in_flight.size(),
 		&"cached": store.get_count(),
 		&"cached_bytes": store.get_used(),
-		&"failed": failed.size(),
+		&"failed": failed.size()
 	}
 
 
+func clear_all() -> void:
+	for id: StringName in sources.keys():
+		deregister_source(id)
+	demands.clear()
+	queue.clear()
+	failed.clear()
+	store.clear()
+
+
 func _begin_source(id: StringName) -> ChunkSource:
-	if sources.has(id):
-		unregister_source(id)
-	var epoch: int = int(epochs.get(id, -1)) + 1
+	if sources_has(id):
+		deregister_source(id)
+	var epoch: int = epochs.get(id, -1) + 1
 	epochs[id] = epoch
 	var source: ChunkSource = ChunkSource.new(id, epoch)
 	sources[id] = source
@@ -154,9 +157,9 @@ func _rebuild_queue() -> void:
 			var key: ChunkKey = request.key
 			if failed.has(key.id) or in_flight.has(key.id) or store.has_value(key.id):
 				continue
-			if not producers.has(key.kind):
+			if not producers_has(key.kind):
 				continue
-			var source: ChunkSource = sources.get(key.source_id, null)
+			var source: ChunkSource = get_source(key.source_id)
 			if source == null or source.has_failed:
 				continue
 			if best.has(key.id) and best[key.id].priority <= request.priority:
@@ -169,19 +172,19 @@ func _rebuild_queue() -> void:
 	queue = new_queue
 
 func _pump() -> void:
-	var i: int = 0
-	while in_flight.size() < max_in_flight and i < queue.size():
-		var request: ChunkRequest = queue[i]
-		var source: ChunkSource = sources.get(request.key.source_id, null)
+	var idx: int = 0
+	while in_flight.size() < max_in_flight and idx < queue.size():
+		var request: ChunkRequest = queue[idx]
+		var source: ChunkSource = get_source(request.key.source_id)
 		
 		if source == null or source.has_failed:
-			queue.remove_at(i)
+			queue.remove_at(idx)
 			continue
 		if not source.is_ready:
-			i += 1
+			idx += 1
 			continue
 		
-		queue.remove_at(i)
+		queue.remove_at(idx)
 		in_flight[request.key.id] = true
 		WorkerThreadPool.add_task(
 			_run_chunk.bind(request.key, source, producers[request.key.kind], source.epoch),
@@ -196,47 +199,6 @@ func _run_prepare(id: StringName, epoch: int, prepare: Callable) -> void:
 	var payload: Variant = prepare.call()
 	_on_prepare_done.call_deferred(id, epoch, payload, WorkerThreadPool.get_caller_task_id())
 
-func _on_chunk_done(key: ChunkKey, raw: Variant, epoch: int, task_id: int) -> void:
-	if task_id >= 0:
-		WorkerThreadPool.wait_for_task_completion(task_id)
-	in_flight.erase(key.id)
-	
-	var source: ChunkSource = sources.get(key.source_id, null)
-	if source == null or source.epoch != epoch or not producers.has(key.kind):
-		_rebuild_queue()
-		_pump()
-		return
-	
-	var producer: ChunkProducer = producers[key.kind]
-	var value: Variant = producer.finalize(raw, key) if raw != null else null
-	
-	if value == null:
-		failed[key.id] = true
-		chunk_failed.emit(key)
-	else:
-		store.put_value(key.id, value, producer.size_of(value))
-		chunk_ready.emit(key)
-	_pump()
-
-func _on_prepare_done(id: StringName, epoch: int, payload: Variant, task_id: int) -> void:
-	if task_id >= 0:
-		WorkerThreadPool.wait_for_task_completion(task_id)
-	
-	var source: ChunkSource = sources.get(id, null)
-	if source == null or source.epoch != epoch:
-		return
-	
-	if payload == null:
-		source.has_failed = true
-		_rebuild_queue()
-		source_failed.emit(id)
-		return
-	
-	source.payload = payload
-	source.is_ready = true
-	source_ready.emit(id)
-	_pump()
-
 static func _is_more_urgent(a: ChunkRequest, b: ChunkRequest) -> bool:
 	if a.priority != b.priority:
 		return a.priority < b.priority
@@ -245,65 +207,87 @@ static func _is_more_urgent(a: ChunkRequest, b: ChunkRequest) -> bool:
 	return a.key.index < b.key.index
 
 
-class ChunkKey extends RefCounted:
+class ChunkKey extends Resource:
 	
-	var source_id: StringName
-	var kind: Kind
-	var variant: int
-	var index: int
-	var id: StringName
+	@export var source_id: StringName
+	@export var kind: Kind
+	@export var variant: int
+	@export var index: int
+	@export var id: StringName
 	
-	func _init(_source_id: StringName, _kind: Kind, _variant: int, _index: int) -> void:
+	func _init(_source_id: StringName = &"", _kind: Kind = Kind.NONE, _variant: int = 0, _index: int = 0) -> void:
 		source_id = _source_id
 		kind = _kind
 		variant = _variant
 		index = _index
 		id = StringName("%s|%d|%d|%d" % [source_id, kind, variant, index])
 	
+	func get_source_id() -> StringName: return source_id
+	func get_kind() -> Kind: return kind
+	func get_variant() -> int: return variant
+	func get_index() -> int: return index
+	func get_id() -> StringName: return id
+	
 	static func source_prefix(_source_id: StringName) -> String:
 		return "%s|" % _source_id
 
 
-class ChunkRequest extends RefCounted:
+class ChunkRequest extends Resource:
 	
 	const TIER_VISIBLE: int = 0
 	const TIER_NEAR: int = 1_000_000
 	const TIER_BACKGROUND: int = 2_000_000
 	
 	var key: ChunkKey
-	var priority: int
+	@export var priority: int
 	
-	func _init(_key: ChunkKey, _priority: int = TIER_VISIBLE) -> void:
+	func _init(_key: ChunkKey = null, _priority: int = TIER_VISIBLE) -> void:
 		key = _key
 		priority = _priority
-
-
-class ChunkSource extends RefCounted:
 	
-	var id: StringName
-	var epoch: int
+	func get_key() -> ChunkKey: return key
+	func get_priority() -> int: return priority
+	
+	func set_key(new_val: ChunkKey) -> void: key = new_val
+	func set_priority(new_val: int) -> void: priority = new_val
+
+
+class ChunkSource extends Resource:
+	
+	@export var id: StringName
+	@export var epoch: int
 	var payload: Variant
-	var is_ready: bool
-	var has_failed: bool
+	@export var is_ready: bool
+	@export var has_failed: bool
 	
-	func _init(_id: StringName, _epoch: int) -> void:
+	func _init(_id: StringName = &"", _epoch: int = 0) -> void:
 		id = _id
 		epoch = _epoch
+	
+	func get_id() -> StringName: return id
+	func get_epoch() -> int: return epoch
+	func get_payload() -> Variant: return payload
+	
+	func set_payload(new_val: Variant) -> void: payload = new_val
 
 
-class ChunkStore extends RefCounted:
+class ChunkStore extends Resource:
 	
 	@export var budget: int
+	@export var used: int
+	@export var values: Dictionary = {} # Insertion ordered, oldest first (LRU)
+	@export var sizes: Dictionary[StringName, int]
 	
-	var used: int = 0
-	var values: Dictionary = {}
-	var sizes: Dictionary[StringName, int] = {}
-	
-	func _init(_budget: int = 64 * 1024 * 1024) -> void:
+	func _init(_budget: int = DEFAULT_STORE_BUDGET) -> void:
 		budget = _budget
 	
-	func has_value(key_id: StringName) -> bool:
-		return values.has(key_id)
+	func get_budget() -> int: return budget
+	func set_budget(new_val: int) -> void: budget = new_val; _evict()
+	
+	func get_used() -> int: return used
+	func get_count() -> int: return values.size()
+	
+	func has_value(key_id: StringName) -> bool: return values.has(key_id)
 	
 	func get_value(key_id: StringName) -> Variant:
 		if not values.has(key_id):
@@ -319,8 +303,7 @@ class ChunkStore extends RefCounted:
 		values[key_id] = value
 		sizes[key_id] = size
 		used += size
-		while used > budget and values.size() > 1:
-			remove_value(values.keys()[0])
+		_evict()
 	
 	func remove_value(key_id: StringName) -> void:
 		if not values.has(key_id):
@@ -340,14 +323,12 @@ class ChunkStore extends RefCounted:
 		sizes.clear()
 		used = 0
 	
-	func get_used() -> int:
-		return used
-	
-	func get_count() -> int:
-		return values.size()
+	func _evict() -> void:
+		while used > budget and values.size() > 1:
+			remove_value(values.keys()[0])
 
 
-class ChunkProducer extends RefCounted:
+class ChunkProducer extends Resource:
 	
 	func get_kind() -> Kind:
 		return Kind.NONE
@@ -372,43 +353,38 @@ class WaveformProducer extends ChunkProducer:
 	const THUMBNAIL_PEAKS: int = 256
 	const THUMBNAIL_FRAMES_PER_PEAK: int = 64
 	
-	var server: Object
-	var source_ids: Dictionary[StringName, StringName] = {}
-	
-	
-	func _init(_server: Object) -> void:
-		server = _server
-	
+	@export var source_ids: Dictionary[StringName, StringName] # {media_path = source_id}
 	
 	func get_kind() -> Kind:
 		return Kind.WAVEFORM
 	
+	func get_source_ids() -> Dictionary[StringName, StringName]: return source_ids
+	func get_source_id(path: StringName) -> StringName: return source_ids.get(path, &"")
+	
 	func register_media(path: StringName, id: String, pcm: PackedByteArray) -> void:
 		var source_id: StringName = StringName(id) if not id.is_empty() else StringName(String(path).md5_text())
 		source_ids[path] = source_id
-		server.register_source_async(source_id, func() -> Variant:
-			return MediaHelper.build_peak_map(pcm, PEAKS_PER_SECOND, 0)
+		ChunkServer.register_source_async(source_id,
+			func() -> Variant:
+				return MediaHelper.build_peak_map(pcm, PEAKS_PER_SECOND, 0)
 		)
 	
-	func unregister_media(path: StringName) -> void:
+	func deregister_media(path: StringName) -> void:
 		if not source_ids.has(path):
 			return
-		server.unregister_source(source_ids[path])
+		ChunkServer.deregister_source(source_ids[path])
 		source_ids.erase(path)
 	
-	func rename_media(from: StringName, to: StringName) -> void:
+	func replace_media_path(from: StringName, to: StringName) -> void:
 		if source_ids.has(from):
 			source_ids[to] = source_ids[from]
 			source_ids.erase(from)
-	
-	func get_source_id(path: StringName) -> StringName:
-		return source_ids.get(path, &"")
 	
 	static func make_key(source_id: StringName, pixels_per_second: int, chunk_index: int) -> ChunkKey:
 		return ChunkKey.new(source_id, Kind.WAVEFORM, pixels_per_second, chunk_index)
 	
 	func get_total_pixels(source_id: StringName, pixels_per_second: int) -> int:
-		var source: ChunkSource = server.get_source(source_id)
+		var source: ChunkSource = ChunkServer.get_source(source_id)
 		if source == null or not source.is_ready:
 			return 0
 		return _total_pixels(source.payload, pixels_per_second)
@@ -439,7 +415,7 @@ class WaveformProducer extends ChunkProducer:
 		return priorities
 	
 	func render_thumbnail(pcm: PackedByteArray, length: float, size: int) -> Image:
-		var peaks_per_second: int = maxi(1, ceili(THUMBNAIL_PEAKS / maxf(length, 0.001)))
+		var peaks_per_second: int = maxi(1, ceili(THUMBNAIL_PEAKS / maxf(length, .001)))
 		var map: Dictionary = MediaHelper.build_peak_map(pcm, peaks_per_second, THUMBNAIL_FRAMES_PER_PEAK)
 		var peaks: PackedFloat32Array = map.peaks
 		return MediaHelper.render_waveform(
@@ -472,9 +448,7 @@ class WaveformProducer extends ChunkProducer:
 		var texture: Texture2D = value as Texture2D
 		if texture == null:
 			return 1
-		# ~4/3 for the mipmap chain.
-		return int(texture.get_width() * texture.get_height() * 1.34)
-	
+		return int(texture.get_width() * texture.get_height() * 1.34) # ~4/3 for the mipmap chain
 	
 	static func _total_pixels(payload: Dictionary, pixels_per_second: int) -> int:
 		var peak_count: int = (payload.peaks as PackedFloat32Array).size()
@@ -485,3 +459,45 @@ class WaveformProducer extends ChunkProducer:
 		if index < first or index > last or priorities.has(index):
 			return
 		priorities[index] = ChunkRequest.TIER_NEAR + distance
+
+
+func _on_chunk_done(key: ChunkKey, raw: Variant, epoch: int, task_id: int) -> void:
+	if task_id >= 0:
+		WorkerThreadPool.wait_for_task_completion(task_id)
+	in_flight.erase(key.id)
+	
+	var source: ChunkSource = get_source(key.source_id)
+	if source == null or source.epoch != epoch or not producers_has(key.kind):
+		_rebuild_queue()
+		_pump()
+		return
+	
+	var producer: ChunkProducer = producers[key.kind]
+	var value: Variant = producer.finalize(raw, key) if raw != null else null
+	
+	if value == null:
+		failed[key.id] = true
+		chunk_failed.emit(key)
+	else:
+		store.put_value(key.id, value, producer.size_of(value))
+		chunk_ready.emit(key)
+	_pump()
+
+func _on_prepare_done(id: StringName, epoch: int, payload: Variant, task_id: int) -> void:
+	if task_id >= 0:
+		WorkerThreadPool.wait_for_task_completion(task_id)
+	
+	var source: ChunkSource = get_source(id)
+	if source == null or source.epoch != epoch:
+		return
+	
+	if payload == null:
+		source.has_failed = true
+		_rebuild_queue()
+		source_failed.emit(id)
+		return
+	
+	source.payload = payload
+	source.is_ready = true
+	source_ready.emit(id)
+	_pump()

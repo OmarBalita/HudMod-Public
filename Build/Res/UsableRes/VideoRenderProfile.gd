@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -143,7 +144,6 @@ const PRESET_OPTIONS: Dictionary[StringName, Dictionary] = {
 	}
 }
 
-# Applied before any preset so container related props never leak from the previous preset.
 const PRESET_BASE: Dictionary = {
 	&"video_format": VideoFormat.MP4,
 	&"video_codec": VideoCodec.H_264,
@@ -235,7 +235,6 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 	}
 
 func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[StringName, Control]) -> void:
-	# Called again whenever the edit re-enters the tree (e.g. layout switching), so don't add a second menu.
 	if is_instance_valid(preset_options_ctrlr) and preset_options_ctrlr.get_parent() == edit_cont.header_cont:
 		return
 	preset_options_ctrlr = IS.create_options_controller_2(0, {NO_PRESET_TEXT: 0})
@@ -321,7 +320,6 @@ func apply_preset(preset_name: StringName) -> void:
 	_try_to_update_props_edits()
 	preset_applied.emit(preset_name)
 
-# Returns false if the name is reserved by a built-in preset.
 func save_as_custom_preset(preset_name: StringName) -> bool:
 	if PRESET_OPTIONS.has(preset_name) or preset_name == NO_PRESET_TEXT:
 		return false
@@ -353,7 +351,6 @@ func _try_to_update_props_edits() -> void:
 	
 	var props_edits: Dictionary[StringName, Control] = EditorServer.usable_ress_editors_get_props_edits_conts(self, 0)
 	for prop_key: StringName in PRESET_PROPS:
-		# Codec and pixel format are already handled by _try_to_update_ui().
 		if prop_key in [&"video_codec", &"pixel_format"] or not props_edits.has(prop_key):
 			continue
 		var prop_edit: EditContainer = props_edits[prop_key]

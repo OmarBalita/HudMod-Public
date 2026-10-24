@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -179,7 +180,7 @@ func server_replace_media_path(from: String, to: String) -> void:
 	#if timeline_waveform_textures.has(from):
 		#timeline_waveform_textures[to] = timeline_waveform_textures[from]
 		#timeline_waveform_textures.erase(from)
-	ChunkServer.waveform.rename_media(from, to)
+	ChunkServer.waveform.replace_media_path(from, to)
 
 
 func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
@@ -189,14 +190,14 @@ func server_deregister_image(path: String, id: String, thumbnail_path: String) -
 func server_deregister_video(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
 	#timeline_waveform_textures.erase(path)
-	ChunkServer.waveform.unregister_media(path)
+	ChunkServer.waveform.deregister_media(path)
 	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
 	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
 func server_deregister_audio(path: String, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	thumbnails.erase(path)
 	#timeline_waveform_textures.erase(path)
-	ChunkServer.waveform.unregister_media(path)
+	ChunkServer.waveform.deregister_media(path)
 	DirAccessHelper.remove_directory_recursive(thumbnail_path + id + ".png")
 	DirAccessHelper.remove_directory_recursive(waveform_path + id)
 
@@ -374,7 +375,7 @@ class ClipPanel extends Panel:
 		clip_res.clip_res_changed.connect(_update_sound_gain_comp)
 	
 	func _is_sound_gain_enabled() -> bool:
-		return sound_gain_comp != null and sound_gain_comp.enabled
+		return sound_gain_comp != null and sound_gain_comp.enabled and not clip_res.get(&"disable_audio")
 	
 	func _update_sound_gain_comp() -> void:
 		sound_gain_comp = clip_res.try_get_component(CompSoundGain) as CompSoundGain
@@ -404,7 +405,7 @@ class ClipPanel extends Panel:
 		var waveform: WaveformBoxContainer = _get_waveform_container()
 		if not is_instance_valid(waveform): return
 		var enabled: bool = _is_sound_gain_enabled()
-		waveform.set_gain(enabled, sound_gain_comp.volume_db if enabled else .0, sound_gain_anim if enabled else null)
+		waveform.set_sound_gain(enabled, sound_gain_comp.volume_db if enabled else .0, sound_gain_anim if enabled else null)
 	
 	func _get_sound_gain_db_at(abs_frame: int) -> float:
 		return sound_gain_anim.sample_func.call(abs_frame) if sound_gain_anim else sound_gain_comp.volume_db
@@ -1260,6 +1261,7 @@ class VideoClipPanel extends ClipPanel:
 			if not waveform_box_container and (clip_res as VideoClipRes).audio_data_res:
 				_spawn_waveform()
 				_update_ui()
+		queue_redraw()
 
 class AudioClipPanel extends ClipPanel:
 	
@@ -1329,58 +1331,10 @@ class WaveformBoxContainer extends BoxContainer:
 	
 	const CHUNK_WIDTH: int = ChunkServer.WaveformProducer.CHUNK_WIDTH
 	const NO_SIGNATURE: Vector4i = Vector4i(-2, -2, -2, -2)
-	
 	const SHADER: Shader = preload("res://UI&UX/Shader/ShaderWaveforms.gdshader")
 	
 	static var pixelate_scale: float = 1.
 	static var instances: Array[WaveformBoxContainer]
-	
-	var texture_rects: Dictionary[int, TextureRect]
-	
-	var curr_waveform_textures_total_width: float
-	var curr_waveform_start_index: Vector2i
-	
-	var source_id: StringName
-	var pixels_per_second: int
-	var total_pixels: int
-	var media_from: int
-	var clip_length: int
-	var first_chunk: int
-	var last_chunk: int = -1
-	
-	var wanted: Dictionary[int, bool]
-	var demand_signature: Vector4i = NO_SIGNATURE
-	
-	# Sound Gain Component
-	var gain_enabled: bool
-	var gain_db: float
-	var gain_anim: AnimationRes
-	var gain_version: int
-	
-	
-	func _init() -> void:
-		IS.describe_box_container(self, 0, false)
-	
-	func _enter_tree() -> void:
-		instances.append(self)
-		if not ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
-			ChunkServer.chunk_ready.connect(_on_chunk_ready)
-		if not ChunkServer.source_ready.is_connected(_on_source_ready):
-			ChunkServer.source_ready.connect(_on_source_ready)
-		_try_connect_timeline()
-	
-	func _exit_tree() -> void:
-		instances.erase(self)
-		if ChunkServer.chunk_ready.is_connected(_on_chunk_ready):
-			ChunkServer.chunk_ready.disconnect(_on_chunk_ready)
-		if ChunkServer.source_ready.is_connected(_on_source_ready):
-			ChunkServer.source_ready.disconnect(_on_source_ready)
-		var timeline: TimeLine2 = ClipPanel.timeline
-		if is_instance_valid(timeline) and timeline.timeline_view_updated.is_connected(_refresh_demand):
-			timeline.timeline_view_updated.disconnect(_refresh_demand)
-		ChunkServer.clear_demand(_get_demander_id())
-		demand_signature = NO_SIGNATURE
-	
 	
 	static func set_pixelate_scale(scale: float = .0) -> void:
 		pixelate_scale = scale
@@ -1388,16 +1342,56 @@ class WaveformBoxContainer extends BoxContainer:
 			for texture_rect: TextureRect in instance.texture_rects.values():
 				(texture_rect.material as ShaderMaterial).set_shader_parameter(&"pixelate_scale", scale)
 	
-	func set_gain(enabled: bool, db: float, anim: AnimationRes) -> void:
-		gain_enabled = enabled
-		gain_db = db
-		gain_anim = anim
-		gain_version += 1
-		for index: int in texture_rects:
-			if wanted.has(index):
-				_apply_gain(index)
+	var texture_rects: Dictionary[int, TextureRect]
+	
+	var curr_waveform_textures_total_width: float
+	var curr_waveform_start_index: Vector2i
+	
+	# Chunk Server
+	var source_id: StringName
+	var pixels_per_second: int
+	var total_pixels: int
+	var media_from: int
+	var clip_length: int
+	var first_chunk: int
+	var last_chunk: int = -1
+	var wanted_chunks: Dictionary[int, bool]
+	var demand_signature: Vector4i = NO_SIGNATURE
+	
+	# Sound Gain Component
+	var sound_gain_enabled: bool
+	var sound_gain_db: float
+	var sound_gain_anim: AnimationRes
+	var sound_gain_version: int
+	
+	
+	func _init() -> void:
+		IS.describe_box_container(self, 0, false)
+	
+	func _enter_tree() -> void:
+		instances.append(self)
+		_connect_chunk_server()
+		_connect_timeline()
+	
+	func _exit_tree() -> void:
+		instances.erase(self)
+		_disconnect_chunk_server()
+		_disconnect_timeline()
+		ChunkServer.clear_demand(get_demander_id())
+		demand_signature = NO_SIGNATURE
+	
+	
+	func get_source_id() -> StringName: return source_id
+	func get_pixels_per_second() -> int: return pixels_per_second
+	func get_total_pixels() -> int: return total_pixels
+	func get_demander_id() -> StringName: return StringName("waveform_%d" % get_instance_id())
+	
+	func is_chunk_wanted(index: int) -> bool: return wanted_chunks.has(index)
+	func is_chunk_key_mine(key: ChunkServer.ChunkKey) -> bool:
+		return key.source_id == source_id and key.kind == ChunkServer.Kind.WAVEFORM and key.variant == pixels_per_second
 	
 	func update_ui(audio_key_as_path: String, frame_in: int, length: int) -> void:
+		
 		var new_source_id: StringName = ChunkServer.waveform.get_source_id(StringName(audio_key_as_path))
 		if new_source_id.is_empty():
 			return
@@ -1406,9 +1400,9 @@ class WaveformBoxContainer extends BoxContainer:
 		media_from = maxi(frame_in, 0)
 		clip_length = length
 		
-		_try_connect_timeline()
-		_layout()
-		_refresh_demand()
+		_connect_timeline()
+		update_chunks_layout()
+		update_chunks_demand()
 	
 	func calculate_transform(size: Vector2, curr_length: int) -> Vector2:
 		var length_ratio: float = size.x / curr_length
@@ -1421,20 +1415,11 @@ class WaveformBoxContainer extends BoxContainer:
 		)
 	
 	
-	func _get_demander_id() -> StringName:
-		return StringName("waveform_%d" % get_instance_id())
-	
-	func _try_connect_timeline() -> void:
-		if not is_inside_tree():
-			return
-		var timeline: TimeLine2 = ClipPanel.timeline
-		if is_instance_valid(timeline) and not timeline.timeline_view_updated.is_connected(_refresh_demand):
-			timeline.timeline_view_updated.connect(_refresh_demand)
-	
-	func _layout() -> void:
+	func update_chunks_layout() -> void:
+		
 		pixels_per_second = ProjectServer2.fps
 		total_pixels = ChunkServer.waveform.get_total_pixels(source_id, pixels_per_second)
-		gain_version += 1
+		sound_gain_version += 1
 		
 		var chunk_count: int = ChunkServer.WaveformProducer.get_chunk_count(total_pixels)
 		first_chunk = media_from / CHUNK_WIDTH
@@ -1449,28 +1434,27 @@ class WaveformBoxContainer extends BoxContainer:
 		if last_chunk < first_chunk:
 			curr_waveform_textures_total_width = .0
 			curr_waveform_start_index = Vector2i.ZERO
-			wanted.clear()
-			ChunkServer.clear_demand(_get_demander_id())
+			wanted_chunks.clear()
+			ChunkServer.clear_demand(get_demander_id())
 			return
 		
 		var span_pixels: int = mini(total_pixels, (last_chunk + 1) * CHUNK_WIDTH) - first_chunk * CHUNK_WIDTH
 		
 		for index: int in range(first_chunk, last_chunk + 1):
-			var texture_rect: TextureRect = texture_rects.get(index, null)
-			if texture_rect == null:
-				texture_rect = _push_waveform_texture_rect()
-				texture_rects[index] = texture_rect
+			if not texture_rects.has(index):
+				texture_rects[index] = _push_waveform_texture_rect()
+			var texture_rect: TextureRect = texture_rects[index]
 			texture_rect.size_flags_stretch_ratio = ChunkServer.WaveformProducer.get_chunk_width(total_pixels, index) / float(span_pixels)
 			move_child(texture_rect, index - first_chunk)
 		
 		curr_waveform_textures_total_width = span_pixels
 		curr_waveform_start_index = Vector2i(first_chunk, media_from - first_chunk * CHUNK_WIDTH)
 	
-	func _refresh_demand() -> void:
+	func update_chunks_demand() -> void:
 		if source_id.is_empty() or last_chunk < first_chunk:
 			return
 		
-		var visible_range: Vector2i = _get_visible_range()
+		var visible_range: Vector2i = _get_visible_chunks_range()
 		var playhead_chunk: int = _get_playhead_chunk()
 		
 		var signature:= Vector4i(visible_range.x, visible_range.y, playhead_chunk, pixels_per_second)
@@ -1480,15 +1464,89 @@ class WaveformBoxContainer extends BoxContainer:
 		
 		var plan: Dictionary[int, int] = ChunkServer.WaveformProducer.plan(first_chunk, last_chunk, visible_range, playhead_chunk)
 		var requests: Array[ChunkServer.ChunkRequest] = []
-		wanted.clear()
-		for index: int in plan:
-			wanted[index] = true
-			requests.append(ChunkServer.ChunkRequest.new(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index), plan[index]))
+		wanted_chunks.clear()
 		
-		ChunkServer.set_demand(_get_demander_id(), requests)
-		_apply_textures()
+		for index: int in plan:
+			var key: ChunkServer.ChunkKey = ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index)
+			requests.append(ChunkServer.ChunkRequest.new(key, plan[index]))
+			wanted_chunks[index] = true
+		
+		ChunkServer.set_demand(get_demander_id(), requests)
+		update_chunks_textures()
 	
-	func _get_visible_range() -> Vector2i:
+	func update_chunks_textures() -> void:
+		for index: int in texture_rects:
+			var texture: Texture2D = null
+			if is_chunk_wanted(index):
+				texture = ChunkServer.get_cached(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index))
+				update_chunk_sound_gain(index)
+			texture_rects[index].texture = texture
+	
+	
+	func set_sound_gain(enabled: bool, db: float, anim: AnimationRes) -> void:
+		sound_gain_enabled = enabled
+		sound_gain_db = db
+		sound_gain_anim = anim
+		sound_gain_version += 1
+		for index: int in texture_rects:
+			if is_chunk_wanted(index):
+				update_chunk_sound_gain(index)
+	
+	func update_chunk_sound_gain(index: int) -> void:
+		
+		var texture_rect: TextureRect = texture_rects[index]
+		if texture_rect.get_meta(&"sound_gain_version", -1) == sound_gain_version:
+			return
+		texture_rect.set_meta(&"sound_gain_version", sound_gain_version)
+		
+		var rect_material: ShaderMaterial = texture_rect.material
+		var width: int = ChunkServer.WaveformProducer.get_chunk_width(total_pixels, index)
+		
+		if not sound_gain_enabled or width < 1 or (sound_gain_anim == null and is_zero_approx(sound_gain_db)):
+			rect_material.set_shader_parameter(&"gain_tex", null)
+			return
+		
+		var image: Image = Image.create_empty(width, 1, false, Image.FORMAT_RF)
+		if sound_gain_anim:
+			var pixel_from: int = index * CHUNK_WIDTH
+			for x: int in width:
+				image.set_pixel(x, 0, Color(db_to_linear(sound_gain_anim.sample_func.call(pixel_from + x)), .0, .0))
+		else:
+			image.fill(Color(db_to_linear(sound_gain_db), .0, .0))
+		
+		var gain_texture: ImageTexture = rect_material.get_shader_parameter(&"gain_tex") as ImageTexture
+		if gain_texture and Vector2i(gain_texture.get_size()) == image.get_size():
+			gain_texture.update(image)
+		else:
+			rect_material.set_shader_parameter(&"gain_tex", ImageTexture.create_from_image(image))
+	
+	
+	func _connect_chunk_server() -> void:
+		if not ChunkServer.chunk_ready.is_connected(_on_chunk_server_chunk_ready):
+			ChunkServer.chunk_ready.connect(_on_chunk_server_chunk_ready)
+		if not ChunkServer.source_ready.is_connected(_on_chunk_server_source_ready):
+			ChunkServer.source_ready.connect(_on_chunk_server_source_ready)
+	
+	func _disconnect_chunk_server() -> void:
+		if ChunkServer.chunk_ready.is_connected(_on_chunk_server_chunk_ready):
+			ChunkServer.chunk_ready.disconnect(_on_chunk_server_chunk_ready)
+		if ChunkServer.source_ready.is_connected(_on_chunk_server_source_ready):
+			ChunkServer.source_ready.disconnect(_on_chunk_server_source_ready)
+	
+	func _connect_timeline() -> void:
+		if not is_inside_tree():
+			return
+		var timeline: TimeLine2 = ClipPanel.timeline
+		if is_instance_valid(timeline) and not timeline.timeline_view_updated.is_connected(_on_timeline_timeline_view_updated):
+			timeline.timeline_view_updated.connect(_on_timeline_timeline_view_updated)
+	
+	func _disconnect_timeline() -> void:
+		var timeline: TimeLine2 = ClipPanel.timeline
+		if is_instance_valid(timeline) and timeline.timeline_view_updated.is_connected(_on_timeline_timeline_view_updated):
+			timeline.timeline_view_updated.disconnect(_on_timeline_timeline_view_updated)
+	
+	func _get_visible_chunks_range() -> Vector2i:
+		
 		var timeline: TimeLine2 = ClipPanel.timeline
 		var clip_panel: ClipPanel = get_parent() as ClipPanel
 		if not is_instance_valid(timeline) or clip_panel == null:
@@ -1501,6 +1559,7 @@ class WaveformBoxContainer extends BoxContainer:
 		
 		var visible_from: int = media_from + (from_frame - clip_panel.frame)
 		var visible_to: int = media_from + (to_frame - clip_panel.frame)
+		
 		return Vector2i(
 			clampi(visible_from / CHUNK_WIDTH, first_chunk, last_chunk),
 			clampi((visible_to - 1) / CHUNK_WIDTH, first_chunk, last_chunk)
@@ -1508,46 +1567,10 @@ class WaveformBoxContainer extends BoxContainer:
 	
 	func _get_playhead_chunk() -> int:
 		var clip_panel: ClipPanel = get_parent() as ClipPanel
-		if clip_panel == null:
-			return -1
+		if clip_panel == null: return -1
 		var playhead: int = PlaybackServer.position
-		if playhead < clip_panel.frame or playhead >= clip_panel.frame + clip_length:
-			return -1
+		if playhead < clip_panel.frame or playhead >= clip_panel.frame + clip_length: return -1
 		return clampi((media_from + playhead - clip_panel.frame) / CHUNK_WIDTH, first_chunk, last_chunk)
-	
-	func _apply_textures() -> void:
-		for index: int in texture_rects:
-			var texture: Variant = null
-			if wanted.has(index):
-				texture = ChunkServer.get_cached(ChunkServer.WaveformProducer.make_key(source_id, pixels_per_second, index))
-				_apply_gain(index)
-			texture_rects[index].texture = texture
-	
-	func _apply_gain(index: int) -> void:
-		var texture_rect: TextureRect = texture_rects[index]
-		if texture_rect.get_meta(&"gain_version", -1) == gain_version:
-			return
-		texture_rect.set_meta(&"gain_version", gain_version)
-		
-		var gain_material: ShaderMaterial = texture_rect.material
-		var width: int = ChunkServer.WaveformProducer.get_chunk_width(total_pixels, index)
-		if not gain_enabled or width < 1 or (gain_anim == null and is_zero_approx(gain_db)):
-			gain_material.set_shader_parameter(&"gain_tex", null)
-			return
-		
-		var image: Image = Image.create_empty(width, 1, false, Image.FORMAT_RF)
-		if gain_anim == null:
-			image.fill(Color(db_to_linear(gain_db), 0., 0.))
-		else:
-			var pixel_from: int = index * CHUNK_WIDTH
-			for x: int in width:
-				image.set_pixel(x, 0, Color(db_to_linear(gain_anim.sample_func.call(pixel_from + x)), 0., 0.))
-		
-		var gain_texture: ImageTexture = gain_material.get_shader_parameter(&"gain_tex") as ImageTexture
-		if gain_texture and Vector2i(gain_texture.get_size()) == image.get_size():
-			gain_texture.update(image)
-		else:
-			gain_material.set_shader_parameter(&"gain_tex", ImageTexture.create_from_image(image))
 	
 	func _push_waveform_texture_rect() -> TextureRect:
 		var texture_rect: TextureRect = IS.create_texture_rect(null, {})
@@ -1561,23 +1584,24 @@ class WaveformBoxContainer extends BoxContainer:
 		add_child(texture_rect)
 		return texture_rect
 	
-	func _on_chunk_ready(key: ChunkServer.ChunkKey) -> void:
-		if key.source_id != source_id or key.kind != ChunkServer.Kind.WAVEFORM or key.variant != pixels_per_second:
+	
+	func _on_chunk_server_chunk_ready(key: ChunkServer.ChunkKey) -> void:
+		if not is_chunk_key_mine(key):
 			return
-		if texture_rects.has(key.index) and wanted.has(key.index):
-			_apply_gain(key.index)
+		if texture_rects.has(key.index) and is_chunk_wanted(key.index):
+			update_chunk_sound_gain(key.index)
 			texture_rects[key.index].texture = ChunkServer.get_cached(key)
 	
-	func _on_source_ready(_source_id: StringName) -> void:
+	func _on_chunk_server_source_ready(_source_id: StringName) -> void:
 		if _source_id != source_id:
 			return
-		_layout()
-		_refresh_demand()
+		update_chunks_layout()
+		update_chunks_demand()
 		var clip_panel: ClipPanel = get_parent() as ClipPanel
-		if clip_panel:
-			clip_panel._update_ui_transform()
-
-
+		if clip_panel: clip_panel._update_ui_transform()
+	
+	func _on_timeline_timeline_view_updated() -> void:
+		update_chunks_demand()
 
 
 func get_file_main_info(path: StringName, get_more_meta_func: Callable = Callable()) -> Dictionary[StringName, String]:

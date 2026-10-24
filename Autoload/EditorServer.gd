@@ -2,6 +2,7 @@
 ##  This file is part of: HudMod Video Editor                              ##
 ##  https://omar-top.itch.io/hudmod-video-editor                           ##
 ## ----------------------------------------------------------------------- ##
+##  Founded by Omar Mohammed Balita.                                       ##
 ##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
 ## ----------------------------------------------------------------------- ##
 ##  This program is free software: you can redistribute it and/or modify   ##
@@ -814,7 +815,8 @@ func _section_Q_and_A() -> Control:
 func _section_authors() -> Control:
 	var cont: BoxContainer = IS.create_box_container(8, true, {})
 	IS.add_children(cont, [
-		_create_text_content_with_header("Project Founder/s", version_info.project_founders),
+		_create_text_content_with_header("Project Founder", [version_info.project_founder]),
+		_create_text_content_with_header("Project Co-Founder", [version_info.project_co_founder]),
 		_create_text_content_with_header("Lead Developer", [version_info.lead_developer]),
 		_create_text_content_with_header("Developers", version_info.developers)
 	])
