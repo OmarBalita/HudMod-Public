@@ -29,42 +29,6 @@ We have several objectives currently set that we strive to achieve, most notably
 Under active development,
 You can try Alpha from the release menu.
 
-## The Road to the First Release:
-The first Alpha version was launched concurrently with the publication of this article. It is expected to have bugs and stability issues. The current plan is to move gradually toward the 1.0.0.release goal, which is expected to be completed by early 2027.
-
-### Missing features in the current version (to be addressed over the next seven months):
-
-- Building an integrated core structure for Transitions.
-- Designing various Transitions as a foundation.
-- Batch audio decoding, specifically decoding areas where the playhead is located. (Current audio is decoded all at once, which strains memory and causes issues with large files).
-- Generating Timeline Waveforms in stages rather than all at once.
-- Zoom in-out and navigation for the Viewport.
-- Selecting and modifying basic properties (position, rotation, scale, etc.) directly through the Viewport interface.
-- Control over basic audio properties and audio effects (infrastructure is already in place).
-- Enabling audio/video separation.
-- Opening all tracks in a single audio file (currently only the first track is opened).
-- Enabling reverse playback for video and audio.
-- Adjusting video and audio speed with Curve support.
-- Capturing a frame from the video to be reused as a standalone image.
-- Proxy video options during import with quality settings.
-- Building a Pooling system for reusing previously opened videos instead of repeated opening processes.
-- Hardware Acceleration support for video decoding.
-- Hardware Acceleration support for video encoding/exporting.
-- Improving the Video Caching system to avoid errors (allowing users to set memory consumption limits).
-- Supporting up to 12-bit color depth for media at the Shaders/Effects level, Render-Passes, and Generated-Textures.
-- Including Polygon drawing (essential for Masking).
-- Adding a Render-Pass Object (crucial for building complex effects).
-- Resolving UI update issues for Clips when modifying basic properties.
-- Adding Rendering Presets.
-- Adding Project Settings Presets.
-- Saving and loading any resource.
-- Adding a Color Palette resource (editors should access their palettes via the color controller and keyboard shortcuts).
-- Building the Color Grading interface, including LGG controls and {Value} vs {Value} controls.
-- Fundamental adjustments to the project file system (imported files) and Global files.
-- Drag N Drop for files from outside the app and for Media onto the Timeline.
-- Saving editor states (open/closed categories).
-- Control over Resolution settings during export.
-
 ## Setup Guide:
 - Download HudMod files from this repository to your local machine.
 - Download appropriate HudMod-GDExtension release for your OS and arch from: [GDExtension Releases](https://github.com/OmarBalita/HudMod-GDExtension/releases).
