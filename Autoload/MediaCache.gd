@@ -187,7 +187,12 @@ func replace_path(from: StringName, to: StringName) -> void:
 		
 		1:
 			video_contexts[to] = video_contexts[from]
-		
+			video_contexts[to].video_path = to
+			video_contexts.erase(from)
+			if audio_datas.has(from):
+				audio_datas[to] = audio_datas[from]
+				audio_datas.erase(from)
+
 		2:
 			audio_datas[to] = audio_datas[from]
 			audio_datas.erase(from)
@@ -214,7 +219,13 @@ func deregister_image(path: StringName, id: String, thumbnail_path: String) -> v
 
 func deregister_video(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	MediaServer.server_deregister_video(path, id, thumbnail_path, waveform_path)
+	var video_ctx: VideoContext = video_contexts.get(path)
+	if video_ctx:
+		video_ctx.clear_frames()
+		video_ctx.clear_video_decoders()
 	video_contexts.erase(path)
+	audio_datas.erase(path)
+	video_contexts_update_max_cache_size()
 
 func deregister_audio(path: StringName, id: String, thumbnail_path: String, waveform_path: String) -> void:
 	MediaServer.server_deregister_audio(path, id, thumbnail_path, waveform_path)
@@ -228,6 +239,8 @@ func deregister_preset_media_res(path: StringName, id: String, thumbnail_path: S
 func clear_all_cache() -> void:
 	images.clear()
 	textures.clear()
+	video_contexts_clear_frames()
+	video_contexts_clear_video_decoders()
 	video_contexts.clear()
 	audio_datas.clear()
 	preset_media_ress.clear()
@@ -303,18 +316,22 @@ class VideoContext extends Resource:
 	func clear_video_decoders() -> void:
 		video_decoders.clear()
 	
-	func has_frame(frame: int) -> bool: return frames.has(frame)
+	func has_frame(frame: int) -> bool: return cache.has(frame)
 	func get_frame(frame: int) -> Array[Texture2D]: return cache.get(frame, [] as Array[Texture2D])
 	func push_frame(frame: int, frame_textures: Array[Texture2D]) -> void:
+		var existing_idx: int = frames.find(frame)
+		if existing_idx != -1:
+			frames.remove_at(existing_idx)
 		cache[frame] = frame_textures
-		if cache.size() >= max_cache_size:
-			var oldest_frame: int = frames[0]
-			cache.erase(oldest_frame)
-			frames.remove_at(0)
 		frames.append(frame)
+		clear_excess_frames()
 	func clear_frames() -> void: cache.clear(); frames.clear()
 	func clear_excess_frames() -> void:
 		var excess_frames_count: int = maxi(0, frames.size() - max_cache_size)
+		for i: int in excess_frames_count:
+			cache.erase(frames[i])
+		if excess_frames_count:
+			frames = frames.slice(excess_frames_count)
 
 
 class AudioF32Data extends Resource:

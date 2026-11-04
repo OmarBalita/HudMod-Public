@@ -624,6 +624,9 @@ func remove_layer(idx: int, undoredo: bool = true) -> LayerRes:
 	
 	var do_method: Callable = func() -> void:
 		layers.remove_at(idx)
+		# The playback loop no longer visits this layer, so free its node now
+		# instead of leaving a stale clip drawn in the scene.
+		PlaybackServer.clear_layer(layer)
 		layer_removed.emit(idx, layer)
 	
 	if undoredo: ProjectServer2.commit_action("delete_layer", do_method, add_layer.bind(idx, layer, false))
@@ -638,6 +641,8 @@ func move_layer(from_idx: int, to_idx: int, undoredo: bool = true) -> void:
 		layers.erase(layer)
 		layers.insert(_to_idx, layer)
 		layer_moved.emit(_from_idx, _to_idx, layer)
+		# Re-run the playback pass so the scene's draw order follows the new layer order.
+		PlaybackServer.seek_here()
 	
 	if undoredo: ProjectServer2.commit_action("move_layer", move_method.bind(from_idx, to_idx), move_method.bind(to_idx, from_idx))
 	else: move_method.call(from_idx, to_idx)

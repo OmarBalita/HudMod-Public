@@ -102,8 +102,10 @@ func update_camera_enabling() -> void:
 func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node, layer_idx: int) -> void:
 	var node_parent: Node = parent_res.curr_node
 	
+	# Draw order between sibling clips is enforced by PlaybackServer._keep_draw_order;
+	# the child index can't be layer_idx because empty layers have no node and
+	# parents also hold non-clip children (Camera2D, BackBufferCopy, audio player).
 	node_parent.add_child(node)
-	node_parent.move_child(node, layer_idx)
 	
 	clip_res.curr_node = node
 	curr_nodes.append(clip_res)

@@ -124,14 +124,17 @@ func exit(node: Node) -> void:
 	texture_y = null
 	texture_u = null
 	texture_v = null
-	
+
+	if node is ImageViewer:
+		node.texture = null
+
 	_update_video_shader_params()
 	Scene2.remove_video_player(self)
 
 func seek_frame_smart(at: int) -> void:
 	
-	if video_ctx.has_frame(at):
-		var yuv: Array[Texture2D] = video_ctx.get_frame(at)
+	var yuv: Array[Texture2D] = video_ctx.get_frame(at)
+	if yuv.size() == 3:
 		texture_y = yuv[0]
 		texture_u = yuv[1]
 		texture_v = yuv[2]

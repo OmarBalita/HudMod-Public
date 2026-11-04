@@ -148,20 +148,30 @@ func process_root(root_clip_res: RootClipRes) -> void:
 	_is_render_process_finished = false
 	
 	var layers: Array[LayerRes] = root_clip_res.layers
+	var prev_node: Node = null
 	for layer_idx: int in layers.size():
 		var layer: LayerRes = layers[layer_idx]
-		process_layer(layer_idx, layer_idx, root_clip_res, layer)
-	
+		prev_node = _keep_draw_order(process_layer(layer_idx, layer_idx, root_clip_res, layer), prev_node)
+
 	await RenderFarm.until_pprs_finished()
 	_is_render_process_finished = true
 
 func process(parent_clip_res: MediaClipRes, root_layer_idx: int) -> void:
 	var layers: Array[LayerRes] = parent_clip_res.layers
+	var prev_node: Node = null
 	for layer_idx: int in layers.size():
 		var layer: LayerRes = layers[layer_idx]
-		process_layer(root_layer_idx, layer_idx, parent_clip_res, layer)
+		prev_node = _keep_draw_order(process_layer(root_layer_idx, layer_idx, parent_clip_res, layer), prev_node)
 
-func process_layer(root_layer_idx: int, layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes) -> void:
+func _keep_draw_order(node: Node, prev_node: Node) -> Node:
+	if node == null: return prev_node
+	if prev_node and node.get_parent() == prev_node.get_parent():
+		var prev_idx: int = prev_node.get_index()
+		if node.get_index() < prev_idx:
+			node.get_parent().move_child(node, prev_idx)
+	return node
+
+func process_layer(root_layer_idx: int, layer_idx: int, parent_clip_res: MediaClipRes, layer: LayerRes) -> Node:
 	var displayed_clip_res: MediaClipRes = layer.displayed_clip_res
 	var clips: Dictionary[int, MediaClipRes] = layer.clips
 	
@@ -179,10 +189,11 @@ func process_layer(root_layer_idx: int, layer_idx: int, parent_clip_res: MediaCl
 			
 			clip_res.process(position - frame)
 			process(clip_res, root_layer_idx)
-			return
-	
+			return clip_res.curr_node
+
 	if displayed_clip_res:
 		_release_displayed(layer)
+	return null
 
 func is_frame_at_clip_res(frame: int, clip_res: MediaClipRes) -> bool:
 	return position >= frame and position < frame + clip_res.length
