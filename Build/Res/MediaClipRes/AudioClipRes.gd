@@ -46,7 +46,8 @@ func _get_exported_props() -> Dictionary[StringName, Dictionary]:
 func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: int) -> Node:
 	
 	var player:= CustomAudioStreamPlayer.new()
-	player.set_data(audio_data_res.get_data())
+	# player.set_data(audio_data_res.get_data())
+	player.set_context(audio_data_res.get_context())
 	player.bus = PlaybackServer.root_layer_get_bus_unique_name(root_layer_idx)
 	return player
 

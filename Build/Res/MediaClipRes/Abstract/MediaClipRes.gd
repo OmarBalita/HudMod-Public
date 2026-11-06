@@ -1,11 +1,11 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Founded by Omar Mohammed Balita.                                       ##
-##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
+##	Founded by Omar Mohammed Balita.									   ##
+##	Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.		   ##
 ## ----------------------------------------------------------------------- ##
-##  GPLv3                                                                  ##
+##	GPLv3																   ##
 #############################################################################
 @abstract class_name MediaClipRes extends UsableRes
 
@@ -624,8 +624,6 @@ func remove_layer(idx: int, undoredo: bool = true) -> LayerRes:
 	
 	var do_method: Callable = func() -> void:
 		layers.remove_at(idx)
-		# The playback loop no longer visits this layer, so free its node now
-		# instead of leaving a stale clip drawn in the scene.
 		PlaybackServer.clear_layer(layer)
 		layer_removed.emit(idx, layer)
 	
@@ -641,7 +639,6 @@ func move_layer(from_idx: int, to_idx: int, undoredo: bool = true) -> void:
 		layers.erase(layer)
 		layers.insert(_to_idx, layer)
 		layer_moved.emit(_from_idx, _to_idx, layer)
-		# Re-run the playback pass so the scene's draw order follows the new layer order.
 		PlaybackServer.seek_here()
 	
 	if undoredo: ProjectServer2.commit_action("move_layer", move_method.bind(from_idx, to_idx), move_method.bind(to_idx, from_idx))

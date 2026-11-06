@@ -36,7 +36,7 @@ const LOAD_ERR_STR: PackedStringArray = [
 @export var audio_datas: Dictionary[StringName, AudioF32Data]
 @export var preset_media_ress: Dictionary[StringName, MediaClipRes]
 
-var default_audio_f32_data: AudioF32Data = AudioF32Data.new(PackedByteArray())
+var default_audio_f32_data: AudioF32Data = AudioF32Data.new(null)
 
 
 func _ready() -> void:
@@ -132,8 +132,8 @@ func register_video(path: StringName, ids_exists: PackedStringArray, id: String,
 		video_ctx.bit_depth = video_decoder.get_bit_depth()
 		video_contexts[path] = video_ctx
 		
-		var streams_data: Array[PackedByteArray] = AudioHelper.create_data_from_path(path)
-		var audio_data_res: AudioF32Data = null if streams_data.is_empty() else AudioF32Data.new(streams_data[0])
+		var audio_ctx: AudioContext = AudioContext.new()
+		var audio_data_res: AudioF32Data = AudioF32Data.new(audio_ctx) if audio_ctx.open(path) else null
 		
 		audio_datas[path] = audio_data_res
 		
@@ -150,13 +150,11 @@ func register_audio(path: StringName, ids_exists: PackedStringArray, id: String,
 	if audio_datas_has(path):
 		return LOAD_ERR.LOAD_ERR_ALREADY_EXISTS
 	
-	var streams_data: Array[PackedByteArray] = AudioHelper.create_data_from_path(path)
-	
-	if streams_data.is_empty():
+	var audio_ctx: AudioContext = AudioContext.new()
+	if not audio_ctx.open(path):
 		return LOAD_ERR.LOAD_ERR_CANT_OPEN
 	
-	var audio_data: PackedByteArray = streams_data[0]
-	var audio_data_res:= AudioF32Data.new(audio_data)
+	var audio_data_res:= AudioF32Data.new(audio_ctx)
 	audio_datas[path] = audio_data_res
 	
 	MediaServer.server_register_audio(path, audio_data_res, ids_exists, id, thumbnail_path, waveform_path)
@@ -335,7 +333,6 @@ class VideoContext extends Resource:
 
 
 class AudioF32Data extends Resource:
-	
 	const CHANNELS: int = 2
 	const SAMPLE_RATE: int = 48000
 	const BYTES_PER_SAMPLE = 4 # float32 = 4bytes
@@ -344,29 +341,24 @@ class AudioF32Data extends Resource:
 	static var samples_per_frame: int
 	static var bytes_per_video_frame: int
 	
-	@export var data: PackedByteArray:
-		set(val):
-			data = val
-			length = data.size() / float(BYTES_PER_FRAME * SAMPLE_RATE)
-	
+	var context: AudioContext
 	@export var length: float
 	
-	func _init(_data: PackedByteArray) -> void:
-		data = _data
+	func _init(_context: AudioContext) -> void:
+		context = _context
+		length = context.get_duration() if context else 0.
 	
-	func get_data() -> PackedByteArray: return data
-	func set_data(new_data: PackedByteArray) -> void: data = new_data
+	func get_context() -> AudioContext: return context
+	
+	#func get_data() -> PackedByteArray:
+		#return context.read_all_bytes() if context else PackedByteArray()
 	
 	func get_length() -> float: return length
 	func set_length(new_val: float) -> void: length = new_val
 	
 	func extract_frame_samples(frame: int) -> PackedByteArray:
-		var start: int = frame * bytes_per_video_frame
-		
-		if start >= data.size():
-			return PackedByteArray()
-		
-		return data.slice(start, start + bytes_per_video_frame)
+		if not context: return PackedByteArray()
+		return context.read_bytes(frame * samples_per_frame, samples_per_frame)
 
 
 func _on_project_server2_project_opened(project_res: ProjectRes) -> void:

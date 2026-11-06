@@ -77,7 +77,8 @@ func init_node(root_layer_idx: int, layer_idx: int, layer_res: LayerRes, frame: 
 	var video_viewer: VideoViewer = VideoViewer.new()
 	stream_player = CustomAudioStreamPlayer.new()
 	if audio_data_res:
-		stream_player.set_data(audio_data_res.get_data())
+		# stream_player.set_data(audio_data_res.get_data())
+		stream_player.set_context(audio_data_res.get_context())
 	stream_player.bus = PlaybackServer.root_layer_get_bus_unique_name(root_layer_idx)
 	video_viewer.add_child(stream_player)
 	

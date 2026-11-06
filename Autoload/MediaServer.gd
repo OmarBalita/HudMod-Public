@@ -107,6 +107,12 @@ const THUMBNAIL_TARGET_WIDTH: int = 128
 const TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH: int = 512
 const TIMELINE_WAVEFORM_IMAGE_HEIGHT: int = 64
 
+const AUDIO_THUMBNAIL_LINES: int = 32
+const AUDIO_THUMBNAIL_WINDOW_FRAMES: int = 9600 # 0.2 s per line
+
+var waveform_mutex: Mutex = Mutex.new()
+var waveform_data_id: int = 0
+
 const THUMBNAIL_DISCARD: Dictionary = {&"texture": IS.TEXTURE_X_MARK}
 
 var thumbnails: Dictionary[StringName, Dictionary]
@@ -131,31 +137,20 @@ func server_register_image(path: String, image: Image, ids_exists: PackedStringA
 	else: create_thumbnail_from_image(path, image, thumbnail_path, id)
 
 func server_register_video(path: String, video_decoder: VideoDecoder, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
 	else:
 		create_thumbnail_from_video(path, video_decoder, thumbnail_path, id)
 	
-	if not audio_data_res:
-		return
-	var data_id: int = audio_data_res.get_instance_id()
-	MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
-	create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
-	MediaHelper.free_audio_data(data_id)
+	if not audio_data_res: return
+	init_timeline_waveform(path, audio_data_res, waveform_path, id)
 
 func server_register_audio(path: String, audio_data_res: MediaCache.AudioF32Data, ids_exists: PackedStringArray, id: String, thumbnail_path: String, waveform_path: String) -> void:
-	var data_id: int = audio_data_res.get_instance_id()
-	MediaHelper.push_audio_data(data_id, audio_data_res.get_data())
-	
 	if ids_exists.has(id):
 		load_thumbnail(path, thumbnail_path, id)
 	else:
 		create_thumbnail_from_audio(path, audio_data_res, thumbnail_path, id)
-	
-	create_timeline_waveform_textures_from_audio(path, audio_data_res, waveform_path, id)
-	
-	MediaHelper.free_audio_data(data_id)
+	init_timeline_waveform(path, audio_data_res, waveform_path, id)
 
 func server_replace_media_path(from: String, to: String) -> void:
 	if thumbnails.has(from):
@@ -169,6 +164,7 @@ func server_replace_media_path(from: String, to: String) -> void:
 	if timeline_waveform_textures.has(from):
 		timeline_waveform_textures[to] = timeline_waveform_textures[from]
 		timeline_waveform_textures.erase(from)
+		timeline_waveform_textures[to].requested.clear()
 
 
 func server_deregister_image(path: String, id: String, thumbnail_path: String) -> void:
@@ -222,9 +218,36 @@ func create_thumbnail_from_video(key_as_path: StringName, video_decoder: VideoDe
 	return create_thumbnail_from_image(key_as_path, image, thumbnail_path, id)
 
 func create_thumbnail_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, thumbnail_path: String, id: String) -> Dictionary:
-	var thumbnail_image: Image = MediaHelper.generate_waveform_image(audio_data_res.get_instance_id(), .0, INF, Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0, Color.TRANSPARENT)
-	thumbnails[key_as_path] = {&"image": thumbnail_image, &"texture": ImageTexture.create_from_image(thumbnail_image)}
+	var placeholder: Image = Image.create_empty(THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, false, Image.FORMAT_RGBA8)
+	thumbnails[key_as_path] = {&"image": placeholder, &"texture": ImageTexture.create_from_image(placeholder)}
+	WorkerThreadPool.add_task(_build_audio_thumbnail.bind(key_as_path, audio_data_res.get_length(), str(thumbnail_path, id, ".png")))
 	return thumbnails[key_as_path]
+
+func _build_audio_thumbnail(key_as_path: StringName, length: float, file_path: String) -> void:
+	var decoder: AudioDecoder = AudioDecoder.new()
+	if not decoder.open(key_as_path):
+		return
+	
+	var data: PackedFloat32Array
+	for i: int in AUDIO_THUMBNAIL_LINES:
+			decoder.seek(length * i / AUDIO_THUMBNAIL_LINES)
+			var window: PackedFloat32Array = decoder.read(AUDIO_THUMBNAIL_WINDOW_FRAMES)
+			window.resize(AUDIO_THUMBNAIL_WINDOW_FRAMES * 2)
+			data.append_array(window)
+	decoder.close()
+	
+	var image: Image = generate_waveform_from_data(data.to_byte_array(), Image.FORMAT_RGBA8, THUMBNAIL_TARGET_WIDTH, THUMBNAIL_TARGET_WIDTH, 2, 2, 0)
+	if not image:
+		return
+	image.save_png(file_path)
+	_apply_audio_thumbnail.call_deferred(key_as_path, image)
+
+func _apply_audio_thumbnail(key_as_path: StringName, image: Image) -> void:
+	var thumb: Dictionary = thumbnails.get(key_as_path, {})
+	if thumb.is_empty():
+		return
+	thumb.image = image
+	thumb.texture.set_image(image)
 
 func create_timeline_video_textures_from_video_path(video_path: StringName) -> Array[Image]:
 	return []
@@ -235,18 +258,18 @@ func get_timeline_video_textures() -> Array[Image]:
 func get_timeline_video_textures_range(frame_start: int, frame_end: int) -> Array[int]:
 	return [] # image_from_index, pixel_from_index, image_to_index, pixel_to_index
 
-func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> Array[Image]:
-	var pixels_per_second: int = ProjectServer2.fps
-	var waveform_images: Array[Image] = generate_waveform_images(audio_data_res, 1, pixels_per_second, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, TIMELINE_WAVEFORM_IMAGE_HEIGHT, 0, 1, Color.TRANSPARENT)
-	var waveform_textures: Array[ImageTexture]
-	var total_width: int
-	
-	for image: Image in waveform_images:
-		waveform_textures.append(ImageTexture.create_from_image(image))
-		total_width += image.get_width()
-	
-	timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width, &"pixels_per_second": pixels_per_second}
-	return waveform_images
+#func create_timeline_waveform_textures_from_audio(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> Array[Image]:
+	#var pixels_per_second: int = ProjectServer2.fps
+	#var waveform_images: Array[Image] = generate_waveform_images(audio_data_res, 1, pixels_per_second, TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, TIMELINE_WAVEFORM_IMAGE_HEIGHT, 0, 1, Color.TRANSPARENT)
+	#var waveform_textures: Array[ImageTexture]
+	#var total_width: int
+	#
+	#for image: Image in waveform_images:
+		#waveform_textures.append(ImageTexture.create_from_image(image))
+		#total_width += image.get_width()
+	#
+	#timeline_waveform_textures[key_as_path] = {&"textures": waveform_textures, &"total_width": total_width, &"pixels_per_second": pixels_per_second}
+	#return waveform_images
 
 func get_timeline_waveform_textures(key_as_path: StringName) -> Dictionary:
 	return timeline_waveform_textures[key_as_path]
@@ -258,39 +281,107 @@ func get_timeline_waveform_texture_index(frame_in: int) -> Vector2i:
 	)
 
 
-func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
-	
-	var audio_id: int = audio_data_res.get_instance_id()
-	
-	var length: float = audio_data_res.get_length()
-	var pixels_per_length: int = length * pixels_per_second
-	var images_count: int = pixels_per_length / width
-	var chunk_length: float = width / float(pixels_per_second)
-	
-	var images: Array[Image]
-	images.resize(images_count)
-	
-	var pixels_remained: int = pixels_per_length % width
-	
-	const GROUP_SIZE: int = 4
-	
-	for start_idx: int in range(0, images_count, GROUP_SIZE):
-		var curr_group_size: int = mini(GROUP_SIZE, images_count - start_idx)
-		var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
-		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
-	
-	if pixels_remained > 0:
-		var length_remained: float = pixels_remained / float(pixels_per_second)
-		images.append(MediaHelper.generate_waveform_image(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
-	
-	return images
+#func generate_waveform_images(audio_data_res: MediaCache.AudioF32Data, draw_method_idx: int, pixels_per_second: int = 30, width: int = 512, height: int = 64, space_width: int = 0, line_width: int = 1, bg_color: Color = Color.TRANSPARENT) -> Array[Image]:
+	#
+	#var audio_id: int = audio_data_res.get_instance_id()
+	#
+	#var length: float = audio_data_res.get_length()
+	#var pixels_per_length: int = length * pixels_per_second
+	#var images_count: int = pixels_per_length / width
+	#var chunk_length: float = width / float(pixels_per_second)
+	#
+	#var images: Array[Image]
+	#images.resize(images_count)
+	#
+	#var pixels_remained: int = pixels_per_length % width
+	#
+	#const GROUP_SIZE: int = 4
+	#
+	#for start_idx: int in range(0, images_count, GROUP_SIZE):
+		#var curr_group_size: int = mini(GROUP_SIZE, images_count - start_idx)
+		#var group_task_id: int = WorkerThreadPool.add_group_task(generate_waveform_image_at.bind(start_idx, images, audio_id, draw_method_idx, width, height, space_width, line_width, bg_color, chunk_length), curr_group_size, -1, true)
+		#WorkerThreadPool.wait_for_group_task_completion(group_task_id)
+	#
+	#if pixels_remained > 0:
+		#var length_remained: float = pixels_remained / float(pixels_per_second)
+		#images.append(MediaHelper.generate_waveform_image(audio_id, length - length_remained, INF, Image.FORMAT_L8, pixels_remained, height, space_width, line_width, draw_method_idx, bg_color))
+	#
+	#return images
+#
+#func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], audio_id: int, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
+	#idx += start_idx
+	#var second_from: float = idx * chunk_length
+	#var second_to: float = second_from + chunk_length
+	#images[idx] = MediaHelper.generate_waveform_image(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
 
-func generate_waveform_image_at(idx: int, start_idx: int, images: Array[Image], audio_id: int, draw_method_idx: int, width: int, height: int, space_width: int, line_width: int, bg_color: Color, chunk_length: float) -> void:
-	idx += start_idx
-	var second_from: float = idx * chunk_length
-	var second_to: float = second_from + chunk_length
-	images[idx] = MediaHelper.generate_waveform_image(audio_id, second_from, second_to, Image.FORMAT_L8, width, height, space_width, line_width, draw_method_idx, bg_color)
+func init_timeline_waveform(key_as_path: StringName, audio_data_res: MediaCache.AudioF32Data, waveform_path: String, id: String) -> void:
+	var pixels_per_second: int = ProjectServer2.fps
+	var total_width: int = int(audio_data_res.get_length() * pixels_per_second)
+	var tiles_count: int = ceili(total_width / float(TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH))
+	
+	var textures: Array[ImageTexture]
+	for idx: int in tiles_count:
+		var width: int = mini(TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH, total_width - idx * TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH)
+		textures.append(ImageTexture.create_from_image(Image.create_empty(width, TIMELINE_WAVEFORM_IMAGE_HEIGHT, false, Image.FORMAT_L8)))
+	
+	timeline_waveform_textures[key_as_path] = {
+		&"textures": textures,
+		&"total_width": total_width,
+		&"pixels_per_second": pixels_per_second,
+		&"tiles_dir": str(waveform_path, id, "/", FileAccess.get_modified_time(key_as_path), "_", pixels_per_second, "/"),
+		&"requested": {},
+	}
 
+func request_waveform_tile(key_as_path: StringName, idx: int) -> void:
+	var info: Dictionary = timeline_waveform_textures.get(key_as_path, {})
+	if info.is_empty() or idx < 0 or idx >= info.textures.size() or info.requested.has(idx):
+		return
+	info.requested[idx] = true
+	
+	var file_path: String = str(info.tiles_dir, idx, ".png")
+	if FileAccess.file_exists(file_path):
+		var image: Image = Image.load_from_file(file_path)
+		image.generate_mipmaps()
+		info.textures[idx].set_image(image)
+		return
+	
+	var second_from: float = idx * TIMELINE_WAVEFORM_IMAGES_CHUNK_WIDTH / float(info.pixels_per_second)
+	var width: int = info.textures[idx].get_width()
+	WorkerThreadPool.add_task(_build_waveform_tile.bind(key_as_path, idx, second_from, width, info.pixels_per_second, file_path))
+
+func _build_waveform_tile(key_as_path: StringName, idx: int, second_from: float, width: int, pixels_per_second: int, file_path: String) -> void:
+	var decoder: AudioDecoder = AudioDecoder.new()
+	if not decoder.open(key_as_path):
+		return
+	decoder.seek(second_from)
+
+	var frames: int = int(width / float(pixels_per_second) * MediaCache.AudioF32Data.SAMPLE_RATE)
+	var data: PackedByteArray = decoder.read(frames).to_byte_array()
+	decoder.close()
+
+	var image: Image = generate_waveform_from_data(data, Image.FORMAT_L8, width, TIMELINE_WAVEFORM_IMAGE_HEIGHT, 0, 1, 1)
+	if not image:
+		return
+	DirAccess.make_dir_recursive_absolute(file_path.get_base_dir())
+	image.save_png(file_path)
+	
+	_apply_waveform_tile.call_deferred(key_as_path, idx, image)
+
+func _apply_waveform_tile(key_as_path: StringName, idx: int, image: Image) -> void:
+	var info: Dictionary = timeline_waveform_textures.get(key_as_path, {})
+	if info.is_empty() or idx >= info.textures.size():
+		return # media removed or renamed meanwhile
+	info.textures[idx].set_image(image)
+
+func generate_waveform_from_data(data: PackedByteArray, format: Image.Format, width: int, height: int, space_width: int, line_width: int, draw_method_idx: int) -> Image:
+	waveform_mutex.lock()
+	waveform_data_id += 1
+	var data_id: int = -waveform_data_id
+	MediaHelper.push_audio_data(data_id, data)
+	var image: Image = MediaHelper.generate_waveform_image(data_id, .0, INF, format, width, height, space_width, line_width, draw_method_idx, Color.TRANSPARENT)
+	MediaHelper.free_audio_data(data_id)
+	waveform_mutex.unlock()
+	return image
 
 class ClipPanel extends Panel:
 	
@@ -332,13 +423,14 @@ class ClipPanel extends Panel:
 		_ready_ui()
 		_update_ui()
 		
-		_update_sound_gain_comp()
-		clip_res.clip_res_changed.connect(_update_sound_gain_comp)
+		update_sound_gain_comp()
+		clip_res.clip_res_changed.connect(update_sound_gain_comp)
+		if timeline: timeline.timeline_view_updated.connect(_on_timeline_view_updated)
 	
 	func _is_sound_gain_enabled() -> bool:
 		return sound_gain_comp != null and sound_gain_comp.enabled and not clip_res.get(&"disable_audio")
 	
-	func _update_sound_gain_comp() -> void:
+	func update_sound_gain_comp() -> void:
 		sound_gain_comp = clip_res.try_get_component(CompSoundGain) as CompSoundGain
 		if sound_gain_comp and not sound_gain_comp.res_changed.is_connected(_on_sound_gain_res_changed):
 			sound_gain_comp.res_changed.connect(_on_sound_gain_res_changed)
@@ -367,10 +459,6 @@ class ClipPanel extends Panel:
 		if not is_instance_valid(waveform): return
 		var enabled: bool = _is_sound_gain_enabled()
 		waveform.set_sound_gain(enabled, sound_gain_comp.volume_db if enabled else .0, sound_gain_anim if enabled else null)
-	
-	func _get_sound_gain_db_at(abs_frame: int) -> float:
-		return sound_gain_anim.sample_func.call(abs_frame) if sound_gain_anim else sound_gain_comp.volume_db
-	
 	
 	func _gui_input(event: InputEvent) -> void:
 		
@@ -434,6 +522,9 @@ class ClipPanel extends Panel:
 			x = minf(x + step, x_to)
 		
 		draw_polyline(points, Color(1., 1., 1., .9), 2.)
+	
+	func _get_sound_gain_db_at(abs_frame: int) -> float:
+		return sound_gain_anim.sample_func.call(abs_frame) if sound_gain_anim else sound_gain_comp.volume_db
 	
 	func _sound_db_to_y(db: float) -> float:
 		var mid: float = size.y / 2.
@@ -531,8 +622,8 @@ class ClipPanel extends Panel:
 			
 			queue_redraw()
 	
-	func _select(delete: bool, preclear: bool, shift: bool = false) -> void:
-		if shift: timeline.layers_body.select_range(layer_idx, frame, preclear)
+	func _select(delete: bool, preclear: bool, range: bool = false) -> void:
+		if range: timeline.layers_body.select_range(layer_idx, frame, preclear)
 		else: timeline.layers_body.manage_val(layer_idx, frame, delete, preclear)
 		timeline.layers_body.emit_selected_changed()
 	
@@ -737,6 +828,10 @@ class ClipPanel extends Panel:
 	func _on_comp_keyframe_removed(usable_res: UsableRes, prop_key: StringName, frame: int) -> void:
 		update_spacial_frames_and_update_timeline()
 		if usable_res == sound_gain_comp: _update_sound_gain_anim()
+	
+	func _on_timeline_view_updated() -> void:
+		if sound_gain_anim and _is_sound_gain_enabled():
+			queue_redraw()
 	
 	func _on_sound_gain_res_changed() -> void:
 		_update_waveform_gain()
@@ -1349,6 +1444,7 @@ class WaveformBoxContainer extends BoxContainer:
 		sound_gain_version += 1
 		
 		for index: int in range(waveform_start_index.x, waveform_end_index.x + 1):
+			MediaServer.request_waveform_tile(audio_key_as_path, index)
 			var texture: ImageTexture = waveform_textures[index]
 			if not texture_rects.has(index):
 				texture_rects[index] = _push_waveform_texture_rect()

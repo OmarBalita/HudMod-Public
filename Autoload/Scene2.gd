@@ -1,22 +1,22 @@
 #############################################################################
-##  This file is part of: HudMod Video Editor                              ##
-##  https://omar-top.itch.io/hudmod-video-editor                           ##
+##	This file is part of: HudMod Video Editor							   ##
+##	https://omar-top.itch.io/hudmod-video-editor						   ##
 ## ----------------------------------------------------------------------- ##
-##  Founded by Omar Mohammed Balita.                                       ##
-##  Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.           ##
+##	Founded by Omar Mohammed Balita.									   ##
+##	Copyright © 2026 Omar Mohammed Balita, Malek Youssef Elatek.		   ##
 ## ----------------------------------------------------------------------- ##
-##  This program is free software: you can redistribute it and/or modify   ##
-##  it under the terms of the GNU General Public License as published by   ##
-##  the Free Software Foundation, either version 3 of the License, or      ##
-##  (at your option) any later version.                                    ##
-##                                                                         ##
-##  This program is distributed in the hope that it will be useful,        ##
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of         ##
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           ##
-##  GNU General Public License for more details.                           ##
-##                                                                         ##
-##  You should have received a copy of the GNU General Public License      ##
-##  along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
+##	This program is free software: you can redistribute it and/or modify   ##
+##	it under the terms of the GNU General Public License as published by   ##
+##	the Free Software Foundation, either version 3 of the License, or	   ##
+##	(at your option) any later version.									   ##
+##																		   ##
+##	This program is distributed in the hope that it will be useful,		   ##
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of		   ##
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		   ##
+##	GNU General Public License for more details.						   ##
+##																		   ##
+##	You should have received a copy of the GNU General Public License	   ##
+##	along with this program. If not, see <https://www.gnu.org/licenses/>.  ##
 #############################################################################
 extends Node
 
@@ -102,9 +102,6 @@ func update_camera_enabling() -> void:
 func spawn_node(parent_res: MediaClipRes, clip_res: MediaClipRes, node: Node, layer_idx: int) -> void:
 	var node_parent: Node = parent_res.curr_node
 	
-	# Draw order between sibling clips is enforced by PlaybackServer._keep_draw_order;
-	# the child index can't be layer_idx because empty layers have no node and
-	# parents also hold non-clip children (Camera2D, BackBufferCopy, audio player).
 	node_parent.add_child(node)
 	
 	clip_res.curr_node = node

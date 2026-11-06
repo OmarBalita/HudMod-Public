@@ -440,8 +440,8 @@ class MediaCard extends PanelContainer:
 					button_event = null
 					media_box.is_moving = true
 	
-	func _select(delete: bool, preclear: bool, shift: bool = false) -> void:
-		if shift: media_box.media_select_cont.select_range(selection_port, get_index(), preclear)
+	func _select(delete: bool, preclear: bool, range: bool = false) -> void:
+		if range: media_box.media_select_cont.select_range(selection_port, get_index(), preclear)
 		else: media_box.media_select_cont.manage_val(selection_port, get_index(), delete, preclear)
 		media_box.media_select_cont.emit_selected_changed()
 	
