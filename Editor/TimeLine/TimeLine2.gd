@@ -110,9 +110,7 @@ var edges_nav_while_mouse_entered: bool
 var frame_start: int
 var frame_end: int
 
-#var selected_gap_layer_idx: int = -1
-#var selected_gap_start: int = -1
-#var selected_gap_end: int = -1
+var selected_gaps: Dictionary[LayerRes, Dictionary] # {layer_res: {gap_start: gap_end}}
 
 var clips_spacial_frames: PackedInt32Array
 var timemarkers_spacial_frames: PackedInt32Array
@@ -637,7 +635,7 @@ class LayersSelectContainer extends SelectContainer:
 	var move_frame_delta: int
 	var move_insert_dir: int
 
-	# var _gap_click_start_pos: Vector2
+	var _gap_click_start_pos: Vector2
 	
 	func _init(_timeline: TimeLine2) -> void:
 		timeline = _timeline
@@ -654,26 +652,27 @@ class LayersSelectContainer extends SelectContainer:
 			if event.button_index == MOUSE_BUTTON_RIGHT:
 				if event.is_released():
 					popup_options_menu()
-			# elif event.button_index == MOUSE_BUTTON_LEFT:
-			#	if event.is_pressed():
-			#		_gap_click_start_pos = event.position
-			#	elif event.position.distance_to(_gap_click_start_pos) < 4.:
-			#		_try_select_gap_at_mouse()
+			elif event.button_index == MOUSE_BUTTON_LEFT:
+				if event.is_pressed():
+					_gap_click_start_pos = event.position
+				elif event.position.distance_to(_gap_click_start_pos) < 4. and not clips_moving:
+					_handle_gap_click(event.ctrl_pressed, event.alt_pressed)
 	
-	#func _try_select_gap_at_mouse() -> void:
-	#	var layer: Layer2 = timeline.find_layer_that_contains_mouse()
-	#	if not layer:
-	#		timeline.deselect_gap()
-	#		return
-	#	 
-	#	var frame: int = timeline.get_frame_from_mouse_pos()
-	#	var gap: Vector2i = layer.get_gap_at_frame(frame)
-	#	 
-	#	if (gap.x == -1 and gap.y == -1) or gap.y == -1 or gap.y - gap.x <= 0:
-	#		timeline.deselect_gap()
-	#		return
-	#	 
-	#	timeline.select_gap(layer.layer_idx, gap.x, gap.y)
+	func _handle_gap_click(add: bool, remove: bool) -> void:
+		if timeline.edit_mode_btn.selected_id != TimeLine2.EditMode.MODE_SELECT:
+			return
+		
+		var gap_info: Dictionary = timeline.get_gap_at_mouse()
+		
+		if remove:
+			if gap_info: timeline.deselect_gap(gap_info.layer_res, gap_info.gap.x)
+			return
+		
+		if not add:
+			timeline.clear_selected_gaps()
+		
+		if gap_info:
+			timeline.select_gap(gap_info.layer_res, gap_info.gap)
 	
 	func is_moving_clips() -> bool:
 		return clips_moving
@@ -875,9 +874,9 @@ class LayersSelectContainer extends SelectContainer:
 		super(new_val)
 	
 	func delete_selected_vals() -> void:
-		#if timeline.has_gap_selected():
-			#timeline.delete_selected_gap()
-			#return
+		if timeline.has_selected_gaps():
+			timeline.delete_selected_gaps()
+			return
 		super()
 		timeline.opened_clip_res.remove_clips(clips_fordelete)
 		clips_fordelete.clear()
@@ -929,22 +928,22 @@ class LayersSelectContainer extends SelectContainer:
 	func create_parent() -> void:
 		if selected.is_empty():
 			return
-
+		
 		var min_indices: Vector2i = _get_min_indices(selected)
 		var target_layer: int = min_indices.x
 		var target_frame: int = min_indices.y
-
+		
 		var frame_end: int = target_frame
 		for port_idx: int in selected:
 			var port: Dictionary = selected[port_idx]
 			for idx: int in port:
 				frame_end = max(frame_end, idx + port[idx].length)
-
+		
 		var owner_clip_res: MediaClipRes = timeline.opened_clip_res
 		var parent_clip_res:= Display2DClipRes.new()
 		parent_clip_res._init_clip_res()
 		parent_clip_res.length = frame_end - target_frame
-
+		
 		var old_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
 		var new_peers: Dictionary[MediaClipRes, MediaClipRes] = {}
 		var old_children_by_coords: Dictionary[Vector2i, MediaClipRes] = _dictintint_to_dictvec2i(selected, 0, 0, Vector2i.ZERO, old_peers)
@@ -1237,8 +1236,8 @@ class LayersSelectContainer extends SelectContainer:
 	
 	func emit_selected_changed() -> void:
 		super()
-		#if not selected.is_empty():
-		#	timeline.deselect_gap()
+		if not selected_to_coords().is_empty() and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_ALT):
+			timeline.clear_selected_gaps()
 		
 		var selected_layers: Array[int] = selected.keys()
 		if selected_layers:
@@ -1484,6 +1483,7 @@ func open_clip_res(clip_res: MediaClipRes) -> void:
 	
 	_connect_clip_res(clip_res)
 	opened_clip_res = clip_res
+	selected_gaps.clear()
 	
 	for layer_res: LayerRes in layers:
 		layers[layer_res].queue_free()
@@ -1572,6 +1572,7 @@ func find_first_layer_contains_point(global_point: Vector2) -> Layer2:
 
 func sort_layers() -> void:
 	
+	clear_selected_gaps()
 	layers_body.clear_selectable_ports()
 	layers_body.emit_selected_changed()
 	
@@ -1617,6 +1618,7 @@ func update_layers_customization() -> void:
 		get_layer_from_idx(idx).update_customization()
 
 func update_when_clips_changed() -> void:
+	clear_selected_gaps()
 	await get_tree().process_frame
 	update_layers_clips()
 	update_layers_clips_selection()
@@ -1628,61 +1630,91 @@ func update_when_clips_changed() -> void:
 
 
 
-#func has_gap_selected() -> bool:
-#	return selected_gap_layer_idx != -1
-# 
-#func select_gap(layer_idx: int, gap_start: int, gap_end: int) -> void:
-#	selected_gap_layer_idx = layer_idx
-#	selected_gap_start = gap_start
-#	selected_gap_end = gap_end
-#	get_layer_from_idx(layer_idx).clips_panel.queue_redraw()
-# 
-#func deselect_gap() -> void:
-#	if not has_gap_selected():
-#		return
-#	var layer: Layer2 = get_layer_from_idx(selected_gap_layer_idx)
-#	selected_gap_layer_idx = -1
-#	selected_gap_start = -1
-#	selected_gap_end = -1
-#	if layer:
-#		layer.clips_panel.queue_redraw()
-# 
-#func delete_selected_gap() -> void:
-#	if not has_gap_selected() or selected_gap_end == -1:
-#		deselect_gap()
-#		return
-#	
-#	var gap_length: int = selected_gap_end - selected_gap_start
-#	if gap_length <= 0:
-#		deselect_gap()
-#		return
-#	
-#	var affect_all_layers: bool = edit_multiple_btn.selected_id == EditMultiple.EDIT_MULTIPLE
-#	
-#	var from_coords: Array[Vector2i] = []
-#	var to_coords: Array[Vector2i] = []
-#	
-#	var layers_ress: Array[LayerRes] = opened_clip_res.layers
-#	
-#	for layer_idx: int in layers_ress.size():
-#		if not affect_all_layers and layer_idx != selected_gap_layer_idx:
-#			continue
-#		if layers_ress[layer_idx].locked:
-#			continue
-#		
-#		var layer: Layer2 = get_layer_from_idx(layer_idx)
-#		for frame: int in layer.clips.keys():
-#			if frame >= selected_gap_end:
-#				from_coords.append(Vector2i(layer_idx, frame))
-#				to_coords.append(Vector2i(layer_idx, frame - gap_length))
-#	
-#	deselect_gap()
-#	
-#	if not from_coords.is_empty():
-#		opened_clip_res.move_clips(from_coords, to_coords, overlay_menu.focus_index)
- 
- 
- 
+func has_selected_gaps() -> bool:
+	return not selected_gaps.is_empty()
+
+func is_gap_selected(layer_res: LayerRes, gap_start: int) -> bool:
+	return selected_gaps.has(layer_res) and selected_gaps[layer_res].has(gap_start)
+
+func select_gap(layer_res: LayerRes, gap: Vector2i) -> void:
+	selected_gaps.get_or_add(layer_res, {})[gap.x] = gap.y
+	_redraw_layer_gaps(layer_res)
+
+func deselect_gap(layer_res: LayerRes, gap_start: int) -> void:
+	if not is_gap_selected(layer_res, gap_start):
+		return
+	selected_gaps[layer_res].erase(gap_start)
+	if selected_gaps[layer_res].is_empty():
+		selected_gaps.erase(layer_res)
+	_redraw_layer_gaps(layer_res)
+
+func clear_selected_gaps() -> void:
+	if selected_gaps.is_empty():
+		return
+	var layers_ress: Array[LayerRes] = selected_gaps.keys()
+	selected_gaps.clear()
+	for layer_res: LayerRes in layers_ress:
+		_redraw_layer_gaps(layer_res)
+
+func _redraw_layer_gaps(layer_res: LayerRes) -> void:
+	if has_layer(layer_res):
+		get_layer(layer_res).clips_panel.queue_redraw()
+
+func get_gap_at_mouse() -> Dictionary:
+	var layer: Layer2 = find_first_layer_contains_point(get_global_mouse_position())
+	if not layer:
+		return {}
+	
+	var frame: int = get_frame_from_mouse_pos()
+	var gap: Vector2i = layer.get_gap_at_frame(frame)
+	
+	if (gap.x == -1 and gap.y == -1) or gap.y == -1 or gap.y - gap.x <= 0:
+		return {}
+	
+	return {layer_res = layer.layer_res, gap = gap}
+
+func delete_selected_gaps() -> void:
+	
+	var affect_all_layers: bool = edit_multiple_btn.selected_id == EditMultiple.EDIT_MULTIPLE
+	var layers_ress: Array[LayerRes] = opened_clip_res.layers
+	var shifts: Dictionary[Vector2i, int] = {}
+	
+	for gap_layer_res: LayerRes in selected_gaps:
+		var gap_layer_idx: int = layers_ress.find(gap_layer_res)
+		if gap_layer_idx == -1:
+			continue
+		
+		var layer_gaps: Dictionary = selected_gaps[gap_layer_res]
+		for gap_start: int in layer_gaps:
+			var gap_end: int = layer_gaps[gap_start]
+			var gap_length: int = gap_end - gap_start
+			if gap_length <= 0:
+				continue
+			
+			for layer_idx: int in layers_ress.size():
+				if not affect_all_layers and layer_idx != gap_layer_idx:
+					continue
+				if layers_ress[layer_idx].locked:
+					continue
+				
+				var layer: Layer2 = get_layer_from_idx(layer_idx)
+				for frame: int in layer.clips.keys():
+					if frame >= gap_end:
+						var coord: Vector2i = Vector2i(layer_idx, frame)
+						shifts[coord] = shifts.get(coord, 0) + gap_length
+	
+	clear_selected_gaps()
+	
+	var from_coords: Array[Vector2i] = []
+	var to_coords: Array[Vector2i] = []
+	for coord: Vector2i in shifts:
+		from_coords.append(coord)
+		to_coords.append(Vector2i(coord.x, coord.y - shifts[coord]))
+	
+	if not from_coords.is_empty():
+		opened_clip_res.move_clips(from_coords, to_coords, overlay_menu.focus_index)
+
+
 func spawn_clips(clips: Dictionary[Vector2i, MediaClipRes]) -> void:
 	for coord: Vector2i in clips:
 		var clip_res: MediaClipRes = clips[coord]
@@ -1828,4 +1860,5 @@ func _on_clip_res_clips_splited(coords: Array[Vector2i], deleted_coords: Array[V
 	pass
 
 func _on_clip_res_clips_updated(coords: Array[Vector2i]) -> void:
+	clear_selected_gaps()
 	update_clips(coords)
