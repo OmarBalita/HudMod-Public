@@ -27,6 +27,10 @@ signal focus_index_changed(index: int)
 
 signal list_button_pressed(index: int)
 
+signal list_elements_remapped(index_map: Dictionary)
+signal list_element_keyframe_requested(index: int, value: Variant)
+signal list_element_editor_spawned(index: int, edit_cont: EditContainer)
+
 @export var list: Array:
 	set(val):
 		list = val
@@ -45,6 +49,10 @@ signal list_button_pressed(index: int)
 @export var can_remove_element: bool = true
 @export var can_duplicate_element: bool = true
 @export var can_change_element_priority: bool = true
+@export var list_elements_keyframable: bool = false
+
+var list_key: StringName
+var list_element_anim_owner: MediaClipRes
 
 @export_group("Theme")
 @export_subgroup("Texture")
@@ -85,6 +93,8 @@ var focus_button: Button
 var list_box_container: BoxContainer
 var controller_container: MarginContainer
 var curr_edit_cont: Control
+
+var _displayed_count: int = -1
 
 
 func _ready() -> void:
@@ -195,24 +205,35 @@ func update_display_ui() -> void:
 		
 		if index == focus_index:
 			button.button_pressed = true
+	
+	_displayed_count = list.size()
 
 
 func update_type_edit(index: int) -> void:
 	if curr_edit_cont:
 		curr_edit_cont.queue_free()
+		curr_edit_cont = null
 	
-	if not list.size():
-		return
-	if index == -1:
+	if index < 0 or index >= list.size():
+		list_element_editor_spawned.emit(-1, null)
 		return
 	
 	var curr_val: Variant = list[index]
-	var edit_cont: EditContainer = ClassServer.create_prop_editor(&"index %s" % index, curr_val)
+	var edit_cont: EditContainer
+	if curr_val is UsableRes and list_element_anim_owner:
+		var key_prefix: String = UsableRes.make_list_element_key(list_key, index) + UsableRes.LIST_ELEMENT_KEY_SEPARATOR
+		edit_cont = UsableRes.create_custom_edit("index %s" % index, curr_val, [] as Array[UsableRes], {} as Dictionary[StringName, Dictionary], null, true, list_element_anim_owner, key_prefix)
+	else:
+		edit_cont = ClassServer.create_prop_editor(&"index %s" % index, curr_val, get_list_element_editor_args(curr_val))
 	
 	if edit_cont:
+		edit_cont.keyframable = list_elements_keyframable and curr_val is not UsableRes
 		edit_cont.val_changed.connect(on_type_controller_val_changed)
+		edit_cont.keyframe_sended.connect(on_type_controller_keyframe_sended)
 		controller_container.add_child(edit_cont)
 		curr_edit_cont = edit_cont
+	
+	list_element_editor_spawned.emit(index, edit_cont)
 
 
 
@@ -240,6 +261,9 @@ func set_list(new_list: Array) -> void:
 
 func set_list_manually(new_list: Array) -> void:
 	list = new_list
+	if is_node_ready() and _displayed_count != list.size():
+		if focus_index >= list.size(): focus_index = list.size() - 1
+		update_display_ui()
 
 func set_button_display(index: int, value: Variant, button: Button, ready_update: bool) -> void:
 	var is_dynamic = types.size() != 1
@@ -266,10 +290,12 @@ func set_button_display(index: int, value: Variant, button: Button, ready_update
 		button.icon = display_icon
 
 func add_element(element: Variant, index: int, emit_changes: bool = true) -> void:
+	var size_before: int = list.size()
 	var absolute_new_index: int = get_absolute_index(index)
 	if on_element_entered.is_valid():
 		on_element_entered.call(absolute_new_index, element)
 	list.insert(absolute_new_index, element)
+	list_elements_remapped.emit(make_insert_index_map(size_before, absolute_new_index))
 	focus_index = index
 	if emit_changes:
 		list_changed.emit()
@@ -277,10 +303,15 @@ func add_element(element: Variant, index: int, emit_changes: bool = true) -> voi
 func remove_element(index: int, emit_changes: bool = true) -> void:
 	if list.size() <= min_elements_count:
 		return
-	list.remove_at(index)
+	_remove_element_at(index)
 	focus_index = get_absolute_index(index - 1)
 	if emit_changes:
 		list_changed.emit()
+
+func _remove_element_at(index: int) -> void:
+	var size_before: int = list.size()
+	list.remove_at(index)
+	list_elements_remapped.emit(make_remove_index_map(size_before, index))
 
 func duplicate_element(index: int) -> void:
 	if index > list.size() - 1:
@@ -294,10 +325,17 @@ func move_element(index: int, new_index: int) -> void:
 	if index == -1 or (not index and new_index < index) or (index >= list.size() - 1 and new_index > index):
 		return
 	
+	var size_before: int = list.size()
 	var element = list[index]
-	
-	remove_element(index, false)
-	add_element(element, new_index, false)
+
+	list.remove_at(index)
+	var absolute_new_index: int = get_absolute_index(new_index)
+	if on_element_entered.is_valid():
+		on_element_entered.call(absolute_new_index, element)
+	list.insert(absolute_new_index, element)
+
+	list_elements_remapped.emit(make_move_index_map(size_before, index, absolute_new_index))
+	focus_index = new_index
 	list_changed.emit()
 
 func replace_element(index: int, value: Variant) -> void:
@@ -369,8 +407,46 @@ func on_move_down_button_pressed() -> void:
 	move_element(focus_index, focus_index + 1)
 
 
-func on_type_controller_val_changed(usable_res: UsableRes, prop_key: StringName, new_val: Variant) -> void:
-	if prop_key.is_empty():
-		edit_element(focus_index, new_val)
+func on_type_controller_val_changed(new_val: Variant) -> void:
+	edit_element(focus_index, new_val)
 	list_val_changed.emit(focus_index, new_val)
 
+func on_type_controller_keyframe_sended(value: Variant) -> void:
+	list_element_keyframe_requested.emit(focus_index, value)
+
+
+static func make_insert_index_map(size_before: int, at: int) -> Dictionary[int, int]:
+	var index_map: Dictionary[int, int] = {}
+	for index: int in size_before:
+		index_map[index] = index if index < at else index + 1
+	return index_map
+
+# Builtin values editors need their controller args (value first), like an exported prop.
+static func get_list_element_editor_args(value: Variant) -> Array:
+	match typeof(value):
+		TYPE_BOOL: return UsableRes.bool_args(value)
+		TYPE_INT: return UsableRes.int_args(value)
+		TYPE_FLOAT: return UsableRes.float_args(value)
+		TYPE_STRING: return UsableRes.string_args(value)
+		TYPE_VECTOR2: return UsableRes.vec2_args(value)
+		TYPE_VECTOR3: return UsableRes.vec3_args(value)
+		TYPE_COLOR: return UsableRes.color_args(value)
+	return []
+
+static func make_move_index_map(size_before: int, from: int, to: int) -> Dictionary[int, int]:
+	var order: Array[int] = []
+	for index: int in size_before:
+		order.append(index)
+	order.remove_at(from)
+	order.insert(to, from)
+	var index_map: Dictionary[int, int] = {}
+	for new_index: int in order.size():
+		index_map[order[new_index]] = new_index
+	return index_map
+
+static func make_remove_index_map(size_before: int, at: int) -> Dictionary[int, int]:
+	var index_map: Dictionary[int, int] = {}
+	for index: int in size_before:
+		if index == at: continue
+		index_map[index] = index if index < at else index - 1
+	return index_map

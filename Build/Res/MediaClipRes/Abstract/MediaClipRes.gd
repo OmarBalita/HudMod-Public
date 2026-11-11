@@ -315,7 +315,7 @@ func _push_animation_result_method(usable_res: UsableRes, prop_key: StringName, 
 	usable_res.set_prop(prop_key, anim_res.sample_func.call(abs_frame))
 
 func sample_or_get(usable_res: UsableRes, prop_key: StringName, abs_frame: int) -> Variant:
-	return get_animation(usable_res, prop_key).sample_func.call(abs_frame) if has_animation(usable_res, prop_key) else usable_res.get(prop_key)
+	return get_animation(usable_res, prop_key).sample_func.call(abs_frame) if has_animation(usable_res, prop_key) else usable_res.get_prop(prop_key)
 
 func get_animation(usable_res: UsableRes, property_key: StringName) -> AnimationRes:
 	return animations[usable_res][property_key]
@@ -354,6 +354,43 @@ func remove_animation_absolute(usable_res: UsableRes, property_key: StringName) 
 		shared_data_clear()
 		if res_section.size() == 0:
 			animations.erase(res_section)
+
+func set_animation_absolute(usable_res: UsableRes, property_key: StringName, anim_res: AnimationRes) -> void:
+	var res_section: Dictionary = animations.get_or_add(usable_res, {})
+	res_section[property_key] = anim_res
+	for profile: CurveProfile in anim_res.profiles:
+		if not profile.res_changed.is_connected(update): profile.res_changed.connect(update)
+		if not profile.res_changed.is_connected(update_editors_by_animations_here): profile.res_changed.connect(update_editors_by_animations_here)
+	animation_res_added.emit(usable_res, property_key, anim_res)
+	shared_data_clear()
+
+func get_list_element_animations(usable_res: UsableRes, list_key: StringName) -> Dictionary[StringName, AnimationRes]:
+	var result: Dictionary[StringName, AnimationRes] = {}
+	var res_section: Dictionary = animations.get(usable_res, {})
+	for prop_key: StringName in res_section:
+		if UsableRes.is_list_element_key(prop_key) and UsableRes.list_element_key_get_list_key(prop_key) == list_key:
+			result[prop_key] = res_section[prop_key]
+	return result
+
+func remap_list_element_animations(usable_res: UsableRes, list_key: StringName, index_map: Dictionary) -> Dictionary[StringName, AnimationRes]:
+	var old_anims: Dictionary[StringName, AnimationRes] = get_list_element_animations(usable_res, list_key)
+	if old_anims.is_empty(): return old_anims
+	for prop_key: StringName in old_anims:
+		remove_animation_absolute(usable_res, prop_key)
+	for prop_key: StringName in old_anims:
+		var old_index: int = UsableRes.list_element_key_get_index(prop_key)
+		if not index_map.has(old_index): continue
+		var sub_key: StringName = UsableRes.list_element_key_get_sub_key(prop_key)
+		set_animation_absolute(usable_res, UsableRes.make_list_element_sub_key(list_key, index_map[old_index], sub_key), old_anims[prop_key])
+	update_editors_by_animations_here()
+	return old_anims
+
+func restore_list_element_animations(usable_res: UsableRes, list_key: StringName, anims: Dictionary[StringName, AnimationRes]) -> void:
+	for prop_key: StringName in get_list_element_animations(usable_res, list_key):
+		remove_animation_absolute(usable_res, prop_key)
+	for prop_key: StringName in anims:
+		set_animation_absolute(usable_res, prop_key, anims[prop_key])
+	update_editors_by_animations_here()
 
 func request_animation_keyframe(usable_res: UsableRes, property_key: StringName, property_val: Variant, frame: Variant = null, can_remove: bool = true, undoredo: bool = true) -> void:
 	frame = get_frame_or_curr_frame(frame)

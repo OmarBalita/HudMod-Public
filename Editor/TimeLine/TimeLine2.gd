@@ -634,8 +634,6 @@ class LayersSelectContainer extends SelectContainer:
 	var move_layer_delta: int
 	var move_frame_delta: int
 	var move_insert_dir: int
-
-	var _gap_click_start_pos: Vector2
 	
 	func _init(_timeline: TimeLine2) -> void:
 		timeline = _timeline
@@ -653,9 +651,7 @@ class LayersSelectContainer extends SelectContainer:
 				if event.is_released():
 					popup_options_menu()
 			elif event.button_index == MOUSE_BUTTON_LEFT:
-				if event.is_pressed():
-					_gap_click_start_pos = event.position
-				elif event.position.distance_to(_gap_click_start_pos) < 4. and not clips_moving:
+				if event.is_released() and event.position.distance_to(mouseevent_startpos) < 4. and not clips_moving:
 					_handle_gap_click(event.ctrl_pressed, event.alt_pressed)
 	
 	func _handle_gap_click(add: bool, remove: bool) -> void:
@@ -714,7 +710,7 @@ class LayersSelectContainer extends SelectContainer:
 		if alt_now != drag_duplicate:
 			drag_duplicate = alt_now
 			_set_moving_clips_modulate(Color.WHITE if alt_now else Color.TRANSPARENT)
-
+		
 		if target_layer_idx != -1:
 			var selectables_keys: Array[int] = selectables.keys()
 			move_layer_delta = target_layer_idx - move_start_coords.x
@@ -1308,7 +1304,6 @@ class LayersSelectContainer extends SelectContainer:
 		
 		return new_dict
 	
-	# Maps the originals and their other copies (from other_peers) to the copies in target_peers.
 	func _build_refs_map(target_peers: Dictionary[MediaClipRes, MediaClipRes], other_peers: Dictionary[MediaClipRes, MediaClipRes]) -> Dictionary[MediaClipRes, MediaClipRes]:
 		var refs_map: Dictionary[MediaClipRes, MediaClipRes] = {}
 		for orig: MediaClipRes in target_peers:
@@ -1677,33 +1672,32 @@ func delete_selected_gaps() -> void:
 	
 	var affect_all_layers: bool = edit_multiple_btn.selected_id == EditMultiple.EDIT_MULTIPLE
 	var layers_ress: Array[LayerRes] = opened_clip_res.layers
-	var shifts: Dictionary[Vector2i, int] = {}
+	var free_shifts: Dictionary[Vector2i, int] = {}
 	
 	for gap_layer_res: LayerRes in selected_gaps:
 		var gap_layer_idx: int = layers_ress.find(gap_layer_res)
-		if gap_layer_idx == -1:
-			continue
+		var target_layers: Array = range(layers_ress.size()) if affect_all_layers else [gap_layer_idx]
 		
-		var layer_gaps: Dictionary = selected_gaps[gap_layer_res]
-		for gap_start: int in layer_gaps:
-			var gap_end: int = layer_gaps[gap_start]
-			var gap_length: int = gap_end - gap_start
-			if gap_length <= 0:
-				continue
+		for gap_start: int in selected_gaps[gap_layer_res]:
+			var gap_end: int = selected_gaps[gap_layer_res][gap_start]
 			
-			for layer_idx: int in layers_ress.size():
-				if not affect_all_layers and layer_idx != gap_layer_idx:
-					continue
-				if layers_ress[layer_idx].locked:
+			for layer_idx: int in target_layers:
+				if layer_idx == -1 or layers_ress[layer_idx].locked:
 					continue
 				
-				var layer: Layer2 = get_layer_from_idx(layer_idx)
-				for frame: int in layer.clips.keys():
-					if frame >= gap_end:
-						var coord: Vector2i = Vector2i(layer_idx, frame)
-						shifts[coord] = shifts.get(coord, 0) + gap_length
+				var free: Vector2i = get_layer_from_idx(layer_idx).get_gap_at_frame(gap_end - 1)
+				var key: Vector2i = Vector2i(layer_idx, free.y)
+				free_shifts[key] = mini(free_shifts.get(key, 0) + gap_end - gap_start, free.y - free.x)
 	
 	clear_selected_gaps()
+	
+	var shifts: Dictionary[Vector2i, int] = {}
+	for key: Vector2i in free_shifts:
+		if free_shifts[key] > 0:
+			for frame: int in get_layer_from_idx(key.x).clips:
+				if frame >= key.y:
+					var coord: Vector2i = Vector2i(key.x, frame)
+					shifts[coord] = shifts.get(coord, 0) + free_shifts[key]
 	
 	var from_coords: Array[Vector2i] = []
 	var to_coords: Array[Vector2i] = []

@@ -60,10 +60,57 @@ func _set_prop(property_key: StringName, property_val: Variant) -> void:
 	call(properties[property_key].s, property_key, property_val)
 
 func get_prop(property_key: StringName) -> Variant:
+	if is_list_element_key(property_key):
+		var list: Variant = get_prop_func.call(list_element_key_get_list_key(property_key))
+		var index: int = list_element_key_get_index(property_key)
+		if not (list is Array and index >= 0 and index < list.size()):
+			return null
+		var sub_key: StringName = list_element_key_get_sub_key(property_key)
+		if sub_key.is_empty():
+			return list[index]
+		var element: Variant = list[index]
+		return element.get_prop(sub_key) if element is UsableRes else null
 	return get_prop_func.call(property_key)
 
 func set_prop(property_key: StringName, property_val: Variant) -> void:
+	if is_list_element_key(property_key):
+		var list: Variant = get_prop_func.call(list_element_key_get_list_key(property_key))
+		var index: int = list_element_key_get_index(property_key)
+		if not (list is Array and index >= 0 and index < list.size()): return
+		var sub_key: StringName = list_element_key_get_sub_key(property_key)
+		if sub_key.is_empty():
+			list[index] = property_val
+			return
+		var element: Variant = list[index]
+		if element is UsableRes:
+			element.set_prop(sub_key, property_val)
+		return
 	set_prop_func.call(property_key, property_val)
+
+
+const LIST_ELEMENT_KEY_SEPARATOR: String = ":"
+
+static func make_list_element_key(list_key: StringName, index: int) -> StringName:
+	return StringName("%s%s%d" % [list_key, LIST_ELEMENT_KEY_SEPARATOR, index])
+
+static func is_list_element_key(key: StringName) -> bool:
+	return key.contains(LIST_ELEMENT_KEY_SEPARATOR)
+
+static func list_element_key_get_list_key(key: StringName) -> StringName:
+	return StringName(key.get_slice(LIST_ELEMENT_KEY_SEPARATOR, 0))
+
+static func list_element_key_get_index(key: StringName) -> int:
+	return key.get_slice(LIST_ELEMENT_KEY_SEPARATOR, 1).to_int()
+
+static func make_list_element_sub_key(list_key: StringName, index: int, sub_key: StringName) -> StringName:
+	var list_element_key: StringName = make_list_element_key(list_key, index)
+	if sub_key.is_empty():
+		return list_element_key
+	return StringName("%s%s%s" % [list_element_key, LIST_ELEMENT_KEY_SEPARATOR, sub_key])
+
+static func list_element_key_get_sub_key(key: StringName) -> StringName:
+	var parts: PackedStringArray = key.split(LIST_ELEMENT_KEY_SEPARATOR, true, 2)
+	return StringName(parts[2]) if parts.size() > 2 else &""
 
 func set_prop_and_emit(property_key: StringName, property_val: Variant) -> void:
 	set_prop(property_key, property_val)
@@ -99,7 +146,7 @@ func _custom_editor_spawned(edit_cont: EditContainer, props_editors: Dictionary[
 const TYPES_UNANIMATABLES: Array[int] = [TYPE_ARRAY, TYPE_OBJECT]
 const TYPES_HAVE_SCROLL_CONTROLLERS: Array[StringName] = [&"float", &"int", &"Color", &"Vector2", &"Vector3"]
 
-static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], custom_exported_props: Dictionary[StringName, Dictionary] = {}, search_line_edit: LineEdit = null, is_vertical: bool = true) -> EditContainer:
+static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress: Array[UsableRes] = [], custom_exported_props: Dictionary[StringName, Dictionary] = {}, search_line_edit: LineEdit = null, is_vertical: bool = true, anim_owner: MediaClipRes = null, key_prefix: String = "") -> EditContainer:
 	
 	var usable_res_script: Script = usable_res.get_script()
 	
@@ -134,7 +181,8 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	
 	var properties_controls: Dictionary[StringName, Control] = {}
 	
-	edit_cont.tree_entered.connect(EditorServer.usable_ress_editors_register_editor.bind(usable_res, usable_ress, edit_cont, properties_controls, ui_profile))
+	if anim_owner: edit_cont.tree_entered.connect(EditorServer.usable_ress_editors_register_editor.bind(anim_owner, [anim_owner] as Array[UsableRes], edit_cont, properties_controls, ui_profile))
+	else: edit_cont.tree_entered.connect(EditorServer.usable_ress_editors_register_editor.bind(usable_res, usable_ress, edit_cont, properties_controls, ui_profile))
 	
 	const UI_COND_RESULT: Array = [true]
 	
@@ -200,7 +248,8 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 			if prop_edit_cont:
 				var is_type_animatable: bool = typeof(val) not in TYPES_UNANIMATABLES
 				var changeable: bool = is_type_animatable and ctrlr_info.keyframable
-				var keyframable: bool = changeable and (usable_res_inh.has(&"ComponentRes") or usable_res_inh.has(&"MediaClipRes"))
+				var keyframable: bool = changeable and (anim_owner != null or usable_res_inh.has(&"ComponentRes") or usable_res_inh.has(&"MediaClipRes"))
+				var full_key: StringName = StringName(key_prefix + key)
 				
 				prop_edit_cont.default_val = ClassServer.classname_get_property_default_value(usable_res.get_classname(), key)
 				
@@ -209,20 +258,35 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 				prop_edit_cont.resetable = changeable
 				prop_edit_cont.copypast = changeable
 				
-				properties_controls[key] = prop_edit_cont
+				properties_controls[full_key] = prop_edit_cont
 				
-				prop_edit_cont.val_changed.connect(
-					func(new_value: Variant) -> void:
-						_handle_prop_value_changed(key, new_value, usable_res, usable_ress)
-						ui_profile.update()
-				)
-				
-				if keyframable:
-					prop_edit_cont.keyframe_sended.connect(
+				if anim_owner:
+					prop_edit_cont.val_changed.connect(
 						func(new_value: Variant) -> void:
-							for _usable_res: UsableRes in usable_ress:
-								_usable_res.request_animation_keyframe(_usable_res, key, new_value)
+							_handle_prop_value_changed(full_key, new_value, anim_owner, [anim_owner] as Array[UsableRes])
+							ui_profile.update()
 					)
+					if keyframable:
+						prop_edit_cont.keyframe_sended.connect(
+							func(new_value: Variant) -> void:
+								anim_owner.request_animation_keyframe(anim_owner, full_key, new_value)
+						)
+				
+				else:
+					prop_edit_cont.val_changed.connect(
+						func(new_value: Variant) -> void:
+							_handle_prop_value_changed(key, new_value, usable_res, usable_ress)
+							ui_profile.update()
+					)
+					if keyframable:
+						prop_edit_cont.keyframe_sended.connect(
+							func(new_value: Variant) -> void:
+								for _usable_res: UsableRes in usable_ress:
+									_usable_res.request_animation_keyframe(_usable_res, key, new_value)
+						)
+				
+				if not anim_owner and typeof(val) == TYPE_ARRAY and prop_edit_cont.controller is ListController:
+					_setup_list_elements_keyframing(key, prop_edit_cont.controller, usable_res, usable_ress, usable_res_inh, ctrlr_info, ctrlr_args, properties_controls)
 				
 				curr_box_container.add_child(prop_edit_cont)
 				control = prop_edit_cont
@@ -256,6 +320,64 @@ static func create_custom_edit(name: String, usable_res: UsableRes, usable_ress:
 	
 	return edit_cont
 
+
+static func _setup_list_elements_keyframing(list_key: StringName, list_controller: ListController, usable_res: UsableRes, usable_ress: Array[UsableRes], usable_res_inh: Array[StringName], ctrlr_info: Dictionary, ctrlr_args: Array, properties_controls: Dictionary[StringName, Control]) -> void:
+	if not ctrlr_info.keyframable: return
+	if not (usable_res_inh.has(&"ComponentRes") or usable_res_inh.has(&"MediaClipRes")): return
+	var list_element_classname: StringName = ctrlr_args[1]
+	var list_element_type: int = ClassServer.CLASSNAME_BUILTIN_REVERSE_MAP.get(list_element_classname, TYPE_NIL)
+	
+	if not AnimationRes.funcs_indexer.has(list_element_type):
+		if not ClassServer.classname_get_inh(list_element_classname).has(&"UsableRes"): return
+		var owner_clip_res: MediaClipRes = _get_usable_res_clip_res(usable_res)
+		if not owner_clip_res: return
+		list_controller.list_key = list_key
+		list_controller.list_element_anim_owner = owner_clip_res
+		list_controller.list_element_editor_spawned.connect(
+			func(index: int, edit_cont: EditContainer) -> void:
+				if edit_cont: owner_clip_res.update_specific_editors(owner_clip_res, owner_clip_res.curr_frame + owner_clip_res.from)
+		)
+		list_controller.list_elements_remapped.connect(
+			func(index_map: Dictionary) -> void:
+				owner_clip_res.remap_list_element_animations(owner_clip_res, list_key, index_map)
+		)
+		return
+	
+	list_controller.list_elements_keyframable = true
+	
+	list_controller.list_val_changed.connect(
+		func(index: int, new_val: Variant) -> void:
+			var list_element_key: StringName = make_list_element_key(list_key, index)
+			for _usable_res: UsableRes in usable_ress:
+				_usable_res.set_prop_and_emit(list_element_key, new_val)
+	)
+	list_controller.list_element_keyframe_requested.connect(
+		func(index: int, value: Variant) -> void:
+			var list_element_key: StringName = make_list_element_key(list_key, index)
+			for _usable_res: UsableRes in usable_ress:
+				_usable_res.request_animation_keyframe(_usable_res, list_element_key, value)
+	)
+	list_controller.list_element_editor_spawned.connect(
+		func(index: int, edit_cont: EditContainer) -> void:
+			for prop_key: StringName in properties_controls.keys():
+				if is_list_element_key(prop_key) and list_element_key_get_list_key(prop_key) == list_key:
+					properties_controls.erase(prop_key)
+			if edit_cont == null: return
+			var list_element_key: StringName = make_list_element_key(list_key, index)
+			properties_controls[list_element_key] = edit_cont
+			var clip_res: MediaClipRes = _get_usable_res_clip_res(usable_res)
+			if clip_res: clip_res.update_prop_editors(usable_res, list_element_key, clip_res.curr_frame + clip_res.from)
+	)
+	list_controller.list_elements_remapped.connect(
+		func(index_map: Dictionary) -> void:
+			for _usable_res: UsableRes in usable_ress:
+				var clip_res: MediaClipRes = _get_usable_res_clip_res(_usable_res)
+				if clip_res: clip_res.remap_list_element_animations(_usable_res, list_key, index_map)
+	)
+
+static func _get_usable_res_clip_res(usable_res: UsableRes) -> MediaClipRes:
+	if usable_res is MediaClipRes: return usable_res
+	return usable_res.get(&"owner")
 
 static func _handle_prop_value_changed(property_key: StringName, new_value: Variant, usable_res: UsableRes, usable_ress: Array[UsableRes] = []) -> void:
 	var owner_usable_res_idx: int = usable_ress.find(usable_res)

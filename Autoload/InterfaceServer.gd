@@ -680,7 +680,7 @@ func create_options_controller_2(val: int, options: Dictionary) -> OptionControl
 	set_icon_colors(ctrlr)
 	var options_result: Array
 	for option_text: String in options:
-		options_result.append(MenuOption.new(option_text))
+		options_result.append(MenuOption.new(option_text.to_lower().capitalize()))
 	ctrlr.icon = TEXTURE_DOWN
 	ctrlr.options = options_result
 	ctrlr.selected_id = val

@@ -630,7 +630,6 @@ func popup_version_panel() -> void:
 	version_label.add_theme_color_override(&"font_color", Color.BLACK)
 	
 	var close_btn: IS.CustomTextureButton = IS.create_texture_button(preload("res://Asset/Icons/close.png"))
-	close_btn.visible = ProjectServer2.is_project_loaded
 	close_btn.custom_minimum_size = Vector2(16., 16.)
 	close_btn.ignore_texture_size = true
 	close_btn.stretch_mode = TextureButton.STRETCH_SCALE
@@ -726,6 +725,8 @@ func popup_version_panel() -> void:
 			if ProjectServer2.is_project_loaded:
 				main.freeze_rect.hide()
 				version_window.queue_free()
+			else:
+				get_tree().quit()
 	)
 
 

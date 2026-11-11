@@ -95,10 +95,10 @@ func _ready() -> void:
 
 
 func get_clip(frame: int) -> MediaServer.ClipPanel:
-	return clips[frame]
+	return clips.get(frame)
 
 func get_locked_clip(frame: int) -> MediaServer.ClipPanel:
-	return locked_clips[frame]
+	return locked_clips.get(frame)
 
 func get_gap_at_frame(frame: int) -> Vector2i:
 	var sorted_frames: PackedInt32Array = PackedInt32Array(clips.keys())
@@ -107,15 +107,15 @@ func get_gap_at_frame(frame: int) -> Vector2i:
 	var gap_start: int = 0
 	var gap_end: int = -1
 	
-	for f: int in sorted_frames:
-		var clip_res: MediaClipRes = clips[f].clip_res
-		var clip_end: int = f + clip_res.length
+	for sorted_frame: int in sorted_frames:
+		var clip_res: MediaClipRes = clips[sorted_frame].clip_res
+		var clip_end: int = sorted_frame + clip_res.length
 		
-		if frame >= f and frame < clip_end:
+		if frame >= sorted_frame and frame < clip_end:
 			return Vector2i(-1, -1)
 		
-		if frame < f:
-			gap_end = f
+		if frame < sorted_frame:
+			gap_end = sorted_frame
 			break
 		
 		gap_start = clip_end
